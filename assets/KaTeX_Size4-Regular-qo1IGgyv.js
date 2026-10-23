@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2`;export{e as default};

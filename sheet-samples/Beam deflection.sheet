@@ -1,0 +1,19 @@
+<!--sheet-->
+# Simply supported beam: deflection under a uniform load
+
+The mid-span deflection is $d_{max} = 5 q l^4 / (384 E I)$ and the rotation at a support is
+$\varphi_{max} = q l^3 / (24 E I)$.
+
+## Inputs
+l: 6 m | beam length
+q: 30 kN/m | uniform load
+I: 160000 cm^4 | second moment of area
+E: 30 GPa | modulus of elasticity
+
+## Results
+EI: E * I -> kN*m^2 | flexural rigidity
+d_max: 5 * q * l^4 / (384 * EI) -> mm | maximum deflection, at mid-span
+phi_max: q * l^3 / (24 * EI) | maximum rotation at a support, in radians
+d(x): q / EI * (x^4 / 24 - l * x^3 / 12 + l^3 / 24 * x) | deflection along the beam
+
+plot -d(x * 1 m) / (1 mm) for x in 0..l / (1 m)

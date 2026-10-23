@@ -1,0 +1,31 @@
+"Plotting a function with matplotlib
+'A <b>#python</b> block draws a damped oscillation and a bar chart side by side with matplotlib, and exports the peak value as <i>y_peak</i> for the line after the block.
+#python
+import numpy as np
+import matplotlib.pyplot as plt
+
+t = np.linspace(0, 10, 200)
+y = np.exp(-0.3 * t) * np.cos(2.0 * t)
+k = int(np.argmax(y))
+y_peak = float(y.max())
+print("Peak", round(y_peak, 4), "at t =", round(float(t[k]), 3))
+
+fig, (left, right) = plt.subplots(1, 2, figsize=(9, 3.4))
+left.plot(t, y, "b-", label="exp(-0.3 t) cos(2 t)")
+left.axhline(0, color="gray", linestyle="--")
+left.set_xlabel("t")
+left.set_ylabel("y")
+left.set_title("Damped oscillation")
+left.grid(True)
+left.legend()
+right.bar([1, 2, 3, 4], [4.0, 2.5, 3.2, 1.1], color="orange")
+right.set_xlabel("case")
+right.set_ylabel("value")
+right.set_title("Bar chart")
+plt.show()
+
+export(y_peak=y_peak)
+#end python
+"Using the exported value
+y_peak
+decay = 1 - y_peak

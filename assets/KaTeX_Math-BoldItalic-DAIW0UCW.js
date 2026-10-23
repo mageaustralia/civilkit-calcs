@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2`;export{e as default};

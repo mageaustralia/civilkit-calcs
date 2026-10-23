@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_Script-Regular-D3wIWfF6.woff2`;export{e as default};

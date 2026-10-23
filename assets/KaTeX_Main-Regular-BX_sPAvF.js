@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_Main-Regular-B22Nviop.woff2`;export{e as default};

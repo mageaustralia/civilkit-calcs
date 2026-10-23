@@ -1,0 +1,17 @@
+"Centroid and second moment of area of a built-up section
+'The parts of a built-up section are vectors: widths, heights and centroid heights above the base. <i>hprod</i> multiplies them part by part, and the parallel axis theorem gives the second moment of area. Units carry through, so the centroid comes out in mm and the stress in MPa.
+"Parts
+b = [200; 12; 150]*1mm
+h = [16; 300; 20]*1mm
+y = [8; 166; 324]*1mm
+"Section properties
+A = hprod(b; h)
+A_tot = sum(A)
+y_c = sum(hprod(A; y))/A_tot
+d = y - y_c
+I_own = hprod(b; hprod(h; hprod(h; h)))/12
+I_x = sum(I_own) + sum(hprod(A; hprod(d; d)))
+"Bending stress
+M = 40kN*m
+y_t = 340mm - y_c
+σ = M*y_t/I_x|MPa

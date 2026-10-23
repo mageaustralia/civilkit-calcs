@@ -1,0 +1,29 @@
+<!--sheet-->
+# Sheet lines and Calcpad code together
+
+Sheet lines can define values that a raw Calcpad block reads, and the block can define
+values that sheet lines read afterwards. Lines starting with `>>` and fenced `calcpad`
+blocks are passed to the engine as they are.
+
+n: 3 | number of bays
+bay: 2.5 m | bay width
+phi: 0.9
+
+>> total = 0 m
+```calcpad
+#for i = 1 : n
+    total = total + bay
+#loop
+```
+
+Total length from the Calcpad loop, used by a sheet line:
+frame_length: total * 1 -> m
+
+## Friendly loops and conditions
+
+for k in 1..3:
+    P: 10 kN * k | load at stage $k$
+    if k >= 2:
+        flag: k
+    else:
+        Stage one.

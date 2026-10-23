@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_Math-Italic-t53AETM-.woff2`;export{e as default};

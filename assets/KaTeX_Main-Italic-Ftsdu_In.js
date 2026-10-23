@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2`;export{e as default};

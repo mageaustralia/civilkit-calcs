@@ -1,0 +1,18 @@
+<!--sheet-->
+# Bending stress with LaTeX prose
+
+The elastic bending stress at the extreme fibre is
+
+$$\sigma = \frac{M\,y}{I}$$
+
+where $M$ is the moment, $y$ the distance to the fibre and $I$ the second moment of area.
+
+## Inputs
+M: 54 kN*m | bending moment
+y: 150 mm | distance to the extreme fibre
+I: 8.5e7 mm^4 | second moment of area
+
+## Stress
+sigma: M * y / I -> MPa | $\sigma = M y / I$
+
+if sigma <= 165 MPa: "Within the limit $\sigma \le 165$ MPa." else: "Over the limit."

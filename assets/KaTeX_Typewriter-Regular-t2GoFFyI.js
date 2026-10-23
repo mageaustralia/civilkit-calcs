@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2`;export{e as default};

@@ -1,0 +1,19 @@
+<!--sheet-->
+# Short column in compression
+
+An axially loaded short column, written with plain `name: expression` lines.
+Several quantities can share a line when separated by `;`.
+
+## Inputs
+Ag: 7.5e3 mm² | gross area
+fy: 350 MPa | yield strength
+Nstar: 1200 kN | design axial load
+phi: 0.85; lambda: 0.8 | capacity and slenderness factors
+
+## Capacity
+Nc: Ag * fy -> kN | squash load
+phiN: phi * lambda * Nc -> kN | design capacity
+
+## Check
+utilisation: Nstar / phiN
+if utilisation <= 1: "OK" else: "Fails"

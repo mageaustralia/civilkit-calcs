@@ -1,0 +1,23 @@
+<!--sheet-->
+# Beam bending check
+
+A simply supported beam under a uniform load. The units are real, so the moment
+**comes out in kN·m** because the engine tracks them.
+
+## Inputs
+L: 6 m | span
+w: 12 kN/m | design uniform load
+fy: 300 MPa | yield strength of the steel
+Ze: 1.23e6 mm³ | effective section modulus
+phi: 0.9 | capacity factor
+
+## Design action
+Mstar: w * L^2 / 8 -> kN*m | maximum bending moment at mid-span
+
+## Capacity
+Ms: fy * Ze -> kN*m | section moment capacity
+phiMs: phi * Ms -> kN*m | design capacity
+
+## Check
+utilisation: Mstar / phiMs
+if utilisation <= 1: "OK: the beam passes in bending." else: "Fails: increase the section."

@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2`;export{e as default};

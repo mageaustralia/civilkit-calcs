@@ -1,0 +1,25 @@
+<!--sheet-->
+# Loads on a floor
+
+| Action | Symbol | Value |
+|---|---|---|
+| Permanent | G | 4.5 kPa |
+| Imposed | Q | 3 kPa |
+
+G: 4.5 kPa
+Q: 3 kPa
+span: 5 m | beam span
+spacing: 2.4 m | beam spacing
+
+## Combinations
+w_uls: 1.2 * G + 1.5 * Q -> kPa | strength combination
+w_sls: G + 0.7 * Q -> kPa | serviceability combination
+
+## Line load on one beam
+q_uls: w_uls * spacing -> kN/m
+Mstar: q_uls * span^2 / 8 -> kN*m
+
+Vectors and matrices use brackets: columns are separated by commas, rows by semicolons.
+
+forces: [10, 20, 30]
+K: [2, -1; -1, 2]

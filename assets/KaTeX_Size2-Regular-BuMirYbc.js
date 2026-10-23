@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2`;export{e as default};

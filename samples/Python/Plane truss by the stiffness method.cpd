@@ -1,0 +1,160 @@
+"Plane truss by the stiffness method
+'A statically determinate plane truss (5 joints, 7 members, a pin at joint 1 and a roller at joint 3) is analysed in a <b>#python</b> block with the direct stiffness method. The block builds the 4 by 4 stiffness matrix of each member in a loop, adds it into the global matrix, removes the supported degrees of freedom, solves <i>K u = F</i> with <b>np.linalg.solve</b>, and then recovers the member forces and the support reactions from the displacements. Tension is positive.
+'<p><b>Data.</b> Joints in m: 1 (0, 0), 2 (4, 0), 3 (8, 0), 4 (2, 3), 5 (6, 3). Chords (members 1-2, 2-3, 4-5): A = 1200 mm<sup>2</sup>. Diagonals (1-4, 4-2, 2-5, 5-3): A = 800 mm<sup>2</sup>. Steel, E = 200 GPa. Loads: joint 4 has 20 kN to the right and 40 kN down, joint 5 has 60 kN down, joint 2 has 80 kN down. Change the numbers at the top of the block and the whole sheet follows. Python cannot read Calcpad variables yet, so this data lives in the block.</p>
+"Python: assemble, solve, recover
+#python
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ---- Data. Units: m, kN, mm^2, GPa ----------------------------------------
+nodes = [(0.0, 0.0), (4.0, 0.0), (8.0, 0.0), (2.0, 3.0), (6.0, 3.0)]     # joint 1..5
+A_chord, A_diag = 1200.0, 800.0                                          # mm^2
+members = [(0, 1, A_chord), (1, 2, A_chord), (3, 4, A_chord),            # (from, to, area), joints counted from 0
+           (0, 3, A_diag), (3, 1, A_diag), (1, 4, A_diag), (4, 2, A_diag)]
+E_GPa = 200.0
+loads = {3: (20.0, -40.0), 4: (0.0, -60.0), 1: (0.0, -80.0)}            # joint: (Fx, Fy), kN
+fixed = [0, 1, 5]        # degrees of freedom held: joint 1 x and y (pin), joint 3 y (roller). DOF of joint j: 2j, 2j+1
+
+n_dof = 2 * len(nodes)
+
+# ---- 1. Assemble the global stiffness matrix K (kN/m) -----------------------
+# EA in kN is E[GPa] * A[mm^2], because 1 GPa * 1 mm^2 = 1 kN.
+K = [[0.0] * n_dof for _ in range(n_dof)]
+geometry = []                                    # length and direction cosines of each member
+for i, j, area in members:
+    dx = nodes[j][0] - nodes[i][0]
+    dy = nodes[j][1] - nodes[i][1]
+    L = math.sqrt(dx * dx + dy * dy)
+    c, s = dx / L, dy / L
+    geometry.append((L, c, s))
+    k = E_GPa * area / L                         # axial stiffness EA/L, kN/m
+    # A bar only resists movement along its own axis. With t = (c, s) the stiffness of the
+    # four end DOFs (xi, yi, xj, yj) is k * [t; -t] [t; -t]^T.
+    t = [c, s, -c, -s]
+    dofs = [2 * i, 2 * i + 1, 2 * j, 2 * j + 1]
+    for a in range(4):
+        for b in range(4):
+            K[dofs[a]][dofs[b]] += k * t[a] * t[b]
+
+# ---- 2. Load vector, supports, and the solve ---------------------------------
+F = [0.0] * n_dof
+for joint, (fx, fy) in loads.items():
+    F[2 * joint] += fx
+    F[2 * joint + 1] += fy
+
+free = [d for d in range(n_dof) if d not in fixed]
+K_ff = np.array([[K[r][q] for q in free] for r in free])
+F_f = np.array([F[r] for r in free])
+u_f = np.linalg.solve(K_ff, F_f)                 # displacements of the free DOFs, m
+
+u = [0.0] * n_dof                                # all displacements, zero at the supports
+for pos, d in enumerate(free):
+    u[d] = float(u_f[pos])
+
+# ---- 3. Member forces and reactions -----------------------------------------
+# Elongation = relative displacement of the ends projected on the member axis; N = EA/L * elongation.
+N = []
+for (i, j, area), (L, c, s) in zip(members, geometry):
+    elong = (u[2 * j] - u[2 * i]) * c + (u[2 * j + 1] - u[2 * i + 1]) * s
+    N.append(E_GPa * area / L * elong)
+
+# At a supported DOF the reaction is whatever K u does not already balance: R = K u - F.
+R = {d: sum(K[d][q] * u[q] for q in range(n_dof)) - F[d] for d in fixed}
+R_x1, R_y1, R_y3 = R[0], R[1], R[5]
+
+# Equilibrium of the whole truss is a check on the solve: the reactions must cancel the loads.
+sum_Fx = sum(f[0] for f in loads.values()) + R_x1
+sum_Fy = sum(f[1] for f in loads.values()) + R_y1 + R_y3
+print("Reactions (kN): joint 1 Rx", round(R_x1, 3), " Ry", round(R_y1, 3), "; joint 3 Ry", round(R_y3, 3))
+print("Equilibrium residual (kN):", round(abs(sum_Fx), 9), round(abs(sum_Fy), 9))
+
+names = ["1-2", "2-3", "4-5", "1-4", "4-2", "2-5", "5-3"]
+for name, force in zip(names, N):
+    print("Member", name, ("tension " if force > 0 else "compression "), round(abs(force), 2), "kN")
+
+N_t = max(N)                                     # greatest tension
+N_c = -min(N)                                    # greatest compression (as a positive number)
+t_idx, c_idx = N.index(N_t), N.index(min(N))
+delta_mm = max(-u[2 * j + 1] for j in range(len(nodes))) * 1000.0     # largest downward deflection
+j_max = [-u[2 * j + 1] for j in range(len(nodes))].index(delta_mm / 1000.0)
+print("Largest vertical deflection", round(delta_mm, 3), "mm at joint", j_max + 1)
+
+# ---- 4. Draw the truss -------------------------------------------------------
+xs = [p[0] for p in nodes]
+scale = 0.4 / (delta_mm / 1000.0)                # exaggeration: the largest deflection is drawn 0.4 m long
+plt.figure(figsize=(8, 4.4))
+shown = set()
+for (i, j, area), (L_, c_, s_), force, name in zip(members, geometry, N, names):
+    colour = "tab:red" if force > 0 else "tab:blue"
+    kind = "tension" if force > 0 else "compression"
+    label = None if kind in shown else kind
+    shown.add(kind)
+    plt.plot([nodes[i][0], nodes[j][0]], [nodes[i][1], nodes[j][1]], color=colour, linewidth=3, label=label)
+    mx = (nodes[i][0] + nodes[j][0]) / 2
+    my = (nodes[i][1] + nodes[j][1]) / 2
+    # put the label beside the member, on its upper side
+    nx, ny = -s_, c_
+    if ny < 0:
+        nx, ny = -nx, -ny
+    plt.text(mx + 0.45 * nx, my + 0.45 * ny, name + ": %.1f kN" % abs(force), fontsize=8, ha="center")
+# deflected shape, exaggerated
+dx_ = [nodes[j][0] + scale * u[2 * j] for j in range(len(nodes))]
+dy_ = [nodes[j][1] + scale * u[2 * j + 1] for j in range(len(nodes))]
+for k_, (i, j, area) in enumerate(members):
+    plt.plot([dx_[i], dx_[j]], [dy_[i], dy_[j]], color="gray", linestyle="--", linewidth=1,
+             label="deflected shape (x" + str(int(round(scale))) + ")" if k_ == 0 else None)
+# supports and joints
+plt.scatter([nodes[0][0]], [nodes[0][1] - 0.2], marker="^", s=120, color="black")
+plt.scatter([nodes[2][0]], [nodes[2][1] - 0.2], marker="o", s=90, color="black")
+plt.text(nodes[0][0], nodes[0][1] - 0.7, "pin", fontsize=8, ha="center")
+plt.text(nodes[2][0], nodes[2][1] - 0.7, "roller", fontsize=8, ha="center")
+for j, (px, py) in enumerate(nodes):
+    plt.text(px - 0.1, py + 0.12, str(j + 1), fontsize=9, ha="right")
+# loads as arrows (a shaft and two short head strokes)
+for joint, (fx, fy) in loads.items():
+    px, py = nodes[joint]
+    mag = math.sqrt(fx * fx + fy * fy)
+    tx, ty = px - 1.1 * fx / mag, py - 1.1 * fy / mag        # the arrow starts away from the joint and points at it
+    plt.plot([tx, px], [ty, py], color="green", linewidth=1.5)
+    ux, uy = fx / mag, fy / mag
+    for sign in (1, -1):
+        plt.plot([px, px - 0.25 * ux + sign * 0.12 * uy], [py, py - 0.25 * uy - sign * 0.12 * ux], color="green", linewidth=1.5)
+    parts = [name + " %.0f" % value for name, value in (("Fx", fx), ("Fy", fy)) if value != 0.0]
+    plt.text(tx, ty - 0.3, ", ".join(parts) + " kN", fontsize=8, color="green", ha="center")
+plt.axis("equal")
+plt.xlim(-1.5, 9.5)
+plt.ylim(-1.6, 6.6)
+plt.title("Plane truss: member forces (tension positive in red)")
+plt.legend(loc="upper right")
+plt.show()
+
+export(N_t_max_kN=N_t, N_c_max_kN=N_c, A_t_mm2=members[t_idx][2], A_c_mm2=members[c_idx][2],
+       delta_max_mm=delta_mm, R_x1_kN=R_x1, R_y1_kN=R_y1, R_y3_kN=R_y3)
+#end python
+"Member check with the exported values
+'A plain strength check of the two governing members: a capacity from yield stress and area, divided by a partial factor. These numbers are assumed for the example; buckling and connections are not checked.
+f_y = 355MPa
+γ = 1.1
+N_t = N_t_max_kN*1kN
+N_c = N_c_max_kN*1kN
+A_t = A_t_mm2*1mm^2
+A_c = A_c_mm2*1mm^2
+N_cap_t = f_y*A_t/γ|kN
+N_cap_c = f_y*A_c/γ|kN
+η_t = N_t/N_cap_t
+η_c = N_c/N_cap_c
+#if η_t ≤ 1 ∧ η_c ≤ 1
+    'Both governing members are within their capacity.
+#else
+    'A governing member exceeds its capacity.
+#end if
+"Reactions and deflection
+R_x1 = R_x1_kN*1kN
+R_y1 = R_y1_kN*1kN
+R_y3 = R_y3_kN*1kN
+'Check: the vertical reactions add up to the vertical load of 180 kN.
+R_y1 + R_y3
+δ_max = delta_max_mm*1mm
+L_span = 8m
+span_ratio = L_span/δ_max

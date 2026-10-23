@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2`;export{e as default};

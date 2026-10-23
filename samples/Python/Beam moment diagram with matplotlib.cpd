@@ -1,0 +1,41 @@
+"Simply supported beam: moment diagram drawn by Python
+'The <b>#python</b> block below runs first (numpy and matplotlib, in the browser). It draws the moment diagram and hands <i>L_m</i>, <i>w_kNm</i> and <i>M_max</i> back as Calcpad variables, which the lines after the block use. Python cannot read Calcpad variables yet, so the beam data lives in the block.
+#python
+import numpy as np
+import matplotlib.pyplot as plt
+
+L = 6.0        # span, m
+w = 12.0       # uniform load, kN/m
+
+x = np.linspace(0, L, 61)
+M = w * x * (L - x) / 2        # bending moment, kN*m
+M_max = float(M.max())
+print("Span", L, "m, load", w, "kN/m")
+print("Maximum moment", round(M_max, 2), "kN*m at x =", float(x[int(np.argmax(M))]), "m")
+
+plt.figure(figsize=(7, 3.6))
+plt.plot(x, M, label="M(x)")
+plt.fill_between(x, 0, M, alpha=0.25)
+plt.xlabel("x (m)")
+plt.ylabel("M (kN*m)")
+plt.title("Bending moment")
+plt.grid(True)
+plt.legend()
+plt.show()
+
+export(L_m=L, w_kNm=w, M_max=M_max)
+#end python
+"Design check with the exported values
+E = 200GPa
+I = 8*10^7mm^4
+M_cap = 90kN*m
+L = L_m*1m
+w = w_kNm*1kN/m
+M_Ed = M_max*1kN*m
+η = M_Ed/M_cap
+#if η ≤ 1
+    'The moment is within the capacity.
+#else
+    'The moment exceeds the capacity.
+#end if
+δ_max = 5*w*L^4/(384*E*I)|mm

@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2`;export{e as default};

@@ -1,0 +1,18 @@
+<!--sheet-->
+# Cantilever with a load at the tip
+
+The deflection at the free end is $\delta = P L^3 / (3 E I)$ and the fixed-end moment is $M = P L$.
+
+## Inputs
+P: 20 kN | load at the free end
+L: 3 m | length
+I: 160000 cm^4 | second moment of area
+E: 30 GPa | modulus of elasticity
+
+## Results
+delta: P * L^3 / (3 * E * I) -> mm | tip deflection
+theta: P * L^2 / (2 * E * I) | tip rotation, in radians
+M_max: P * L -> kN*m | moment at the fixed end
+
+for k in 1..3:
+    d_k: k * P * L^3 / (3 * E * I) -> mm | tip deflection for a load of $k P$

@@ -1,0 +1,10 @@
+<!--sheet-->
+# Bending moment diagram
+
+A simply supported beam of span $L$ under a uniform load $w$.
+
+L: 6; w: 12
+M(x): w * x * (L - x) / 2
+Mmax: M(L / 2)
+
+plot M(x) for x in 0..L

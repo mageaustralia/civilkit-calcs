@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2`;export{e as default};

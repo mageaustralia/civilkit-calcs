@@ -1,0 +1,1 @@
+var e=`/civilkit-calcs/assets/KaTeX_Main-Bold-Cx986IdX.woff2`;export{e as default};
