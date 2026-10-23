@@ -8,5 +8,9 @@
  "numpy/_array.py",
  "numpy/linalg.py",
  "scipy/__init__.py",
- "scipy/linalg.py"
+ "scipy/linalg.py",
+ "plotly/__init__.py",
+ "plotly/graph_objects.py",
+ "plotly/graph_objs.py",
+ "plotly/subplots.py"
 ]

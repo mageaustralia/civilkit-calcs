@@ -15,3 +15,7 @@
 - `lib/numpy/linalg.py`, `lib/scipy/`: `numpy.linalg` and `scipy.linalg` for the stand-ins above. They are this project's own
   small modules, not the real packages; the numbers come from the Calcpad engine through `wasm/calcpad_linalg_wasm*`
   (built from `calcpad-linalg-wasm`, MIT, part of this repository), which a worksheet loads only when a block uses linear algebra.
+
+- `lib/plotly/`: a thin `plotly.graph_objects` and `plotly.subplots` for `#python` blocks. This project's own code, not the plotly
+  package: it builds the figure JSON and hands it to the page, which draws it with Plotly.js (MIT) loaded from its CDN through the
+  worksheet library list, never bundled or copied here.

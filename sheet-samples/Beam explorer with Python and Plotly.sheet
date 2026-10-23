@@ -1,15 +1,16 @@
 <!--sheet-->
 # Continuous beam: Python solves, Plotly explores
 
-A three-span beam is analysed by the direct stiffness method in a **python** fence (numpy arrays, a small solver, matplotlib), for four load cases and a point load stepped along the beam. The results come back into the sheet with `export` and `export_data`, the lines below check them against a capacity, and a Plotly chart reads the same variables for hover values, a load case menu and sliders.
+A three-span beam is analysed by the direct stiffness method in a **python** fence (numpy arrays and a small solver). The same fence builds the chart with the Plotly API (`import plotly.graph_objects as go`) and shows it with `fig.show()`: no HTML and no JavaScript in this sheet. The menu and the two sliders are the native Plotly controls (`updatemenus` and `sliders`), and the results come back into the sheet with `export` and `export_data`, so that the lines below check them against a capacity.
 
-**What is live.** The Python solve runs once, when the sheet is calculated. The menu and the point load slider choose among results that solve already produced; the load factor slider multiplies them, which is exact because the analysis is linear. Changing a span or a load means editing the numbers at the top of the Python fence, which recalculates the sheet.
+**What is live.** The Python solve runs once, when the sheet is calculated, and every slider step is a precomputed result. A Plotly control cannot read another control, so each one owns its own traces: the menu chooses which uniform load case is drawn, the load factor slider multiplies that uniform load (exact, the analysis is linear), and the position slider moves the point load, drawn in orange on top. Changing a span or a load means editing the numbers at the top of the Python fence, which recalculates the sheet.
 
 ## Python: direct stiffness solve
 
 ```python
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Three-span continuous beam by the direct stiffness method.
 # Units: m, kN, kN*m.  Edit the numbers, then the whole explorer below follows.
@@ -114,6 +115,7 @@ cases = {
     "udl_13": [('u', w), None, ('u', w)],
     "udl_2": [None, ('u', w), None],
 }
+case_names = ["UDL on all spans", "UDL on spans 1 and 3", "UDL on span 2 only"]
 M_u, V_u, y_u, R_u = [], [], [], []
 for key in ("udl_all", "udl_13", "udl_2"):
     xs, V, M, y, R = analyse(cases[key])
@@ -146,30 +148,89 @@ print("Spans", spans, "m, EI", EI, "kN*m^2, w", w, "kN/m, P", P, "kN")
 print("Equilibrium: the reactions sum to the load for every case")
 print("  UDL on all spans", round(sum(R_u[0]), 3), "of", w * total, "kN;  point load, worst of", len(pos), "positions: error",
       round(max(abs(sum(r) - P) for r in R_p), 9), "kN")
+print("Largest values (kN, kN*m, mm) at the load factor 1:")
+for i, nm in enumerate(case_names):
+    print("  %-22s sagging %7.2f  hogging %7.2f  shear %7.2f  deflection %6.2f" % (nm, max(M_u[i]), min(M_u[i]),
+          max(max(V_u[i]), -min(V_u[i])), max(y_u[i])))
 
-# a static drawing of the same results, for print and Word (the interactive chart needs a browser)
-fig, (a1, a2) = plt.subplots(2, 1, figsize=(8, 5.4))
-a1.fill_between(x, M_lo, M_hi, color="gray", alpha=0.25, label="envelope of the three UDL cases")
-a1.plot(x, M_u[0], "b-", label="UDL on all spans")
-a1.axhline(0, color="black", linewidth=0.8)
-a1.set_ylabel("M (kN*m)")
-a1.set_title("Bending moment (sagging positive)")
-a1.grid(True)
-a1.legend()
-a2.plot(x, V_u[0], "r-")
-a2.axhline(0, color="black", linewidth=0.8)
-a2.set_xlabel("x (m)")
-a2.set_ylabel("V (kN)")
-a2.set_title("Shear force, UDL on all spans")
-a2.grid(True)
-fig.tight_layout()
-plt.show()
+# ---- the chart: Plotly API, native controls, precomputed steps ----
+BLUE, ORANGE = "#1f77b4", "#e07000"
+xr = [round(v, 3) for v in xs]
+sc = lambda a, f, n=2: [round(v * f, n) for v in a]      # a diagram times a load factor, rounded for the page
+facs = [round(0.5 + 0.05 * k, 2) for k in range(31)]      # load factors 0.50 ... 2.00
+k0, f0 = 3, 10                                            # first position (3.5 m) and factor (1.00) shown
+
+fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.08, row_heights=[0.4, 0.3, 0.3],
+                    subplot_titles=["Bending moment M (kN.m), sagging down", "Shear force V (kN)", "Deflection (mm), downward"])
+hi, lo = M_hi.tolist(), M_lo.tolist()
+fig.add_trace(go.Scatter(x=xr, y=sc(hi, 1), mode="lines", line_width=0, hoverinfo="skip", showlegend=False), row=1, col=1)          # 0
+fig.add_trace(go.Scatter(x=xr, y=sc(lo, 1), mode="lines", line_width=0, fill="tonexty", fillcolor="rgba(128,128,128,0.25)",
+                         hoverinfo="skip", name="envelope of the three UDL cases"), row=1, col=1)                                       # 1
+panels = [("M", "M = %{y:.2f} kN.m", M_u, M_p, 2), ("V", "V = %{y:.2f} kN", V_u, V_p, 2), ("y", "deflection = %{y:.2f} mm", y_u, y_p, 3)]
+for i, nm in enumerate(case_names):                                                                                                    # 2 ... 10
+    for r, (key, unit, ud, pt, nd) in enumerate(panels):
+        fig.add_trace(go.Scatter(x=xr, y=sc(ud[i], 1, nd), mode="lines", line=dict(color=BLUE, width=2.5), fill="tozeroy", fillcolor="rgba(31,119,180,0.15)",
+                                 name=nm, legendgroup="udl" + str(i), showlegend=(r == 0), visible=(i == 0),
+                                 hovertemplate="x = %{x:.2f} m<br>" + unit + "<extra>" + nm + "</extra>"), row=r + 1, col=1)
+pname = lambda k: "P = %g kN at x = %.1f m" % (P, pos[k])
+for r, (key, unit, ud, pt, nd) in enumerate(panels):                                                                                   # 11 ... 13
+    fig.add_trace(go.Scatter(x=xr, y=sc(pt[k0], 1, nd), mode="lines", line=dict(color=ORANGE, width=2.5), name=pname(k0), legendgroup="pt",
+                             showlegend=(r == 0), hovertemplate="x = %{x:.2f} m<br>" + unit + "<extra>point load</extra>"), row=r + 1, col=1)
+UDL = list(range(11))          # the traces the load factor owns: the band and the three uniform cases
+PT = [11, 12, 13]              # the traces the position slider owns
+
+
+def udl_at(f):
+    """The y data of the traces in UDL (the band, then M, V and deflection of each uniform case) for a load factor."""
+    ys = [sc(hi, f), sc(lo, f)]
+    for i in range(3):
+        ys += [sc(M_u[i], f), sc(V_u[i], f), sc(y_u[i], f, 3)]
+    return ys
+
+
+def point_at(k):
+    """The y data of the traces in PT (M, V and deflection) for position number k."""
+    return [sc(M_p[k], 1), sc(V_p[k], 1), sc(y_p[k], 1, 3)]
+
+sup = [0.0]
+for L in spans:
+    sup.append(sup[-1] + L)
+for s in sup:
+    fig.add_shape(type="line", xref="x", yref="paper", x0=s, x1=s, y0=0, y1=1, line=dict(color="#888", width=1, dash="dot"))             # shapes 0 ... 3
+fig.add_shape(type="line", xref="x", yref="paper", x0=pos[k0], x1=pos[k0], y0=0, y1=1, line=dict(color=ORANGE, width=2))                # shape 4: the point load
+
+
+def shown(case):
+    """Which of the 14 traces show for a menu entry: the point load always, the band and one uniform case (none for the last entry)."""
+    v = [case < 3, case < 3] + [False] * 9 + [True] * 3
+    for i in range(3):
+        v[2 + 3 * i:5 + 3 * i] = [i == case] * 3
+    return v
+
+
+fig.update_layout(
+    title=dict(text="Three-span beam: M, V and deflection", x=0, xanchor="left", y=0.99, yanchor="top"),
+    height=960, margin=dict(l=64, r=16, t=200, b=190), hovermode="x", legend=dict(orientation="h", x=0, y=1.175, yanchor="top"),
+    xaxis3_title="x (m)", yaxis_title="M", yaxis_autorange="reversed", yaxis2_title="V", yaxis3_title="y", yaxis3_autorange="reversed",
+    updatemenus=[dict(type="dropdown", direction="down", x=0, xanchor="left", y=1.263, yanchor="top",
+                      buttons=[dict(label=nm, method="update", args=[{"visible": shown(c)}]) for c, nm in enumerate(case_names + ["No uniform load (point load only)"])])],
+    sliders=[
+        dict(active=k0, x=0, len=1, y=-0.1, yanchor="top", pad=dict(t=40, b=0), currentvalue=dict(prefix="Point load P = %g kN at x = " % P, suffix=" m"),
+             steps=[dict(label="%.1f" % pos[k], method="update",
+                         args=[{"y": point_at(k), "name": [pname(k)] * 3}, {"shapes[4].x0": pos[k], "shapes[4].x1": pos[k]}, PT])
+                    for k in range(len(pos))]),
+        dict(active=f0, x=0, len=1, y=-0.1, yanchor="top", pad=dict(t=130, b=0), currentvalue=dict(prefix="Uniform load factor (w = %g kN/m times the factor) = " % w),
+             steps=[dict(label="%.2f" % f, method="restyle",
+                         args=[{"y": udl_at(f)}, UDL])
+                    for f in facs]),
+    ])
+fig.show()
+print("The chart holds", len(fig.to_json()) // 1000, "kB of precomputed results.")
 
 export(L_1=spans[0], L_2=spans[1], L_3=spans[2], w_k=w, P_k=P, EI_k=EI)
-# the diagrams as data for the chart below (defined, not printed)
-export_data(x_s=x, pos=pos, M_hi=M_hi, M_lo=M_lo)
-export_data(M_u=M_u, V_u=V_u, y_u=y_u, R_u=R_u)
-export_data(M_p=M_p, V_p=V_p, y_p=y_p, R_p=R_p)
+# the envelope and the reactions as data for the checks below (defined, not printed)
+export_data(M_hi=M_hi, M_lo=M_lo)
+export_data(R_u=R_u, y_u=y_u)
 ```
 
 ## Design check
@@ -184,76 +245,3 @@ eta: M_Ed / M_Rd
 if eta <= 1: "The largest bending moment of the three load cases is within the capacity." else: "The largest bending moment of the three load cases exceeds the capacity."
 R_max: max(R_u) * 1 kN
 delta_max: max(y_u) * 1 mm
-
-## Interactive explorer
-
-```calcpad
-'<script src="https://cdn.plot.ly/plotly-2.26.0.min.js" charset="utf-8"></script>
-#val
-'<style>
-'.cx{font:13px/1.4 sans-serif;background:#fff;color:#222;border-radius:8px;padding:10px 12px;border:1px solid #ccc;margin:6pt 0}
-'.cx svg{padding:0!important;background:transparent!important;border-radius:0!important;box-sizing:border-box!important}
-'.cx label{margin-right:16px;white-space:nowrap}
-'.cx-read{margin:6px 0;font-size:12px}
-'</style>
-'<div class="cx"><div>
-'<label>Load case <select id="cx-case"><option value="0">UDL on all spans</option><option value="1">UDL on spans 1 and 3</option><option value="2">UDL on span 2 only</option><option value="3">Point load, moved with the slider</option></select></label>
-'<label>Point load at <input id="cx-pos" type="range" min="0" max="14" value="3" step="1"> <span id="cx-posv"></span></label>
-'<label>Load factor <input id="cx-fac" type="range" min="0.5" max="2" value="1" step="0.05"> <span id="cx-facv"></span></label>
-'</div><div class="cx-read" id="cx-read"></div><div id="cx-plot" style="width:100%"></div></div>
-'<script>
-'(function () {
-'var X = 'x_s', Mu = 'M_u', Vu = 'V_u', yu = 'y_u', Ru = 'R_u';
-'var Mp = 'M_p', Vp = 'V_p', yp = 'y_p', Rp = 'R_p', pos = 'pos';
-'var Mhi = 'M_hi', Mlo = 'M_lo';
-'var spans = ['L_1', 'L_2', 'L_3'], w = 'w_k', P = 'P_k';
-'var names = ["UDL on all spans", "UDL on spans 1 and 3", "UDL on span 2 only", "Point load"];
-'var sup = [0]; for (var i = 0; i < spans.length; i++) sup.push(sup[i] + spans[i]);
-'var el = function (id) { return document.getElementById(id); };
-'function mx(a) { return Math.max.apply(null, a); }
-'function mn(a) { return Math.min.apply(null, a); }
-'function sc(a, f) { return a.map(function (v) { return v * f; }); }
-'function draw() {
-'  var c = +el("cx-case").value, k = +el("cx-pos").value, f = +el("cx-fac").value;
-'  el("cx-posv").textContent = pos[k].toFixed(1) + " m";
-'  el("cx-facv").textContent = "x " + f.toFixed(2);
-'  el("cx-pos").disabled = c !== 3;
-'  var M, V, y, R, label;
-'  if (c < 3) { M = Mu[c]; V = Vu[c]; y = yu[c]; R = Ru[c]; label = names[c] + ", w = " + (w * f).toFixed(1) + " kN/m"; }
-'  else { M = Mp[k]; V = Vp[k]; y = yp[k]; R = Rp[k]; label = "P = " + (P * f).toFixed(1) + " kN at x = " + pos[k].toFixed(1) + " m"; }
-'  M = sc(M, f); V = sc(V, f); y = sc(y, f); R = sc(R, f);
-'  var iM = M.indexOf(mx(M)), im = M.indexOf(mn(M));
-'  el("cx-read").innerHTML = "<b>" + label + "</b><br>Sagging max " + mx(M).toFixed(1) + " kN.m at x = " + X[iM].toFixed(2) + " m; hogging max " + mn(M).toFixed(1) + " kN.m at x = " + X[im].toFixed(2) + " m; largest shear " + Math.max(mx(V), -mn(V)).toFixed(1) + " kN; largest deflection " + mx(y).toFixed(1) + " mm.<br>Reactions A to D: " + R.map(function (v) { return v.toFixed(1); }).join(", ") + " kN";
-'  var hov = function (u) { return "x = %{x:.2f} m<br>" + u + "<extra></extra>"; };
-'  var band = c < 3 || true;
-'  var t = [
-'    { x: X, y: sc(Mhi, f), xaxis: "x", yaxis: "y", mode: "lines", line: { width: 0 }, hoverinfo: "skip", showlegend: false },
-'    { x: X, y: sc(Mlo, f), xaxis: "x", yaxis: "y", mode: "lines", line: { width: 0 }, fill: "tonexty", fillcolor: "rgba(120,120,120,0.22)", hoverinfo: "skip", name: "envelope of the three UDL cases" },
-'    { x: X, y: M, xaxis: "x", yaxis: "y", mode: "lines", line: { color: "#1f77b4", width: 2.5 }, name: "M", hovertemplate: hov("M = %{y:.2f} kN.m"), fill: "tozeroy", fillcolor: "rgba(31,119,180,0.18)" },
-'    { x: X, y: V, xaxis: "x2", yaxis: "y2", mode: "lines", line: { color: "#d62728", width: 2.5 }, name: "V", hovertemplate: hov("V = %{y:.2f} kN"), fill: "tozeroy", fillcolor: "rgba(214,39,40,0.15)" },
-'    { x: X, y: y, xaxis: "x3", yaxis: "y3", mode: "lines", line: { color: "#2ca02c", width: 2.5 }, name: "deflection", hovertemplate: hov("deflection = %{y:.2f} mm") }
-'  ];
-'  var shapes = [];
-'  sup.forEach(function (s) { shapes.push({ type: "line", xref: "x", yref: "paper", x0: s, x1: s, y0: 0, y1: 1, line: { color: "#888", width: 1, dash: "dot" } }); });
-'  if (c === 3) shapes.push({ type: "line", xref: "x", yref: "paper", x0: pos[k], x1: pos[k], y0: 0, y1: 1, line: { color: "#e07000", width: 2 } });
-'  var ax = function (title, dom) { return { domain: dom, title: { text: title }, zeroline: true, zerolinecolor: "#444", gridcolor: "#e3e3e3" }; };
-'  var layout = {
-'    height: 640, margin: { l: 64, r: 16, t: 14, b: 44 }, paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "#fff", font: { size: 12, color: "#222" },
-'    hovermode: "x", showlegend: true, legend: { orientation: "h", y: 1.07, x: 0 },
-'    xaxis: { anchor: "y", domain: [0, 1], matches: "x3", showticklabels: false, gridcolor: "#e3e3e3", range: [0, sup[sup.length - 1]] },
-'    xaxis2: { anchor: "y2", domain: [0, 1], matches: "x3", showticklabels: false, gridcolor: "#e3e3e3" },
-'    xaxis3: { anchor: "y3", domain: [0, 1], title: { text: "x (m)" }, gridcolor: "#e3e3e3", range: [0, sup[sup.length - 1]] },
-'    yaxis: Object.assign(ax("M (kN.m), sagging down", [0.70, 1]), { autorange: "reversed" }),
-'    yaxis2: ax("V (kN)", [0.37, 0.63]),
-'    yaxis3: Object.assign(ax("deflection (mm)", [0, 0.30]), { autorange: "reversed" }),
-'    shapes: shapes
-'  };
-'  Plotly.react("cx-plot", t, layout, { responsive: true, displaylogo: false });
-'}
-'["cx-case", "cx-pos", "cx-fac"].forEach(function (id) { el(id).addEventListener("input", draw); });
-'draw();
-'})();
-'</script>
-#equ
-'<p class="ref">Needs a connection to load Plotly (it is on the worksheet library list). The static drawing above is what Word, Excel and a printout carry.</p>
-```

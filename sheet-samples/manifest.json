@@ -122,7 +122,7 @@
    "folder": "Sheet syntax",
    "file": "sheet-samples/Beam explorer with Python and Plotly.sheet",
    "upstream": "",
-   "description": "The sheet form of the beam explorer: a python fence solves a three-span beam for several load cases, quantity lines check the envelope, and a Plotly chart reads the results (hover, load case menu, sliders).",
+   "description": "The sheet form of the beam explorer: a python fence solves a three-span beam for several load cases and draws the results with the Plotly API (make_subplots, a load case menu and two sliders, no script), and quantity lines check the envelope.",
    "codes": [],
    "ui": false,
    "scripts": false,
