@@ -763,6 +763,9 @@ pub fn evaluate_function2_rm(calc: &Calculator, index: i64, a: &RealValue, b: &M
 
 /// `EvaluateMultiFunction(index, Matrix a)`
 pub fn evaluate_multi_function(index: i64, a: &Matrix) -> CResult<Value> {
+    if index >= super::statistics::MULTI_BASE {
+        return super::statistics::evaluate(index, &[Value::Matrix(a.clone())]);
+    }
     Ok(Value::Real(match index {
         0 => a.min()?,
         1 => a.max()?,

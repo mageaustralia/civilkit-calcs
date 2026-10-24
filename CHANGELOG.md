@@ -9,6 +9,10 @@ The app changes are listed under their YY.M.N version below. The three Rust libr
 under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<version>`
 (for example `civilkit-calcs-engine-v0.1.0`).
 
+## [Unreleased]
+### Added
+- Engine: statistics and data functions. `median`, `stdev` (sample, n - 1), `stdevp` (population, n), `var` and `varp` take any mix of scalars, vectors and matrices like `sum` does; units are converted to the first value's unit, a median or standard deviation keeps it and a variance has its square. A sample statistic of fewer than two values and any statistic of an empty vector is an error, not a number. `cumsum(v)` (running sum), `convolve(a; b)`, `linspace(a; b; n)` (both ends included), `polyfit(x; y; n)` (least squares through the engine's `lsolve`, coefficients in ascending powers, coefficient k carries the unit y / x^k) and `interp(x; xs; ys)` (linear interpolation in a table with increasing `xs`; a value outside the table is an error, never an extrapolation). They are in the editor's autocomplete and help, and the ribbon has the statistics and the vector ones.
+
 ## [26.10.7] - 2026-10-25
 ### Added
 - Import worksheet, fidelity pass: names follow one rule (the tool's own functions upright, the page's own functions italic, so `V_AB(x)` is italic at its definition and its calls), units are bold blue italic in equations and results (light and dark blues, no dot after a number: `100 ft`), `if` and the check `=` are bold, the vector arrow is drawn across the whole operand, sum limits sit closer, equations keep their indent from the page margin, a value beside a wrapping label lines up with its last line and keeps its offset, range-variable tables are typeset with their column of values, a quotient of units in a result is a stacked fraction (`ft^(3/4)` as a small fraction), text in the symbol font reads as Greek (`Σ`), and indentation between formatted runs no longer splits a word. The editor accepts `valMathml` in `#settings` (no warning on an imported sheet) and imported sheets no longer show the unused-name hint.
