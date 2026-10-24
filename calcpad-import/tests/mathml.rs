@@ -475,11 +475,7 @@ fn a_value_beside_a_label_that_wraps_shares_its_row_and_keeps_its_offset() {
     assert!(res.calcpad.contains("class=\"imported-row\""), "{}", res.calcpad);
     assert!(res.calcpad.contains("align-items:last baseline"), "{}", res.calcpad);
     // 200 - (6 + 120) = 74 units from the end of the label, less the row's own gap.
-    assert!(
-        res.calcpad.contains("margin-left:50pt"),
-        "{}",
-        res.calcpad
-    );
+    assert!(res.calcpad.contains("margin-left:50pt"), "{}", res.calcpad);
 }
 
 #[test]
@@ -496,8 +492,7 @@ fn an_equation_keeps_its_indent_from_the_page_margin() {
         ),
     ]);
     assert!(
-        res.calcpad
-            .contains("<div class=\"imp-eq\" style=\"margin-left:min(24pt,max(0px,calc(100% - 14em)))\">"),
+        res.calcpad.contains("<div class=\"imp-eq\" style=\"--ind:24pt\">"),
         "{}",
         res.calcpad
     );

@@ -18,7 +18,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 - Engine (deviation D12): a loop nested in an expression block (`$Repeat` or `$While` inside `$Block`) updates the variables of the block around it instead of making private ones, so a function body can accumulate in a loop. Worksheet-level blocks and loop counters are unchanged. DEVIATIONS.md, `calcpad-core/tests/deviations.rs`.
 
 ### Changed
-- Import worksheet: an equation's indent from the page margin now gives way in a narrow preview, keeping room for the equation, so a matrix placed far to the right is no longer squeezed into a thin scroll box.
+- Import worksheet: an equation's indent from the page margin is now a spacer that shrinks before the equation does, so in a preview narrower than the page a matrix placed far to the right keeps its full width instead of being squeezed into a thin scroll box.
 - A nested `if` result is spaced out: more line height and room between the nested braces, so the lines and braces no longer touch or overlap.
 - Import worksheet: the product of two column vectors is `dot(a; b)` (the source takes the scalar product; the engine's `*` of two vectors is element by element), when both are known to be column vectors. An array assigned from another array's name is copied (`*1`), because the engine's `B = A` shares the array.
 - Import worksheet: a worksheet function named like an engine function (`Norm`, `Max`, `Sin`: the engine reads function names without regard to case) is written with a `_f` suffix instead of failing in the engine. `tables::ENGINE_FUNCTIONS` lists the names; a test checks it against the engine's tables, so a new engine function must be added to it.
