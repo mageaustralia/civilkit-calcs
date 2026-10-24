@@ -419,3 +419,20 @@ it differs. Tests: `calcpad-highlighter/tests` and the unit tests in `calcpad-hi
   (CPD-3413). An imported worksheet also carries a `LintIgnore` comment for the unused-name hint
   (CPD-3312): its definitions are the author's, and a name used only by a region shown as a picture or
   an unconverted one is not an editor finding.
+
+## D12. A nested block assigns the enclosing block's variable (modification)
+
+**CalcpadCE:** every `$While`, `$Repeat` or `$Block` keeps the names it assigns to itself. A loop
+nested in an expression block therefore cannot update a variable of the block around it: with
+`f(n) = $Block{s = 0; $Repeat{s = s + k @ k = 1 : n}; s}` the result is 0 (the loop sums into a
+private `s`), so a function body cannot hold a loop that accumulates.
+
+**calcpad-rs:** when a block assigns a name that an enclosing block (not the worksheet) already
+holds, it updates that variable. A name the enclosing blocks do not hold is still private to the
+block that assigns it, a loop counter is still the loop's own, and a block at the worksheet level
+still cannot assign a worksheet variable. The same function returns 15.
+
+**Why:** the worksheet importer turns the functions of a worksheet whose bodies loop over a run-time
+number of items (`for i in 1 .. rows(A)`) into expression blocks.
+
+**Tests:** `calcpad-core/tests/deviations.rs` (`d12_*`).

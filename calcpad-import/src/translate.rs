@@ -47,7 +47,7 @@ fn symexec_program(stmts: &[PStmt], unroll: bool) -> Result<Expr, String> {
     symexec(stmts, &HashMap::new(), &mut budget, unroll)
 }
 
-const LOOP_NEEDS: &str = "a loop whose number of iterations is not a short literal range cannot be an expression: the engine's expression blocks cannot update a variable from inside $While or $Repeat (a loop statement usable inside a block is needed)";
+const LOOP_NEEDS: &str = "a loop whose number of iterations is not a short literal range cannot be one expression";
 
 fn symexec(stmts: &[PStmt], env: &HashMap<String, Expr>, budget: &mut usize, unroll: bool) -> Result<Expr, String> {
     if *budget == 0 {
@@ -491,6 +491,82 @@ struct LoopCtx {
     start: usize,
 }
 
+/// Lines before the loops, one header per range, and the size each range reaches.
+type RangeLoops = (Vec<String>, Vec<String>, Vec<String>);
+
+/// State while a function body is lowered to an expression block.
+struct FnBlk {
+    /// How often each name occurs in the whole body, and in the innermost loop body being lowered.
+    total: HashMap<String, usize>,
+    inside: Option<HashMap<String, usize>>,
+    /// Source names known to hold an array (received, copied or created by the body).
+    arrays: HashSet<String>,
+}
+
+impl FnBlk {
+    /// A local set for the first time here: it must have a value on every path that reads it.
+    fn check_new(&self, flat: &str, guard: Option<&str>, loops: usize) -> Result<(), String> {
+        if guard.is_some() {
+            return Err(format!(
+                "{flat} is first set under a condition, so it has no value on the other path (the source would stop there, the engine would have no value)"
+            ));
+        }
+        if loops > 0 {
+            let confined = self
+                .inside
+                .as_ref()
+                .is_some_and(|m| m.get(flat) == self.total.get(flat));
+            if !confined {
+                return Err(format!(
+                    "{flat} is first set inside a loop and read outside it, so it has no value if the loop does not run"
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+/// How often each identifier occurs in a list of statements.
+fn name_counts(stmts: &[PStmt]) -> HashMap<String, usize> {
+    let mut m = HashMap::new();
+    let mut c = stmts.to_vec();
+    for st in c.iter_mut() {
+        st.for_each_name_mut(&mut |n| *m.entry(tables::normalise_name(&n.flat())).or_insert(0) += 1);
+    }
+    m
+}
+
+/// The names a list of statements assigns to (a name or an element of it).
+fn assigned_names(stmts: &[PStmt], out: &mut HashSet<String>) {
+    for st in stmts {
+        match st {
+            PStmt::Local(PTarget::Var(n), _) | PStmt::Local(PTarget::Element { base: n, .. }, _) => {
+                out.insert(tables::normalise_name(&n.flat()));
+            }
+            PStmt::For { body, .. } | PStmt::While { body, .. } => assigned_names(body, out),
+            PStmt::If { branches, otherwise } => {
+                for (_, b) in branches {
+                    assigned_names(b, out);
+                }
+                if let Some(o) = otherwise {
+                    assigned_names(o, out);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// A literal column vector (`n x 1`, n > 1), a row literal transposed, or a program that ends in one.
+fn is_col_literal(e: &Expr) -> bool {
+    match e {
+        Expr::Matrix { rows, cols, .. } => *cols == 1 && *rows > 1,
+        Expr::Un(UnOp::Transpose, a) => matches!(&**a, Expr::Matrix { rows: 1, cols, .. } if *cols > 1),
+        Expr::Program(stmts) => matches!(stmts.last(), Some(PStmt::Expr(x) | PStmt::Return(x)) if is_col_literal(x)),
+        _ => false,
+    }
+}
+
 fn may_return(st: &PStmt) -> bool {
     match st {
         PStmt::Return(_) => true,
@@ -645,6 +721,9 @@ struct Tr {
     gap_names: HashMap<String, Code>,
     /// Defined names known to hold an array.
     arrays: HashSet<String>,
+    /// Names (variables and functions) known to give a column vector, which the source multiplies as
+    /// a dot product; the engine's `*` of two vectors is element by element.
+    col_vecs: HashSet<String>,
     params: Vec<String>,
     /// While a plot is rendered: the plot variable, which an index that mentions it reads by interpolation.
     plot_param: Option<String>,
@@ -658,6 +737,10 @@ struct Tr {
     local_arrays: HashSet<String>,
     /// Output names of local arrays whose elements were set to a unitless 0 literal.
     zero_started: HashSet<String>,
+    /// Output names of local arrays that grow as they are written (their size is not known ahead).
+    growable: HashSet<String>,
+    /// Lines a program lowered to statements starts with (the allocation of its growing arrays).
+    prologue: Vec<String>,
     /// For a local array started from a literal 0 and later added to (source name): the first value
     /// added, with the loop variables above it replaced by their first values, or why that value's
     /// units cannot be known before the loops run.
@@ -868,6 +951,10 @@ impl Tr {
                 self.arrays.contains(&f) || self.local_arrays.contains(&f)
             }
             Expr::Matrix { .. } => true,
+            Expr::Call(f, _) => matches!(
+                f.base.as_str(),
+                "identity" | "matrix" | "augment" | "stack" | "lsolve" | "submatrix"
+            ),
             Expr::Un(_, a) => self.holds_array(a),
             Expr::Bin(_, a, b) => self.holds_array(a) || self.holds_array(b),
             _ => false,
@@ -992,6 +1079,12 @@ impl Tr {
             BinOp::Xor => (" ⊕ ", P_CMP, P_CMP, P_LOGIC, false),
         };
         let _ = rneg;
+        if op == BinOp::Mul && !self.display && !self.readable && self.is_col_vec(a) && self.is_col_vec(b) {
+            // Two column vectors multiply as a dot product in the source.
+            let l = self.expr(a).s;
+            let r = self.expr(b).s;
+            return atom(format!("dot({l}; {r})"));
+        }
         let l = self.operand(a, lmin, true);
         // A product's right operand that is itself a division keeps its parentheses.
         let rmin = if op == BinOp::Mul && matches!(b, Expr::Bin(BinOp::Div, ..)) {
@@ -1003,6 +1096,27 @@ impl Tr {
         R {
             s: format!("{}{}{}", l, sym, r),
             prec,
+        }
+    }
+
+    /// True when `e` is statically a column vector: a literal, a name or call known to give one, or
+    /// a scalar times one.
+    fn is_col_vec(&self, e: &Expr) -> bool {
+        match e {
+            Expr::Name(n) => {
+                let f = tables::normalise_name(&n.flat());
+                !self.locals.contains_key(&f) && !self.params.contains(&f) && self.col_vecs.contains(&f)
+            }
+            Expr::Call(n, _) => {
+                self.col_vecs.contains(&tables::normalise_name(&n.flat()))
+                    && self.funcs.contains_key(&tables::normalise_name(&n.flat()))
+            }
+            Expr::Bin(BinOp::Mul, a, b) => {
+                (self.is_col_vec(a) && !self.holds_array(b) && !self.yields_array(b))
+                    || (self.is_col_vec(b) && !self.holds_array(a) && !self.yields_array(a))
+            }
+            Expr::Bin(BinOp::Div, a, b) => self.is_col_vec(a) && !self.holds_array(b),
+            other => is_col_literal(other),
         }
     }
 
@@ -1330,6 +1444,40 @@ impl Tr {
         rhs: &str,
         pre: &[String],
     ) -> Result<String, String> {
+        let (head, loops, sizes) = self.range_loops(rs)?;
+        let alloc = if sizes.len() == 1 {
+            format!("{f} = vector({})", sizes[0])
+        } else {
+            format!("{f} = matrix({}; {})", sizes[0], sizes[1])
+        };
+        let mut out = vec!["#hide".to_string()];
+        out.extend(head);
+        out.push(alloc);
+        for (d, l) in loops.iter().enumerate() {
+            for line in l.split('\n') {
+                out.push(format!("{}{}", "    ".repeat(d), line));
+            }
+        }
+        for p in pre {
+            out.push(format!("{}{p}", "    ".repeat(loops.len())));
+        }
+        out.push(format!(
+            "{}{f}.({}) = {rhs}",
+            "    ".repeat(loops.len()),
+            idx.join("; ")
+        ));
+        for d in (0..loops.len()).rev() {
+            out.push(format!("{}#loop", "    ".repeat(d)));
+        }
+        out.push("#end hide".to_string());
+        Ok(out.join("\n"))
+    }
+
+    /// The loop headers for a set of range variables: lines before the loops (bounds taken once),
+    /// one header per range (a plain `#for` for literal ascending bounds, else a step counter that
+    /// derives the value so it runs down when the end is below the start), and the engine size each
+    /// range reaches.
+    fn range_loops(&mut self, rs: &[(String, RangeInfo)]) -> Result<RangeLoops, String> {
         let o = self.origin;
         let mut head = Vec::new();
         let mut loops = Vec::new();
@@ -1365,27 +1513,103 @@ impl Tr {
                 }
             }
         }
-        let alloc = if sizes.len() == 1 {
-            format!("{f} = vector({})", sizes[0])
+        Ok((head, loops, sizes))
+    }
+
+    /// The statements that write one element of an array that grows: before a write past the end,
+    /// `resize` (or `mresize`) extends it with zeros, as the source does.
+    fn growth_lines(mapped: &str, parts: &[String], pad: &str) -> Vec<String> {
+        let mut out = Vec::new();
+        if parts.len() == 1 {
+            let i = &parts[0];
+            out.push(format!("{pad}#if ({i}) > len({mapped})"));
+            out.push(format!("{pad}    {mapped} = resize({mapped}; {i})"));
         } else {
-            format!("{f} = matrix({}; {})", sizes[0], sizes[1])
-        };
+            let (r, c) = (&parts[0], &parts[1]);
+            out.push(format!(
+                "{pad}#if max(({r}) - n_rows({mapped}); ({c}) - n_cols({mapped})) > 0"
+            ));
+            out.push(format!(
+                "{pad}    {mapped} = mresize({mapped}; max({r}; n_rows({mapped})); max({c}; n_cols({mapped})))"
+            ));
+        }
+        out.push(format!("{pad}#end if"));
+        out
+    }
+
+    /// Whether an element assignment whose index is a computed expression (or whose array already
+    /// has a value) can be written as loops over the range variables it reads: the ranges in the
+    /// order they are first read, and whether the array is new. The array must be new, or hold an
+    /// array; the value and the index must not read it.
+    fn grow_fill_plan(
+        &self,
+        flat: &Option<String>,
+        index: &[Expr],
+        value: &Expr,
+    ) -> Option<(Vec<(String, RangeInfo)>, bool)> {
+        let f = flat.as_ref()?;
+        if index.is_empty() || index.len() > 2 || mentions(value, f) || index.iter().any(|e| mentions(e, f)) {
+            return None;
+        }
+        let known = self.defined.contains(f) || self.funcs.contains_key(f) || self.gap_names.contains_key(f);
+        let fresh = !known;
+        let array = self.arrays.contains(f) && !self.funcs.contains_key(f) && !self.gap_names.contains_key(f);
+        if !fresh && !array {
+            return None;
+        }
+        let mut names: Vec<String> = Vec::new();
+        for e in index.iter().chain(std::iter::once(value)) {
+            let mut c = e.clone();
+            c.for_each_name_mut(&mut |n| names.push(tables::normalise_name(&n.flat())));
+        }
+        let mut rs: Vec<(String, RangeInfo)> = Vec::new();
+        for n in names {
+            if rs.iter().any(|(m, _)| *m == n) || self.params.contains(&n) || self.locals.contains_key(&n) {
+                continue;
+            }
+            if let Some(info) = self.ranges.get(&n) {
+                rs.push((n, info.clone()));
+            }
+        }
+        (!rs.is_empty() && rs.len() <= 3).then_some((rs, fresh))
+    }
+
+    /// Loops over the range variables an element assignment reads, writing the element at the
+    /// computed index and growing the array when the index is past its end. A new array starts
+    /// with one zero; one that has a value is written into.
+    fn grow_fill_loops(
+        &mut self,
+        f: &str,
+        rs: &[(String, RangeInfo)],
+        idx: &[String],
+        rhs: &str,
+        pre: &[String],
+        fresh: bool,
+    ) -> Result<String, String> {
+        let (head, loops, _) = self.range_loops(rs)?;
         let mut out = vec!["#hide".to_string()];
         out.extend(head);
-        out.push(alloc);
+        if fresh {
+            out.push(if idx.len() == 1 {
+                format!("{f} = vector(1)")
+            } else {
+                format!("{f} = matrix(1; 1)")
+            });
+        } else {
+            // Writing into an array another name may share would change that name too.
+            out.push(format!("{f} = {f}*1"));
+        }
         for (d, l) in loops.iter().enumerate() {
             for line in l.split('\n') {
                 out.push(format!("{}{}", "    ".repeat(d), line));
             }
         }
+        let pad = "    ".repeat(loops.len());
         for p in pre {
-            out.push(format!("{}{p}", "    ".repeat(loops.len())));
+            out.push(format!("{pad}{p}"));
         }
-        out.push(format!(
-            "{}{f}.({}) = {rhs}",
-            "    ".repeat(loops.len()),
-            idx.join("; ")
-        ));
+        out.extend(Self::growth_lines(f, idx, &pad));
+        out.push(format!("{pad}{f}.({}) = {rhs}", idx.join("; ")));
         for d in (0..loops.len()).rev() {
             out.push(format!("{}#loop", "    ".repeat(d)));
         }
@@ -1664,6 +1888,8 @@ impl Tr {
         let saved_locals = std::mem::take(&mut self.locals);
         let saved_arrays = std::mem::take(&mut self.local_arrays);
         self.zero_started.clear();
+        self.growable.clear();
+        self.prologue.clear();
         let saved_zero_units = std::mem::take(&mut self.zero_units);
         {
             let mut locals = HashSet::new();
@@ -1702,6 +1928,7 @@ impl Tr {
                 } else {
                     format!("{} = {}", name, value.s)
                 };
+                lines.splice(0..0, std::mem::take(&mut self.prologue));
                 if lines.is_empty() {
                     Ok((def, is_array))
                 } else {
@@ -1715,6 +1942,237 @@ impl Tr {
         self.zero_units = saved_zero_units;
         self.ret = saved_ret;
         out
+    }
+
+    /// A function body that is statements, as one expression block: `$Block{ ...; value }`. A
+    /// `for` is a `$Repeat` (counting steps and deriving the variable, so it runs down when the end
+    /// is below the start as the source does), a `while` a `$While`, and an `if` sets guard
+    /// variables (0 or 1, the condition evaluated once) that every assignment under it respects:
+    /// `x = if(g; value; x)`. Locals have names of their own; an argument the function assigns to
+    /// is copied first. A local first set under a condition, or in a loop and read outside it, has
+    /// no value in the source on some paths and none here, so such a function is a gap, as are
+    /// `break`, `continue`, an early `return` and an array the function grows.
+    fn lower_fn_block(&mut self, stmts: &[PStmt]) -> Result<String, String> {
+        let Some((last, body)) = stmts.split_last() else {
+            return Err("an empty program".into());
+        };
+        let tail = match last {
+            PStmt::Expr(e) | PStmt::Return(e) => e,
+            _ => return Err("the program does not end with a value".into()),
+        };
+        self.prog_n += 1;
+        let saved_locals = std::mem::take(&mut self.locals);
+        let mut st = FnBlk {
+            total: name_counts(stmts),
+            arrays: HashSet::new(),
+            inside: None,
+        };
+        let mut items: Vec<String> = Vec::new();
+        let r = (|| -> Result<String, String> {
+            // An argument the function assigns to is a local copy from the start.
+            let mut written = HashSet::new();
+            assigned_names(body, &mut written);
+            let mut copies: Vec<String> = written.into_iter().filter(|w| self.params.contains(w)).collect();
+            copies.sort();
+            for c in copies {
+                if !valid_ident(&c) {
+                    return Err(format!("argument name {c} that Calcpad cannot spell"));
+                }
+                let m = self.local_name(&c);
+                // `*1` makes a new array: the engine's `B = A` would share it, and a write to B would change A.
+                items.push(format!("{m} = {c}*1"));
+                st.arrays.insert(c);
+            }
+            self.lower_fn_stmts(body, None, 0, &mut st, &mut items)?;
+            let value = self.expr(tail).s;
+            Ok(if items.is_empty() {
+                value
+            } else {
+                format!("$Block{{{}; {}}}", items.join("; "), value)
+            })
+        })();
+        self.locals = saved_locals;
+        r
+    }
+
+    fn lower_fn_stmts(
+        &mut self,
+        stmts: &[PStmt],
+        guard: Option<&str>,
+        loops: usize,
+        st: &mut FnBlk,
+        items: &mut Vec<String>,
+    ) -> Result<(), String> {
+        if loops > 6 {
+            return Err("loops nested too deeply".into());
+        }
+        for stmt in stmts {
+            match stmt {
+                PStmt::Local(PTarget::Var(n), e) => {
+                    let flat = tables::normalise_name(&n.flat());
+                    if !valid_ident(&flat) {
+                        return Err(format!("local name {flat} that Calcpad cannot spell"));
+                    }
+                    let rhs = self.copy_if_array(e);
+                    let mapped = match self.locals.get(&flat) {
+                        Some(m) => m.clone(),
+                        None => {
+                            st.check_new(&flat, guard, loops)?;
+                            self.local_name(&flat)
+                        }
+                    };
+                    let is_array = matches!(e, Expr::Matrix { .. })
+                        || matches!(e, Expr::Call(f, _) if matches!(f.base.as_str(), "identity" | "matrix" | "augment" | "stack" | "lsolve" | "submatrix"));
+                    if is_array {
+                        st.arrays.insert(flat);
+                    } else {
+                        st.arrays.remove(&flat);
+                    }
+                    items.push(match guard {
+                        None => format!("{mapped} = {rhs}"),
+                        Some(g) => format!("{mapped} = if({g}; {rhs}; {mapped})"),
+                    });
+                }
+                PStmt::Local(PTarget::Element { base, index }, e) => {
+                    let flat = tables::normalise_name(&base.flat());
+                    let (Some(mapped), true) = (self.locals.get(&flat).cloned(), st.arrays.contains(&flat)) else {
+                        return Err(format!(
+                            "element assignment to {flat}, an array the function neither received nor created (the source grows it, the engine cannot)"
+                        ));
+                    };
+                    if index.is_empty() || index.len() > 2 {
+                        return Err("an element index that is not one or two numbers".into());
+                    }
+                    let parts: Vec<String> = index.iter().map(|i| self.index_expr(i)).collect();
+                    let rhs = self.expr(e).s;
+                    let at = format!("{mapped}.({})", parts.join("; "));
+                    items.push(match guard {
+                        None => format!("{at} = {rhs}"),
+                        Some(g) => format!("{at} = if({g}; {rhs}; {at})"),
+                    });
+                }
+                PStmt::For { var, range, body } => {
+                    let Expr::Range {
+                        first,
+                        second: None,
+                        last,
+                    } = range
+                    else {
+                        return Err("a loop over something other than a plain range a .. b".into());
+                    };
+                    if body.iter().any(has_break) {
+                        return Err("break or continue in a loop".into());
+                    }
+                    let v = tables::normalise_name(&var.flat());
+                    if !valid_ident(&v) {
+                        return Err(format!("loop variable {v} that Calcpad cannot spell"));
+                    }
+                    let a = self.expr(first).s;
+                    let z = self.expr(last).s;
+                    self.prog_n += 1;
+                    let mapped = format!("{v}_p{}", self.prog_n);
+                    let literal = |e: &Expr| match e {
+                        Expr::Num(s) => is_int_literal(s),
+                        _ => None,
+                    };
+                    let mut inner: Vec<String> = Vec::new();
+                    let header = match (literal(first), literal(last)) {
+                        (Some(x), Some(y)) if x <= y => format!("{mapped} = {x} : {y}"),
+                        _ => {
+                            let (lo, hi, k) = (format!("{mapped}_a"), format!("{mapped}_z"), format!("{mapped}_k"));
+                            items.push(format!("{lo} = {a}"));
+                            items.push(format!("{hi} = {z}"));
+                            inner.push(format!("{mapped} = {lo} + {k}*if({hi} ≥ {lo}; 1; -1)"));
+                            format!("{k} = 0 : abs({hi} - {lo})")
+                        }
+                    };
+                    let prev = self.locals.insert(v.clone(), mapped);
+                    let outer = st.inside.replace(name_counts(body));
+                    let r = self.lower_fn_stmts(body, guard, loops + 1, st, &mut inner);
+                    st.inside = outer;
+                    match prev {
+                        Some(p) => self.locals.insert(v, p),
+                        None => self.locals.remove(&v),
+                    };
+                    r?;
+                    if inner.is_empty() {
+                        return Err("an empty loop".into());
+                    }
+                    items.push(format!("$Repeat{{{} @ {header}}}", inner.join("; ")));
+                }
+                PStmt::While { cond, body } => {
+                    if body.iter().any(has_break) {
+                        return Err("break or continue in a loop".into());
+                    }
+                    let c = self.expr(cond).s;
+                    let c = match guard {
+                        None => c,
+                        Some(g) => format!("if({g}; {c}; 0)"),
+                    };
+                    let mut inner: Vec<String> = vec![c];
+                    let outer = st.inside.replace(name_counts(body));
+                    let r = self.lower_fn_stmts(body, None, loops + 1, st, &mut inner);
+                    st.inside = outer;
+                    r?;
+                    if inner.len() < 2 {
+                        return Err("an empty loop".into());
+                    }
+                    items.push(format!("$While{{{}}}", inner.join("; ")));
+                }
+                PStmt::If { branches, otherwise } => {
+                    self.prog_n += 1;
+                    let n = self.prog_n;
+                    let mut taken: Vec<String> = Vec::new();
+                    let mut arms: Vec<(String, &[PStmt])> = Vec::new();
+                    for (k, (c, b)) in branches.iter().enumerate() {
+                        let cs = self.expr(c).s;
+                        let test = format!("if({cs}; 1; 0)");
+                        let test = if taken.is_empty() {
+                            test
+                        } else {
+                            format!("if({}; 0; {test})", taken.join(" + "))
+                        };
+                        let test = match guard {
+                            None => test,
+                            Some(g) => format!("if({g}; {test}; 0)"),
+                        };
+                        let a = format!("on_p{n}_{k}");
+                        items.push(format!("{a} = {test}"));
+                        taken.push(a.clone());
+                        arms.push((a, b));
+                    }
+                    if let Some(b) = otherwise {
+                        let test = format!("if({}; 0; 1)", taken.join(" + "));
+                        let test = match guard {
+                            None => test,
+                            Some(g) => format!("if({g}; {test}; 0)"),
+                        };
+                        let a = format!("on_p{n}_e");
+                        items.push(format!("{a} = {test}"));
+                        arms.push((a, b));
+                    }
+                    for (a, b) in arms {
+                        self.lower_fn_stmts(b, Some(&a), loops, st, items)?;
+                    }
+                }
+                PStmt::Break | PStmt::Continue => return Err("break or continue".into()),
+                PStmt::Return(_) => return Err("a return before the end of the program (an early exit)".into()),
+                PStmt::Expr(_) => return Err("an expression statement before the end of the program".into()),
+                PStmt::Unsupported(w) => return Err(format!("{w} is not read")),
+            }
+        }
+        Ok(())
+    }
+
+    /// The value of `e`; an array that is just another array's name is copied (`*1`), because the
+    /// engine's `B = A` makes B the same array as A, so writing an element of B would change A.
+    fn copy_if_array(&mut self, e: &Expr) -> String {
+        let s = self.expr(e).s;
+        if matches!(e, Expr::Name(_)) && self.holds_array(e) {
+            format!("{s}*1")
+        } else {
+            s
+        }
     }
 
     fn local_name(&mut self, source: &str) -> String {
@@ -1767,7 +2225,7 @@ impl Tr {
                         return Err(format!("local name {flat} that Calcpad cannot spell"));
                     }
                     // The value is read before the name is a local: `x <- x + 1` starts from the outer x.
-                    let rhs = self.expr(e).s;
+                    let rhs = self.copy_if_array(e);
                     let is_array = matches!(e, Expr::Matrix { .. })
                         || matches!(e, Expr::Call(f, _) if matches!(f.base.as_str(), "identity" | "matrix" | "augment" | "stack" | "lsolve" | "submatrix"));
                     let mapped = match self.locals.get(&flat) {
@@ -1788,6 +2246,7 @@ impl Tr {
                         .get(&flat)
                         .cloned()
                         .or_else(|| self.grow_local(&flat, index, out))
+                        .or_else(|| self.growing_local(&flat, index.len()))
                     else {
                         return Err(format!(
                             "element assignment to {flat}, which the program did not create and whose size cannot be known ahead (the source grows it, the engine cannot)"
@@ -1832,6 +2291,9 @@ impl Tr {
                         Some(z) => z,
                         None => self.expr(e).s,
                     };
+                    if self.growable.contains(&mapped) {
+                        out.extend(Self::growth_lines(&mapped, &parts, &pad));
+                    }
                     out.push(format!("{pad}{mapped}.({}) = {rhs}", parts.join("; ")));
                 }
                 PStmt::For { var, range, body } => {
@@ -2009,6 +2471,35 @@ impl Tr {
             }
         }
         self.local_arrays.insert(mapped.clone());
+        Some(mapped)
+    }
+
+    /// An element write to an array the program has not created, whose size cannot be known
+    /// ahead (a counter as the index, a write under a condition): the array is started with one
+    /// zero at the top of the program and grown by `resize` before a write past its end, so it ends
+    /// as large as the largest index written, as in the source. Only for a name the worksheet has
+    /// no value for (a name it does have is a different array in the source's rules, not read).
+    fn growing_local(&mut self, flat: &str, rank: usize) -> Option<String> {
+        if rank == 0 || rank > 2 || !valid_ident(flat) {
+            return None;
+        }
+        if self.defined.contains(flat)
+            || self.arrays.contains(flat)
+            || self.funcs.contains_key(flat)
+            || self.gap_names.contains_key(flat)
+            || self.params.iter().any(|p| p == flat)
+        {
+            return None;
+        }
+        let mapped = self.local_name(flat);
+        let alloc = if rank == 1 {
+            format!("{mapped} = vector(1)")
+        } else {
+            format!("{mapped} = matrix(1; 1)")
+        };
+        self.prologue.push(alloc);
+        self.local_arrays.insert(mapped.clone());
+        self.growable.insert(mapped.clone());
         Some(mapped)
     }
 
@@ -2253,7 +2744,7 @@ impl Tr {
                     self.readable_bad = true;
                 }
             }
-            return atom(format!("{}({})", flat, rendered.join("; ")));
+            return atom(format!("{}({})", Self::engine_fn(&flat), rendered.join("; ")));
         }
         if let Some(root) = self.gap_names.get(&flat).copied() {
             self.cur.push(Pending {
@@ -2295,6 +2786,16 @@ impl Tr {
             self.issue(Code::AddinFunction, Some(flat));
         }
         self.stand_in(&shown_call, "?call?")
+    }
+
+    /// The engine's spelling of a worksheet function's name: the engine reads a function name
+    /// without regard to case, so `Norm` or `Max` would be taken for its own `norm` and `max`.
+    fn engine_fn(flat: &str) -> String {
+        if tables::is_engine_function(flat) {
+            format!("{flat}_f")
+        } else {
+            flat.to_string()
+        }
     }
 
     fn apply_rule(&mut self, rule: FnRule, a: &[String]) -> R {
@@ -2929,6 +3430,7 @@ impl Tr {
                 // locals substituted. Other programs are statements, possible for a variable only.
                 let inlined: Option<Expr>;
                 let mut statements: Option<&[PStmt]> = None;
+                let mut fn_program: Option<&[PStmt]> = None;
                 let stub: Expr;
                 let value: &Expr = match value {
                     Expr::Program(stmts) => match symexec_program(stmts, matches!(target, Target::Func(..))) {
@@ -2941,6 +3443,8 @@ impl Tr {
                             value
                         }
                         Err(why) => {
+                            // Not one expression: the statements become an expression block.
+                            fn_program = Some(stmts);
                             stub = Expr::Unsupported {
                                 code: Code::ProgramBlock,
                                 detail: Some(format!("in a function body: {why}")),
@@ -3026,7 +3530,8 @@ impl Tr {
                                 "'<!-- range {flat} = {a} .. {z}: used as the loop of the element assignments that follow -->"
                             ));
                         } else if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
-                            emitted = Some(format!("{} = {}", flat, rhs.s));
+                            let alias = matches!(value, Expr::Name(_)) && self.holds_array(value);
+                            emitted = Some(format!("{} = {}{}", flat, rhs.s, if alias { "*1" } else { "" }));
                             plain_def = true;
                         } else {
                             attempt = Some(format!("{} = {}", flat, rhs.s));
@@ -3051,9 +3556,18 @@ impl Tr {
                             plist.push(pf);
                         }
                         self.params = plist.clone();
-                        let rhs = self.expr(value);
+                        let rhs = match fn_program {
+                            Some(stmts) => match self.lower_fn_block(stmts) {
+                                Ok(t) => atom(t),
+                                Err(why) => {
+                                    self.issue(Code::ProgramBlock, Some(format!("in a function body: {why}")));
+                                    atom("0")
+                                }
+                            },
+                            None => self.expr(value),
+                        };
                         self.params.clear();
-                        let head = format!("{}({})", flat, plist.join("; "));
+                        let head = format!("{}({})", Self::engine_fn(&flat), plist.join("; "));
                         if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
                             emitted = Some(format!("{} = {}", head, rhs.s));
                             plain_def = true;
@@ -3222,7 +3736,43 @@ impl Tr {
                                 }
                                 let _ = l;
                             } else {
+                                let plan = if why.is_some() {
+                                    self.grow_fill_plan(&flat, index, value)
+                                } else {
+                                    None
+                                };
                                 match (why, flat, ranges) {
+                                    (Some(_), Some(f), _) if plan.is_some() => {
+                                        let (rs, fresh) = plan.unwrap_or_default();
+                                        for (iv, _) in &rs {
+                                            self.params.push(iv.clone());
+                                        }
+                                        let rhs = self.expr(value);
+                                        let idx: Vec<String> = index.iter().map(|e| self.index_expr(e)).collect();
+                                        for _ in &rs {
+                                            self.params.pop();
+                                        }
+                                        let pre = std::mem::take(&mut self.hoisted);
+                                        if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
+                                            match self.grow_fill_loops(&f, &rs, &idx, &rhs.s, &pre, fresh) {
+                                                Ok(t) => {
+                                                    self.elem_built.remove(&f);
+                                                    emitted = Some(t);
+                                                    elem_def = true;
+                                                    self.issue(
+                                                        Code::RangeLoop,
+                                                        Some(format!(
+                                                            "element assignment over {}: written in a loop, the array grows to the largest index written",
+                                                            rs.iter().map(|r| r.0.as_str()).collect::<Vec<_>>().join(", ")
+                                                        )),
+                                                    );
+                                                }
+                                                Err(w) => self.issue(Code::ElementAssignment, Some(w)),
+                                            }
+                                        } else {
+                                            attempt = Some(format!("{f}.({}) = {}", idx.join("; "), rhs.s));
+                                        }
+                                    }
                                     (None, Some(f), Some(rs)) => {
                                         for (iv, _) in &rs {
                                             self.params.push(iv.clone());
@@ -3430,6 +3980,11 @@ impl Tr {
             } else if let Some((name, arity, is_array)) = define_name {
                 self.ranges.remove(&name);
                 self.gap_names.remove(&name);
+                self.col_vecs.remove(&name);
+                if matches!(&m.stmt, Stmt::Define { target: Target::Var(_) | Target::Func(..), value, .. } if is_col_literal(value))
+                {
+                    self.col_vecs.insert(name.clone());
+                }
                 match arity {
                     Some(a) => {
                         self.funcs.insert(name.clone(), a);
@@ -3464,6 +4019,7 @@ impl Tr {
                 self.gap_names.insert(p, root);
             }
             if let Some((name, arity, _)) = define_name {
+                self.col_vecs.remove(&name);
                 self.ranges.remove(&name);
                 self.defined.remove(&name);
                 self.funcs.remove(&name);
@@ -3918,6 +4474,9 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         locals: HashMap::new(),
         local_arrays: HashSet::new(),
         zero_started: HashSet::new(),
+        col_vecs: HashSet::new(),
+        growable: HashSet::new(),
+        prologue: Vec::new(),
         zero_units: HashMap::new(),
         elem_built: HashMap::new(),
         prog_n: 0,

@@ -45,3 +45,33 @@ fn valid_conditions_are_unchanged() {
     assert!(html.contains(">NO "), "{html}");
     assert!(!html.contains(UNRESOLVED_CONDITION), "{html}");
 }
+
+/// D12: a block nested in another block assigns the enclosing block's variable, so a loop in a
+/// function body can accumulate. At the worksheet level a block still keeps its assignments private.
+#[test]
+fn d12_nested_block_updates_the_enclosing_block_variable() {
+    let html = render("f(n) = $Block{s = 0; $Repeat{s = s + k @ k = 1 : n}; s}\nr = f(5)");
+    assert!(html.contains("= 15"), "{html}");
+    let html = render("f(n) = $Block{s = 0; k = 1; $While{k ≤ n; s = s + k; k = k + 1}; s}\nr = f(4)");
+    assert!(html.contains("= 10"), "{html}");
+}
+
+#[test]
+fn d12_nested_loops_set_elements_of_a_block_local_matrix() {
+    let src = "g(n) = $Block{M = matrix(n; n); $Repeat{$Repeat{M.(i; j) = 10*i + j @ j = 1 : n} @ i = 1 : n}; M}\nR = g(2)\nR.(2; 1)";
+    let html = render(src);
+    assert!(html.contains("= 21"), "{html}");
+}
+
+#[test]
+fn d12_loop_counter_does_not_touch_an_outer_variable_of_the_same_name() {
+    let html = render("f(n) = $Block{k = 100; s = 0; $Repeat{s = s + k @ k = 1 : n}; s + k}\nr = f(3)");
+    assert!(html.contains("= 106"), "{html}");
+}
+
+#[test]
+fn d12_worksheet_level_block_stays_private() {
+    let html = render("s = 0\nr = $Repeat{s = s + k @ k = 1 : 5}\ns");
+    assert!(html.contains("= 15"), "{html}");
+    assert_eq!(html.matches("<var>s</var> = 0</span>").count(), 2, "{html}");
+}
