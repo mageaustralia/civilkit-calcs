@@ -9,6 +9,16 @@ The app changes are listed under their YY.M.N version below. The three Rust libr
 under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<version>`
 (for example `civilkit-calcs-engine-v0.1.0`).
 
+## [Unreleased]
+### Added
+- Import worksheet: arrays grown element by element now convert. A program that writes `s[j]` with a counter, under a condition, or at an index it computes (a filter that keeps some rows, a reduced matrix built from a mask, `K[ii, jj] <- ...`) starts the array with one zero and extends it with `resize` / `mresize` before a write past its end, so it ends as large as the largest index written. At the sheet level, an element assignment whose index is an expression of range variables (`V[2 (i - 1) + j] := M[i, j]`) is a loop that grows a new array or writes into one that already holds an array (copied first, so a name that shares it keeps its values).
+- Import worksheet: a function whose body has loops with run-time bounds, `while` loops, and element writes to a copy of its argument is converted to an expression block. A `for` counts down when its end is below its start, as in the source; an `if` / `else if` / `else` is evaluated once and guards each assignment under it. A function that cannot be converted faithfully (`break`, `continue`, early `return`, a local with no value on some path, an array it grows) stays a gap that says why.
+- Engine (deviation D12): a loop nested in an expression block (`$Repeat` or `$While` inside `$Block`) updates the variables of the block around it instead of making private ones, so a function body can accumulate in a loop. Worksheet-level blocks and loop counters are unchanged. DEVIATIONS.md, `calcpad-core/tests/deviations.rs`.
+
+### Changed
+- Import worksheet: the product of two column vectors is `dot(a; b)` (the source takes the scalar product; the engine's `*` of two vectors is element by element), when both are known to be column vectors. An array assigned from another array's name is copied (`*1`), because the engine's `B = A` shares the array.
+- Import worksheet: a worksheet function named like an engine function (`Norm`, `Max`, `Sin`: the engine reads function names without regard to case) is written with a `_f` suffix instead of failing in the engine. `tables::ENGINE_FUNCTIONS` lists the names; a test checks it against the engine's tables, so a new engine function must be added to it.
+
 ## [26.10.7] - 2026-10-25
 ### Added
 - Import worksheet, fidelity pass: names follow one rule (the tool's own functions upright, the page's own functions italic, so `V_AB(x)` is italic at its definition and its calls), units are bold blue italic in equations and results (light and dark blues, no dot after a number: `100 ft`), `if` and the check `=` are bold, the vector arrow is drawn across the whole operand, sum limits sit closer, equations keep their indent from the page margin, a value beside a wrapping label lines up with its last line and keeps its offset, range-variable tables are typeset with their column of values, a quotient of units in a result is a stacked fraction (`ft^(3/4)` as a small fraction), text in the symbol font reads as Greek (`Σ`), and indentation between formatted runs no longer splits a word. The editor accepts `valMathml` in `#settings` (no warning on an imported sheet) and imported sheets no longer show the unused-name hint.

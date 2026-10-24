@@ -597,7 +597,23 @@ impl MathParser {
         let s = vt.borrow().content.clone();
         let top = self.top_local_variables();
         let existing = top.borrow().get(&s).cloned();
-        let v = match existing {
+        // Deviation D12: a block nested in another block (a `$While` or `$Repeat` inside a `$Block`)
+        // that assigns a name the enclosing block already holds updates that variable instead of
+        // making a private one, so a loop can accumulate. The worksheet's own variables (the
+        // bottom of the stack) are not reached: a block never assigns to those.
+        let enclosing = if existing.is_none() {
+            let stack = self.local_variables.borrow();
+            let n = stack.len();
+            stack
+                .iter()
+                .take(n.saturating_sub(1))
+                .skip(1)
+                .rev()
+                .find_map(|d| d.borrow().get(&s).cloned())
+        } else {
+            None
+        };
+        let v = match existing.or(enclosing) {
             Some(v) => v,
             None => {
                 let v = Variable::new();
