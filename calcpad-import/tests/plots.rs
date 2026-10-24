@@ -395,3 +395,66 @@ fn a_bare_zero_in_a_plot_condition_or_branch_takes_the_units_of_the_other_side()
     );
     assert!(pts.iter().any(|p| (p.0 - 3.0).abs() < 1e-9 && p.1.abs() < 1e-9));
 }
+
+#[test]
+fn a_unitless_axis_shows_the_quantity_in_base_units_not_in_the_unit_it_is_held_in() {
+    // f is held in kN (62 kN) and the sheet shows it in N: the source plots f / 1000 as a plain
+    // number of its base unit, 62. Held in kN, `f / 1000` would plot 0.062.
+    let force = format!(
+        "<ml:apply><ml:mult/>{}{}</ml:apply>",
+        matrix(3, 1, &["62", "20", "5"]),
+        n("kN")
+    );
+    let eval_f = format!(
+        "<ml:eval>{}<ml:unitOverride>{}</ml:unitOverride></ml:eval>",
+        n("f"),
+        n("N")
+    );
+    let regs = [
+        math(1, 0.0, &define("f", &force)),
+        math(2, 20.0, &eval_f),
+        math(3, 40.0, &define("i", &range(&r("1"), &r("3")))),
+        plot(
+            4,
+            60.0,
+            "",
+            &[trace("lines")],
+            &axis(&[slot(&n("i"), None)]),
+            &axis(&[slot(&app("div", &[index("f", &n("i")), r("1000")]), None)]),
+        ),
+    ];
+    let res = convert(1, &regs);
+    let line = plot_line(&res.calcpad);
+    assert!(line.ends_with("/N @ i = 1 : 3}") || line.contains("/N @"), "{line}");
+    let pts = &draw(&res.calcpad)[0].series[0].points;
+    let top = pts.iter().fold(f64::MIN, |a, p| a.max(p.1));
+    assert!((top - 62.0).abs() < 1e-6, "{top}");
+
+    // An axis that types its unit, or an expression that names a unit, is left alone.
+    let typed = convert(
+        1,
+        &[
+            math(1, 0.0, &define("f", &force)),
+            math(2, 20.0, &eval_f),
+            math(3, 40.0, &define("i", &range(&r("1"), &r("3")))),
+            plot(
+                4,
+                60.0,
+                "",
+                &[trace("lines")],
+                &axis(&[slot(&n("i"), None)]),
+                &axis(&[slot(&index("f", &n("i")), Some(&n("kN")))]),
+            ),
+        ],
+    );
+    let line = plot_line(&typed.calcpad);
+    assert!(
+        line.contains("/kN") && !line.contains("/N @") && !line.contains("m_"),
+        "{line}"
+    );
+    let top = draw(&typed.calcpad)[0].series[0]
+        .points
+        .iter()
+        .fold(f64::MIN, |a, p| a.max(p.1));
+    assert!((top - 62.0).abs() < 1e-6, "{top}");
+}

@@ -168,6 +168,28 @@ impl Tr {
             synthetic = true;
         }
 
+        // An axis with no unit typed shows a quantity in the source's base units. The engine plots in
+        // the unit the value is held in, which can be a multiple (a force held in kN), so such a trace
+        // is divided by the base unit of the unit the sheet shows the quantity in.
+        let x_typed = xy.x.units.iter().any(|u| u.is_some());
+        let y_typed = xy.y.units.iter().any(|u| u.is_some());
+        let mut si: Vec<(Option<String>, Option<String>)> = Vec::new();
+        let mut unscaled: Vec<String> = Vec::new();
+        for (x, y) in &pairs {
+            let hx = if x_typed {
+                None
+            } else {
+                self.base_unit_for(x, &mut unscaled)
+            };
+            let hy = if y_typed {
+                None
+            } else {
+                self.base_unit_for(y, &mut unscaled)
+            };
+            si.push((hx, hy));
+        }
+        self.cur.clear();
+
         // Render the traces.
         if let Some(p) = &param {
             self.params.push(p.clone());
@@ -175,17 +197,25 @@ impl Tr {
         self.plot_param = param.clone();
         let pname = param.clone().unwrap_or_default();
         let mut traces: Vec<String> = Vec::new();
-        for (x, y) in &pairs {
-            let side = |tr: &mut Tr, e: &Expr| -> String {
-                let s = tr.expr(e).s;
+        for ((x, y), (hx, hy)) in pairs.iter().zip(&si) {
+            let side = |tr: &mut Tr, e: &Expr, base: &Option<String>| -> String {
+                let r = tr.expr(e);
+                let mut s = r.s;
+                if let Some(b) = base {
+                    s = if r.prec < P_MUL {
+                        format!("({})/{}", s, b)
+                    } else {
+                        format!("{}/{}", s, b)
+                    };
+                }
                 if synthetic && tr.plot_array(e) {
                     format!("line({}; ({}))", pname, s)
                 } else {
                     s
                 }
             };
-            let sx = side(self, x);
-            let sy = side(self, y);
+            let sx = side(self, x, hx);
+            let sy = side(self, y, hy);
             traces.push(format!("{}|{}", sx, sy));
         }
         self.plot_param = None;
@@ -212,36 +242,41 @@ impl Tr {
         }
 
         // What the engine does not draw.
-        let mut dropped: Vec<&str> = Vec::new();
+        let mut dropped: Vec<String> = Vec::new();
         if xy.traces.iter().any(|t| t.color.is_some()) {
-            dropped.push("colours");
+            dropped.push("colours".to_string());
         }
         if xy
             .traces
             .iter()
             .any(|t| t.symbol.as_deref().is_some_and(|s| s != "none"))
         {
-            dropped.push("markers");
+            dropped.push("markers".to_string());
         }
         if xy.traces.iter().any(|t| {
             t.line_style
                 .as_deref()
                 .is_some_and(|s| !s.eq_ignore_ascii_case("solid"))
         }) {
-            dropped.push("line styles");
+            dropped.push("line styles".to_string());
         }
         if xy
             .traces
             .iter()
             .any(|t| t.kind.as_deref().is_some_and(|k| !k.eq_ignore_ascii_case("lines")))
         {
-            dropped.push("columns and waterfalls (drawn as lines)");
+            dropped.push("columns and waterfalls (drawn as lines)".to_string());
+        }
+        for u in unscaled {
+            dropped.push(format!(
+                "unit {u} is not a known base unit: axis left in the unit the value is held in"
+            ));
         }
         if xy.x.log || xy.y.log {
-            dropped.push("logarithmic axes (drawn linear)");
+            dropped.push("logarithmic axes (drawn linear)".to_string());
         }
         if xy.x.start.is_some() || xy.y.start.is_some() {
-            dropped.push("axis ranges");
+            dropped.push("axis ranges".to_string());
         }
         if !dropped.is_empty() {
             self.issue(Code::PlotStyle, Some(dropped.join(", ")));
@@ -271,5 +306,103 @@ impl Tr {
         let has_notes = self.cur.iter().any(|p| p.code.severity() == Severity::Note);
         self.flush_issues(&r.id, r.line, None);
         Self::bump(&mut self.report.kinds, "plot", true, has_notes);
+    }
+}
+
+/// The base unit with the same dimension, for the prefixed and derived spellings a sheet shows.
+fn coherent(unit: &str) -> Option<String> {
+    let mut out = String::new();
+    let mut tok = String::new();
+    let flush = |tok: &mut String, out: &mut String| -> bool {
+        if tok.is_empty() {
+            return true;
+        }
+        let m = match tok.as_str() {
+            "N" | "kN" | "MN" | "GN" | "daN" => "N",
+            "Pa" | "kPa" | "MPa" | "GPa" | "hPa" => "Pa",
+            "m" | "mm" | "cm" | "km" | "dm" => "m",
+            "J" | "kJ" | "MJ" => "J",
+            "W" | "kW" | "MW" => "W",
+            "s" | "ms" => "s",
+            "kg" => "kg",
+            "kNm" => "N*m",
+            "A" | "V" | "K" | "Hz" | "rad" => tok.as_str(),
+            _ => return false,
+        };
+        out.push_str(m);
+        tok.clear();
+        true
+    };
+    for c in unit.chars() {
+        if c.is_alphabetic() {
+            tok.push(c);
+        } else {
+            if !flush(&mut tok, &mut out) {
+                return None;
+            }
+            out.push(c);
+        }
+    }
+    if !flush(&mut tok, &mut out) {
+        return None;
+    }
+    Some(out)
+}
+
+impl Tr {
+    /// For an axis expression with no unit typed: the base unit to divide it by, when the sheet shows
+    /// one of the names in it in a unit and the expression itself names no unit. A unit that is not
+    /// one of the known spellings is recorded in `unscaled` and the expression is left as it is.
+    fn base_unit_for(&mut self, e: &Expr, unscaled: &mut Vec<String>) -> Option<String> {
+        fn walk(e: &Expr, names: &mut Vec<Name>) {
+            match e {
+                Expr::Name(n) => names.push(n.clone()),
+                Expr::Un(_, a) => walk(a, names),
+                Expr::Postfix(u, a) => {
+                    names.push(Name {
+                        unit: true,
+                        ..u.clone()
+                    });
+                    walk(a, names)
+                }
+                Expr::Bin(_, a, b) => {
+                    walk(a, names);
+                    walk(b, names)
+                }
+                Expr::Call(_, args) => args.iter().for_each(|a| walk(a, names)),
+                Expr::Index(b, idx) => {
+                    walk(b, names);
+                    idx.iter().for_each(|a| walk(a, names))
+                }
+                _ => {}
+            }
+        }
+        let mut names = Vec::new();
+        walk(e, &mut names);
+        if names.iter().any(|n| matches!(n.unit, true) || self.is_unit_name(n)) {
+            return None;
+        }
+        let mut hint: Option<Expr> = None;
+        for n in &names {
+            if let Some(u) = self.unit_hints.get(&tables::normalise_name(&n.flat())) {
+                hint = Some(u.clone());
+                break;
+            }
+        }
+        let u = hint?;
+        let mark = self.cur.len();
+        let text = self.expr(&u).s;
+        self.cur.truncate(mark);
+        match coherent(&text) {
+            Some(c) => Some(if c.contains(|ch: char| "*/^ ".contains(ch)) {
+                format!("({})", c)
+            } else {
+                c
+            }),
+            None => {
+                unscaled.push(text);
+                None
+            }
+        }
     }
 }

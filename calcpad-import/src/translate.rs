@@ -727,6 +727,9 @@ struct Tr {
     params: Vec<String>,
     /// While a plot is rendered: the plot variable, which an index that mentions it reads by interpolation.
     plot_param: Option<String>,
+    /// Names the sheet shows in a unit somewhere (`f = ` with a unit): the unit the author reads the
+    /// quantity in, used to put a plot's unitless axis in the source's base units.
+    unit_hints: HashMap<String, Expr>,
     /// Range variables with literal integer bounds, usable as loop bounds of element assignments.
     ranges: HashMap<String, RangeInfo>,
     /// Names defined inside components that are not run (normalised).
@@ -4492,6 +4495,7 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         arrays: HashSet::new(),
         params: Vec::new(),
         plot_param: None,
+        unit_hints: HashMap::new(),
         ranges: HashMap::new(),
         component_names: sheet
             .component_names
@@ -4537,6 +4541,19 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         uses_val_ml: false,
         pending_ml: None,
     };
+    for r in rows.iter().flatten() {
+        if let RegionKind::Math(m) = &r.kind {
+            if let Stmt::Eval {
+                expr: Expr::Name(n),
+                unit: Some(u),
+            } = &m.stmt
+            {
+                tr.unit_hints
+                    .entry(tables::normalise_name(&n.flat()))
+                    .or_insert_with(|| u.clone());
+            }
+        }
+    }
     tr.layout_rows(&rows);
     let mut out = String::new();
     out.push_str(&format!(
