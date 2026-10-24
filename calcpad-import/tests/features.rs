@@ -639,18 +639,18 @@ fn programs_that_cannot_be_read_faithfully_say_why() {
         ]),
     )]);
     assert!(reason(&res).contains("tryCatch"), "{}", reason(&res));
-    // A function whose body loops.
+    // A function whose loop leaves early: not an expression block either.
     let res = convert(&[format!(
         "<ml:define><ml:function>{}<ml:boundVars>{}</ml:boundVars></ml:function>{}</ml:define>",
         n("h"),
         n("x"),
         program(&[
             local("s", &r("0")),
-            for_in("i", &r("1"), &n("x"), &[local("s", &n("i"))]),
+            for_in("i", &r("1"), &n("x"), &[local("s", &n("i")), "<ml:break/>".to_string()]),
             n("s")
         ])
     )]);
-    assert!(reason(&res).contains("usable inside a block"), "{}", reason(&res));
+    assert!(reason(&res).contains("break or continue"), "{}", reason(&res));
     // A gap leaves the name blocked for later uses.
     let res = convert(&[
         define(
@@ -960,53 +960,176 @@ fn a_program_that_grows_an_array_in_loops_preallocates_it() {
 }
 
 #[test]
-fn growth_that_cannot_be_sized_ahead_is_a_gap_with_the_reason() {
-    let reason = |res: &ImportResult| -> String {
-        res.report
-            .gaps()
-            .find(|i| i.code == Code::ProgramBlock)
-            .and_then(|i| i.detail.clone())
-            .unwrap_or_default()
-    };
-    // Written under a condition: the array may end up smaller than the loop.
-    let res = convert(&[define(
-        "G",
-        &program(&[
-            for_in(
-                "i",
-                &r("1"),
-                &r("3"),
-                &[if_then(&gt(&n("i"), &r("1")), &[local_el("g", &n("i"), &n("i"))], None)],
-            ),
-            n("g"),
-        ]),
-    )]);
-    assert!(reason(&res).contains("cannot be known ahead"), "{}", reason(&res));
-    // Indexed by a counter, not by the loop variable.
-    let res = convert(&[define(
-        "H",
-        &program(&[
-            local("c", &r("0")),
-            for_in(
-                "i",
-                &r("1"),
-                &r("3"),
-                &[local("c", &plus(&n("c"), &r("1"))), local_el("h", &n("c"), &n("i"))],
-            ),
-            n("h"),
-        ]),
-    )]);
-    assert!(reason(&res).contains("cannot be known ahead"), "{}", reason(&res));
-    // A bound that is itself a local of the program cannot be written ahead of the loop.
-    let res = convert(&[define(
-        "J",
-        &program(&[
-            local("m", &r("3")),
-            for_in("i", &r("1"), &n("m"), &[local_el("j", &n("i"), &n("i"))]),
-            n("j"),
-        ]),
-    )]);
-    assert!(reason(&res).contains("cannot be known ahead"), "{}", reason(&res));
+fn growth_that_cannot_be_sized_ahead_grows_the_array() {
+    // Written under a condition: g[2] = 2 and g[3] = 3 create g with a zero first element.
+    let res = convert(&[
+        define(
+            "G",
+            &program(&[
+                for_in(
+                    "i",
+                    &r("1"),
+                    &r("3"),
+                    &[if_then(&gt(&n("i"), &r("1")), &[local_el("g", &n("i"), &n("i"))], None)],
+                ),
+                n("g"),
+            ]),
+        ),
+        eval(&index1("G", &r("1"))),
+        eval(&index1("G", &r("2"))),
+        eval(&index1("G", &r("3"))),
+        eval(&call("rows", &[n("G")])),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.calcpad.contains("resize("), "{}", res.calcpad);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 4], 0.0);
+    assert_close(nums[nums.len() - 3], 2.0);
+    assert_close(nums[nums.len() - 2], 3.0);
+    assert_close(nums[nums.len() - 1], 3.0);
+    // Indexed by a counter, not by the loop variable: h = [1, 2, 3].
+    let res = convert(&[
+        define(
+            "H",
+            &program(&[
+                local("c", &r("0")),
+                for_in(
+                    "i",
+                    &r("1"),
+                    &r("3"),
+                    &[local("c", &plus(&n("c"), &r("1"))), local_el("h", &n("c"), &n("i"))],
+                ),
+                n("h"),
+            ]),
+        ),
+        eval(&index1("H", &r("3"))),
+        eval(&call("rows", &[n("H")])),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 2], 3.0);
+    assert_close(nums[nums.len() - 1], 3.0);
+    // A bound that is itself a local of the program: j = [1, 2, 3].
+    let res = convert(&[
+        define(
+            "J",
+            &program(&[
+                local("m", &r("3")),
+                for_in("i", &r("1"), &n("m"), &[local_el("j", &n("i"), &n("i"))]),
+                n("j"),
+            ]),
+        ),
+        eval(&index1("J", &r("2"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert_close(last(&res.calcpad), 2.0);
+}
+
+#[test]
+fn counters_and_conditions_pick_elements_into_a_growing_vector_and_matrix() {
+    // x = [3 -1 4 -1 5]; keep twice each positive one: s = [6 8 10].
+    let res = convert(&[
+        define("x", &mat(5, 1, &["3", "-1", "4", "-1", "5"])),
+        define(
+            "S",
+            &program(&[
+                local("j", &r("0")),
+                for_in(
+                    "i",
+                    &r("1"),
+                    &r("5"),
+                    &[if_then(
+                        &gt(&index1("x", &n("i")), &r("0")),
+                        &[
+                            local("j", &plus(&n("j"), &r("1"))),
+                            local_el("s", &n("j"), &times(&index1("x", &n("i")), &r("2"))),
+                        ],
+                        None,
+                    )],
+                ),
+                n("s"),
+            ]),
+        ),
+        eval(&index1("S", &r("1"))),
+        eval(&index1("S", &r("2"))),
+        eval(&index1("S", &r("3"))),
+        eval(&call("rows", &[n("S")])),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 4], 6.0);
+    assert_close(nums[nums.len() - 3], 8.0);
+    assert_close(nums[nums.len() - 2], 10.0);
+    assert_close(nums[nums.len() - 1], 3.0);
+    // A 3 x 3 matrix and a mask [0 1 0]: the rows and columns where the mask is 0 are kept, the
+    // result is the 2 x 2 matrix [1 3; 7 9].
+    let keep = |v: &str| lt(&index1("v", &n(v)), &r("1"));
+    let res = convert(&[
+        define("A", &mat(3, 3, &["1", "4", "7", "2", "5", "8", "3", "6", "9"])),
+        define("v", &mat(3, 1, &["0", "1", "0"])),
+        define(
+            "Kr",
+            &program(&[
+                local("ii", &r("0")),
+                for_in(
+                    "i",
+                    &r("1"),
+                    &r("3"),
+                    &[if_then(
+                        &keep("i"),
+                        &[
+                            local("ii", &plus(&n("ii"), &r("1"))),
+                            local("jj", &r("0")),
+                            for_in(
+                                "j",
+                                &r("1"),
+                                &r("3"),
+                                &[if_then(
+                                    &keep("j"),
+                                    &[
+                                        local("jj", &plus(&n("jj"), &r("1"))),
+                                        local_el2("k", &n("ii"), &n("jj"), &index2("A", &n("i"), &n("j"))),
+                                    ],
+                                    None,
+                                )],
+                            ),
+                        ],
+                        None,
+                    )],
+                ),
+                n("k"),
+            ]),
+        ),
+        eval(&index2("Kr", &r("2"), &r("1"))),
+        eval(&index2("Kr", &r("1"), &r("2"))),
+        eval(&call("rows", &[n("Kr")])),
+        eval(&call("cols", &[n("Kr")])),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.calcpad.contains("mresize("), "{}", res.calcpad);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 4], 7.0);
+    assert_close(nums[nums.len() - 3], 3.0);
+    assert_close(nums[nums.len() - 2], 2.0);
+    assert_close(nums[nums.len() - 1], 2.0);
+}
+
+#[test]
+fn an_array_the_sheet_already_has_is_not_replaced_by_a_new_local() {
+    // v has a value on the sheet; a program that writes v[2] is the source's copy-and-modify
+    // question, not read: a reported gap, not a fresh zero array.
+    let res = convert(&[
+        define("v", &mat(3, 1, &["1", "2", "3"])),
+        define(
+            "W",
+            &program(&[
+                for_in("i", &r("1"), &r("1"), &[local_el("v", &r("2"), &r("9"))]),
+                n("v"),
+            ]),
+        ),
+    ]);
+    let g = res.report.gaps().find(|i| i.code == Code::ProgramBlock).expect("gap");
+    assert!(g.detail.as_deref().unwrap_or("").contains("did not create"), "{g:?}");
 }
 
 #[test]
@@ -1152,8 +1275,9 @@ fn function_bodies_with_conditions_and_returns_become_one_expression() {
 }
 
 #[test]
-fn a_function_with_a_run_time_loop_names_the_missing_engine_feature() {
-    let res = convert_noc(&[function(
+fn a_function_with_a_run_time_loop_is_an_expression_block() {
+    // h(x): t = 0; for k in 1..x { t = t + k }; t. h(4) = 10; h(0) counts down 1, 0 as the source does.
+    let h = function(
         "h",
         &["x"],
         &program(&[
@@ -1161,15 +1285,231 @@ fn a_function_with_a_run_time_loop_names_the_missing_engine_feature() {
             for_in("k", &r("1"), &n("x"), &[local("t", &plus(&n("t"), &n("k")))]),
             n("t"),
         ]),
-    )]);
-    let g = res.report.gaps().find(|i| i.code == Code::ProgramBlock).expect("gap");
-    let d = g.detail.as_deref().unwrap_or("");
-    assert!(
-        d.contains("$While") && d.contains("loop statement usable inside a block"),
-        "{d}"
     );
-    // A program is source, not an equation: no code text is shown for it.
+    for (arg, want) in [("4", 10.0), ("0", 1.0)] {
+        let res = convert(&[h.clone(), eval(&call("h", &[r(arg)]))]);
+        assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+        assert!(res.calcpad.contains("$Repeat{"), "{}", res.calcpad);
+        assert_close(last(&res.calcpad), want);
+    }
+    // The typeset-Calcpad display shows no code text for it either.
+    let res = convert_noc(&[h]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
     assert!(!res.calcpad.contains("<code>"), "{}", res.calcpad);
+}
+
+#[test]
+fn a_function_loops_over_an_argument_and_changes_a_copy_of_it() {
+    // Z(A): every negative element becomes 0. The sheet's own A is untouched.
+    let res = convert(&[
+        define("A", &mat(2, 2, &["1", "-3", "-2", "4"])),
+        function(
+            "Z",
+            &["M"],
+            &program(&[
+                for_in(
+                    "i",
+                    &r("1"),
+                    &call("rows", &[n("M")]),
+                    &[for_in(
+                        "j",
+                        &r("1"),
+                        &call("cols", &[n("M")]),
+                        &[if_then(
+                            &lt(&index2("M", &n("i"), &n("j")), &r("0")),
+                            &[local_el2("M", &n("i"), &n("j"), &r("0"))],
+                            None,
+                        )],
+                    )],
+                ),
+                n("M"),
+            ]),
+        ),
+        define("B", &call("Z", &[n("A")])),
+        eval(&index2("B", &r("1"), &r("2"))),
+        eval(&index2("B", &r("2"), &r("1"))),
+        eval(&index2("B", &r("2"), &r("2"))),
+        eval(&index2("A", &r("1"), &r("2"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 4], 0.0);
+    assert_close(nums[nums.len() - 3], 0.0);
+    assert_close(nums[nums.len() - 2], 4.0);
+    assert_close(nums[nums.len() - 1], -2.0);
+}
+
+#[test]
+fn function_loops_with_while_and_chained_conditions() {
+    // w(n): halve n until it is 1, counting the halvings: w(8) = 3. n is an argument that is assigned.
+    let res = convert(&[
+        function(
+            "w",
+            &["n"],
+            &program(&[
+                local("c", &r("0")),
+                while_do(
+                    &gt(&n("n"), &r("1")),
+                    &[
+                        local("n", &app("div", &[n("n"), r("2")])),
+                        local("c", &plus(&n("c"), &r("1"))),
+                    ],
+                ),
+                n("c"),
+            ]),
+        ),
+        eval(&call("w", &[r("8")])),
+        eval(&call("w", &[r("1")])),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.calcpad.contains("$While{"), "{}", res.calcpad);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 2], 3.0);
+    assert_close(nums[nums.len() - 1], 0.0);
+    // cls(x): i = 1 adds 1, i = 2 and 3 add 10, the rest add 100. cls(5) = 1 + 10 + 10 + 100 + 100.
+    // The condition is evaluated once per pass, though the first branch changes what it reads.
+    let res = convert(&[
+        function(
+            "cls",
+            &["x"],
+            &program(&[
+                local("s", &r("0")),
+                for_in(
+                    "i",
+                    &r("1"),
+                    &n("x"),
+                    &[if_then(
+                        &lt(&n("i"), &r("2")),
+                        &[local("s", &plus(&n("s"), &r("1")))],
+                        Some(&[if_then(
+                            &lt(&n("i"), &r("4")),
+                            &[local("s", &plus(&n("s"), &r("10")))],
+                            Some(&[local("s", &plus(&n("s"), &r("100")))]),
+                        )]),
+                    )],
+                ),
+                n("s"),
+            ]),
+        ),
+        eval(&call("cls", &[r("5")])),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert_close(last(&res.calcpad), 221.0);
+    // A loop that counts down: d(x) sums x, x-1, ..., 1 written as for i in x..1.
+    let res = convert(&[
+        function(
+            "d",
+            &["x"],
+            &program(&[
+                local("s", &r("0")),
+                for_in("i", &n("x"), &r("1"), &[local("s", &plus(&n("s"), &n("i")))]),
+                n("s"),
+            ]),
+        ),
+        eval(&call("d", &[r("4")])),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert_close(last(&res.calcpad), 10.0);
+}
+
+#[test]
+fn function_bodies_that_have_no_value_on_some_path_are_gaps() {
+    let reason = |res: &ImportResult| -> String {
+        res.report
+            .gaps()
+            .find(|i| i.code == Code::ProgramBlock)
+            .and_then(|i| i.detail.clone())
+            .unwrap_or_default()
+    };
+    // y is first set under a condition and read after it.
+    let res = convert(&[function(
+        "p",
+        &["x"],
+        &program(&[
+            local("s", &r("0")),
+            for_in("i", &r("1"), &n("x"), &[local("s", &plus(&n("s"), &n("i")))]),
+            if_then(&gt(&n("x"), &r("0")), &[local("y", &r("1"))], None),
+            n("y"),
+        ]),
+    )]);
+    assert!(reason(&res).contains("first set under a condition"), "{}", reason(&res));
+    // t is first set inside a loop and read after it.
+    let res = convert(&[function(
+        "q",
+        &["x"],
+        &program(&[for_in("i", &r("1"), &n("x"), &[local("t", &n("i"))]), n("t")]),
+    )]);
+    assert!(reason(&res).contains("first set inside a loop"), "{}", reason(&res));
+    // An element of an array the function neither received nor created.
+    let res = convert(&[function(
+        "e",
+        &["x"],
+        &program(&[
+            for_in("i", &r("1"), &n("x"), &[local_el("z", &n("i"), &n("i"))]),
+            n("z"),
+        ]),
+    )]);
+    assert!(
+        reason(&res).contains("neither received nor created"),
+        "{}",
+        reason(&res)
+    );
+}
+
+#[test]
+fn a_function_named_like_an_engine_function_gets_another_name() {
+    // The engine reads function names without regard to case: Norm would be its own norm.
+    let res = convert(&[
+        function("Norm", &["x"], &app("mult", &[n("x"), r("2")])),
+        eval(&call("Norm", &[r("21")])),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.calcpad.contains("Norm_f("), "{}", res.calcpad);
+    assert_close(last(&res.calcpad), 42.0);
+}
+
+#[test]
+fn two_column_vectors_multiply_as_a_dot_product() {
+    // u = [1 2 3] and t(i) = [4 5 6] (as columns): u * t(1) is 32, not [4 10 18].
+    let res = convert(&[
+        define("u", &mat(3, 1, &["1", "2", "3"])),
+        function("t", &["i"], &mat(3, 1, &["4", "5", "6"])),
+        eval(&app("mult", &[n("u"), call("t", &[r("1")])])),
+        eval(&app("mult", &[r("2"), app("mult", &[n("u"), call("t", &[r("1")])])])),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.calcpad.contains("dot("), "{}", res.calcpad);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 2], 32.0);
+    assert_close(nums[nums.len() - 1], 64.0);
+}
+
+#[test]
+fn an_element_assignment_over_ranges_with_a_computed_index_grows_or_overwrites() {
+    // M = [1 2; 3 4]. Vv[2 (i - 1) + j] := M[i, j] for i = 1..2, j = 1..2 flattens it to [1 2 3 4].
+    // Then M[i, j] := Vv[2 (i - 1) + j] * 10 writes into the array M already has.
+    let flat_index = || plus(&times(&r("2"), &app("minus", &[n("i"), r("1")])), &n("j"));
+    let res = convert(&[
+        define("M", &mat(2, 2, &["1", "3", "2", "4"])),
+        define("i", &range("1", "2")),
+        define("j", &range("1", "2")),
+        set_element("Vv", &flat_index(), &index2("M", &n("i"), &n("j"))),
+        eval(&index1("Vv", &r("3"))),
+        eval(&call("rows", &[n("Vv")])),
+        format!(
+            "<ml:define>{}{}</ml:define>",
+            index2("M", &n("i"), &n("j")),
+            times(&index1("Vv", &flat_index()), &r("10"))
+        ),
+        eval(&index2("M", &r("2"), &r("1"))),
+        eval(&index2("M", &r("1"), &r("2"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 4], 3.0);
+    assert_close(nums[nums.len() - 3], 4.0);
+    assert_close(nums[nums.len() - 2], 30.0);
+    assert_close(nums[nums.len() - 1], 20.0);
 }
 
 // ---- constraint equations ---------------------------------------------------------------------------------------
@@ -1800,4 +2140,61 @@ fn the_documents_default_precision_applies_where_a_region_says_nothing() {
     assert!(errors.is_empty(), "{errors:?}");
     let text = text_of(&html);
     assert!(text.contains("x = 0.6667 x = 0.67"), "{text}");
+}
+
+#[test]
+fn the_list_of_engine_function_names_covers_the_engines_tables() {
+    use calcpad_core::calculator as c;
+    use calcpad_import::tables::is_engine_function;
+    let mut names: Vec<&str> = Vec::new();
+    names.extend(c::FUNCTION_NAMES.iter());
+    names.extend(c::FUNCTION2_NAMES.iter());
+    names.extend(c::FUNCTION3_NAMES.iter());
+    names.extend(c::MULTI_FUNCTION_NAMES.iter());
+    names.extend(c::INTERPOLATION_NAMES.iter());
+    for t in [
+        &c::vector_calculator::FUNCTION_NAMES[..],
+        &c::vector_calculator::FUNCTION2_NAMES[..],
+        &c::vector_calculator::FUNCTION3_NAMES[..],
+        &c::vector_calculator::MULTI_FUNCTION_NAMES[..],
+        &c::matrix_calculator::FUNCTION_NAMES[..],
+        &c::matrix_calculator::FUNCTION2_NAMES[..],
+        &c::matrix_calculator::ITERATIVE_FUNCTION_NAMES[..],
+        &c::matrix_calculator::FUNCTION3_NAMES[..],
+        &c::matrix_calculator::FUNCTION4_NAMES[..],
+        &c::matrix_calculator::FUNCTION5_NAMES[..],
+        &c::matrix_calculator::MULTI_FUNCTION_NAMES[..],
+    ] {
+        names.extend(t.iter().map(|(n, _)| n));
+    }
+    for n in names {
+        if n.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '_') {
+            assert!(
+                is_engine_function(n),
+                "engine function {n} is missing from tables::ENGINE_FUNCTIONS (a worksheet function of that name would clash)"
+            );
+        }
+    }
+}
+
+#[test]
+fn writing_into_a_copy_of_an_array_leaves_the_original_alone() {
+    // Y := X shares the array in the engine; the fill over ranges must not change X.
+    let res = convert(&[
+        define("X", &mat(2, 2, &["1", "3", "2", "4"])),
+        define("Y", &n("X")),
+        define("i", &range("1", "2")),
+        define("j", &range("1", "2")),
+        format!(
+            "<ml:define>{}{}</ml:define>",
+            index2("Y", &n("i"), &n("j")),
+            times(&index2("X", &n("i"), &n("j")), &r("10"))
+        ),
+        eval(&index2("Y", &r("2"), &r("1"))),
+        eval(&index2("X", &r("2"), &r("1"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 2], 30.0);
+    assert_close(nums[nums.len() - 1], 3.0);
 }
