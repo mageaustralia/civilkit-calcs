@@ -32,6 +32,7 @@ pub mod ir;
 pub mod mathml;
 pub mod mcdx;
 pub mod picture;
+mod plotread;
 pub mod report;
 pub mod tables;
 pub mod translate;

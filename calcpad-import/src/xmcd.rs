@@ -373,7 +373,7 @@ fn collect_region(ctx: &Ctx, r: Node, depth: usize, out: &mut Vec<Region>) {
             }
             out.push(mk(RegionKind::Picture(pic), rendering));
         }
-        "plot" => out.push(mk(RegionKind::Plot, rendering)),
+        "plot" => out.push(mk(RegionKind::Plot(crate::plotread::read_plot(c, lim)), rendering)),
         "ole" => out.push(mk(RegionKind::Ole, rendering)),
         "component" => out.push(mk(RegionKind::Component, rendering)),
         "reference" => out.push(mk(RegionKind::Reference, rendering)),
@@ -679,7 +679,7 @@ pub(crate) fn read_saved_result(res: Node) -> Option<SavedResult> {
     }
 }
 
-fn unwrap_provenance<'a, 'i>(mut n: Node<'a, 'i>) -> Node<'a, 'i> {
+pub(crate) fn unwrap_provenance<'a, 'i>(mut n: Node<'a, 'i>) -> Node<'a, 'i> {
     let mut guard = 0;
     while is_ml(n) && local(n) == "provenance" && guard < 8 {
         match n.children().find(|c| is_ml(*c)) {
@@ -871,7 +871,7 @@ fn unsupported(code: Code, detail: &str) -> Expr {
     }
 }
 
-fn read_expr(n: Node, lim: &Limits, depth: usize) -> Expr {
+pub(crate) fn read_expr(n: Node, lim: &Limits, depth: usize) -> Expr {
     if depth > lim.max_depth {
         return Expr::Unsupported {
             code: Code::TooDeep,

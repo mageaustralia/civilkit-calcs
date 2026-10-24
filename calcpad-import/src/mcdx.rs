@@ -406,7 +406,7 @@ impl Ctx<'_, '_> {
                     }
                 }
             }
-            "plot" => out.push(mk(RegionKind::Plot)),
+            "plot" => out.push(mk(RegionKind::Plot(crate::plotread::read_plot(c, lim)))),
             "oleObject" | "ole" => out.push(mk(RegionKind::Ole)),
             "reference" => out.push(mk(RegionKind::Reference)),
             "pageBreak" => out.push(mk(RegionKind::PageBreak)),
