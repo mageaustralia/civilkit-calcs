@@ -6,6 +6,7 @@ pub mod complex_calculator;
 pub mod matrix_calculator;
 pub mod out_of_scope_names;
 pub mod real_calculator;
+pub mod statistics;
 pub mod vector_calculator;
 
 use std::cell::Cell;
@@ -93,8 +94,9 @@ pub const FUNCTION_NAMES: [&str; 46] = [
 ];
 pub const FUNCTION2_NAMES: [&str; 4] = ["atan2", "root", "mod", "mandelbrot"];
 pub const FUNCTION3_NAMES: [&str; 1] = ["if"];
-pub const MULTI_FUNCTION_NAMES: [&str; 14] = [
+pub const MULTI_FUNCTION_NAMES: [&str; 19] = [
     "min", "max", "sum", "sumsq", "srss", "average", "product", "mean", "switch", "and", "or", "xor", "gcd", "lcm",
+    "median", "stdev", "stdevp", "var", "varp",
 ];
 pub const INTERPOLATION_NAMES: [&str; 3] = ["take", "line", "spline"];
 
@@ -228,6 +230,9 @@ impl Calculator {
     }
 
     pub fn evaluate_multi_function(&self, index: i64, a: &[Value]) -> CResult<Value> {
+        if index >= statistics::MULTI_BASE {
+            return statistics::evaluate(index, a);
+        }
         if self.is_complex {
             complex_calculator::evaluate_multi_function(index, a)
         } else {

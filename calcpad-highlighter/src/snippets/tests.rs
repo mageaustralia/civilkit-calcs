@@ -9,8 +9,8 @@ fn item_counts_match_csharp_new_snippet_item_counts() {
     let expected: [(&str, usize, usize); 14] = [
         ("constant", constant_snippets().len(), 28),
         ("operator", operator_snippets().len(), 21),
-        ("function", function_snippets().len(), 94),
-        ("vector", vector_function_snippets().len(), 43),
+        ("function", function_snippets().len(), 99),
+        ("vector", vector_function_snippets().len(), 48),
         ("matrix", matrix_function_snippets().len(), 104),
         ("keyword", keyword_snippets().len(), 90),
         ("command", command_snippets().len(), 18),
@@ -25,7 +25,7 @@ fn item_counts_match_csharp_new_snippet_item_counts() {
     for (name, got, want) in expected {
         assert_eq!(got, want, "{name}");
     }
-    assert_eq!(SnippetRegistry::all_snippets().len(), 958 + DIACRITICS);
+    assert_eq!(SnippetRegistry::all_snippets().len(), 968 + DIACRITICS);
 }
 
 #[test]
@@ -49,7 +49,7 @@ fn registry_order_and_diacritics() {
 #[test]
 fn by_category_groups_on_top_level() {
     let by = SnippetRegistry::by_category();
-    assert_eq!(by["Functions"].len(), 241);
+    assert_eq!(by["Functions"].len(), 251);
     assert_eq!(by["Units"].len(), 405);
     assert_eq!(by["Symbols"].len(), 62 + 208);
     assert_eq!(by["Constants"][0].insert, "π");
@@ -58,9 +58,14 @@ fn by_category_groups_on_top_level() {
 
 #[test]
 fn name_sets() {
-    assert_eq!(SnippetRegistry::get_function_names().len(), 216);
+    assert_eq!(SnippetRegistry::get_function_names().len(), 226);
     assert!(SnippetRegistry::get_function_names().contains("SIN"));
     assert!(SnippetRegistry::get_function_names().contains("lsolve"));
+    for n in [
+        "median", "stdev", "stdevp", "var", "varp", "cumsum", "convolve", "linspace", "polyfit", "interp",
+    ] {
+        assert!(SnippetRegistry::get_function_names().contains(n), "{n}");
+    }
     assert!(!SnippetRegistry::get_function_names().contains("sin("));
 
     let kw = SnippetRegistry::get_keyword_names();
@@ -147,7 +152,7 @@ fn signature_helpers() {
 fn returning_function_sets() {
     let v = SnippetRegistry::get_vector_returning_functions();
     let m = SnippetRegistry::get_matrix_returning_functions();
-    assert_eq!(v.len(), 25);
+    assert_eq!(v.len(), 29);
     assert_eq!(m.len(), 14);
     assert!(v.contains("CROSS") && v.contains("find_eq"));
 }
@@ -204,8 +209,8 @@ fn extract_helpers() {
 #[test]
 fn snippets_json_shape() {
     let all: serde_json::Value = serde_json::from_str(&snippets_json(None)).unwrap();
-    assert_eq!(all["count"], 958 + DIACRITICS);
-    assert_eq!(all["snippets"].as_array().unwrap().len(), 958 + DIACRITICS);
+    assert_eq!(all["count"], 968 + DIACRITICS);
+    assert_eq!(all["snippets"].as_array().unwrap().len(), 968 + DIACRITICS);
     assert_eq!(snippets_json(Some("  ")), snippets_json(None));
 
     let trig: serde_json::Value = serde_json::from_str(&snippets_json(Some("functions/trig"))).unwrap();
@@ -225,7 +230,7 @@ fn snippets_json_shape() {
         .unwrap()
         .iter()
         .filter(|s| s["returnType"] == "Vector");
-    assert_eq!(vectors.count(), 25);
+    assert_eq!(vectors.count(), 29);
 }
 
 #[test]
@@ -251,5 +256,5 @@ fn category_prefix_is_case_insensitive_and_prefix_based() {
     assert_eq!(SnippetRegistry::get_snippets_by_category("units").len(), 405);
     assert_eq!(SnippetRegistry::get_snippets_by_category("Symbols/Bar").len(), 52);
     assert!(SnippetRegistry::get_snippets_by_category("zzz").is_empty());
-    assert_eq!(SnippetRegistry::get_snippets_by_category("").len(), 958 + DIACRITICS);
+    assert_eq!(SnippetRegistry::get_snippets_by_category("").len(), 968 + DIACRITICS);
 }

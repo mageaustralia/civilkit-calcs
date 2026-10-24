@@ -15,6 +15,8 @@ use crate::report::{Code, ImportReport, Issue, KindStats, Severity};
 use crate::tables::{self, Constant, FnRule};
 use crate::{Asset, ImportOptions};
 
+mod plot;
+
 /// Every placeholder line starts with this (after the leading `'` that makes it a text line).
 pub const GAP_MARKER: &str = "[import-gap";
 
@@ -644,6 +646,8 @@ struct Tr {
     /// Defined names known to hold an array.
     arrays: HashSet<String>,
     params: Vec<String>,
+    /// While a plot is rendered: the plot variable, which an index that mentions it reads by interpolation.
+    plot_param: Option<String>,
     /// Range variables with literal integer bounds, usable as loop bounds of element assignments.
     ranges: HashMap<String, RangeInfo>,
     /// Names defined inside components that are not run (normalised).
@@ -2354,6 +2358,16 @@ impl Tr {
                 _ => self.readable_bad = true,
             }
         }
+        if let (Some(pp), Expr::Name(_), [i], false, false) =
+            (self.plot_param.clone(), base, idx, self.readable, self.display)
+        {
+            if mentions(i, &pp) {
+                // Plotting over the index: a fractional parameter reads between two elements.
+                let at = self.index_expr(i);
+                let arr = self.operand(base, P_ATOM, true);
+                return atom(format!("line({}; {})", at, arr));
+            }
+        }
         let mut b = self.operand(base, P_ATOM, true);
         if !self.readable && matches!(base, Expr::Call(..)) {
             self.prog_n += 1;
@@ -2661,7 +2675,7 @@ impl Tr {
                 Self::bump(&mut self.report.kinds, "text", true, false);
             }
             RegionKind::Math(m) => self.math(r, m),
-            RegionKind::Plot => self.simple_gap("plot", r, Code::Plot, None),
+            RegionKind::Plot(p) => self.plot(r, p),
             RegionKind::Picture(p) => self.picture(r, p),
             RegionKind::Ole => self.simple_gap("ole", r, Code::OleObject, None),
             RegionKind::Component => self.simple_gap("component", r, Code::Component, None),
@@ -3894,6 +3908,7 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         gap_names: HashMap::new(),
         arrays: HashSet::new(),
         params: Vec::new(),
+        plot_param: None,
         ranges: HashMap::new(),
         component_names: sheet
             .component_names

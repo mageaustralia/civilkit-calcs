@@ -37,6 +37,55 @@ pub struct TextStyle {
     pub align: Option<String>,
 }
 
+/// What the reader found in a plot region.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub enum PlotData {
+    /// An x-y plot whose traces and axis expressions were read.
+    Xy(Box<XyPlot>),
+    /// A kind of plot the importer does not read (the element name: a surface, polar or contour plot).
+    Other(String),
+    /// The plot is stored as an opaque binary item (the older file format), or has no content.
+    #[default]
+    Unread,
+}
+
+/// An x-y plot. Trace `k` pairs the k-th x expression with the k-th y expression; when one axis has
+/// fewer expressions than there are traces, its last expression is used for the remaining traces.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct XyPlot {
+    pub title: Option<String>,
+    pub traces: Vec<TraceStyle>,
+    pub x: PlotAxis,
+    pub y: PlotAxis,
+}
+
+/// How the file draws one trace. The engine draws its own colours and markers, so this is only
+/// counted for the note that says it is not carried.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct TraceStyle {
+    pub color: Option<String>,
+    pub symbol: Option<String>,
+    pub line_style: Option<String>,
+    /// `lines`, `columns`, `waterfall`, ...
+    pub kind: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct PlotAxis {
+    /// One slot per expression typed on the axis; `None` is an empty slot (a placeholder).
+    pub exprs: Vec<Option<Expr>>,
+    /// The unit typed beside each expression (the axis shows the quantity in that unit).
+    pub units: Vec<Option<Expr>>,
+    /// The range the axis was last drawn with.
+    pub start: Option<f64>,
+    pub end: Option<f64>,
+    /// The domain the author typed (`startValue` and `endValue`), when it is given.
+    pub from: Option<Expr>,
+    pub to: Option<Expr>,
+    pub log: bool,
+    pub label: Option<String>,
+}
+
 /// A picture region: a vector metafile (WMF or EMF bytes) and/or a PNG.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Picture {
@@ -67,7 +116,7 @@ pub struct Region {
 pub enum RegionKind {
     Text(Vec<Paragraph>),
     Math(MathRegion),
-    Plot,
+    Plot(PlotData),
     Picture(Picture),
     /// An embedded object of another application (an OLE object).
     Ole,

@@ -253,13 +253,14 @@ const PAL_ROUND: Section[] = [
                 ];
 const PAL_STAT: Section[] = [
                     fn('Aggregate', ['min(v)', 'max(v)', 'sum(v)', 'sumsq(v)', 'srss(v)', 'average(v)', 'product(v)', 'mean(v)']),
+                    fn('Statistics', ['median(v)', 'stdev(v)', 'stdevp(v)', 'var(v)', 'varp(v)']),
                     fn('Interpolation', ['take(n; v)']),
                     fn('Interpolation, x inside the data', ['line(x; v)', 'spline(x; v)'], { test: 'x = 2\nr = {}' }),
                 ];
 const PAL_VECTOR: Section[] = [
                     fn('Structure', ['len(v)', 'size(v)', 'resize(v; n)', 'join(v; w)', 'slice(v; 1; 2)', 'first(v; 2)', 'last(v; 2)']),
                     fn('Data', ['sort(v)', 'rsort(v)', 'order(v)', 'revorder(v)', 'reverse(v)', 'count(v; 1; 1)', 'search(v; 1; 1)', 'find(v; 1; 1)', 'lookup(v; w; 1)']),
-                    fn('Math', ['norm(v)', 'norm_1(v)', 'norm_i(v)', 'unit(v)', 'dot(v; w)']),
+                    fn('Math', ['norm(v)', 'norm_1(v)', 'norm_i(v)', 'unit(v)', 'dot(v; w)', 'cumsum(v)', 'convolve(v; w)']),
                     sec('3D', [['cross', 'cross(v; w)']]),
                 ];
 const PAL_MATRIX: Section[] = [

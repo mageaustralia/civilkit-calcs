@@ -271,6 +271,18 @@ A call to a function that is not defined in the sheet is one of three codes, ran
 
 Solve-block names (`Given`, `Find`, ...) are `solve-block`.
 
+### Plots
+
+An x-y plot (the `xyPlot` of an `.mcdx` file) becomes one `$Plot{...}` command of the engine, from the expressions the file stores on its two axes.
+
+* **Traces.** Trace `k` pairs the k-th x expression with the k-th y expression; when one axis has fewer expressions than there are traces, its last one is used for the rest. A single x value against a vector of y values is a vertical line across the data, which is how the source draws a marker at a support. The unit typed beside an axis expression is the unit of the axis: every expression of that axis is divided by it.
+* **The plot variable.** The engine plots expressions of one variable. A range variable of the sheet used in the expressions (`x[i]`, `V(x[i])` over `i = 0 .. 300`) runs over its range, and an index that mentions it reads the array by linear interpolation (`line(i + 1; x)`), so a fractional value of the variable falls between two elements. A single name that nothing defines (`f(x)` against `x`) runs over the domain the author typed, or over the range the axis was drawn with. Whole arrays against each other (`Re(S)` against `Im(S)`) run over the element number (`line(i_plot; (a))`). Two range variables are not guessed between.
+* **Text.** A title and axis labels, when the file stores them, are written as centred text lines around the plot.
+* **Not carried (`plot-style` note, with the list in the detail).** The engine draws its own colours, markers, line styles and axis ranges, so the file's are dropped; columns and waterfalls are drawn as lines and a logarithmic axis is drawn linear.
+* **Gaps.** A plot whose expressions use a name that did not convert (or is undefined) is a gap with that name as the reason, like a math region. A plot of another kind (surface, polar, contour, 3-D) is `plot` with the element name as the detail. A plot in the older `.xmcd` file is an opaque binary item (a serialised object tree, not XML); it is `plot` with that reason. An `.xmcd` plot written as XML is read the same way as an `.mcdx` one.
+
+On the local worksheets this reads the two plots of a beam worksheet (three traces each; the engine draws both with no error). The four plots of a truss worksheet depend on arrays built by programs that do not convert yet, so they stay gaps with those names as the reason. Axis labels and titles were empty in every plot of the files available, so the reading of a stored label is tested on synthetic XML only.
+
 ### Units
 
 A name is a unit when it is not defined as a variable or function earlier in reading order and it is in
@@ -355,7 +367,9 @@ summary key on them.
 | `bare-expression` | An expression with no definition or evaluation operator (documentation) |
 | `constraint-equation` | An equation on its own (`f_B = c*L + d`): a solve block's equation or a check. Shown with its real names, not solved |
 | `element-assignment`, `disabled-region` | `v[i] := x`; a region switched off in the source |
-| `plot`, `ole-object`, `component`, `worksheet-reference`, `other-region` | Counted only, never converted; shown as a static picture when the file has one (see Pictures) |
+| `plot` | A plot that is not an x-y plot, is stored as a binary item, has an empty slot on an axis, or uses a name that did not convert (see Plots) |
+| `ole-object`, `component`, `worksheet-reference`, `other-region` | Counted only, never converted; shown as a static picture when the file has one (see Pictures) |
+| `plot-style` | Note: a converted plot whose colours, markers, line styles, axis ranges, columns or log axes the engine does not draw |
 | `header-footer`, `rich-text-element`, `text-unreadable` | `.mcdx` only: a page header or footer; an element of a text region that would hide content (a table, a picture, a floating block; the element name is the detail); a text region whose prose could not be read from the package |
 | `image` | A picture region with nothing usable (no metafile, no raster picture) |
 | `unknown-element` | An element name the reader does not know (the name is the detail) |
@@ -479,7 +493,7 @@ Skipped, with a code and a visible placeholder line each (nothing is dropped sil
 | Embedded object of another application (`oleObject`) | `ole-object` |
 | Spreadsheet and chart components, with the regions inside them | `component` |
 | Reference to another worksheet | `worksheet-reference` (and `reference-function` for calls it may define) |
-| Plot | `plot` |
+| Plot | `plot` (x-y plots convert, see Plots) |
 | Page header and footer (when they hold regions) | `header-footer` |
 | Table, picture or floating block inside a text region | `rich-text-element` (the element name is the detail) |
 | A text region whose flow document is missing or unreadable | `text-unreadable` |
@@ -526,7 +540,7 @@ each math case is built once and imported through both front doors, and the two 
 ## Not covered
 
 Range variables (top engine gap to close, see the ranked list), programs, solve blocks, symbolic
-evaluation, plots, pictures, embedded objects, data tables and components, strings, derivative and integral
+evaluation, plots other than x-y plots, pictures, embedded objects, data tables and components, strings, derivative and integral
 operators, worksheet references and includes, text colours and fonts, tables of results. Types
 are not tracked, so `|x|` of a vector or matrix is only noted when the operand was defined from a matrix
 literal.

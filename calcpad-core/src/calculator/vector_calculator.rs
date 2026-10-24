@@ -9,7 +9,7 @@ use crate::exceptions::{self, Items};
 use crate::math_parser_exception::CResult;
 use crate::vector::{hp_vector, large_vector, Relation, Vector};
 
-pub const FUNCTION_NAMES: [(&str, i64); 15] = [
+pub const FUNCTION_NAMES: [(&str, i64); 16] = [
     ("vector", 0),
     ("len", 1),
     ("size", 2),
@@ -25,9 +25,10 @@ pub const FUNCTION_NAMES: [(&str, i64); 15] = [
     ("norm_i", 10),
     ("unit", 11),
     ("vector_hp", 12),
+    ("cumsum", 13),
 ];
 
-pub const FUNCTION2_NAMES: [(&str, i64); 8] = [
+pub const FUNCTION2_NAMES: [(&str, i64); 9] = [
     ("resize", 0),
     ("fill", 1),
     ("first", 2),
@@ -36,9 +37,10 @@ pub const FUNCTION2_NAMES: [(&str, i64); 8] = [
     ("dot", 5),
     ("cross", 6),
     ("norm_p", 7),
+    ("convolve", 8),
 ];
 
-pub const FUNCTION3_NAMES: [(&str, i64); 19] = [
+pub const FUNCTION3_NAMES: [(&str, i64); 22] = [
     ("slice", 0),
     ("range", 1),
     ("range_hp", 2),
@@ -58,13 +60,16 @@ pub const FUNCTION3_NAMES: [(&str, i64); 19] = [
     ("lookup_le", 14),
     ("lookup_gt", 15),
     ("lookup_ge", 16),
+    ("linspace", 17),
+    ("polyfit", 18),
+    ("interp", 19),
 ];
 
 pub const MULTI_FUNCTION_NAMES: [(&str, i64); 1] = [("join", 0)];
 
 /// `ValueResultFunctions`
-const VALUE_RESULT_FUNCTIONS: [&str; 9] = [
-    "count", "dot", "len", "last", "norm", "norm1", "normp", "normi", "search",
+const VALUE_RESULT_FUNCTIONS: [&str; 10] = [
+    "count", "dot", "len", "last", "norm", "norm1", "normp", "normi", "search", "interp",
 ];
 
 pub(crate) fn lookup_ci(table: &[(&str, i64)], name: &str) -> Option<i64> {
@@ -116,6 +121,7 @@ pub fn evaluate_vector_function(index: i64, a: &Value) -> CResult<Value> {
         10 => Value::Real(v()?.inf_norm()?),
         11 => Value::Vector(v()?.normalize()?),
         12 => Value::Vector(hp_vector::new_length(a.as_int(Items::Argument)? as usize, None)?),
+        13 => super::statistics::cumsum(a)?,
         _ => return Err(index_out_of_range()),
     })
 }
@@ -163,6 +169,7 @@ pub fn evaluate_vector_function2(index: i64, a: &Value, b: &Value) -> CResult<Va
             }
         }
         7 => Value::Real(a.as_vector(Items::Argument)?.lp_norm(b.as_int(Items::Argument)?)?),
+        8 => super::statistics::convolve(a, b)?,
         _ => return Err(index_out_of_range()),
     })
 }
@@ -220,6 +227,9 @@ pub fn evaluate_vector_function3(index: i64, a: &Value, b: &Value, c: &Value) ->
         14 => lookup(Relation::LessOrEqual),
         15 => lookup(Relation::GreaterThan),
         16 => lookup(Relation::GreaterOrEqual),
+        17 => super::statistics::linspace(a, b, c),
+        18 => super::statistics::polyfit(a, b, c),
+        19 => super::statistics::interp(a, b, c),
         _ => Err(index_out_of_range()),
     }
 }
@@ -297,6 +307,9 @@ pub fn evaluate_function2(calc: &Calculator, index: i64, a: &Vector, b: &Vector)
 
 /// `EvaluateMultiFunction(index, Vector a)`: min, max, sum, ... of the elements.
 pub fn evaluate_multi_function(index: i64, a: &Vector) -> CResult<Value> {
+    if index >= super::statistics::MULTI_BASE {
+        return super::statistics::evaluate(index, &[Value::Vector(a.clone())]);
+    }
     Ok(Value::Real(match index {
         0 => a.min()?,
         1 => a.max()?,

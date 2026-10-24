@@ -58,6 +58,7 @@ pub enum Code {
     SiUnitScale,
     StaticPicture,
     SvgFallback,
+    PlotStyle,
     // ---- whole-file problems ----
     XmlError,
     NotAWorksheet,
@@ -126,6 +127,7 @@ impl Code {
         Code::SiUnitScale,
         Code::StaticPicture,
         Code::SvgFallback,
+        Code::PlotStyle,
         Code::XmlError,
         Code::NotAWorksheet,
         Code::InputTooLarge,
@@ -183,6 +185,7 @@ impl Code {
             SiUnitScale => "si-unit-scale",
             StaticPicture => "static-picture",
             SvgFallback => "svg-fallback",
+            PlotStyle => "plot-style",
             XmlError => "xml-error",
             NotAWorksheet => "not-a-worksheet",
             InputTooLarge => "input-too-large",
@@ -195,7 +198,7 @@ impl Code {
         match self {
             GlobalDefinition | RangeLoop | FrozenValue | AngleMode | ArrayOrigin | OriginAssigned | LogBase
             | RoundDigits | AbsOfArray | CallAsMultiplication | UnitOverride | SiUnitScale | StaticPicture
-            | SvgFallback => Severity::Note,
+            | SvgFallback | PlotStyle => Severity::Note,
             XmlError | NotAWorksheet | InputTooLarge | UnsupportedContainer => Severity::Fatal,
             _ => Severity::Gap,
         }
@@ -257,6 +260,7 @@ impl Code {
             SiUnitScale => "the SI unit of a quantity is read as the unit it is held in: the same number only when that unit is the SI one or the scale cancels in the result",
             StaticPicture => "shown as a static picture of the original (not live, not editable)",
             SvgFallback => "metafile could not be converted to SVG (failed or too large): the raster picture is used",
+            PlotStyle => "plot converted: the engine draws its own colours, markers, line styles and axis ranges, and the traces keep only their expressions",
             XmlError => "the input is not well-formed XML (or uses a DTD, which is refused)",
             NotAWorksheet => "the XML is not a worksheet document",
             InputTooLarge => "the input exceeds the size limit",
