@@ -1,3 +1,0 @@
-(function(){let e=null;function t(t){return e||(e=(async()=>{let e=await import(
-/* @vite-ignore */
-`${t}wasm/calcpad_import_xmcd_wasm.js`);return await e.default({module_or_path:`${t}wasm/calcpad_import_xmcd_wasm_bg.wasm`}),e})(),e.catch(()=>{e=null})),e}self.onmessage=async e=>{let{id:n,base:r,bytes:i,options:a}=e.data;try{let e=(await t(r)).import_xmcd(i,a),o=[];for(let t=0,n=e.asset_count();t<n;t++)o.push({path:e.asset_path(t),mime:e.asset_mime(t),bytes:e.asset_bytes(t)});let s={calcpad:e.calcpad,report:e.report,assets:o};e.free(),self.postMessage({id:n,result:s},o.map(e=>e.bytes.buffer))}catch(e){self.postMessage({id:n,error:e instanceof Error?e.message:String(e),trap:!0})}}})();
