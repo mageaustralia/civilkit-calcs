@@ -181,7 +181,7 @@ pub fn interp(x: &Value, xs: &Value, ys: &Value) -> CResult<Value> {
     if tx.is_empty() {
         return Err(err("interp needs a table with at least one point."));
     }
-    if tx.windows(2).any(|w| !(w[1] > w[0])) {
+    if tx.windows(2).any(|w| w[0].is_nan() || w[1].is_nan() || w[1] <= w[0]) {
         return Err(err("interp needs the x values in strictly increasing order."));
     }
     let xv = x.d * Unit::convert(&ux, &x.units, ',')?;
