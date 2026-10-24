@@ -355,3 +355,43 @@ fn two_range_variables_are_not_guessed_between() {
         .unwrap()
         .contains("several range variables"));
 }
+
+#[test]
+fn a_bare_zero_in_a_plot_condition_or_branch_takes_the_units_of_the_other_side() {
+    // y = if(f[i] < 0, -f[i], 0): the zeros are zeros of a force in the source.
+    let cond = app("lessThan", &[index("f", &n("i")), r("0")]);
+    let body = call("if", &[cond, app("neg", &[index("f", &n("i"))]), r("0")]);
+    let regs = [
+        math(
+            1,
+            0.0,
+            &define(
+                "f",
+                &format!(
+                    "<ml:apply><ml:mult/>{}{}</ml:apply>",
+                    matrix(3, 1, &["1", "-2", "3"]),
+                    n("kN")
+                ),
+            ),
+        ),
+        math(2, 20.0, &define("i", &range(&r("1"), &r("3")))),
+        plot(
+            3,
+            40.0,
+            "",
+            &[trace("lines")],
+            &axis(&[slot(&n("i"), None)]),
+            &axis(&[slot(&body, None)]),
+        ),
+    ];
+    let res = convert(1, &regs);
+    let line = plot_line(&res.calcpad);
+    assert!(line.contains("0*getunits("), "{line}");
+    let pts = &draw(&res.calcpad)[0].series[0].points;
+    // Compression positive: 0 at i = 1, 2 at i = 2, 0 at i = 3.
+    assert!(
+        pts.iter().any(|p| (p.0 - 2.0).abs() < 1e-9 && (p.1 - 2.0).abs() < 1e-9),
+        "{pts:?}"
+    );
+    assert!(pts.iter().any(|p| (p.0 - 3.0).abs() < 1e-9 && p.1.abs() < 1e-9));
+}

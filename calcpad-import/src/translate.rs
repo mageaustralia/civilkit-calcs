@@ -1085,14 +1085,31 @@ impl Tr {
             let r = self.expr(b).s;
             return atom(format!("dot({l}; {r})"));
         }
-        let l = self.operand(a, lmin, true);
+        let mut l = self.operand(a, lmin, true);
         // A product's right operand that is itself a division keeps its parentheses.
         let rmin = if op == BinOp::Mul && matches!(b, Expr::Bin(BinOp::Div, ..)) {
             P_NEG
         } else {
             rmin
         };
-        let r = self.operand(b, rmin, false);
+        let mut r = self.operand(b, rmin, false);
+        // In a plot, a comparison with a bare 0 is a comparison with a zero of the other side's
+        // dimension (as in the source); the engine wants both sides in the same units.
+        if self.plot_param.is_some()
+            && matches!(
+                op,
+                BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge
+            )
+            && !self.display
+            && !self.readable
+        {
+            let zero = |e: &Expr| matches!(e, Expr::Num(s) if s.trim().parse::<f64>() == Ok(0.0));
+            if zero(b) && !zero(a) {
+                r = format!("0*getunits({})", l);
+            } else if zero(a) && !zero(b) {
+                l = format!("0*getunits({})", r);
+            }
+        }
         R {
             s: format!("{}{}{}", l, sym, r),
             prec,
@@ -2713,7 +2730,17 @@ impl Tr {
             let shown = self.render_args(args);
             return self.stand_in(&format!("{}({})", flat, shown.join("; ")), "?call?");
         }
-        let rendered = self.render_args(args);
+        let mut rendered = self.render_args(args);
+        // In a plot, a bare 0 branch of `if` is a zero of the other branch's dimension (as in the
+        // source); the engine wants both branches in the same units.
+        if self.plot_param.is_some() && flat == "if" && n.sub.is_none() && args.len() == 3 {
+            let zero = |e: &Expr| matches!(e, Expr::Num(s) if s.trim().parse::<f64>() == Ok(0.0));
+            if zero(&args[1]) && !zero(&args[2]) {
+                rendered[1] = format!("0*getunits({})", rendered[2]);
+            } else if zero(&args[2]) && !zero(&args[1]) {
+                rendered[2] = format!("0*getunits({})", rendered[1]);
+            }
+        }
         let shown_call = format!("{}({})", flat, rendered.join("; "));
         // `x / SIUnitsOf(x)` is the number of `x` in SI base units. The engine holds SI values but
         // has no function for their unit, only `getunits` for the unit a value is shown in.
