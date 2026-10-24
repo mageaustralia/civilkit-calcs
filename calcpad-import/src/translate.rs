@@ -1879,7 +1879,11 @@ impl Tr {
                     let indent = r.left - page_left;
                     let typeset = c.lines.iter().any(|l| l.contains("class=\"imp-eq\""));
                     if matches!(r.kind, RegionKind::Math(_)) && typeset && indent >= 3.0 {
-                        let with = format!("class=\"imp-eq\" style=\"margin-left:{indent:.0}pt\"");
+                        // The indent is the source's page position; in a pane narrower than the page it must not squeeze the
+                        // equation (a matrix would shrink to a sliver), so it gives way to keep 14em of room.
+                        let with = format!(
+                            "class=\"imp-eq\" style=\"margin-left:min({indent:.0}pt,max(0px,calc(100% - 14em)))\""
+                        );
                         self.lines
                             .extend(c.lines.iter().map(|l| l.replace("class=\"imp-eq\"", &with)));
                     } else {
@@ -4195,7 +4199,7 @@ fn style_block(colors: &std::collections::BTreeSet<String>, maths: bool) -> Opti
     if maths {
         css.push_str(
             ".vec{display:none}b>var{font-weight:normal}sup>small.nth:first-child{display:none}.imp-scroll{overflow-x:auto;white-space:nowrap}\
-.imp-eq{overflow-x:auto;padding:.2em 0;margin:.3em 0}.imp-m{font-size:1.15em;math-style:normal;font-family:Cambria Math,STIX Two Math,Latin Modern Math,Noto Sans Math,math}\
+.imp-eq{overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;padding:.35em 0;margin:.15em 0}.imp-m{font-size:1.15em;math-style:normal;font-family:Cambria Math,STIX Two Math,Latin Modern Math,Noto Sans Math,math}\
 .imp-m mi.v{font-style:italic}\
 .imp-m .kw,.imp-m .dot,.imp-m .beq,.imp-m .ru{font-family:STIX Two Text,Times New Roman,Times,serif}\
 .imp-m .kw,.imp-m .dot,.imp-m .beq,.imp-m .ru{font-weight:bold}.imp-m .ru{font-style:italic}\
