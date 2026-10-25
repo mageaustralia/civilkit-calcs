@@ -606,3 +606,107 @@ fn a_comparison_with_a_bare_zero_takes_the_other_sides_units() {
     assert_close(nums[k - 2], 1.0);
     assert_close(nums[k - 1], 2.0);
 }
+
+// ---- arrays a function fills by element ----------------------------------------------------------------------
+
+fn local_el(base: &str, idx: &[&str], value: &str) -> String {
+    let target = if idx.len() == 1 {
+        index1(base, idx[0])
+    } else {
+        index2(base, idx[0], idx[1])
+    };
+    format!("<ml:localDefine>{target}{value}</ml:localDefine>")
+}
+
+#[test]
+fn a_function_that_fills_a_vector_in_a_loop_allocates_it_first() {
+    // f(n) = (for i in 1..n: v[i] = i^2); sum(v).  f(4) = 1 + 4 + 9 + 16 = 30.
+    let body = program(&[
+        for_in(
+            "i",
+            &r("1"),
+            &n("n"),
+            &[local_el("v", &[&n("i")], &app("pow", &[n("i"), r("2")]))],
+        ),
+        call("vectorSum", &[n("v")]),
+    ]);
+    let res = convert(&[func("f", &["n"], &body), eval(&call("f", &[r("4")]))]);
+    clean(&res);
+    assert!(res.calcpad.contains("vector(max(1; n))"), "{}", res.calcpad);
+    assert_close(*numbers(&res.calcpad).last().unwrap(), 30.0);
+}
+
+#[test]
+fn a_function_that_fills_a_matrix_with_a_loop_row_and_literal_columns_allocates_it() {
+    // g(n) rows i = 1..n: M[i,1] = i, M[i,2] = 2 i, and gives M. G = g(3): G[3,2] = 6, rows(G) = 3.
+    let body = program(&[
+        for_in(
+            "i",
+            &r("1"),
+            &n("n"),
+            &[
+                local_el("M", &[&n("i"), &r("1")], &n("i")),
+                local_el("M", &[&n("i"), &r("2")], &times(&r("2"), &n("i"))),
+            ],
+        ),
+        n("M"),
+    ]);
+    let res = convert(&[
+        func("g", &["n"], &body),
+        define("G", &call("g", &[r("3")])),
+        eval(&index2("G", &r("3"), &r("2"))),
+        eval(&call("rows", &[n("G")])),
+    ]);
+    clean(&res);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 2], 6.0);
+    assert_close(nums[nums.len() - 1], 3.0);
+}
+
+#[test]
+fn array_allocation_follows_the_array_origin() {
+    // With the origin 0, for i in 0..3 fills four elements: the sum of i + 10 is 10 + 11 + 12 + 13 = 46.
+    let body = program(&[
+        for_in(
+            "i",
+            &r("0"),
+            &r("3"),
+            &[local_el("v", &[&n("i")], &plus(&n("i"), &r("10")))],
+        ),
+        call("vectorSum", &[n("v")]),
+    ]);
+    let sheet = sheet_of(&[func("f", &["x"], &body), eval(&call("f", &[r("0")]))])
+        .replace(r#"array-origin="1""#, r#"array-origin="0""#);
+    let res = import_xmcd(&sheet);
+    clean(&res);
+    assert!(res.calcpad.contains("vector(4)"), "{}", res.calcpad);
+    assert_close(*numbers(&res.calcpad).last().unwrap(), 46.0);
+}
+
+#[test]
+fn a_write_under_a_condition_past_the_others_is_a_reported_gap() {
+    // w[i] always, w[i + 1] when i > 1: the source's array is longer on some paths, so it is not allocated.
+    let body = program(&[
+        for_in(
+            "i",
+            &r("1"),
+            &n("n"),
+            &[
+                local_el("w", &[&n("i")], &r("2")),
+                if_then(
+                    &gt(&n("i"), &r("1")),
+                    &[local_el("w", &[&plus(&n("i"), &r("1"))], &r("1"))],
+                ),
+            ],
+        ),
+        call("vectorSum", &[n("w")]),
+    ]);
+    let res = convert(&[func("f", &["n"], &body)]);
+    let why = res
+        .report
+        .gaps()
+        .find(|i| i.code == Code::ProgramBlock)
+        .and_then(|i| i.detail.clone())
+        .unwrap_or_default();
+    assert!(why.contains("condition"), "{why}");
+}

@@ -574,6 +574,155 @@ struct FnBlk {
     starts: Vec<String>,
     /// Names every arm of an `if`/`else` sets: they have a value after it, whichever arm ran.
     exhaustive: HashSet<String>,
+    /// Arrays the body writes by element without having made them: the statement before which each is
+    /// allocated, and why the others cannot be.
+    allocs: Vec<(usize, String)>,
+    no_alloc: HashMap<String, String>,
+    writes: Vec<ElemWrite>,
+}
+
+/// What one dimension of an array needs: a literal index, or the end of a loop (plus an offset).
+#[derive(Clone)]
+enum Need {
+    Lit(i64),
+    Loop { first: Expr, last: Expr, off: i64 },
+}
+
+/// One element write to an array the function has not made.
+struct ElemWrite {
+    base: String,
+    needs: Vec<Need>,
+    conditional: bool,
+    /// The statement of the function body it is in.
+    at: usize,
+}
+
+/// The writes in `stmts` to arrays by element, with what each index needs. A write the sizes of which
+/// cannot be known (an index that is not a loop variable or a literal, a write inside a `while`) is
+/// reported against its array.
+fn element_writes(
+    stmts: &[PStmt],
+    at: usize,
+    conditional: bool,
+    loops: &mut Vec<(String, Option<(Expr, Expr)>)>,
+    in_while: bool,
+    out: &mut Vec<ElemWrite>,
+    bad: &mut HashMap<String, String>,
+) {
+    for st in stmts {
+        match st {
+            PStmt::Local(PTarget::Element { base, index }, _) => {
+                let b = tables::normalise_name(&base.flat());
+                if in_while {
+                    bad.insert(b, "it is written inside a while loop, whose length is not known".into());
+                    continue;
+                }
+                let mut needs = Vec::new();
+                for e in index {
+                    let (name, off) = match e {
+                        Expr::Num(s) => match is_int_literal(s) {
+                            Some(v) => {
+                                needs.push(Need::Lit(v));
+                                continue;
+                            }
+                            None => {
+                                bad.insert(b.clone(), "an index is not a whole number".into());
+                                break;
+                            }
+                        },
+                        Expr::Name(n) => (tables::normalise_name(&n.flat()), 0),
+                        Expr::Bin(op @ (BinOp::Add | BinOp::Sub), l, r) => match (&**l, &**r) {
+                            (Expr::Name(n), Expr::Num(c)) if is_int_literal(c).is_some() => {
+                                let c = is_int_literal(c).unwrap_or(0);
+                                (
+                                    tables::normalise_name(&n.flat()),
+                                    if *op == BinOp::Add { c } else { -c },
+                                )
+                            }
+                            _ => {
+                                bad.insert(b.clone(), "an index is not a loop variable or a number".into());
+                                break;
+                            }
+                        },
+                        _ => {
+                            bad.insert(b.clone(), "an index is not a loop variable or a number".into());
+                            break;
+                        }
+                    };
+                    match loops.iter().rev().find(|(v, _)| *v == name) {
+                        Some((_, Some((first, last)))) => needs.push(Need::Loop {
+                            first: first.clone(),
+                            last: last.clone(),
+                            off,
+                        }),
+                        _ => {
+                            bad.insert(
+                                b.clone(),
+                                format!("the index {name} is not a loop variable with known ends"),
+                            );
+                            break;
+                        }
+                    }
+                }
+                if needs.len() == index.len() && (1..=2).contains(&needs.len()) {
+                    out.push(ElemWrite {
+                        base: b,
+                        needs,
+                        conditional,
+                        at,
+                    });
+                }
+            }
+            PStmt::For { var, range, body } => {
+                let ends = match range {
+                    Expr::Range {
+                        first,
+                        second: None,
+                        last,
+                    } => Some(((**first).clone(), (**last).clone())),
+                    _ => None,
+                };
+                loops.push((tables::normalise_name(&var.flat()), ends));
+                element_writes(body, at, conditional, loops, in_while, out, bad);
+                loops.pop();
+            }
+            PStmt::While { body, .. } => element_writes(body, at, conditional, loops, true, out, bad),
+            PStmt::If { branches, otherwise } => {
+                for (_, b) in branches {
+                    element_writes(b, at, true, loops, in_while, out, bad);
+                }
+                if let Some(o) = otherwise {
+                    element_writes(o, at, true, loops, in_while, out, bad);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Names a list of statements assigns whole (not by element).
+fn whole_assigned(stmts: &[PStmt], out: &mut HashSet<String>) {
+    for st in stmts {
+        match st {
+            PStmt::Local(PTarget::Var(n), _) => {
+                out.insert(tables::normalise_name(&n.flat()));
+            }
+            PStmt::For { var, body, .. } => {
+                out.insert(tables::normalise_name(&var.flat()));
+                whole_assigned(body, out);
+            }
+            PStmt::While { body, .. } => whole_assigned(body, out),
+            PStmt::If { branches, otherwise } => {
+                for (_, b) in branches {
+                    whole_assigned(b, out);
+                }
+                if let Some(o) = otherwise {
+                    whole_assigned(o, out);
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 impl FnBlk {
@@ -2174,6 +2323,9 @@ impl Tr {
             inside: None,
             starts: Vec::new(),
             exhaustive: HashSet::new(),
+            allocs: Vec::new(),
+            no_alloc: HashMap::new(),
+            writes: Vec::new(),
         };
         let mut items: Vec<String> = Vec::new();
         let r = (|| -> Result<String, String> {
@@ -2192,7 +2344,47 @@ impl Tr {
                 items.push(format!("{m} = {c}*1"));
                 st.arrays.insert(c);
             }
-            self.lower_fn_stmts(body, None, 0, &mut st, &mut items)?;
+            // Arrays the body fills by element without having made them are allocated, at the size
+            // their writes need, just before the statement that writes them.
+            let mut whole = HashSet::new();
+            whole_assigned(body, &mut whole);
+            let mut loops = Vec::new();
+            for (k, s) in body.iter().enumerate() {
+                let (mut w, mut bad) = (Vec::new(), HashMap::new());
+                element_writes(std::slice::from_ref(s), k, false, &mut loops, false, &mut w, &mut bad);
+                st.writes.extend(w);
+                st.no_alloc.extend(bad);
+            }
+            let mut bases: Vec<String> = st.writes.iter().map(|w| w.base.clone()).collect();
+            bases.sort();
+            bases.dedup();
+            for b in bases {
+                if self.params.contains(&b) || st.arrays.contains(&b) || whole.contains(&b) {
+                    continue;
+                }
+                let mut places: Vec<usize> = st.writes.iter().filter(|w| w.base == b).map(|w| w.at).collect();
+                places.dedup();
+                match places.as_slice() {
+                    [k] => st.allocs.push((*k, b)),
+                    _ => {
+                        st.no_alloc.insert(b, "it is written in several places".into());
+                    }
+                }
+            }
+            for (k, stmt) in body.iter().enumerate() {
+                let names: Vec<String> = st
+                    .allocs
+                    .iter()
+                    .filter(|(at, _)| *at == k)
+                    .map(|(_, b)| b.clone())
+                    .collect();
+                for b in names {
+                    if let Err(why) = self.alloc_array(&b, stmt, &mut st, &mut items) {
+                        st.no_alloc.insert(b, why);
+                    }
+                }
+                self.lower_fn_stmts(std::slice::from_ref(stmt), None, 0, &mut st, &mut items)?;
+            }
             let at = items.len().min(copies_len);
             items.splice(at..at, st.starts.drain(..));
             let value = self.expr(tail).s;
@@ -2204,6 +2396,102 @@ impl Tr {
         })();
         self.locals = saved_locals;
         r
+    }
+
+    /// Makes an array that a statement of a function body fills by element: a vector or matrix of zeros
+    /// as large as the largest index its writes reach (a loop's last value, or a literal), in front
+    /// of that statement. The writes under a condition must not reach further than the ones that
+    /// always run, since the source would then give a smaller array on some paths.
+    fn alloc_array(&mut self, name: &str, stmt: &PStmt, st: &mut FnBlk, items: &mut Vec<String>) -> Result<(), String> {
+        let writes: Vec<(Vec<Need>, bool)> = st
+            .writes
+            .iter()
+            .filter(|w| w.base == name)
+            .map(|w| (w.needs.clone(), w.conditional))
+            .collect();
+        let rank = writes.first().map(|w| w.0.len()).unwrap_or(0);
+        if rank == 0 || writes.iter().any(|w| w.0.len() != rank) {
+            return Err("it is indexed with a different number of indexes".into());
+        }
+        let mut changed = HashSet::new();
+        whole_assigned(std::slice::from_ref(stmt), &mut changed);
+        let delta = 1 - self.origin;
+        let mut dims: Vec<String> = Vec::new();
+        for d in 0..rank {
+            let mut always: Vec<(String, Option<i64>)> = Vec::new();
+            let mut sometimes: Vec<(String, Option<i64>)> = Vec::new();
+            for (needs, conditional) in &writes {
+                let r = match &needs[d] {
+                    Need::Lit(c) => {
+                        let v = c + delta;
+                        if v < 1 {
+                            return Err("an index is below the array origin".into());
+                        }
+                        (v.to_string(), Some(v))
+                    }
+                    Need::Loop { first, last, off } => {
+                        for e in [first, last] {
+                            if changed.iter().any(|a| mentions(e, a)) {
+                                return Err("the ends of the loop read a name the loop changes".into());
+                            }
+                        }
+                        let (a, z) = (self.expr(first).s, self.expr(last).s);
+                        let k = off + delta;
+                        match (is_int_literal(&a), is_int_literal(&z)) {
+                            (Some(x), Some(y)) => {
+                                let v = x.max(y) + k;
+                                (v.to_string(), Some(v))
+                            }
+                            _ => (
+                                match k {
+                                    0 => format!("max({a}; {z})"),
+                                    k if k > 0 => format!("max({a}; {z}) + {k}"),
+                                    k => format!("max({a}; {z}) - {}", -k),
+                                },
+                                None,
+                            ),
+                        }
+                    }
+                };
+                if *conditional {
+                    sometimes.push(r);
+                } else {
+                    always.push(r);
+                }
+            }
+            if always.is_empty() {
+                return Err("it is written only under a condition".into());
+            }
+            let all_numbers = always.iter().all(|(_, n)| n.is_some());
+            let size = if all_numbers {
+                always.iter().filter_map(|(_, n)| *n).max().unwrap_or(1).to_string()
+            } else {
+                let mut texts: Vec<String> = always.iter().map(|(t, _)| t.clone()).collect();
+                texts.dedup();
+                if texts.len() == 1 {
+                    texts.remove(0)
+                } else {
+                    format!("max({})", texts.join("; "))
+                }
+            };
+            let biggest = always.iter().filter_map(|(_, n)| *n).max();
+            for (t, n) in &sometimes {
+                let covered = always.iter().any(|(u, _)| u == t)
+                    || matches!((n, biggest, all_numbers), (Some(c), Some(m), true) if *c <= m);
+                if !covered {
+                    return Err("it is written under a condition at an index the other writes do not reach".into());
+                }
+            }
+            dims.push(size);
+        }
+        let mapped = self.local_name(name);
+        items.push(if rank == 1 {
+            format!("{mapped} = vector({})", dims[0])
+        } else {
+            format!("{mapped} = matrix({}; {})", dims[0], dims[1])
+        });
+        st.arrays.insert(name.to_string());
+        Ok(())
     }
 
     fn lower_fn_stmts(
@@ -2265,9 +2553,14 @@ impl Tr {
                 PStmt::Local(PTarget::Element { base, index }, e) => {
                     let flat = tables::normalise_name(&base.flat());
                     let (Some(mapped), true) = (self.locals.get(&flat).cloned(), st.arrays.contains(&flat)) else {
-                        return Err(format!(
-                            "element assignment to {flat}, an array the function neither received nor created (the source grows it, the engine cannot)"
-                        ));
+                        return Err(match st.no_alloc.get(&flat) {
+                            Some(why) => format!(
+                                "element assignment to {flat}, an array the function neither received nor created, whose size is not known ahead: {why}"
+                            ),
+                            None => format!(
+                                "element assignment to {flat}, an array the function neither received nor created (the source grows it, the engine cannot)"
+                            ),
+                        });
                     };
                     if index.is_empty() || index.len() > 2 {
                         return Err("an element index that is not one or two numbers".into());
