@@ -2,13 +2,13 @@
 'Open <b>Functions</b> then <b>Symbolic</b> to repeat each step. The steps below are exact results from the dialog, kept as notes because a worksheet line needs numbers for every symbol. The last part feeds the closed form with numbers, and the engine checks it against a direct numerical integration.
 "Step 1: bending equation
 'Take <i>y</i> in the direction of the load, so E·I·d²y/dx² = −M(x), with M(x) = w·L·x/2 − w·x²/2. Operation <b>integrate</b> on −(w·L·x/2 − w·x²/2)/(E·I) with respect to x, adding the constants C1 and C2 after each integration, gives
-'y(x) = −L·w·x³/(12·E·I) + w·x⁴/(24·E·I) + C1·x + C2
+'<span class="eq"><var>y</var>(<var>x</var>) = −<span class="dvc"><var>L</var><i> · </i><var>w</var><i> · </i><var>x</var><sup class="unit">3</sup><span class="dvl"></span>12<i> · </i><var>E</var><i> · </i><var>I</var></span> + <span class="dvc"><var>w</var><i> · </i><var>x</var><sup class="unit">4</sup><span class="dvl"></span>24<i> · </i><var>E</var><i> · </i><var>I</var></span> + <var>C</var><sub>1</sub><i> · </i><var>x</var> + <var>C</var><sub>2</sub></span>
 "Step 2: boundary conditions
 'y(0) = 0 and y(L) = 0. Operation <b>solve</b> on those two equations for C1 and C2 gives
-'C1 = L³·w/(24·E·I) and C2 = 0
+'<span class="eq"><var>C</var><sub>1</sub> = <span class="dvc"><var>L</var><sup class="unit">3</sup><i> · </i><var>w</var><span class="dvl"></span>24<i> · </i><var>E</var><i> · </i><var>I</var></span> and <var>C</var><sub>2</sub> = 0</span>
 "Step 3: midspan
 'Operation <b>substitute</b> x = L/2, then <b>simplify</b>, gives
-'y(L/2) = 5·L⁴·w/(384·E·I)
+'<span class="eq"><var>y</var>(<var>L</var>/2) = <span class="dvc">5<i> · </i><var>L</var><sup class="unit">4</sup><i> · </i><var>w</var><span class="dvl"></span>384<i> · </i><var>E</var><i> · </i><var>I</var></span></span>
 "Numbers
 w = 12kN/m
 L = 6m
