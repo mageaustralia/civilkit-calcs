@@ -894,3 +894,28 @@ fn an_array_written_by_element_then_scaled_whole_then_written_again() {
     assert_close(v[2], 10.0);
     assert_close(v[3], 1.0);
 }
+
+#[test]
+fn an_array_written_only_in_the_arms_that_read_it_is_made_where_it_is_written() {
+    // h(x): if x > 0: (s[1] <- x; s[2] <- 2 x; s[1] + s[2]) else x. The array is only read in the arm
+    // that writes it, so the arms that do not write it have no use for it: h(2) = 6, h(-1) = -1.
+    let body = program(&[format!(
+        "<ml:if><ml:test>{}</ml:test><ml:then>{}</ml:then><ml:else>{}</ml:else></ml:if>",
+        gt(&n("x"), &r("0")),
+        program(&[
+            local_el("s", &r("1"), &n("x")),
+            local_el("s", &r("2"), &times(&r("2"), &n("x"))),
+            plus(&index1("s", &r("1")), &index1("s", &r("2"))),
+        ]),
+        program(&[n("x")])
+    )]);
+    let res = convert(&[
+        func("h", &["x"], &body),
+        eval(&call("h", &[r("2")])),
+        eval(&call("h", &[r("-1")])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 2);
+    assert_close(v[0], 6.0);
+    assert_close(v[1], -1.0);
+}

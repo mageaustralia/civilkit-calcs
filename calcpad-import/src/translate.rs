@@ -915,7 +915,9 @@ impl FnBlk {
             Some(info) if info.ranks.len() != 1 || !(1..=2).contains(&info.ranks[0]) => {
                 "it is indexed with a different number of indexes"
             }
-            Some(info) if !info.uncond => "it is written only under a condition",
+            // Written only under conditions, but never read on a path that did not write it: the
+            // source's array exists wherever it is used.
+            Some(info) if !info.uncond && !info.reads_after_writes => "it is written only under a condition",
             Some(info) => {
                 self.grow_starts.push((info.first, name.to_string(), info.ranks[0]));
                 return;
@@ -2875,7 +2877,7 @@ impl Tr {
             flags: Vec::new(),
             exact: HashSet::new(),
             grow_starts: Vec::new(),
-            scan: growth::scan_element_writes(body),
+            scan: growth::scan_element_writes(stmts),
         };
         let mut items: Vec<String> = Vec::new();
         let r = (|| -> Result<String, String> {
