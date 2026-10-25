@@ -29,7 +29,12 @@ macro_rules! cannot {
         #[test]
         fn $n() {
             let r = p($f).integrate($v);
-            assert!(matches!(r, Err(CasError::CannotIntegrate(_))), "{} gave {:?}", $f, r);
+            assert!(
+                matches!(r, Err(CasError::CannotIntegrate(_))),
+                "{} gave {:?}",
+                $f,
+                r
+            );
         }
     };
 }
@@ -117,7 +122,12 @@ integ!(i_x_exp, "x*exp(x)", "x", "x*exp(x) - exp(x)");
 integ!(i_x_squared_exp, "x^2*exp(x)", "x", "x^2*exp(x) - 2*x*exp(x) + 2*exp(x)");
 integ!(i_ln, "ln(x)", "x", "x*ln(x) - x");
 integ!(i_beam_moment, "L*x/2 - x^2/2", "x", "L*x^2/4 - x^3/6");
-integ!(i_beam_with_ei, "-(w*L*x/2 - w*x^2/2)/(E*I)", "x", "-L*w*x^2/(4*E*I) + w*x^3/(6*E*I)");
+integ!(
+    i_beam_with_ei,
+    "-(w*L*x/2 - w*x^2/2)/(E*I)",
+    "x",
+    "-L*w*x^2/(4*E*I) + w*x^3/(6*E*I)"
+);
 integ!(i_other_symbols_constant, "y*sin(z)", "x", "x*y*sin(z)");
 integ!(i_sum_of_kinds, "x + sin(x) + exp(x)", "x", "x^2/2 - cos(x) + exp(x)");
 integ!(i_pi_coefficient, "pi*x", "x", "pi*x^2/2");
@@ -188,7 +198,12 @@ fn substitute_ln_of_zero_fails() {
 
 // ---- evaluation ---------------------------------------------------------------------------------
 evals!(eval_polynomial, "x^2+1", [("x", 3.0)], 10.0);
-evals!(eval_beam_formula, "5*w*L^4/(384*E*I)", [("w", 10.0), ("L", 4.0), ("E", 200.0), ("I", 0.5)], 5.0 * 10.0 * 256.0 / (384.0 * 100.0));
+evals!(
+    eval_beam_formula,
+    "5*w*L^4/(384*E*I)",
+    [("w", 10.0), ("L", 4.0), ("E", 200.0), ("I", 0.5)],
+    5.0 * 10.0 * 256.0 / (384.0 * 100.0)
+);
 evals!(eval_trig, "sin(pi/2)+cos(0)", [], 2.0);
 evals!(eval_exp, "exp(1)", [], std::f64::consts::E);
 evals!(eval_sqrt, "sqrt(2)", [], std::f64::consts::SQRT_2);
@@ -199,7 +214,10 @@ evals!(eval_reciprocal, "1/x", [("x", 4.0)], 0.25);
 
 #[test]
 fn eval_unbound_symbol() {
-    assert_eq!(p("x+y").eval(&vars(&[("x", 1.0)])), Err(CasError::UnboundSymbol("y".into())));
+    assert_eq!(
+        p("x+y").eval(&vars(&[("x", 1.0)])),
+        Err(CasError::UnboundSymbol("y".into()))
+    );
 }
 
 #[test]

@@ -21,7 +21,11 @@ pub fn solve(eq: &Equation, var: &str) -> CasResult<Vec<Expr>> {
 pub fn solve_expr(expr: &Expr, var: &str) -> CasResult<Vec<Expr>> {
     let r = expr.expand()?;
     if !r.has_symbol(var) {
-        return Err(if r.is_zero() { CasError::Identity } else { CasError::NoSolution });
+        return Err(if r.is_zero() {
+            CasError::Identity
+        } else {
+            CasError::NoSolution
+        });
     }
     let terms = r
         .var_terms(var)
@@ -35,18 +39,25 @@ pub fn solve_expr(expr: &Expr, var: &str) -> CasResult<Vec<Expr>> {
         return power_roots(&v, p);
     }
     if terms.keys().any(|p| !p.is_integer()) {
-        return Err(CasError::Unsupported("fractional powers of the unknown in a sum".into()));
+        return Err(CasError::Unsupported(
+            "fractional powers of the unknown in a sum".into(),
+        ));
     }
     let lo = *terms.keys().next().unwrap();
     let shift = if lo.is_negative() { -lo.numer() } else { 0 };
     let hi = terms.keys().next_back().unwrap().numer() + shift;
     let coef = |i: i128| -> Expr {
-        Rat::new(i - shift, 1).ok().and_then(|k| terms.get(&k).cloned()).unwrap_or_else(|| Expr::int(0))
+        Rat::new(i - shift, 1)
+            .ok()
+            .and_then(|k| terms.get(&k).cloned())
+            .unwrap_or_else(|| Expr::int(0))
     };
     match hi {
         1 => Ok(vec![Expr::neg(Expr::div(coef(0), coef(1))?)?.expand()?]),
         2 => quadratic(&coef(2), &coef(1), &coef(0)),
-        d => Err(CasError::Unsupported(format!("equations of degree {d}; only degree 1 and 2 are solved"))),
+        d => Err(CasError::Unsupported(format!(
+            "equations of degree {d}; only degree 1 and 2 are solved"
+        ))),
     }
 }
 
@@ -57,7 +68,11 @@ fn power_roots(v: &Expr, p: Rat) -> CasResult<Vec<Expr>> {
     let even_m = m % 2 == 0;
     let root = match v {
         Expr::Num(x) if x.is_zero() => {
-            return if p.is_positive() { Ok(vec![Expr::int(0)]) } else { Err(CasError::NoSolution) };
+            return if p.is_positive() {
+                Ok(vec![Expr::int(0)])
+            } else {
+                Err(CasError::NoSolution)
+            };
         }
         Expr::Num(x) if x.is_negative() => {
             if n % 2 == 0 {
@@ -80,10 +95,16 @@ fn power_roots(v: &Expr, p: Rat) -> CasResult<Vec<Expr>> {
 
 fn quadratic(a: &Expr, b: &Expr, c: &Expr) -> CasResult<Vec<Expr>> {
     if c.is_zero() {
-        return Ok(vec![Expr::int(0), Expr::neg(Expr::div(b.clone(), a.clone())?)?.expand()?]);
+        return Ok(vec![
+            Expr::int(0),
+            Expr::neg(Expr::div(b.clone(), a.clone())?)?.expand()?,
+        ]);
     }
-    let disc = Expr::sub(Expr::pow(b.clone(), Expr::int(2))?, Expr::product(vec![Expr::int(4), a.clone(), c.clone()])?)?
-        .expand()?;
+    let disc = Expr::sub(
+        Expr::pow(b.clone(), Expr::int(2))?,
+        Expr::product(vec![Expr::int(4), a.clone(), c.clone()])?,
+    )?
+    .expand()?;
     let two_a = Expr::mul(Expr::int(2), a.clone())?;
     if let Expr::Num(d) = &disc {
         if d.is_negative() {
@@ -113,7 +134,9 @@ pub fn solve_linear_system(eqs: &[Equation], vars: &[&str]) -> CasResult<Vec<Exp
         return Err(CasError::Unsupported("a linear system needs 1 to 4 unknowns".into()));
     }
     if eqs.len() != n {
-        return Err(CasError::Unsupported("the number of equations must equal the number of unknowns".into()));
+        return Err(CasError::Unsupported(
+            "the number of equations must equal the number of unknowns".into(),
+        ));
     }
     let zeros: Vec<(&str, Expr)> = vars.iter().map(|v| (*v, Expr::int(0))).collect();
     let mut a: Vec<Vec<Expr>> = Vec::new();
@@ -159,7 +182,13 @@ fn determinant(m: &[Vec<Expr>]) -> CasResult<Expr> {
         }
         let minor: Vec<Vec<Expr>> = m[1..]
             .iter()
-            .map(|row| row.iter().enumerate().filter(|(k, _)| *k != j).map(|(_, e)| e.clone()).collect())
+            .map(|row| {
+                row.iter()
+                    .enumerate()
+                    .filter(|(k, _)| *k != j)
+                    .map(|(_, e)| e.clone())
+                    .collect()
+            })
             .collect();
         let t = Expr::mul(m[0][j].clone(), determinant(&minor)?)?.expand()?;
         terms.push(if j % 2 == 0 { t } else { Expr::neg(t)? });

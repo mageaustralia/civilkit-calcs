@@ -46,7 +46,11 @@ macro_rules! latex {
 }
 
 // ---- the key requirement ----------------------------------------------------------------------
-same!(key_requirement_reduces_to_zero, "-1/12*L^4*w/(2*E*I) + L^4*w/(24*E*I)", "0");
+same!(
+    key_requirement_reduces_to_zero,
+    "-1/12*L^4*w/(2*E*I) + L^4*w/(24*E*I)",
+    "0"
+);
 #[test]
 fn key_requirement_is_exactly_zero() {
     assert!(s("-1/12*L^4*w/(2*E*I) + L^4*w/(24*E*I)").is_zero());
@@ -174,7 +178,11 @@ perr!(parse_division_by_cancelled_zero, "1/(x-x)", CasError::DivisionByZero);
 perr!(parse_ln_zero, "ln(0)", CasError::Domain(_));
 perr!(parse_ln_negative, "ln(-1)", CasError::Domain(_));
 perr!(parse_overflow, "2^200", CasError::Overflow);
-perr!(parse_huge_literal, "99999999999999999999999999999999999999999", CasError::Overflow);
+perr!(
+    parse_huge_literal,
+    "99999999999999999999999999999999999999999",
+    CasError::Overflow
+);
 
 #[test]
 fn equation_parsing() {
@@ -255,7 +263,13 @@ fn display_matches_ascii() {
 
 #[test]
 fn expand_is_idempotent() {
-    for src in ["(x+1)^3*(y-2)", "(a+b)/(c+d)", "sin((x+1)^2)*(x-1)", "1/(x+1)^2*(x+1)", "sqrt(x+1)*(x+2)"] {
+    for src in [
+        "(x+1)^3*(y-2)",
+        "(a+b)/(c+d)",
+        "sin((x+1)^2)*(x-1)",
+        "1/(x+1)^2*(x+1)",
+        "sqrt(x+1)*(x+2)",
+    ] {
         let once = p(src).expand().unwrap();
         assert_eq!(once.expand().unwrap(), once, "{src}");
     }

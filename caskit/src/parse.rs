@@ -35,7 +35,10 @@ impl Equation {
 
 /// Parses an expression.
 pub fn parse(s: &str) -> CasResult<Expr> {
-    let mut p = Parser { src: s.as_bytes(), pos: 0 };
+    let mut p = Parser {
+        src: s.as_bytes(),
+        pos: 0,
+    };
     let e = p.expr()?;
     p.skip_ws();
     if p.pos != p.src.len() {
@@ -49,9 +52,18 @@ pub fn parse_equation(s: &str) -> CasResult<Equation> {
     let mut parts = s.split('=');
     let (l, r) = (parts.next().unwrap_or(""), parts.next());
     match (r, parts.next()) {
-        (Some(r), None) => Ok(Equation { lhs: parse(l)?, rhs: parse(r)? }),
-        (None, _) => Err(CasError::Parse { msg: "an equation needs an '='".into(), pos: s.len() }),
-        _ => Err(CasError::Parse { msg: "more than one '='".into(), pos: s.len() }),
+        (Some(r), None) => Ok(Equation {
+            lhs: parse(l)?,
+            rhs: parse(r)?,
+        }),
+        (None, _) => Err(CasError::Parse {
+            msg: "an equation needs an '='".into(),
+            pos: s.len(),
+        }),
+        _ => Err(CasError::Parse {
+            msg: "more than one '='".into(),
+            pos: s.len(),
+        }),
     }
 }
 
@@ -62,7 +74,10 @@ struct Parser<'a> {
 
 impl Parser<'_> {
     fn err(&self, msg: &str) -> CasError {
-        CasError::Parse { msg: msg.to_string(), pos: self.pos }
+        CasError::Parse {
+            msg: msg.to_string(),
+            pos: self.pos,
+        }
     }
 
     fn skip_ws(&mut self) {

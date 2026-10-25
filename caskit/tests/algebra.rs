@@ -71,7 +71,14 @@ factors!(f_zero_root, "x^2 + 3*x", "x*(x+3)");
 
 #[test]
 fn factor_then_expand_round_trips_on_many() {
-    for src in ["x^2+7*x+12", "x^3-x^2-4*x+4", "4*x^2-1", "x^4-5*x^2+4", "3*x^3+x^2-3*x-1", "a*b+a*c+a*d"] {
+    for src in [
+        "x^2+7*x+12",
+        "x^3-x^2-4*x+4",
+        "4*x^2-1",
+        "x^4-5*x^2+4",
+        "3*x^3+x^2-3*x-1",
+        "a*b+a*c+a*d",
+    ] {
         let f = p(src).factor().unwrap();
         assert_eq!(f.expand().unwrap(), s(src), "{src} -> {f}");
     }
@@ -84,7 +91,12 @@ roots!(s_rearrange_for_w, "M = w*L^2/8", "w", ["8*M/L^2"]);
 roots!(s_rearrange_for_m, "M = w*L^2/8", "M", ["w*L^2/8"]);
 roots!(s_rearrange_for_l, "M = w*L^2/8", "L", ["sqrt(8*M/w)", "-sqrt(8*M/w)"]);
 roots!(s_deflection_for_e, "d = 5*w*L^4/(384*E*I)", "E", ["5*w*L^4/(384*d*I)"]);
-roots!(s_deflection_for_l, "d = 5*w*L^4/(384*E*I)", "L", ["(384*d*E*I/(5*w))^(1/4)", "-(384*d*E*I/(5*w))^(1/4)"]);
+roots!(
+    s_deflection_for_l,
+    "d = 5*w*L^4/(384*E*I)",
+    "L",
+    ["(384*d*E*I/(5*w))^(1/4)", "-(384*d*E*I/(5*w))^(1/4)"]
+);
 roots!(s_stress_for_section, "s = M/Z", "Z", ["M/s"]);
 roots!(s_reciprocal, "1/x = 4", "x", ["1/4"]);
 roots!(s_inverse_square, "1/x^2 = 4", "x", ["1/2", "-1/2"]);
@@ -96,7 +108,12 @@ roots!(s_fourth_power, "x^4 = 1", "x", ["1", "-1"]);
 roots!(s_zero_power, "x^2 = 0", "x", ["0"]);
 roots!(s_variable_on_both_sides, "3*x + 2 = x + 10", "x", ["4"]);
 roots!(s_circle_area, "A = pi*r^2", "r", ["sqrt(A/pi)", "-sqrt(A/pi)"]);
-roots!(s_euler_buckling, "P = pi^2*E*I/L^2", "L", ["pi*sqrt(E*I/P)", "-pi*sqrt(E*I/P)"]);
+roots!(
+    s_euler_buckling,
+    "P = pi^2*E*I/L^2",
+    "L",
+    ["pi*sqrt(E*I/P)", "-pi*sqrt(E*I/P)"]
+);
 
 // ---- solve: quadratics --------------------------------------------------------------------------
 roots!(s_quadratic_numeric, "x^2 - 5*x + 6 = 0", "x", ["2", "3"]);
@@ -106,8 +123,18 @@ roots!(s_quadratic_double_root, "x^2 + 2*x + 1 = 0", "x", ["-1"]);
 roots!(s_quadratic_zero_constant, "x^2 + x = 0", "x", ["0", "-1"]);
 roots!(s_quadratic_rational, "2*x^2 - 3*x + 1 = 0", "x", ["1/2", "1"]);
 roots!(s_quadratic_leading_negative, "-x^2 + 5*x - 6 = 0", "x", ["2", "3"]);
-roots!(s_quadratic_irrational_general, "x^2 - 2*x - 1 = 0", "x", ["1 - sqrt(2)", "1 + sqrt(2)"]);
-roots!(s_quadratic_with_fraction_terms, "x + 1/x = 3", "x", ["(3 - sqrt(5))/2", "(3 + sqrt(5))/2"]);
+roots!(
+    s_quadratic_irrational_general,
+    "x^2 - 2*x - 1 = 0",
+    "x",
+    ["1 - sqrt(2)", "1 + sqrt(2)"]
+);
+roots!(
+    s_quadratic_with_fraction_terms,
+    "x + 1/x = 3",
+    "x",
+    ["(3 - sqrt(5))/2", "(3 + sqrt(5))/2"]
+);
 roots!(s_quadratic_rhs, "x^2 = 5*x - 6", "x", ["2", "3"]);
 
 #[test]
@@ -134,7 +161,17 @@ fn every_root_satisfies_the_equation() {
     ] {
         let eqn = parse_equation(eq).unwrap();
         let rs = solve(&eqn, v).unwrap();
-        let point = vars(&[("a", 1.5), ("b", 7.0), ("c", 2.0), ("d", 3.0), ("k", 5.0), ("M", 4.0), ("w", 2.0), ("E", 3.0), ("I", 2.0)]);
+        let point = vars(&[
+            ("a", 1.5),
+            ("b", 7.0),
+            ("c", 2.0),
+            ("d", 3.0),
+            ("k", 5.0),
+            ("M", 4.0),
+            ("w", 2.0),
+            ("E", 3.0),
+            ("I", 2.0),
+        ]);
         for r in rs {
             let mut vals = point.clone();
             vals.insert(v.to_string(), r.eval(&point).unwrap());
@@ -147,7 +184,12 @@ fn every_root_satisfies_the_equation() {
 }
 
 solve_err!(s_complex_roots, "x^2 + 1 = 0", "x", CasError::ComplexRoots);
-solve_err!(s_complex_roots_general, "x^2 + 2*x + 5 = 0", "x", CasError::ComplexRoots);
+solve_err!(
+    s_complex_roots_general,
+    "x^2 + 2*x + 5 = 0",
+    "x",
+    CasError::ComplexRoots
+);
 solve_err!(s_no_solution_sqrt, "sqrt(x) = -3", "x", CasError::NoSolution);
 solve_err!(s_identity, "x = x", "x", CasError::Identity);
 solve_err!(s_no_solution_constant, "x + 1 = x", "x", CasError::NoSolution);
@@ -156,7 +198,12 @@ solve_err!(s_cubic_unsupported, "x^3 + x = 1", "x", CasError::Unsupported(_));
 solve_err!(s_trig_unsupported, "sin(x) = 0.5", "x", CasError::Unsupported(_));
 solve_err!(s_quintic_unsupported, "x^5 + x = 0", "x", CasError::Unsupported(_));
 solve_err!(s_exponential_unsupported, "exp(x) = 3", "x", CasError::Unsupported(_));
-solve_err!(s_fractional_sum_unsupported, "sqrt(x) + x = 2", "x", CasError::Unsupported(_));
+solve_err!(
+    s_fractional_sum_unsupported,
+    "sqrt(x) + x = 2",
+    "x",
+    CasError::Unsupported(_)
+);
 solve_err!(s_zero_negative_power, "1/x = 0", "x", CasError::NoSolution);
 
 #[test]
@@ -192,7 +239,11 @@ fn system_two_symbolic() {
 
 #[test]
 fn system_three_numeric() {
-    let r = sys(&["x + y + z = 6", "2*y + 5*z = -4", "2*x + 5*y - z = 27"], &["x", "y", "z"]).unwrap();
+    let r = sys(
+        &["x + y + z = 6", "2*y + 5*z = -4", "2*x + 5*y - z = 27"],
+        &["x", "y", "z"],
+    )
+    .unwrap();
     assert_eq!(r, vec![p("5"), p("3"), p("-2")]);
 }
 
@@ -220,17 +271,26 @@ fn system_single_unknown() {
 
 #[test]
 fn system_singular() {
-    assert_eq!(sys(&["x + y = 1", "2*x + 2*y = 2"], &["x", "y"]), Err(CasError::Singular));
+    assert_eq!(
+        sys(&["x + y = 1", "2*x + 2*y = 2"], &["x", "y"]),
+        Err(CasError::Singular)
+    );
 }
 
 #[test]
 fn system_nonlinear_rejected() {
-    assert!(matches!(sys(&["x*y = 1", "x + y = 2"], &["x", "y"]), Err(CasError::Unsupported(_))));
+    assert!(matches!(
+        sys(&["x*y = 1", "x + y = 2"], &["x", "y"]),
+        Err(CasError::Unsupported(_))
+    ));
 }
 
 #[test]
 fn system_wrong_equation_count_rejected() {
-    assert!(matches!(sys(&["x + y = 1"], &["x", "y"]), Err(CasError::Unsupported(_))));
+    assert!(matches!(
+        sys(&["x + y = 1"], &["x", "y"]),
+        Err(CasError::Unsupported(_))
+    ));
 }
 
 #[test]

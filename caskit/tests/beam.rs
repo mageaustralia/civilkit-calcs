@@ -39,7 +39,9 @@ fn simply_supported_uniform_load() {
         .simplify()
         .unwrap();
     println!("y(x) = {ys}");
-    let expected_y = p("w*L^3*x/(24*E*I) - w*L*x^3/(12*E*I) + w*x^4/(24*E*I)").simplify().unwrap();
+    let expected_y = p("w*L^3*x/(24*E*I) - w*L*x^3/(12*E*I) + w*x^4/(24*E*I)")
+        .simplify()
+        .unwrap();
     assert_eq!(ys, expected_y);
 
     // boundary conditions hold
@@ -72,12 +74,22 @@ fn cantilever_tip_load() {
     )
     .unwrap();
     assert!(sol[0].is_zero() && sol[1].is_zero());
-    let ys = y.substitute_all(&[("C1", sol[0].clone()), ("C2", sol[1].clone())]).unwrap().simplify().unwrap();
+    let ys = y
+        .substitute_all(&[("C1", sol[0].clone()), ("C2", sol[1].clone())])
+        .unwrap()
+        .simplify()
+        .unwrap();
     println!("y(x) = {ys}");
     let tip = ys.substitute("x", &p("L")).unwrap().simplify().unwrap();
     println!("y(L) = {tip}");
     assert_eq!(tip, p("P*L^3/(3*E*I)").simplify().unwrap());
-    let slope = ys.diff("x").unwrap().substitute("x", &p("L")).unwrap().simplify().unwrap();
+    let slope = ys
+        .diff("x")
+        .unwrap()
+        .substitute("x", &p("L"))
+        .unwrap()
+        .simplify()
+        .unwrap();
     assert_eq!(slope, p("P*L^2/(2*E*I)").simplify().unwrap());
     let back = ys.diff_n("x", 2).unwrap();
     assert!(Expr::sub(back, ypp).unwrap().simplify().unwrap().is_zero());

@@ -109,9 +109,7 @@ fn is_atomic(e: &Expr) -> bool {
     match e {
         Expr::Num(r) => r.is_integer() && !r.is_negative(),
         Expr::Const(_) | Expr::Sym(_) | Expr::Func(..) => true,
-        Expr::Pow(b, x) => {
-            **b == Expr::e() || matches!(&**x, Expr::Num(r) if *r == Rat::new(1, 2).unwrap())
-        }
+        Expr::Pow(b, x) => **b == Expr::e() || matches!(&**x, Expr::Num(r) if *r == Rat::new(1, 2).unwrap()),
         _ => false,
     }
 }
@@ -216,7 +214,11 @@ fn render_mul(fs: &[Expr], st: Style, prec: u8) -> String {
             Expr::Pow(b, x) if matches!(&**x, Expr::Num(r) if r.is_negative()) => {
                 let r = x.as_num().unwrap();
                 let pos = r.neg().unwrap_or(r);
-                let d = if pos.is_one() { (**b).clone() } else { Expr::Pow(b.clone(), Box::new(Expr::Num(pos))) };
+                let d = if pos.is_one() {
+                    (**b).clone()
+                } else {
+                    Expr::Pow(b.clone(), Box::new(Expr::Num(pos)))
+                };
                 dens.push(d);
             }
             other => nums.push(other),
@@ -247,7 +249,11 @@ fn render_mul(fs: &[Expr], st: Style, prec: u8) -> String {
                 let mut out = String::new();
                 for (i, s) in items.iter().enumerate() {
                     if i > 0 {
-                        out.push_str(if s.starts_with(|c: char| c.is_ascii_digit()) { " \\cdot " } else { " " });
+                        out.push_str(if s.starts_with(|c: char| c.is_ascii_digit()) {
+                            " \\cdot "
+                        } else {
+                            " "
+                        });
                     }
                     out.push_str(s);
                 }
@@ -260,7 +266,11 @@ fn render_mul(fs: &[Expr], st: Style, prec: u8) -> String {
     } else {
         match st {
             Style::Ascii => {
-                let den = if ds.len() == 1 { ds[0].clone() } else { format!("({})", join(&ds)) };
+                let den = if ds.len() == 1 {
+                    ds[0].clone()
+                } else {
+                    format!("({})", join(&ds))
+                };
                 format!("{}/{}", join(&ns), den)
             }
             Style::Latex => format!("\\frac{{{}}}{{{}}}", join(&ns), join(&ds)),

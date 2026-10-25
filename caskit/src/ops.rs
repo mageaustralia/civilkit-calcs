@@ -25,7 +25,11 @@ impl Expr {
     pub fn substitute_all(&self, map: &[(&str, Expr)]) -> CasResult<Expr> {
         match self {
             Expr::Num(_) | Expr::Const(_) => Ok(self.clone()),
-            Expr::Sym(s) => Ok(map.iter().find(|(n, _)| n == s).map(|(_, v)| v.clone()).unwrap_or_else(|| self.clone())),
+            Expr::Sym(s) => Ok(map
+                .iter()
+                .find(|(n, _)| n == s)
+                .map(|(_, v)| v.clone())
+                .unwrap_or_else(|| self.clone())),
             Expr::Func(f, a) => apply_func(*f, a.substitute_all(map)?),
             Expr::Pow(b, e) => Expr::pow(b.substitute_all(map)?, e.substitute_all(map)?),
             Expr::Add(v) => Expr::sum(v.iter().map(|t| t.substitute_all(map)).collect::<CasResult<_>>()?),

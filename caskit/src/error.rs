@@ -7,7 +7,12 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CasError {
     /// The text could not be parsed. `pos` is a byte offset into the input.
-    Parse { msg: String, pos: usize },
+    Parse {
+        /// What was wrong.
+        msg: String,
+        /// Byte offset into the input.
+        pos: usize,
+    },
     /// A division by zero, or zero raised to a negative power.
     DivisionByZero,
     /// An exact rational number does not fit in 128 bits.

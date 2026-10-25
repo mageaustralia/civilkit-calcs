@@ -96,7 +96,10 @@ impl Rat {
 
     /// `-self`.
     pub fn neg(&self) -> CasResult<Rat> {
-        Ok(Rat { n: self.n.checked_neg().ok_or(CasError::Overflow)?, d: self.d })
+        Ok(Rat {
+            n: self.n.checked_neg().ok_or(CasError::Overflow)?,
+            d: self.d,
+        })
     }
 
     /// `self - o`.

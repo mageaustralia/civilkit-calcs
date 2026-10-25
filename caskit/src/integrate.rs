@@ -77,8 +77,8 @@ fn by_parts(dep: &[Expr], var: &str) -> CasResult<Expr> {
         return Err(cannot("product of two functions of the variable"));
     };
     let f = &dep[1 - pi];
-    let is_transcendental = matches!(f, Expr::Func(Func::Sin | Func::Cos, _))
-        || matches!(f, Expr::Pow(b, _) if **b == Expr::e());
+    let is_transcendental =
+        matches!(f, Expr::Func(Func::Sin | Func::Cos, _)) || matches!(f, Expr::Pow(b, _) if **b == Expr::e());
     if !is_transcendental {
         return Err(cannot("polynomial times a function other than sin, cos or exp"));
     }
@@ -113,14 +113,13 @@ fn antiderivative(f: &Expr, var: &str) -> CasResult<Expr> {
         }
         Expr::Pow(..) => Err(cannot("variable in the exponent")),
         Expr::Func(func, arg) => {
-            let (a, _) = arg.linear_in(var).ok_or_else(|| cannot("function of a non-linear argument"))?;
+            let (a, _) = arg
+                .linear_in(var)
+                .ok_or_else(|| cannot("function of a non-linear argument"))?;
             let inner = match func {
                 Func::Sin => Expr::neg(Expr::cos((**arg).clone())?)?,
                 Func::Cos => Expr::sin((**arg).clone())?,
-                Func::Ln => Expr::sub(
-                    Expr::mul((**arg).clone(), Expr::ln((**arg).clone())?)?,
-                    (**arg).clone(),
-                )?,
+                Func::Ln => Expr::sub(Expr::mul((**arg).clone(), Expr::ln((**arg).clone())?)?, (**arg).clone())?,
             };
             Expr::div(inner, a)
         }

@@ -95,7 +95,10 @@ fn factor_sum(sum: &Expr) -> CasResult<Expr> {
     }
     let cfp = Expr::product(cf)?;
     let inv = Expr::mul(Expr::Num(g.recip()?), Expr::recip(cfp.clone())?)?;
-    let rem_terms: Vec<Expr> = terms.iter().map(|t| Expr::mul(t.clone(), inv.clone())).collect::<CasResult<_>>()?;
+    let rem_terms: Vec<Expr> = terms
+        .iter()
+        .map(|t| Expr::mul(t.clone(), inv.clone()))
+        .collect::<CasResult<_>>()?;
     let rem = Expr::sum(rem_terms)?;
     let rem_f = factor_poly_expr(&rem)?.unwrap_or(rem);
     Expr::product(vec![Expr::Num(g), cfp, rem_f])
@@ -108,7 +111,9 @@ fn factor_poly_expr(e: &Expr) -> CasResult<Option<Expr>> {
         return Ok(None);
     }
     let var = syms.iter().next().unwrap().clone();
-    let Some(terms) = e.var_terms(&var) else { return Ok(None) };
+    let Some(terms) = e.var_terms(&var) else {
+        return Ok(None);
+    };
     let mut deg: i128 = 0;
     for (p, c) in &terms {
         if !p.is_integer() || p.is_negative() || c.as_num().is_none() {
@@ -123,7 +128,7 @@ fn factor_poly_expr(e: &Expr) -> CasResult<Option<Expr>> {
     for (p, c) in &terms {
         coeffs[p.numer() as usize] = c.as_num().unwrap();
     }
-    Ok(factor_poly(&coeffs, &var)?)
+    factor_poly(&coeffs, &var)
 }
 
 fn divisors(n: u128) -> Option<Vec<u128>> {
@@ -133,7 +138,7 @@ fn divisors(n: u128) -> Option<Vec<u128>> {
     let mut out = Vec::new();
     let mut i: u128 = 1;
     while i * i <= n {
-        if n % i == 0 {
+        if n.is_multiple_of(i) {
             out.push(i);
             if i * i != n {
                 out.push(n / i);
@@ -227,7 +232,10 @@ fn factor_poly(coeffs: &[Rat], var: &str) -> CasResult<Option<Expr>> {
         let Some((p, q)) = find_root(&a) else { break };
         let Some(b) = divide_linear(&a, p, q) else { break };
         found = true;
-        factors.push(Expr::sum(vec![Expr::mul(Expr::Num(Rat::new(q, 1)?), x.clone())?, Expr::Num(Rat::new(-p, 1)?)])?);
+        factors.push(Expr::sum(vec![
+            Expr::mul(Expr::Num(Rat::new(q, 1)?), x.clone())?,
+            Expr::Num(Rat::new(-p, 1)?),
+        ])?);
         a = b;
     }
     if !found {
@@ -236,7 +244,10 @@ fn factor_poly(coeffs: &[Rat], var: &str) -> CasResult<Option<Expr>> {
     if a.len() > 1 {
         let mut terms = Vec::new();
         for (i, &c) in a.iter().enumerate() {
-            terms.push(Expr::mul(Expr::Num(Rat::new(c, 1)?), Expr::pow(x.clone(), Expr::int(i as i64))?)?);
+            terms.push(Expr::mul(
+                Expr::Num(Rat::new(c, 1)?),
+                Expr::pow(x.clone(), Expr::int(i as i64))?,
+            )?);
         }
         factors.push(Expr::sum(terms)?);
     } else {

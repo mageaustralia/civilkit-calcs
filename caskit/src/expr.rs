@@ -99,7 +99,11 @@ fn factorize(mut m: i128) -> Vec<(i128, u32)> {
 /// `q^r` for exact rational `q` and rational `r`.
 fn num_pow(q: Rat, r: Rat) -> CasResult<Expr> {
     if q.is_zero() {
-        return if r.is_positive() { Ok(zero()) } else { Err(CasError::DivisionByZero) };
+        return if r.is_positive() {
+            Ok(zero())
+        } else {
+            Err(CasError::DivisionByZero)
+        };
     }
     if q.is_one() {
         return Ok(one());
@@ -168,6 +172,7 @@ fn scale(c: Rat, rest: Expr) -> Expr {
     }
 }
 
+#[allow(clippy::should_implement_trait)] // these return `Result`, so they cannot implement the operator traits
 impl Expr {
     /// The integer `n`.
     pub fn int(n: i64) -> Expr {
@@ -313,8 +318,11 @@ impl Expr {
             let slot = map.entry(rest).or_insert(Rat::ZERO);
             *slot = slot.add(c)?;
         }
-        let mut out: Vec<Expr> =
-            map.into_iter().filter(|(_, c)| !c.is_zero()).map(|(rest, c)| scale(c, rest)).collect();
+        let mut out: Vec<Expr> = map
+            .into_iter()
+            .filter(|(_, c)| !c.is_zero())
+            .map(|(rest, c)| scale(c, rest))
+            .collect();
         out.sort();
         Ok(match out.len() {
             0 => zero(),
@@ -413,14 +421,15 @@ impl Expr {
             }
             Expr::Mul(fs) => {
                 if int_exp {
-                    let parts: CasResult<Vec<Expr>> =
-                        fs.iter().map(|f| Expr::pow(f.clone(), exp.clone())).collect();
+                    let parts: CasResult<Vec<Expr>> = fs.iter().map(|f| Expr::pow(f.clone(), exp.clone())).collect();
                     return Expr::product(parts?);
                 }
                 let (pos, rest): (Vec<Expr>, Vec<Expr>) = fs.iter().cloned().partition(Expr::is_positive);
                 if !pos.is_empty() {
-                    let mut parts: Vec<Expr> =
-                        pos.into_iter().map(|f| Expr::pow(f, exp.clone())).collect::<CasResult<_>>()?;
+                    let mut parts: Vec<Expr> = pos
+                        .into_iter()
+                        .map(|f| Expr::pow(f, exp.clone()))
+                        .collect::<CasResult<_>>()?;
                     if !rest.is_empty() {
                         parts.push(raw_pow(Expr::product(rest)?, exp));
                     }
@@ -494,7 +503,7 @@ fn trig_pi_multiple(f: Func, c: Rat) -> CasResult<Option<Expr>> {
         return Ok(None);
     }
     let m = m12.numer() as i64; // 0..24
-    // sin(m*pi/12): known for m even (multiples of pi/6) and m multiple of 3 (multiples of pi/4)
+                                // sin(m*pi/12): known for m even (multiples of pi/6) and m multiple of 3 (multiples of pi/4)
     let m = if f == Func::Cos { (m + 6).rem_euclid(24) } else { m };
     let half = Expr::rational(1, 2)?;
     let s3 = Expr::mul(half.clone(), Expr::sqrt(Expr::int(3))?)?;
