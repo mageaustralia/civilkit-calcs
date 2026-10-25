@@ -584,3 +584,25 @@ fn a_percent_sign_is_the_percent_unit() {
     clean(&res);
     assert_close(*numbers(&res.calcpad).last().unwrap(), 25.0);
 }
+
+// ---- a bare zero in a comparison -------------------------------------------------------------------------
+
+#[test]
+fn a_comparison_with_a_bare_zero_takes_the_other_sides_units() {
+    // c = 5 m is not zero (2); d = 0 m is (1); a unitless 7 is not (2).
+    let test = |name: &str| call("if", &[app("equal", &[n(name), r("0")]), r("1"), r("2")]);
+    let res = convert(&[
+        define("c", &app("mult", &[r("5"), n("m")])),
+        define("d", &app("mult", &[r("0"), n("m")])),
+        define("e", &r("7")),
+        define("p", &test("c")),
+        define("q", &test("d")),
+        define("s", &test("e")),
+    ]);
+    clean(&res);
+    let nums = numbers(&res.calcpad);
+    let k = nums.len();
+    assert_close(nums[k - 3], 2.0);
+    assert_close(nums[k - 2], 1.0);
+    assert_close(nums[k - 1], 2.0);
+}

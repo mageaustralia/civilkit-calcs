@@ -227,6 +227,7 @@ pub fn read(bytes: &[u8], limits: Limits) -> Result<Sheet, McdxError> {
         results,
         lim: &limits,
         component_names: std::cell::RefCell::new(Vec::new()),
+        shift: std::cell::Cell::new(0.0),
     };
 
     let mut regions = Vec::new();
@@ -276,6 +277,11 @@ struct Ctx<'a, 'd> {
     lim: &'a Limits,
     /// Names defined inside components that are skipped.
     component_names: std::cell::RefCell<Vec<Name>>,
+    /// How far the regions that follow, in the frame being read, are moved down because a collapsed
+    /// area before them is read open. The regions after a collapsed area sit where the page puts them
+    /// with the area closed, but the area's own regions are positioned as if it were open, and the
+    /// sheet is calculated with the area's regions at the area's place in the document order.
+    shift: std::cell::Cell<f64>,
 }
 
 fn num_attr(n: Node, names: &[&str]) -> Option<f64> {
@@ -301,7 +307,7 @@ impl Ctx<'_, '_> {
         // order is stable for equal positions).
         let (pl, pt) = parent.unwrap_or((0.0, 0.0));
         let left = pl + num_attr(r, &["left"]).unwrap_or(0.0);
-        let top = pt + num_attr(r, &["top"]).unwrap_or(0.0);
+        let top = pt + num_attr(r, &["top"]).unwrap_or(0.0) + self.shift.get();
         let width = num_attr(r, &["width", "actualWidth"]).unwrap_or(0.0).max(0.0);
         let height = num_attr(r, &["height", "actualHeight"]).unwrap_or(0.0).max(0.0);
         let mk = |kind: RegionKind| Region {
@@ -377,11 +383,14 @@ impl Ctx<'_, '_> {
                     out.push(mk(RegionKind::Other(format!("xaml{s}"))));
                 }
                 if let Some(nested) = c.children().find(|k| is_ws(*k, "regions")) {
+                    // Regions inside a text region sit where the text does: no area shift.
+                    let outer = self.shift.replace(0.0);
                     for n in nested.children().filter(|k| is_ws(*k, "region")) {
                         if depth < lim.max_depth {
                             self.collect_region(n, depth + 1, Some((left, top)), out);
                         }
                     }
+                    self.shift.set(outer);
                 }
             }
             "picture" => {
@@ -399,11 +408,21 @@ impl Ctx<'_, '_> {
             // A collapsible area only groups regions: they are read as if they stood on the page.
             "Area" => {
                 if let Some(nested) = c.children().find(|k| is_ws(*k, "regions")) {
+                    let collapsed = c.attribute("IsCollapsed").map(str::trim) == Some("true");
+                    let start = out.len();
+                    let outer = self.shift.replace(0.0);
                     for n in nested.children().filter(|k| is_ws(*k, "region")) {
                         if depth < lim.max_depth {
                             self.collect_region(n, depth + 1, Some((left, top)), out);
                         }
                     }
+                    // A collapsed area is read open: what follows it moves down by the height its
+                    // regions take, so they stay after the area's regions as the sheet is calculated.
+                    let extent = out[start..]
+                        .iter()
+                        .map(|g| g.top - top + g.height)
+                        .fold(0.0_f64, f64::max);
+                    self.shift.set(outer + if collapsed { extent } else { 0.0 });
                 }
             }
             "plot" => out.push(mk(RegionKind::Plot(crate::plotread::read_plot(c, lim)))),

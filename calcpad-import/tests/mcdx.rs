@@ -638,6 +638,28 @@ fn a_collapsible_area_is_read_through() {
     assert_eq!(res.report.regions_needing_attention(), 0);
 }
 
+#[test]
+fn a_collapsed_area_is_calculated_at_its_place_before_what_follows_it() {
+    // The area is closed on the page, so the region after it sits just below its header (top 130),
+    // while the area's own regions are positioned as if it were open (down to 5000). The sheet is
+    // calculated with the area's regions where the area is, so z may read y.
+    let regions = r#"<region region-id="1" top="100" left="0" width="600" height="1"><Area IsCollapsed="true"><regions><region region-id="2" top="10" left="10"><math resultRef="2"><ml:define><ml:id>x</ml:id><ml:real>1</ml:real></ml:define></math></region><region region-id="3" top="5000" left="10"><math resultRef="3"><ml:define><ml:id>y</ml:id><ml:apply><ml:plus/><ml:id>x</ml:id><ml:real>1</ml:real></ml:apply></ml:define></math></region></regions></Area></region>
+        <region region-id="4" top="130" left="0"><math resultRef="4"><ml:define><ml:id>z</ml:id><ml:apply><ml:plus/><ml:id>y</ml:id><ml:real>1</ml:real></ml:apply></ml:define></math></region>"#;
+    let res = Pkg::new(regions).import();
+    assert_eq!(lines(&res), vec!["x = 1", "y = x + 1", "z = y + 1"]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+}
+
+#[test]
+fn an_open_area_leaves_the_regions_after_it_where_they_are() {
+    // Open, the page already has the next region below the area's content.
+    let regions = r#"<region region-id="1" top="100" left="0" width="600" height="1"><Area IsCollapsed="false"><regions><region region-id="2" top="10" left="10"><math resultRef="2"><ml:define><ml:id>x</ml:id><ml:real>1</ml:real></ml:define></math></region><region region-id="3" top="40" left="10"><math resultRef="3"><ml:define><ml:id>y</ml:id><ml:apply><ml:plus/><ml:id>x</ml:id><ml:real>1</ml:real></ml:apply></ml:define></math></region></regions></Area></region>
+        <region region-id="4" top="400" left="0"><math resultRef="4"><ml:define><ml:id>z</ml:id><ml:apply><ml:plus/><ml:id>y</ml:id><ml:real>1</ml:real></ml:apply></ml:define></math></region>"#;
+    let res = Pkg::new(regions).import();
+    assert_eq!(lines(&res), vec!["x = 1", "y = x + 1", "z = y + 1"]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+}
+
 // ---- pictures and saved results ---------------------------------------------------------------------
 
 fn tiny_png() -> Vec<u8> {

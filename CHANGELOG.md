@@ -22,7 +22,10 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 - Import worksheet: `try expr on error fallback` converts when `expr` can fail only by dividing by zero (names, numbers, sums, products, indexes of names, non-negative integer powers): the engine gives infinity there, so every divisor is tested, `if(d*0 ≠ d; expr; fallback)`. A body with a function call or anything else that could fail in another way is a gap that says so.
 - Import worksheet: an element write to an array that an earlier write could not set, or at an index that reads a name a gap defines, is reported as depending on that gap, so `ranked_gaps()` points at the real cause instead of at the element assignments that follow it.
 
+- Import worksheet (`.mcdx`): a collapsed area is read open at its place. The regions after a closed area sit where the page puts them with the area closed, but the area's own regions are positioned as if it were open, so the importer used to calculate the area's regions after regions that follow it: a range variable defined near the bottom of an area was undefined for the region below the area. The regions after a collapsed area now move down by the height of its regions. On a local design program with collapsed areas the range variables `j` and `k`, defined at the bottom of an area, are now defined where the regions after it use them.
+
 ### Changed
+- Import worksheet: a comparison with a bare `0` takes the other side's unit (`c ≡ 0*getunits(c)`) everywhere, not only in plots, so `if(c = 0; ...)` on a quantity no longer makes the engine report inconsistent units.
 - Import worksheet: a unit override that is only a number (`10^(-3)`) divides the value instead of being read as a unit, which the engine rejected.
 - Import worksheet: an equation's indent from the page margin is now a spacer that shrinks before the equation does, so in a preview narrower than the page a matrix placed far to the right keeps its full width instead of being squeezed into a thin scroll box.
 - A nested `if` result is spaced out: more line height and room between the nested braces, so the lines and braces no longer touch or overlap.

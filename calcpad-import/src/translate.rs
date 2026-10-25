@@ -1252,14 +1252,12 @@ impl Tr {
             rmin
         };
         let mut r = self.operand(b, rmin, false);
-        // In a plot, a comparison with a bare 0 is a comparison with a zero of the other side's
-        // dimension (as in the source); the engine wants both sides in the same units.
-        if self.plot_param.is_some()
-            && matches!(
-                op,
-                BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge
-            )
-            && !self.display
+        // A comparison with a bare 0 is a comparison with a zero of the other side's dimension (as in
+        // the source); the engine wants both sides in the same units.
+        if matches!(
+            op,
+            BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge
+        ) && !self.display
             && !self.readable
         {
             let zero = |e: &Expr| matches!(e, Expr::Num(s) if s.trim().parse::<f64>() == Ok(0.0));
