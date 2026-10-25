@@ -443,6 +443,24 @@ impl Ctx<'_, '_> {
                     }
                 }
             }
+            // A solve block groups its regions (guess values, constraints, the solver) as an area does;
+            // each keeps the part it plays.
+            "solveblock" => {
+                if let Some(nested) = c.children().find(|k| is_ws(*k, "regions")) {
+                    for n in nested.children().filter(|k| is_ws(*k, "region")) {
+                        if depth < lim.max_depth {
+                            let from = out.len();
+                            self.collect_region(n, depth + 1, Some((left, top)), out);
+                            let role = n.attribute("solve-block-category");
+                            for reg in &mut out[from..] {
+                                if let RegionKind::Math(m) = &mut reg.kind {
+                                    m.solve = role.map(str::to_string);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             "plot" => out.push(mk(RegionKind::Plot(crate::plotread::read_plot(c, lim)))),
             "oleObject" | "ole" => out.push(mk(RegionKind::Ole)),
             "reference" => out.push(mk(RegionKind::Reference)),
@@ -521,6 +539,7 @@ impl Ctx<'_, '_> {
                 frozen: true,
                 precision: None,
                 control: None,
+                solve: None,
             }),
         })
     }

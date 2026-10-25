@@ -1328,3 +1328,261 @@ fn regions_without_a_size_are_calculated_in_the_order_the_file_lists_them() {
     let ib = res.calcpad.find("b = a*2").expect("b defined");
     assert!(ia < ib, "{}", res.calcpad);
 }
+
+// ---- solve blocks (a guess, equations, Find) -----------------------------------------------------------------------
+
+fn ml_id(name: &str) -> String {
+    format!("<ml:id>{name}</ml:id>")
+}
+fn ml_num(v: &str) -> String {
+    format!("<ml:real>{v}</ml:real>")
+}
+fn ml_app(op: &str, args: &[String]) -> String {
+    format!("<ml:apply><ml:{op}/>{}</ml:apply>", args.join(""))
+}
+fn ml_define(name: &str, value: &str) -> String {
+    format!("<ml:define>{}{}</ml:define>", ml_id(name), value)
+}
+fn ml_find(unknowns: &[&str]) -> String {
+    let args: String = unknowns.iter().map(|u| ml_id(u)).collect();
+    if unknowns.len() == 1 {
+        format!("<ml:apply>{}{}</ml:apply>", ml_id("Find"), args)
+    } else {
+        format!(
+            "<ml:apply>{}<ml:sequence>{}</ml:sequence></ml:apply>",
+            ml_id("Find"),
+            args
+        )
+    }
+}
+
+/// A solve block with the parts given as (category, math) in order.
+fn solve_block(id: u32, top: f64, parts: &[(&str, String)]) -> String {
+    let inner: String = parts
+        .iter()
+        .enumerate()
+        .map(|(k, (cat, math))| {
+            format!(
+                r#"<region region-id="{}" top="{}" left="0" solve-block-category="{cat}"><math resultRef="{}">{math}</math></region>"#,
+                id * 100 + k as u32,
+                k as f64 * 20.0,
+                id * 100 + k as u32
+            )
+        })
+        .collect();
+    format!(
+        r#"<region region-id="{id}" top="{top}" left="0"><solveblock><regions>{inner}</regions></solveblock></region>"#
+    )
+}
+
+fn engine_html(code: &str) -> String {
+    let mut parser = calcpad_core::parsers::expression_parser::ExpressionParser::new();
+    parser.parse(&format!("#round 8\n{}", legacy(code)), true);
+    parser.html_result
+}
+
+fn text_of(html: &str) -> String {
+    let mut out = String::new();
+    let mut in_tag = false;
+    for c in html.chars() {
+        match c {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            c if !in_tag => out.push(c),
+            _ => {}
+        }
+    }
+    out.replace("&#8722;", "-").replace('\u{2009}', " ")
+}
+
+#[test]
+fn a_solve_block_with_one_unknown_finds_the_root_nearest_the_guess() {
+    // x starts at 2; x^3 = 27 has the root 3; y starts at -2 for y^2 = 4, whose roots are 2 and -2: the one nearest
+    // the guess is -2.
+    let cube = ml_app("equal", &[ml_app("pow", &[ml_id("x"), ml_num("3")]), ml_num("27")]);
+    let square = ml_app("equal", &[ml_app("pow", &[ml_id("y"), ml_num("2")]), ml_num("4")]);
+    let regions = format!(
+        "{}{}{}{}",
+        solve_block(
+            1,
+            0.0,
+            &[
+                ("guess-value", ml_define("x", &ml_num("2"))),
+                ("constraint", cube),
+                ("solver", ml_define("x", &ml_find(&["x"]))),
+            ]
+        ),
+        mregion(10, 100.0, &format!("<ml:eval>{}</ml:eval>", ml_id("x"))),
+        solve_block(
+            2,
+            200.0,
+            &[
+                ("guess-value", ml_define("y", &ml_num("-2"))),
+                ("constraint", square),
+                ("solver", ml_define("y", &ml_find(&["y"]))),
+            ]
+        ),
+        mregion(11, 300.0, &format!("<ml:eval>{}</ml:eval>", ml_id("y"))),
+    );
+    let res = Pkg::new(&regions).import();
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let t = text_of(&engine_html(&res.calcpad));
+    assert!(t.lines().any(|l| l.trim() == "x = 3"), "{t}");
+    assert!(t.lines().any(|l| l.trim() == "y = -2"), "{t}");
+}
+
+#[test]
+fn a_solve_block_keeps_units_and_a_result_times_a_unit() {
+    // L starts at 3 m for 2 L^2 = 50 m^2 (L = 5 m); the result of a second block is multiplied by a unit: Find(k) m.
+    let eq = ml_app(
+        "equal",
+        &[
+            ml_app("mult", &[ml_num("2"), ml_app("pow", &[ml_id("L"), ml_num("2")])]),
+            ml_app("mult", &[ml_num("50"), ml_app("pow", &[ml_id("m"), ml_num("2")])]),
+        ],
+    );
+    let eq2 = ml_app("equal", &[ml_app("mult", &[ml_num("4"), ml_id("k")]), ml_num("12")]);
+    let regions = format!(
+        "{}{}{}{}",
+        solve_block(
+            1,
+            0.0,
+            &[
+                (
+                    "guess-value",
+                    ml_define("L", &ml_app("mult", &[ml_num("3"), ml_id("m")]))
+                ),
+                ("constraint", eq),
+                ("solver", ml_define("L", &ml_find(&["L"]))),
+            ]
+        ),
+        mregion(
+            10,
+            100.0,
+            &format!("<ml:eval>{}</ml:eval>", ml_app("div", &[ml_id("L"), ml_id("m")]))
+        ),
+        solve_block(
+            2,
+            200.0,
+            &[
+                ("guess-value", ml_define("k", &ml_num("1"))),
+                ("constraint", eq2),
+                (
+                    "solver",
+                    ml_define("d", &ml_app("mult", &[ml_find(&["k"]), ml_id("m")]))
+                ),
+            ]
+        ),
+        mregion(
+            11,
+            300.0,
+            &format!("<ml:eval>{}</ml:eval>", ml_app("div", &[ml_id("d"), ml_id("m")]))
+        ),
+    );
+    let res = Pkg::new(&regions).import();
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let t = text_of(&engine_html(&res.calcpad));
+    // The values are echoed as `L / m = 5 m / m = 5`: the result line has the substituted value in the middle.
+    assert!(
+        t.lines()
+            .any(|l| l.contains("L") && l.matches('=').count() == 2 && l.trim().ends_with("= 5")),
+        "{t}"
+    );
+    assert!(
+        t.lines()
+            .any(|l| l.contains("d") && l.matches('=').count() == 2 && l.trim().ends_with("= 3")),
+        "{t}"
+    );
+}
+
+#[test]
+fn a_solve_block_with_two_unknowns_and_two_equations() {
+    // x + y = 5 and x y = 6 from (1, 4): the roots are (2, 3) and (3, 2); both are solutions, and x + y and x y show it.
+    let e1 = ml_app("equal", &[ml_app("plus", &[ml_id("x"), ml_id("y")]), ml_num("5")]);
+    let e2 = ml_app("equal", &[ml_app("mult", &[ml_id("x"), ml_id("y")]), ml_num("6")]);
+    let target = r#"<ml:matrix rows="2" cols="1"><ml:id>x</ml:id><ml:id>y</ml:id></ml:matrix>"#;
+    let solver = format!("<ml:define>{target}{}</ml:define>", ml_find(&["x", "y"]));
+    let regions = format!(
+        "{}{}{}",
+        solve_block(
+            1,
+            0.0,
+            &[
+                ("guess-value", ml_define("x", &ml_num("1"))),
+                ("guess-value", ml_define("y", &ml_num("4"))),
+                ("constraint", e1),
+                ("constraint", e2),
+                ("solver", solver),
+            ]
+        ),
+        mregion(
+            10,
+            200.0,
+            &format!("<ml:eval>{}</ml:eval>", ml_app("plus", &[ml_id("x"), ml_id("y")]))
+        ),
+        mregion(
+            11,
+            300.0,
+            &format!("<ml:eval>{}</ml:eval>", ml_app("mult", &[ml_id("x"), ml_id("y")]))
+        ),
+    );
+    let res = Pkg::new(&regions).import();
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let t = text_of(&engine_html(&res.calcpad));
+    // `x + y = 2 + 3 = 5` (or 3 + 2): the echo with the substituted values is the second equals sign.
+    assert!(
+        t.lines()
+            .any(|l| l.contains("x + y") && l.matches('=').count() == 2 && l.trim().ends_with("= 5")),
+        "{t}"
+    );
+    assert!(
+        t.lines()
+            .any(|l| l.contains('x') && l.matches('=').count() == 2 && l.trim().ends_with("= 6")),
+        "{t}"
+    );
+}
+
+#[test]
+fn a_solve_block_without_a_solution_near_the_guess_is_undefined_not_a_number() {
+    // x^2 = -4 has no real root: the result is undefined, never the last iterate.
+    let eq = ml_app("equal", &[ml_app("pow", &[ml_id("x"), ml_num("2")]), ml_num("-4")]);
+    let regions = format!(
+        "{}{}",
+        solve_block(
+            1,
+            0.0,
+            &[
+                ("guess-value", ml_define("x", &ml_num("1"))),
+                ("constraint", eq),
+                ("solver", ml_define("x", &ml_find(&["x"]))),
+            ]
+        ),
+        mregion(10, 100.0, &format!("<ml:eval>{}</ml:eval>", ml_id("x"))),
+    );
+    let res = Pkg::new(&regions).import();
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let html = engine_html(&res.calcpad);
+    assert!(html.contains("Undefined") || html.contains("undefined"), "{html}");
+}
+
+#[test]
+fn a_solve_block_with_the_wrong_number_of_equations_is_a_gap_that_says_so() {
+    let e1 = ml_app("equal", &[ml_id("x"), ml_num("1")]);
+    let e2 = ml_app("equal", &[ml_id("x"), ml_num("2")]);
+    let regions = solve_block(
+        1,
+        0.0,
+        &[
+            ("guess-value", ml_define("x", &ml_num("1"))),
+            ("constraint", e1),
+            ("constraint", e2),
+            ("solver", ml_define("x", &ml_find(&["x"]))),
+        ],
+    );
+    let res = Pkg::new(&regions).import();
+    let g = res.report.gaps().find(|i| i.code == Code::SolveBlock).expect("gap");
+    assert!(
+        g.detail.as_deref().unwrap_or("").contains("2 equations for 1 unknowns"),
+        "{g:?}"
+    );
+}

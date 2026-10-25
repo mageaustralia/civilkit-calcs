@@ -204,6 +204,7 @@ fn with_probes(regions: Vec<Region>, pairs: &mut String) -> Vec<Region> {
                         frozen: false,
                         precision: None,
                         control: None,
+                        solve: None,
                     }),
                     ..r.clone()
                 };

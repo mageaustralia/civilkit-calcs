@@ -546,6 +546,7 @@ pub(crate) fn read_math(m: Node, lim: &Limits) -> MathRegion {
             .descendants()
             .find(|d| is_ml(*d) && crate::controls::is_control(local(*d)))
             .and_then(|d| crate::controls::read_control(d, lim, 0)),
+        solve: None,
     }
 }
 

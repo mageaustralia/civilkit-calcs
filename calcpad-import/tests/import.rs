@@ -992,6 +992,7 @@ fn mk(id: &str, left: f64, top: f64, baseline: Option<f64>) -> Region {
             frozen: false,
             precision: None,
             control: None,
+            solve: None,
         }),
     }
 }

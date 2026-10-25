@@ -307,7 +307,11 @@ A call to a function that is not defined in the sheet is one of three codes, ran
   structural marker for an add-in (the files only mention add-ins in prose), so this is a heuristic:
   not built in, not defined, nothing to define it.
 
-Solve-block names (`Given`, `Find`, ...) are `solve-block`.
+Solve-block names (`Given`, `Find`, ...) are `solve-block`, except in a solve block of an `.mcdx` file that has the shape below.
+
+### Solve blocks
+
+A solve block of an `.mcdx` file (guess values, equations, and `x := Find(x)`) is read from its regions and converted when it has one or two unknowns, as many equations (`a = b`, no inequalities), a value for each unknown before the block (its guess) and nothing but `Find` (optionally times a unit). The equations are shown as typeset equations. The solver region becomes a definition of the unknown that runs a secant iteration from the guess (Newton's method with a difference quotient for two unknowns), written as an expression block of the engine and ending at a step of a trillionth of the value, so it finds the solution nearest the guess as the source's solver does. The result is kept only when the two sides of every equation agree to a hundred-millionth at it; otherwise it is the engine's undefined, never the last iterate. The source stops at its own tolerance (0.001 by default), so the last digits of its answer can differ from this exact root; on the local worksheets the answers agree to 13 digits. A solve block of any other shape (more unknowns, inequalities, another solver, no guess, an unknown it cannot spell) is a `solve-block` gap that says why. Older `.xmcd` files, where `Given` and `Find` are plain names, stay `solve-block` gaps.
 
 ### Plots
 
@@ -397,7 +401,7 @@ summary key on them.
 | --- | --- |
 | `range-variable` | `i := 1..10` with bounds that do not convert or a step of zero, and a read of a range variable that is not a sum, a table or an element assignment (more than one range variable in one evaluation, a range variable in a function body). The engine has no range variable; the supported uses are listed under What converts. Names it defines block later regions (`depends-on-gap`, counted as downstream of this code). |
 | `program-block` | Programs outside the supported subset, each with its reason: a function array local that has no value on some path, an array written only under a condition, a `try` whose body could fail other than by dividing by zero, a loop over something other than a plain range, a program that ends in a loop or an element assignment |
-| `solve-block` | Given/Find and relatives |
+| `solve-block` | Given/Find and relatives that do not meet the conditions under Solve blocks (the detail says which) |
 | `symbolic-evaluation` | Symbolic evaluation |
 | `calculus-operator` | Derivative and integral operators that do not meet the conditions under What converts (the detail names which); other derivative forms |
 | `summation-operator`, `vectorize-operator`, `matrix-operator` | A sum or product that does not meet the conditions under What converts, limits; vectorize over an element-by-element product or quotient of arrays; column/row, dot, cross and magnitude operators |

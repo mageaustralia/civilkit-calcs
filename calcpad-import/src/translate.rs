@@ -22,6 +22,7 @@ mod multi;
 mod nested;
 mod plot;
 mod slices;
+mod solve;
 mod strings;
 mod trycatch;
 
@@ -1324,6 +1325,8 @@ struct Tr {
     matrices: HashSet<String>,
     /// The complex program just split returns an array with several rows and columns.
     cx_matrix: bool,
+    /// The equations of the solve block being read, until its solver region.
+    solve_cons: Vec<Expr>,
     /// Output names of local arrays that grow as they are written (their size is not known ahead).
     growable: HashSet<String>,
     /// Lines a program lowered to statements starts with (the allocation of its growing arrays).
@@ -4710,6 +4713,7 @@ impl Tr {
             return line;
         }
         if plain_def {
+            let line = self.lazy_if(line);
             if let Stmt::Define { target, value, global } = &m.stmt {
                 if let Some(shown) = self.display_define(target, value) {
                     if let Some(typeset) = self.typeset_define(target, value, *global) {
@@ -4717,6 +4721,12 @@ impl Tr {
                     }
                     let fmt = self.format_line(None).map(|l| format!("{l}\n")).unwrap_or_default();
                     return format!("{fmt}#hide\n{line}\n#end hide\n#noc\n{shown}\n#end noc");
+                }
+                // A program that became one expression: the engine's echo of that expression would
+                // evaluate every branch of its `if`s to show the substituted values (and fail on the
+                // ones that do not apply), so only the value of the name is shown.
+                if let (Target::Var(n), Expr::Program(_), false) = (target, value, line.contains('\n')) {
+                    return format!("#hide\n{line}\n#end hide\n{}", tables::normalise_name(&n.flat()));
                 }
             }
             return line;
@@ -4803,6 +4813,24 @@ impl Tr {
             out.push_str(&line);
         }
         out
+    }
+
+    /// A definition on one line, `name = ... if(...) ...`, whose branches call a function or index an array:
+    /// the engine evaluates both branches of an `if` at the top of a sheet when it can fold the
+    /// condition, and a branch the source never takes can fail. Inside an expression block the `if` is
+    /// evaluated lazily, so the right side goes into one.
+    fn lazy_if(&self, line: String) -> String {
+        if line.contains('\n') || !line.contains("if(") || line.contains("$Block{") {
+            return line;
+        }
+        let Some((name, rhs)) = line.split_once(" = ") else {
+            return line;
+        };
+        let calls_user = self.funcs.keys().any(|f| rhs.contains(&format!("{f}(")));
+        if !(calls_user || rhs.contains(".(")) || !valid_ident(name.trim()) {
+            return line;
+        }
+        format!("{} = $Block{{{}}}", name.trim(), rhs)
     }
 
     /// Whether an identifier is read as a unit label where the equation sits.
@@ -4932,6 +4960,55 @@ impl Tr {
         };
 
         match &m.stmt {
+            // The solver of a solve block: the unknowns become the solution of its equations.
+            Stmt::Define { target, value, .. } if m.solve.as_deref() == Some("solver") => {
+                shape = "definition";
+                match self.solve_block(target, value) {
+                    Ok((text, names)) => {
+                        let gap = self.cur.iter().any(|p| p.code.severity() == Severity::Gap);
+                        if !gap {
+                            emitted = Some(text);
+                        } else {
+                            attempt = Some(text);
+                        }
+                        if let [one] = names.as_slice() {
+                            plain_def = !gap;
+                            define_name = Some((one.clone(), None, false));
+                        } else {
+                            multi_names = if gap { Vec::new() } else { names.clone() };
+                            poison.extend(names);
+                        }
+                    }
+                    Err(why) => {
+                        self.issue(Code::SolveBlock, Some(why));
+                        match target {
+                            Target::Var(n) => {
+                                define_name = Some((tables::normalise_name(&n.flat()), None, false));
+                            }
+                            Target::Multi(ns) => {
+                                poison.extend(ns.iter().map(|n| tables::normalise_name(&n.flat())));
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            // An equation of a solve block: shown, collected for the solver that follows.
+            Stmt::Bare(e) if m.solve.as_deref() == Some("constraint") => {
+                shape = "expression";
+                self.solve_cons.push(e.clone());
+                emitted = Some(match self.typeset_gap(&m.stmt) {
+                    Some(t) => t,
+                    None => {
+                        let saved = std::mem::take(&mut self.cur);
+                        self.readable = true;
+                        let text = self.expr(e).s.replace(" ≡ ", " = ");
+                        self.readable = false;
+                        self.cur = saved;
+                        format!("#noc\n{text}\n#end noc")
+                    }
+                });
+            }
             Stmt::Define {
                 target: Target::Var(n), ..
             } if cx_result.is_some() => {
@@ -6454,6 +6531,7 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         cx_locals: HashSet::new(),
         matrices: HashSet::new(),
         cx_matrix: false,
+        solve_cons: Vec::new(),
         col_vecs: HashSet::new(),
         growable: HashSet::new(),
         prologue: Vec::new(),

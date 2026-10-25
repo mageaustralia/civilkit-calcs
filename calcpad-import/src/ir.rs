@@ -179,6 +179,8 @@ pub struct MathRegion {
     pub precision: Option<i32>,
     /// The input control this definition was set from, when it was one.
     pub control: Option<Control>,
+    /// The part this region plays in a solve block: `guess-value`, `constraint` or `solver`.
+    pub solve: Option<String>,
 }
 
 /// A stored scalar result: the number (or string) as written, and its unit in the source's spelling.
