@@ -114,7 +114,7 @@ same!(sqrt_perfect, "sqrt(4)", "2");
 same!(sqrt_extract, "sqrt(8)", "2*sqrt(2)");
 same!(sqrt_extract_18, "sqrt(18)", "3*sqrt(2)");
 same!(sqrt_squared, "sqrt(2)*sqrt(2)", "2");
-same!(sqrt_product_of_primes, "sqrt(6)", "sqrt(2)*sqrt(3)");
+same!(sqrt_splits_into_factors, "sqrt(6)", "sqrt(2)*sqrt(3)");
 same!(cube_root, "8^(1/3)", "2");
 same!(rational_exponent_perfect, "4^(3/2)", "8");
 same!(root_of_fraction, "(1/4)^(1/2)", "1/2");

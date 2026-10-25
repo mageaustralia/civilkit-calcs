@@ -10,6 +10,8 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 (for example `civilkit-calcs-engine-v0.1.0`).
 
 ## [Unreleased]
+### Added
+- `caskit`, a new workspace crate (`civilkit-calcs-caskit`, library `caskit`): a small pure-Rust computer algebra library for engineering formulas. Exact rational numbers, canonical expressions (so `1/(E*I)` is a product of reciprocals and equal expressions compare equal), a parser and ASCII and LaTeX printers, `simplify`, `expand`, `factor`, `diff`, `integrate` and definite integrals, `solve` for linear and quadratic equations and for rearranging a formula, and a linear solver for up to 4 unknowns. Anything outside the supported forms is an explicit error. Not yet loaded by the web app and not yet published. `docs/caskit.md`, `caskit/README.md`.
 
 ## [26.10.8] - 2026-10-25
 ### Added
@@ -250,6 +252,10 @@ worksheet language, with the engine, highlighter and Word and Excel export reimp
 ## Crates
 
 Published on crates.io. The API follows the needs of the web app and may change between 0.x minor versions.
+
+### civilkit-calcs-caskit 0.1.0 - unreleased
+
+Not published yet. A pure-Rust computer algebra library for engineering formulas (see `caskit/README.md`); it has no dependencies and builds for `wasm32-unknown-unknown`.
 
 ### civilkit-calcs-engine 0.1.0, civilkit-calcs-highlighter 0.1.0, civilkit-calcs-docx 0.1.0 - 2026-10-22
 

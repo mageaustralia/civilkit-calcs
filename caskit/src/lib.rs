@@ -68,6 +68,11 @@
 
 #![warn(missing_docs)]
 
+// Compile and run the code blocks of the README as doctests.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;
+
 mod error;
 mod expr;
 mod factor;

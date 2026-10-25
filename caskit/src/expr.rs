@@ -7,7 +7,7 @@
 //! * like terms are combined (`2*x + 3*x` is `5*x`), equal bases are combined (`x * x^2` is `x^3`);
 //! * numbers are exact rationals, folded at construction;
 //! * a quotient is a product with a negative exponent, so `1/(E*I)` is `E^-1 * I^-1`;
-//! * rational powers of integers are written with prime radicands (`sqrt(8)` is `2*sqrt(2)`).
+//! * rational powers of integers are written factor by factor, with the whole part pulled out (`sqrt(8)` is `2*sqrt(2)`).
 //!
 //! Products are not distributed over sums by the constructors; `expand` does that.
 //!
