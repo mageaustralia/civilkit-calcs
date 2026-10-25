@@ -48,7 +48,7 @@ with `civilkit-calcs-engine = "0.1"` in `Cargo.toml`. The crates have their own 
 
 * **Engine:** the Rust engine, compiled to WebAssembly, replaces the .NET engine and the server it
   runs in. The page answers the server API itself (`web/calcpad-web/src/wasm/transport.ts`).
-  The engine wasm is 1.73 MB raw and 656 KB gzipped; it is built at opt-level `s`, which ran a heavy
+  The engine wasm is 1.77 MB raw and 655 KB gzipped; it is built at opt-level `s`, which ran a heavy
   `$Map` sheet 1.5 times faster than the size-optimised build.
 * **Editor services in a second wasm:** the highlighter, linter, prettifier, go-to-definition and
   the snippet library are a separate module (`calcpad-highlighter-wasm`, 351 KB gzipped) that loads
@@ -65,8 +65,14 @@ with `civilkit-calcs-engine = "0.1"` in `Cargo.toml`. The crates have their own 
 * **Import worksheet:** `File > Import worksheet...`, the Document tab's Import button, or dropping a `.xmcd` or `.mcdx` file on
   the page converts a worksheet of the spreadsheet-like format of another calculation tool into a new unsaved
   worksheet, locally in the page (its own WebAssembly module, loaded on first use). Text, definitions,
-  evaluations, functions, matrices, units, sums, integrals, simple programs and pictures convert; what does not is
-  shown as a typeset not-calculated equation or a static picture of the original, and counted in a summary. See [docs/worksheet-import.md](docs/worksheet-import.md).
+  evaluations, functions, matrices, units, sums, integrals, programs (loops, early exits, grown arrays), plots, stepped
+  ranges, complex numbers, simple solve blocks, statistics functions, referenced worksheets and pictures convert; what does not
+  is shown as a typeset not-calculated equation or a static picture of the original, and counted in a summary. Two options
+  tidy the text: plain layout wrappers dropped and equations written as plain Calcpad, and prose written as Markdown. See [docs/worksheet-import.md](docs/worksheet-import.md).
+* **Rich-text editing:** double-click prose in a Markdown block (`#markdown`) or in a sheet and edit it as rich text
+  (headings, lists, emphasis, pipe tables); untouched text is never rewritten. See [docs/rich-text-editing.md](docs/rich-text-editing.md).
+* **Units once on arrays:** a vector or matrix whose elements share a unit is shown as `[16; 12; 3] ft` rather than with the
+  unit on every element; `#settings {"unitPerElement": true}` restores the old display (DEVIATIONS.md, D13).
 * **Installable and offline:** a web app manifest and a service worker that caches the whole build (about 19 MB), so
   the page can be installed on a phone or desktop and opens and calculates without a connection. Plotly charts need the
   CDN script loaded once while online.
@@ -133,8 +139,10 @@ evaluations, functions, vectors and matrices, indexing (with the array origin sh
 sums, products, integrals, range variables, programs made of loops and conditions, the common built-in
 functions, input-component values and pictures convert. The author's equations are shown as they were written
 (stacked fractions, sums with bounds, subscripts, a transpose superscript) and computed out of sight, and regions
-that share a row keep their side by side layout. What does not convert (plots, add-in libraries, some programs,
-solve blocks, symbolic evaluation) is shown as a typeset, not-calculated equation or a static picture of the
+that share a row keep their side by side layout. Plots, loops with early exits, grown arrays, complex numbers, solve blocks of
+one or two unknowns (solved here and kept only when the equations hold, otherwise the value the file saved), statistics
+functions and worksheets that a file references also convert. What does not convert (add-in libraries, embedded objects,
+symbolic evaluation, programs that use constructs not yet mapped, some matrix plots) is shown as a typeset, not-calculated equation or a static picture of the
 original, and the report counts it by code.
 The `.mcdx` container (a zip) is read by its own front end onto the same translator. Details, the mapping tables and how to run the batch
 runner over a folder: [docs/worksheet-import.md](docs/worksheet-import.md).
