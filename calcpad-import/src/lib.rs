@@ -37,6 +37,7 @@ pub mod names;
 pub mod picture;
 mod plotread;
 pub mod report;
+mod solve;
 pub mod tables;
 pub mod translate;
 pub mod xls;

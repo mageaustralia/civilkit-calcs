@@ -179,6 +179,17 @@ pub struct MathRegion {
     pub precision: Option<i32>,
     /// The input control this definition was set from, when it was one.
     pub control: Option<Control>,
+    /// The part this region plays in a solve block whose solution the file saved.
+    pub solve: Option<SolveRole>,
+}
+
+/// A region of a solve block that is not solved here: its unknowns hold the values the file saved.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SolveRole {
+    /// An equation the solution satisfies.
+    Constraint,
+    /// The definition of the unknowns from the solver, taken at the saved values.
+    Solution,
 }
 
 /// A stored scalar result: the number (or string) as written, and its unit in the source's spelling.

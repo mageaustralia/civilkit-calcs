@@ -446,6 +446,10 @@ impl Ctx<'_, '_> {
                     }
                 }
             }
+            "solveblock" => match crate::solve::read_solve_block(self, c, (left, top), depth) {
+                Some(regions) => out.extend(regions),
+                None => out.push(mk(RegionKind::Other(tag.to_string()))),
+            },
             "plot" => out.push(mk(RegionKind::Plot(crate::plotread::read_plot(c, lim)))),
             "oleObject" | "ole" => out.push(mk(RegionKind::Ole)),
             "reference" => {
@@ -537,6 +541,7 @@ impl Ctx<'_, '_> {
                 frozen: true,
                 precision: None,
                 control: None,
+                solve: None,
             }),
         })
     }

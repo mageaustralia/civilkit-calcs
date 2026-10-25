@@ -1,5 +1,6 @@
-//! A worksheet that a reference includes: its definitions are in force below the reference and are
-//! not shown. Synthetic packages built here from strings.
+//! A worksheet that a reference includes (its definitions are in force below the reference and are
+//! not shown), and solve blocks whose solution the file saved. Synthetic packages built here from
+//! strings.
 
 use calcpad_import::{import_bytes, Code, ImportOptions, ImportResult};
 
@@ -121,6 +122,10 @@ fn include_xml(regions: &str) -> String {
 }
 
 fn package(main_regions: &str, include_regions: Option<&str>) -> ImportResult {
+    package_with(main_regions, include_regions, "")
+}
+
+fn package_with(main_regions: &str, include_regions: Option<&str>, results: &str) -> ImportResult {
     let mut parts = vec![
         part("_rels/.rels", rels(&[("Rdoc", "officeDocument", "/ws/worksheet.xml")])),
         part("ws/worksheet.xml", worksheet_xml(main_regions)),
@@ -130,7 +135,9 @@ fn package(main_regions: &str, include_regions: Option<&str>) -> ImportResult {
         ),
         part(
             "ws/result.xml",
-            format!(r#"<resultsList xmlns:ml="{ML_NS}" xmlns="http://example.invalid/result10"></resultsList>"#),
+            format!(
+                r#"<resultsList xmlns:ml="{ML_NS}" xmlns="http://example.invalid/result10">{results}</resultsList>"#
+            ),
         ),
     ];
     if let Some(r) = include_regions {
@@ -212,4 +219,33 @@ fn a_gap_in_an_included_definition_is_reported_with_the_regions_of_the_include()
         .report
         .gaps()
         .any(|i| i.code == Code::SymbolicEvaluation && i.region_id.as_deref() == Some("i8_5")));
+}
+
+fn solve_block(solver_result: &str) -> ImportResult {
+    let block = r#"<region region-id="1" top="0" left="0" height="100" width="300"><solveblock><regions>
+        <region region-id="2" top="10" left="0" solve-block-category="guess-value"><math resultRef="1"><ml:define><ml:id>x</ml:id><ml:real>1</ml:real></ml:define></math></region>
+        <region region-id="3" top="30" left="0" solve-block-category="constraint"><math resultRef="2"><ml:apply><ml:equal/><ml:apply><ml:mult/><ml:id>x</ml:id><ml:id>x</ml:id></ml:apply><ml:real>4</ml:real></ml:apply></math></region>
+        <region region-id="4" top="60" left="0" solve-block-category="solver"><math resultRef="3"><ml:define><ml:id>r</ml:id><ml:eval><ml:apply><ml:id labels="KEYWORD">Find</ml:id><ml:id>x</ml:id></ml:apply><ml:unitOverride><ml:id labels="*">in</ml:id></ml:unitOverride></ml:eval></ml:define></math></region>
+        </regions></solveblock></region>"#;
+    let after = r#"<region region-id="5" top="150" left="0" actualWidth="10" actualHeight="10"><math><ml:define><ml:id>y</ml:id><ml:apply><ml:plus/><ml:id>r</ml:id><ml:apply><ml:mult/><ml:real>1</ml:real><ml:id labels="UNIT">in</ml:id></ml:apply></ml:apply></ml:define></math></region>"#;
+    let main = format!("{block}{after}{}", shown(6, 170.0, "y"));
+    package_with(&main, None, solver_result)
+}
+
+#[test]
+fn a_solve_block_takes_the_solution_the_file_saved() {
+    // The solver result is stored as the number in the unit shown (inches).
+    let res = solve_block(r#"<resultData result-id="3"><ml:result><ml:real>2</ml:real></ml:result></resultData>"#);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.report.issues.iter().any(|i| i.code == Code::SolveConstraint));
+    assert!(res.report.issues.iter().any(|i| i.code == Code::FrozenValue));
+    assert!(res.calcpad.contains("r = 2*in"), "{}", res.calcpad);
+    assert!(res.calcpad.contains("solve block"), "{}", res.calcpad);
+    assert!(engine_text(&res.calcpad).contains("y = 3"), "{}", res.calcpad);
+}
+
+#[test]
+fn a_solve_block_with_no_saved_solution_stays_a_gap() {
+    let res = solve_block(r#"<resultData result-id="3"/>"#);
+    assert!(res.report.gaps().any(|i| i.code == Code::OtherRegion));
 }

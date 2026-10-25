@@ -5138,6 +5138,20 @@ impl Tr {
                     format!("'<p><i>{t}</i></p>")
                 });
             }
+            Stmt::Bare(expr) if m.solve == Some(SolveRole::Constraint) && is_relation(expr) => {
+                // An equation of a solve block, which is not solved here: it is shown as written.
+                shape = "expression";
+                self.issue(Code::SolveConstraint, None);
+                let saved = std::mem::take(&mut self.cur);
+                self.readable = true;
+                let text = self.expr(expr).s.replace(" ≡ ", " = ");
+                self.readable = false;
+                self.cur = saved;
+                emitted = Some(
+                    self.typeset_gap(&m.stmt)
+                        .unwrap_or_else(|| format!("'<p><i>{}</i></p>", mathml::esc(&text.replace('\'', "\u{2019}")))),
+                );
+            }
             Stmt::Bare(expr) if matches!(expr, Expr::Bin(BinOp::Eq, ..)) => {
                 // An equation on its own line is a constraint (a solve block's equation, or a check):
                 // it is shown with its real names, not reported name by name.
@@ -5213,10 +5227,12 @@ impl Tr {
             // Data read from the workbook an input component saved.
             self.issue(Code::FrozenValue, None);
             self.report.frozen_values += 1;
-            let note = format!(
-                "'<small><i>R{}: value taken from the saved workbook of an input component (frozen, not live)</i></small>",
-                sanitize_id(&r.id)
-            );
+            let what = if m.solve.is_some() {
+                "solve block: the unknowns take the values the file saved for the solution (frozen, not live)"
+            } else {
+                "value taken from the saved workbook of an input component (frozen, not live)"
+            };
+            let note = format!("'<small><i>R{}: {what}</i></small>", sanitize_id(&r.id));
             emitted = emitted.map(|e| format!("{note}\n{e}"));
             plain_def = false;
         }
