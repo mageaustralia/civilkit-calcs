@@ -17,6 +17,7 @@ use crate::{Asset, ImportOptions};
 
 mod exits;
 mod growth;
+mod multi;
 mod nested;
 mod plot;
 mod strings;
@@ -5019,6 +5020,20 @@ impl Tr {
                                     multi_names = flats.clone();
                                 } else {
                                     attempt = Some(text);
+                                }
+                            }
+                            _ if fn_program.is_some() && distinct && flats.iter().all(|f| valid_ident(f)) => {
+                                match self.multi_from_program(fn_program.unwrap_or_default(), &flats) {
+                                    Ok(parts) => {
+                                        let text = parts.join("\n");
+                                        if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
+                                            emitted = Some(text);
+                                            multi_names = flats.clone();
+                                        } else {
+                                            attempt = Some(text);
+                                        }
+                                    }
+                                    Err(why) => self.issue(Code::ProgramBlock, Some(why)),
                                 }
                             }
                             _ => self.issue(

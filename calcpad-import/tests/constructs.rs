@@ -672,3 +672,26 @@ fn an_array_whose_elements_are_vectors_is_a_matrix_with_one_row_per_element() {
 fn index1_of(base_expr: &str, idx: &str) -> String {
     format!("<ml:apply><ml:indexer/>{base_expr}{idx}</ml:apply>")
 }
+
+// ---- several names from one program --------------------------------------------------------------------------
+
+#[test]
+fn several_names_defined_from_a_program_that_returns_its_locals() {
+    // [A, B] := (s = 0; for i in 1..3: s = s + i; t = s * 2; [s; t]): A = 6, B = 12.
+    let body = program(&[
+        local("s", &r("0")),
+        for_in("i", &r("1"), &r("3"), &[local("s", &plus(&n("s"), &n("i")))]),
+        local("t", &times(&n("s"), &r("2"))),
+        format!(r#"<ml:matrix rows="2" cols="1">{}{}</ml:matrix>"#, n("s"), n("t")),
+    ]);
+    let target = format!(r#"<ml:matrix rows="1" cols="2">{}{}</ml:matrix>"#, n("A"), n("B"));
+    let res = convert(&[
+        format!("<ml:define>{target}{body}</ml:define>"),
+        eval(&n("A")),
+        eval(&n("B")),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 2);
+    assert_close(v[0], 6.0);
+    assert_close(v[1], 12.0);
+}
