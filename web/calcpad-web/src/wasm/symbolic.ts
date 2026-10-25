@@ -103,6 +103,7 @@ const STYLE = `
 #cprs-sym-dialog .sym-row{display:flex;flex-wrap:wrap;gap:8px 12px;margin:8px 0;align-items:flex-end}
 #cprs-sym-dialog .sym-row>label{flex:1 1 130px}
 #cprs-sym-dialog .sym-row>label[hidden]{display:none}
+#cprs-sym-dialog .sym-row>.sym-hint{flex:1 1 100%;margin:0}
 #cprs-sym-dialog input,#cprs-sym-dialog select,#cprs-sym-dialog textarea{box-sizing:border-box;width:100%;padding:5px 8px;font:inherit;font-size:13px;color:var(--vscode-input-foreground,inherit);
   background:var(--vscode-input-background,#fff);border:1px solid var(--vscode-input-border,#bbb);border-radius:3px}
 #cprs-sym-dialog textarea{font-family:var(--vscode-editor-font-family,ui-monospace,Consolas,monospace);resize:vertical}
@@ -269,7 +270,10 @@ export class SymbolicDialog {
         const nameIn = input('name', 'result', 'result');
         const insRow = document.createElement('div');
         insRow.className = 'sym-row';
-        insRow.append(field('', 'Insert as', formSel), field('', 'Name', nameIn));
+        const lineHint = document.createElement('p');
+        lineHint.className = 'sym-hint';
+        lineHint.textContent = 'A line is calculated by the engine, so every symbol in it needs a value in the worksheet. A formula block or a comment is only shown.';
+        insRow.append(field('', 'Insert as', formSel), field('', 'Name', nameIn), lineHint);
         insRow.hidden = true;
 
         const copy = document.createElement('button');
