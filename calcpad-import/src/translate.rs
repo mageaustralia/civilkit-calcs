@@ -18,6 +18,7 @@ use crate::{Asset, ImportOptions};
 mod exits;
 mod plot;
 mod strings;
+mod trycatch;
 
 /// Every placeholder line starts with this (after the leading `'` that makes it a text line).
 pub const GAP_MARKER: &str = "[import-gap";
@@ -430,39 +431,6 @@ fn subst(e: &Expr, env: &HashMap<String, Expr>) -> Option<Expr> {
         }
         Expr::Program(_) => return None,
     })
-}
-
-/// True when `name` (already normalised) occurs as a name anywhere in `e`.
-/// Can the expression fail only by dividing by zero? Collects the divisors. Sums, products,
-/// differences, negation, absolute value, integer powers, names and numbers cannot fail; a call, an
-/// index or anything else might, and then the reason says what.
-fn only_division_fails<'a>(e: &'a Expr, divisors: &mut Vec<&'a Expr>) -> Result<(), String> {
-    match e {
-        Expr::Num(_) | Expr::Name(_) => Ok(()),
-        Expr::Un(UnOp::Neg | UnOp::Abs, a) => only_division_fails(a, divisors),
-        Expr::Postfix(_, a) => only_division_fails(a, divisors),
-        Expr::Bin(BinOp::Add | BinOp::Sub | BinOp::Mul, a, b) => {
-            only_division_fails(a, divisors)?;
-            only_division_fails(b, divisors)
-        }
-        Expr::Bin(BinOp::Div, a, b) => {
-            only_division_fails(a, divisors)?;
-            only_division_fails(b, divisors)?;
-            divisors.push(b);
-            Ok(())
-        }
-        Expr::Bin(BinOp::Pow, a, b) if matches!(&**b, Expr::Num(s) if is_int_literal(s).is_some_and(|v| v >= 0)) => {
-            only_division_fails(a, divisors)
-        }
-        Expr::Index(base, idx) if matches!(&**base, Expr::Name(_)) => {
-            for i in idx {
-                only_division_fails(i, divisors)?;
-            }
-            Ok(())
-        }
-        Expr::Call(..) => Err("the body calls a function, which could fail in ways other than a division".into()),
-        _ => Err("the body could fail in ways other than a division".into()),
-    }
 }
 
 /// The unit `deg` (or `°`): a display unit for an angle, which the source holds in radians.
@@ -1276,6 +1244,8 @@ struct Tr {
     /// A function the sheet defines more than once: the engine name of its current definition (the
     /// engine warns when a name is defined again, so each later definition has a name of its own).
     fn_alias: HashMap<String, String>,
+    /// The parameters and the value of each worksheet function that is one expression.
+    fn_defs: HashMap<String, (Vec<String>, Expr)>,
     /// Output names of local arrays that grow as they are written (their size is not known ahead).
     growable: HashSet<String>,
     /// Lines a program lowered to statements starts with (the allocation of its growing arrays).
@@ -3875,6 +3845,28 @@ impl Tr {
             self.io_args = false;
             r
         };
+        // `stack` and `augment` take a number as a one-element array in the source; the engine wants arrays.
+        if matches!(flat.as_str(), "stack" | "augment") && n.sub.is_none() && !self.funcs.contains_key(&flat) {
+            for (a, r) in args.iter().zip(rendered.iter_mut()) {
+                let scalar = match a {
+                    Expr::Num(_) => true,
+                    Expr::Name(m) => {
+                        let f = tables::normalise_name(&m.flat());
+                        self.defined.contains(&f)
+                            && !self.arrays.contains(&f)
+                            && !self.local_arrays.contains(&f)
+                            && !self.str_mats.contains(&f)
+                            && !self.col_vecs.contains(&f)
+                            && !self.params.contains(&f)
+                            && !self.locals.contains_key(&f)
+                    }
+                    _ => false,
+                };
+                if scalar {
+                    *r = format!("[{r}]");
+                }
+            }
+        }
         // In a plot, a bare 0 branch of `if` is a zero of the other branch's dimension (as in the
         // source); the engine wants both branches in the same units.
         // The same for `max` and `min`, and (outside a display) for the branches of `if` everywhere.
@@ -4016,36 +4008,6 @@ impl Tr {
     /// failure that arithmetic has, a division by zero (the engine gives infinity there): the body
     /// when every divisor is not zero, the fallback otherwise. A body that could fail in another way
     /// (a function call, an index, a power) is not converted.
-    fn try_catch(&mut self, body: &Expr, rendered: &[String]) -> R {
-        let mut divisors: Vec<&Expr> = Vec::new();
-        if let Err(why) = only_division_fails(body, &mut divisors) {
-            self.issue(Code::ProgramBlock, Some(format!("tryCatch: {why}")));
-            if self.readable {
-                self.readable_bad = true;
-            }
-            return self.stand_in(&format!("tryCatch({}; {})", rendered[0], rendered[1]), "?try?");
-        }
-        let mut tests: Vec<String> = Vec::new();
-        for d in divisors {
-            if matches!(d, Expr::Num(s) if s.trim().parse::<f64>().is_ok_and(|v| v != 0.0)) {
-                continue;
-            }
-            let t = self.expr(d).s;
-            // A zero keeps its unit when multiplied by 0, so the comparison is between like units.
-            let test = format!("({t})*0 ≠ ({t})");
-            if !tests.contains(&test) {
-                tests.push(test);
-            }
-        }
-        if tests.is_empty() {
-            return R {
-                s: rendered[0].clone(),
-                prec: P_ATOM,
-            };
-        }
-        atom(format!("if({}; {}; {})", tests.join(" ∧ "), rendered[0], rendered[1]))
-    }
-
     /// The engine's spelling of a worksheet function's name: the engine reads a function name
     /// without regard to case, so `Norm` or `Max` would be taken for its own `norm` and `max`.
     fn fn_name(&self, flat: &str) -> String {
@@ -4883,6 +4845,11 @@ impl Tr {
                         if text_fn {
                             let d = self.str_domain(value);
                             str_fn_def = Some((flat.clone(), d));
+                        }
+                        if fn_program.is_none() {
+                            self.fn_defs.insert(flat.clone(), (plist.clone(), value.clone()));
+                        } else {
+                            self.fn_defs.remove(&flat);
                         }
                         let rhs = match fn_program {
                             Some(stmts) => match self.lower_fn_block(stmts) {
@@ -6114,6 +6081,7 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         zero_started: HashSet::new(),
         partial: HashMap::new(),
         fn_alias: HashMap::new(),
+        fn_defs: HashMap::new(),
         col_vecs: HashSet::new(),
         growable: HashSet::new(),
         prologue: Vec::new(),

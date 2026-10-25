@@ -410,3 +410,79 @@ fn a_function_defined_twice_keeps_each_definition_for_the_calls_after_it() {
     parser.parse(&legacy(&res.calcpad), true);
     assert!(!parser.html_result.contains("redefined"), "{}", parser.html_result);
 }
+
+// ---- try on error over worksheet functions, a function that is an if, stack of a number --------------------
+
+fn try_catch(body: &str, fallback: &str) -> String {
+    format!("<ml:tryCatch><ml:program>{body}</ml:program><ml:program>{fallback}</ml:program></ml:tryCatch>")
+}
+
+#[test]
+fn try_on_error_looks_through_worksheet_functions_and_only_the_branch_that_runs() {
+    // g(x) = 1 / x; k(x) = if x > 0 then 1 / x else 0.
+    // t(x) = try g(x) + 1 on error -1: t(2) = 1.5, t(0) = -1.
+    // u(x) = try k(x) on error 99: the division sits on the branch x > 0, so u(0) = 0, not 99.
+    let kbody = format!(
+        "<ml:if><ml:test>{}</ml:test><ml:then>{}</ml:then><ml:else>{}</ml:else></ml:if>",
+        gt(&n("x"), &r("0")),
+        program(&[app("div", &[r("1"), n("x")])]),
+        program(&[r("0")])
+    );
+    let res = convert(&[
+        func("g", &["x"], &app("div", &[r("1"), n("x")])),
+        func("k", &["x"], &kbody),
+        func(
+            "t",
+            &["x"],
+            &program(&[try_catch(&plus(&call("g", &[n("x")]), &r("1")), &r("-1"))]),
+        ),
+        func("u", &["x"], &program(&[try_catch(&call("k", &[n("x")]), &r("99"))])),
+        eval(&call("t", &[r("2")])),
+        eval(&call("t", &[r("0")])),
+        eval(&call("u", &[r("4")])),
+        eval(&call("u", &[r("0")])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 4);
+    assert_close(v[0], 1.5);
+    assert_close(v[1], -1.0);
+    assert_close(v[2], 0.25);
+    assert_close(v[3], 0.0);
+}
+
+#[test]
+fn a_function_whose_value_is_an_if_without_a_block_around_it_converts() {
+    let body = format!(
+        "<ml:if><ml:test>{}</ml:test><ml:then>{}</ml:then><ml:else>{}</ml:else></ml:if>",
+        gt(&n("x"), &r("1")),
+        program(&[r("10")]),
+        program(&[r("20")])
+    );
+    let res = convert(&[
+        func("p", &["x"], &body),
+        eval(&call("p", &[r("5")])),
+        eval(&call("p", &[r("0")])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 2);
+    assert_close(v[0], 10.0);
+    assert_close(v[1], 20.0);
+}
+
+#[test]
+fn stack_takes_a_number_as_a_one_element_array() {
+    // stack(5, [1; 2]) is [5; 1; 2]: the third element is 2 and there are three rows.
+    let res = convert(&[
+        define("x", &r("5")),
+        define("v", &mat(2, 1, &["1", "2"])),
+        define("w", &call("stack", &[n("x"), n("v")])),
+        eval(&call("rows", &[n("w")])),
+        eval(&index2("w", &r("1"), &r("1"))),
+        eval(&index2("w", &r("3"), &r("1"))),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 3);
+    assert_close(v[0], 3.0);
+    assert_close(v[1], 5.0);
+    assert_close(v[2], 2.0);
+}

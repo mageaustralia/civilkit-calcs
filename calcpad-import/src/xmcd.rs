@@ -955,6 +955,8 @@ pub(crate) fn read_expr(n: Node, lim: &Limits, depth: usize) -> Expr {
             }
         }
         "program" => Expr::Program(read_program(n, lim, depth + 1)),
+        // A function whose whole value is an `if` or a loop, written without the block around it.
+        "if" | "for" | "while" => Expr::Program(vec![read_pstmt(n, lim, depth + 1)]),
         // `try expr on error fallback`, when each side is a single expression: kept as a call of that
         // name, which the translator turns into a test of the division that may fail.
         "tryCatch" => {
@@ -1234,7 +1236,10 @@ fn read_pstmt(k: Node, lim: &Limits, depth: usize) -> PStmt {
         },
         "break" => PStmt::Break,
         "continue" => PStmt::Continue,
-        "tryCatch" => bad("tryCatch"),
+        "tryCatch" => match read_expr(k, lim, depth + 1) {
+            e @ Expr::Call(..) => PStmt::Expr(e),
+            _ => bad("tryCatch"),
+        },
         "program" => bad("nested program"),
         _ => PStmt::Expr(read_expr(k, lim, depth + 1)),
     }
