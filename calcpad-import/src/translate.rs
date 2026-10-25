@@ -756,7 +756,7 @@ struct LoopCtx {
 }
 
 /// Lines before the loops, one header per range, and the size each range reaches.
-type RangeLoops = (Vec<String>, Vec<String>, Vec<String>);
+type RangeLoops = (Vec<String>, Vec<String>, Vec<String>, Vec<String>);
 
 /// State while a function body is lowered to an expression block.
 struct FnBlk {
@@ -2040,31 +2040,37 @@ impl Tr {
         rhs: &str,
         pre: &[String],
     ) -> Result<String, String> {
-        let (head, loops, sizes) = self.range_loops(rs)?;
+        let (head, loops, sizes, steps) = self.range_loops(rs)?;
+        // A hidden statement that fails leaves no trace of its own (in a loop it can leave the zeros
+        // the array started with), so the loop writes a working array and counts the passes whose
+        // value was computed; the real array is defined from it only if every pass was counted,
+        // and otherwise the division fails, so the name is undefined where it is used.
+        let (w, c) = (format!("{f}_w{}", self.prog_n), format!("{f}_c{}", self.prog_n));
         let alloc = if sizes.len() == 1 {
-            format!("{f} = vector({})", sizes[0])
+            format!("{w} = vector({})", sizes[0])
         } else {
-            format!("{f} = matrix({}; {})", sizes[0], sizes[1])
+            format!("{w} = matrix({}; {})", sizes[0], sizes[1])
         };
         let mut out = vec!["#hide".to_string()];
         out.extend(head);
         out.push(alloc);
+        out.push(format!("{c} = 0"));
         for (d, l) in loops.iter().enumerate() {
             for line in l.split('\n') {
                 out.push(format!("{}{}", "    ".repeat(d), line));
             }
         }
+        let ind = "    ".repeat(loops.len());
         for p in pre {
-            out.push(format!("{}{p}", "    ".repeat(loops.len())));
+            out.push(format!("{ind}{p}"));
         }
-        out.push(format!(
-            "{}{f}.({}) = {rhs}",
-            "    ".repeat(loops.len()),
-            idx.join("; ")
-        ));
+        out.push(format!("{ind}{w}.({}) = {rhs}", idx.join("; ")));
+        // Multiplying by sign() keeps the count a plain number and makes it depend on the value written.
+        out.push(format!("{ind}{c} = {c} + 1 + 0*sign({rhs})"));
         for d in (0..loops.len()).rev() {
             out.push(format!("{}#loop", "    ".repeat(d)));
         }
+        out.push(format!("{f} = {w}*(1/({c} ≡ {}))", steps.join("*")));
         out.push("#end hide".to_string());
         Ok(out.join("\n"))
     }
@@ -2078,6 +2084,7 @@ impl Tr {
         let mut head = Vec::new();
         let mut loops = Vec::new();
         let mut sizes = Vec::new();
+        let mut steps = Vec::new();
         self.prog_n += 1;
         for (iv, info) in rs {
             let (a, z) = (&info.a, &info.z);
@@ -2087,6 +2094,7 @@ impl Tr {
                         return Err("the range starts below the array origin".into());
                     }
                     sizes.push((y - o + 1).to_string());
+                    steps.push((y - x + 1).to_string());
                     loops.push(format!("#for {iv} = {x} : {y}"));
                 }
                 None => {
@@ -2103,13 +2111,14 @@ impl Tr {
                         o => format!("max({lo}; {hi}) + {}", 1 - o),
                     };
                     sizes.push(size);
+                    steps.push(format!("(abs({hi} - {lo}) + 1)"));
                     loops.push(format!(
                         "#for {k} = 0 : abs({hi} - {lo})\n{iv} = {lo} + {k}*if({hi} ≥ {lo}; 1; -1)"
                     ));
                 }
             }
         }
-        Ok((head, loops, sizes))
+        Ok((head, loops, sizes, steps))
     }
 
     /// The statements that write one element of an array that grows: before a write past the end,
@@ -2186,7 +2195,7 @@ impl Tr {
         pre: &[String],
         fresh: bool,
     ) -> Result<String, String> {
-        let (head, loops, _) = self.range_loops(rs)?;
+        let (head, loops, _, _) = self.range_loops(rs)?;
         let mut out = vec!["#hide".to_string()];
         out.extend(head);
         if fresh {
@@ -2391,6 +2400,106 @@ impl Tr {
             block.push("'</div>".to_string());
             done[ri][ci].lines = block;
         }
+        // The axis titles of a plot are text regions beside it in the source (the y title to its left,
+        // the x title just under it). Gathered with the plot they stay its labels, not loose lines.
+        for (ri, row) in rows.iter().enumerate() {
+            for (ci, p) in row.iter().enumerate() {
+                if !matches!(p.kind, RegionKind::Plot(_))
+                    || p.width <= 0.0
+                    || p.height <= 0.0
+                    || taken.contains(&(ri, ci))
+                {
+                    continue;
+                }
+                let bottom = p.top + p.height;
+                let (mut ylab, mut xlab) = (Vec::new(), Vec::new());
+                for (rj, other) in rows.iter().enumerate().skip(ri) {
+                    for (cj, q) in other.iter().enumerate() {
+                        if (rj, cj) == (ri, ci) || !matches!(q.kind, RegionKind::Text(_)) || taken.contains(&(rj, cj)) {
+                            continue;
+                        }
+                        let right = q.left + q.width;
+                        if right <= p.left + 1.0
+                            && q.left >= p.left - 70.0
+                            && q.top >= p.top - 6.0
+                            && q.top + q.height <= bottom + 6.0
+                        {
+                            ylab.push((rj, cj));
+                        } else if q.top >= bottom - 6.0
+                            && q.top <= bottom + 24.0
+                            && q.left >= p.left - 6.0
+                            && right <= p.left + p.width + 6.0
+                        {
+                            xlab.push((rj, cj));
+                        }
+                    }
+                }
+                if ylab.is_empty() && xlab.is_empty() {
+                    continue;
+                }
+                taken.extend(ylab.iter().chain(xlab.iter()).copied());
+                let mut block = vec![
+                    "'<div class=\"imported-plot\" style=\"display:inline-grid;grid-template-columns:auto auto;gap:.2em .6em;align-items:center\">".to_string(),
+                    "'<div>".to_string(),
+                ];
+                for &(rj, cj) in &ylab {
+                    block.extend(std::mem::take(&mut done[rj][cj].lines));
+                }
+                block.push("'</div>".to_string());
+                block.push("'<div>".to_string());
+                block.extend(std::mem::take(&mut done[ri][ci].lines));
+                block.push("'</div>".to_string());
+                block.push("'<div></div>".to_string());
+                block.push("'<div style=\"text-align:center\">".to_string());
+                for &(rj, cj) in &xlab {
+                    block.extend(std::mem::take(&mut done[rj][cj].lines));
+                }
+                block.push("'</div>".to_string());
+                block.push("'</div>".to_string());
+                done[ri][ci].lines = block;
+            }
+        }
+        // A row of equations (a table's columns) with a caption over each: the captions go with their
+        // equations, so they stay column headings instead of lines above the whole row.
+        let mut captioned: HashSet<usize> = HashSet::new();
+        for (ri, row) in rows.iter().enumerate() {
+            let mut caps: Vec<(usize, (usize, usize))> = Vec::new();
+            for (ci, m) in row.iter().enumerate() {
+                if !matches!(m.kind, RegionKind::Math(_)) || m.width <= 0.0 {
+                    continue;
+                }
+                let mut best: Option<(f64, (usize, usize))> = None;
+                for (rj, other) in rows.iter().enumerate().take(ri).skip(ri.saturating_sub(8)) {
+                    for (cj, q) in other.iter().enumerate() {
+                        let gap = m.top - (q.top + q.height);
+                        if matches!(q.kind, RegionKind::Text(_))
+                            && !taken.contains(&(rj, cj))
+                            && (-3.0..=40.0).contains(&gap)
+                            && q.left < m.left + m.width
+                            && q.left + q.width > m.left - 20.0
+                            && best.map_or(true, |(g, _)| gap < g)
+                        {
+                            best = Some((gap, (rj, cj)));
+                        }
+                    }
+                }
+                if let Some((_, at)) = best {
+                    if !caps.iter().any(|(_, t)| *t == at) {
+                        caps.push((ci, at));
+                    }
+                }
+            }
+            if caps.len() < 2 {
+                continue;
+            }
+            captioned.insert(ri);
+            for (ci, (rj, cj)) in caps {
+                taken.insert((rj, cj));
+                let mut lines = std::mem::take(&mut done[rj][cj].lines);
+                lines.extend(std::mem::take(&mut done[ri][ci].lines));
+                done[ri][ci].lines = lines;
+            }
+        }
         // Side by side only when the regions of the row do not overlap across (a region nested in a
         // text region sits inside it, not beside it).
         let apart: Vec<bool> = rows
@@ -2432,10 +2541,15 @@ impl Tr {
                 for c in done[i].iter().filter(|c| !c.visible()) {
                     self.lines.extend(c.lines.iter().cloned());
                 }
-                self.lines.push(
-                    "'<div class=\"imported-row\" style=\"display:flex;flex-wrap:wrap;gap:0 2em;align-items:baseline;align-items:last baseline\">"
-                        .to_string(),
-                );
+                // Columns with captions line up at the top, so each caption sits over its own equation.
+                let align = if captioned.contains(&i) {
+                    "flex-start"
+                } else {
+                    "baseline;align-items:last baseline"
+                };
+                self.lines.push(format!(
+                    "'<div class=\"imported-row\" style=\"display:flex;flex-wrap:wrap;gap:0 2em;align-items:{align}\">"
+                ));
                 // Each block sits where the source puts it: the gap to the block before it, when the
                 // file gives widths.
                 let mut prev_right: Option<f64> = None;
@@ -3940,16 +4054,19 @@ impl Tr {
             }
         }
         let reason = escape_text(codes[0].reason()).replace("--", "- -");
+        // The codes are for the report and the hover text; the page shows a short, muted note.
         let note = match body {
-            Some(_) => format!("not calculated: {}", names.join(", ")),
+            Some(_) => "not calculated".to_string(),
             None => format!("{} (not converted)", escape_text(codes[0].reason())),
         };
         self.lines.push(format!(
-            "'<!-- {} R{} {}] {} --><small>{}</small>",
+            "'<!-- {} R{} {}] {} --><small class=\"imp-gap\" style=\"font-size:8pt;font-style:italic;opacity:.55\" title=\"{}: {}\">{}</small>",
             GAP_MARKER,
             sanitize_id(id),
             names.join(","),
             reason,
+            names.join(", "),
+            reason.replace('"', "&quot;"),
             note
         ));
         let Some(lines) = body else { return };
@@ -4178,6 +4295,16 @@ impl Tr {
         multi_def: bool,
         line: String,
     ) -> String {
+        // A range definition is only the loop of the element assignments that follow; the source
+        // shows it as an equation, so it is typeset here.
+        if line.starts_with("'<!-- range ") {
+            if let Stmt::Define { target, value, global } = &m.stmt {
+                if let Some(typeset) = self.typeset_define(target, value, *global) {
+                    return format!("{line}\n{typeset}");
+                }
+            }
+            return line;
+        }
         if multi_def {
             if let Stmt::Define { target, value, global } = &m.stmt {
                 if let Some(typeset) = self.typeset_define(target, value, *global) {
@@ -4340,7 +4467,11 @@ impl Tr {
         };
         let m = match stmt {
             Stmt::Bare(e) => ml.bare(e)?,
-            Stmt::Eval { expr, .. } => mathml::wrap(&ml.eval_head(expr)?),
+            // The result was not computed: a dash shows that, where an empty `x =` reads as a broken line.
+            Stmt::Eval { expr, .. } => mathml::wrap(&format!(
+                "{}<mtext class=\"imp-nv\" style=\"opacity:.55\">\u{2009}\u{2014}</mtext>",
+                ml.eval_head(expr)?
+            )),
             Stmt::Define { target, value, global } => ml.define(target, value, *global)?,
             _ => return None,
         };
@@ -4891,28 +5022,31 @@ impl Tr {
                 let mut text = e.s.clone();
                 if let Some(u) = unit {
                     let ur = self.expr(u);
-                    text = if e.prec >= P_ATOM { e.s } else { format!("({})", e.s) };
-                    // A "unit" that is only a number (a power of ten) shows the value in multiples of it.
-                    // An angle is a plain number (radians) in the source; shown in degrees it is that
-                    // number over pi/180, and the unit it carries is the engine's degree.
-                    text = if is_degree(u) {
-                        format!("({}/(π/180))*deg", text)
-                    } else if numeric_only(u) {
-                        format!("{}/({})", text, ur.s)
-                    } else if matches!(ur.s.as_str(), "°C" | "°F") {
-                        format!("{}|{}", text, ur.s)
-                    } else {
-                        // The source takes the unit as the part of the result's unit to show first
-                        // and keeps the rest (`kip` for a moment shows kip times length); the
-                        // engine's `|` refuses a unit of another dimension.
-                        let u = if is_whole(&ur.s) {
-                            ur.s.clone()
+                    // A unit that cancels (ft/ft) is a plain number: the engine refuses it as a target.
+                    if !unit_cancels(&ur.s) {
+                        text = if e.prec >= P_ATOM { e.s } else { format!("({})", e.s) };
+                        // A "unit" that is only a number (a power of ten) shows the value in multiples of it.
+                        // An angle is a plain number (radians) in the source; shown in degrees it is that
+                        // number over pi/180, and the unit it carries is the engine's degree.
+                        text = if is_degree(u) {
+                            format!("({}/(π/180))*deg", text)
+                        } else if numeric_only(u) {
+                            format!("{}/({})", text, ur.s)
+                        } else if matches!(ur.s.as_str(), "°C" | "°F") {
+                            format!("{}|{}", text, ur.s)
                         } else {
-                            format!("({})", ur.s)
+                            // The source takes the unit as the part of the result's unit to show first
+                            // and keeps the rest (`kip` for a moment shows kip times length); the
+                            // engine's `|` refuses a unit of another dimension.
+                            let u = if is_whole(&ur.s) {
+                                ur.s.clone()
+                            } else {
+                                format!("({})", ur.s)
+                            };
+                            format!("({}/{})*{}", text, u, u)
                         };
-                        format!("({}/{})*{}", text, u, u)
-                    };
-                    self.issue(Code::UnitOverride, None);
+                        self.issue(Code::UnitOverride, None);
+                    }
                 }
                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
                     emitted = Some(text);
@@ -5082,6 +5216,12 @@ impl Tr {
                 self.issue(Code::OriginAssigned, None);
                 self.lines
                     .push(format!("'<!-- ORIGIN assigned {} in the source -->", v));
+                // The source shows the definition; the engine has no ORIGIN, so it is a typeset line only.
+                if let Stmt::Define { target, value, global } = &m.stmt {
+                    if let Some(typeset) = self.typeset_define(target, value, *global) {
+                        self.lines.push(typeset);
+                    }
+                }
             } else if let Some(line) = emitted.take() {
                 self.maths_shown = true;
                 let multi_def = !multi_names.is_empty();
@@ -5397,6 +5537,22 @@ fn theme_colors(hex: &str) -> Option<(String, String)> {
         hex.to_string()
     };
     Some((light, dark))
+}
+
+/// Whether a unit expression is a ratio of one unit to itself (`ft/ft`), which has no units left.
+fn unit_cancels(u: &str) -> bool {
+    let strip = |x: &str| {
+        x.trim()
+            .trim_start_matches('(')
+            .trim_end_matches(')')
+            .trim()
+            .to_string()
+    };
+    let mut parts = u.split('/');
+    match (parts.next(), parts.next(), parts.next()) {
+        (Some(a), Some(b), None) => !strip(a).is_empty() && strip(a) == strip(b),
+        _ => false,
+    }
 }
 
 /// The class a colour is given; its rules are written once at the top of the output.

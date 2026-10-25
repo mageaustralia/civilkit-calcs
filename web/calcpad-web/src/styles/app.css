@@ -1108,3 +1108,30 @@ select option {
 
 .status-version { margin: 0 10px; font-size: 11px; opacity: .9; white-space: nowrap; }
 @media (max-width: 700px) { .status-upstream { display: none; } }
+
+/* Double-click line editor over the preview. */
+.line-edit {
+    position: fixed;
+    z-index: 1000;
+    padding: 8px;
+    background: var(--vscode-menu-background, var(--vscode-editor-background, #252526));
+    color: var(--vscode-menu-foreground, var(--vscode-foreground, #cccccc));
+    border: 1px solid var(--vscode-focusBorder, #007fd4);
+    border-radius: 4px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+.line-edit-head { font-size: 11px; opacity: 0.75; margin-bottom: 4px; }
+.line-edit-input {
+    box-sizing: border-box;
+    width: 100%;
+    resize: vertical;
+    padding: 4px 6px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 13px;
+    color: var(--vscode-input-foreground, inherit);
+    background: var(--vscode-input-background, #3c3c3c);
+    border: 1px solid var(--vscode-input-border, #555);
+    border-radius: 2px;
+}
+.line-edit-foot { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; opacity: 0.9; }
+.line-edit-foot span { flex: 1; opacity: 0.7; }

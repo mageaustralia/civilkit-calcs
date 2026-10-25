@@ -404,7 +404,7 @@ check(!!lfr, 'loops: the preview renders');
 if (lfr) {
     const body = (await lfr.evaluate(() => document.body.innerText)).normalize('NFKC').replace(/[\s\u2190]+/g, ' ').trim();
     check(/h\s*=\s*\[\s*2\s+4\s+6\s*\]\s*m\b/.test(body), `loops: the vector is shown (${body})`);
-    check(!/\[0, 0|\b0, 0, 0\b/.test(body) && body.replace(/h\s*=\s*\[[^\]]*\]\s*m/, '').replace(/h\s*i\s*:=\s*i\s*[·⋅]\s*\(\s*2\s*[·⋅]\s*m\s*\)/, '').replace('Styled head', '').trim() === '', `loops: no stray values around the result (${body})`);
+    check(!/\[0, 0|\b0, 0, 0\b/.test(body) && body.replace(/h\s*=\s*\[[^\]]*\]\s*m/, '').replace(/h\s*i\s*:=\s*i\s*[·⋅]\s*\(\s*2\s*[·⋅]\s*m\s*\)/, '').replace(/i\s*:=\s*1\s*\.\.\s*3/, '').replace('Styled head', '').trim() === '', `loops: no stray values around the result (${body})`);
     const st = await lfr.evaluate(() => { const h = document.querySelector('h1'); const cs = h && getComputedStyle(h); return cs ? [cs.color, cs.fontFamily, cs.fontSize] : null; });
     check(st && st[0] === 'rgb(128, 0, 0)' && /Times New Roman/.test(st[1]) && st[2] === '16px', `text style: heading keeps the source colour, family and size (${JSON.stringify(st)})`);
 }

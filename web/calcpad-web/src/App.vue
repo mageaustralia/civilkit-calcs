@@ -485,6 +485,31 @@
       <button v-if="onOpenFullHtmlRequest" class="tab-context-item" @click="onOpenFullHtml">Open Full HTML</button>
     </div>
 
+    <!-- Double-click on a rendered line: edit its source line in place (see injectLineLinks). -->
+    <div
+      v-if="lineEdit"
+      class="line-edit"
+      :style="{ left: lineEdit.x + 'px', top: lineEdit.y + 'px', width: lineEdit.w + 'px' }"
+      @mousedown.stop
+      @click.stop
+    >
+      <div class="line-edit-head">Line {{ lineEdit.line }}<span v-if="lineEdit.note"> · {{ lineEdit.note }}</span></div>
+      <textarea
+        ref="lineEditInput"
+        v-model="lineEdit.text"
+        class="line-edit-input"
+        spellcheck="false"
+        rows="2"
+        @keydown.enter.exact.prevent="applyLineEdit"
+        @keydown.esc.prevent="closeLineEdit"
+      ></textarea>
+      <div class="line-edit-foot">
+        <span>Enter to apply · Esc to cancel</span>
+        <button class="modal-btn primary" @click="applyLineEdit">Apply</button>
+        <button class="modal-btn" @click="closeLineEdit">Cancel</button>
+      </div>
+    </div>
+
     <!-- HTML modal rather than a native dialog, for web/desktop consistency. -->
     <div v-if="confirmState" class="modal-backdrop" @click.self="resolveConfirm('cancel')">
       <div class="modal-card" role="dialog" aria-modal="true">
@@ -962,6 +987,46 @@ const onClipboardReadRequest = ref<(() => Promise<string>) | null>(null)
 // Opens the rendered HTML as raw text in a new tab. Null hides the button.
 const onOpenFullHtmlRequest = ref<((groupId: string, html: string) => void) | null>(null)
 
+// Set by the host: reads and replaces one line of a group's editor.
+const onLineEditRequest = ref<{
+  text: (groupId: string, line: number) => string | null
+  apply: (groupId: string, line: number, text: string) => void
+} | null>(null)
+
+interface LineEditState { x: number; y: number; w: number; groupId: string; line: number; text: string; note: string }
+const lineEdit = ref<LineEditState | null>(null)
+const lineEditInput = ref<HTMLTextAreaElement | null>(null)
+
+function closeLineEdit(): void {
+  lineEdit.value = null
+}
+
+function applyLineEdit(): void {
+  const st = lineEdit.value
+  if (!st) return
+  lineEdit.value = null
+  // One source line stays one line, so the numbers the preview carries remain right.
+  onLineEditRequest.value?.apply(st.groupId, st.line, st.text.replace(/\r?\n/g, ' '))
+}
+
+function openLineEdit(groupId: string, frameId: string, data: Record<string, unknown>): void {
+  const line = Number(data.line)
+  const req = onLineEditRequest.value
+  const iframe = frontFrame(frameId)
+  if (!req || !iframe || !Number.isInteger(line) || line < 1) return
+  const text = req.text(groupId, line)
+  if (text === null) return
+  const r = (data.rect ?? {}) as Record<string, unknown>
+  const box = iframe.getBoundingClientRect()
+  const w = Math.min(Math.max(Number(r.width) || 0, 420), 760)
+  const x = Math.max(8, Math.min(box.left + (Number(r.left) || 0), window.innerWidth - w - 8))
+  const y = Math.max(8, Math.min(box.top + (Number(r.top) || 0), window.innerHeight - 150))
+  // An imported equation is a typeset copy; its calculation is the plain line beside it.
+  const note = /class="imp-eq"/.test(text) ? 'typeset copy of a Mathcad equation (display only)' : ''
+  lineEdit.value = { x, y, w, groupId, line, text, note }
+  void nextTick(() => { lineEditInput.value?.focus(); lineEditInput.value?.select() })
+}
+
 interface TabContextMenuState {
   x: number
   y: number
@@ -1343,6 +1408,11 @@ function onPreviewWindowMessage(e: MessageEvent): void {
   }
   if (data.type === 'previewContextMenuDismiss') {
     closePreviewContextMenu()
+    closeLineEdit()
+    return
+  }
+  if (data.type === 'editLine') {
+    openLineEdit(groupId, frameId, data)
     return
   }
   if (data.type === 'previewContextMenu') {
@@ -1864,7 +1934,7 @@ function injectLineLinks(
     "    link.className = 'lineLink';",
     "    link.href = '#0';",
     "    link.setAttribute('data-text', src);",
-    "    link.title = 'Source line ' + src;",
+    "    link.title = 'Source line ' + src + ' (double-click the line to edit it here)';",
     "    link.textContent = '\\u2190';",
     "    link.style.display = 'none';",
     "    link.addEventListener('click', function(e) {",
@@ -1878,6 +1948,16 @@ function injectLineLinks(
     "    });",
     "  });",
     "  window.addEventListener('scroll', hideAllLineLinks);",
+    // Double-click a rendered line to edit its source line in a popover on the host.
+    "  document.addEventListener('dblclick', function(e) {",
+    "    var t = e.target;",
+    "    if (!t || !t.closest || t.closest('input, select, textarea, button, a[href], .jss_container, [class*=\"calcpad-ui\"]')) return;",
+    "    var el = t.closest('[data-source-line]');",
+    "    var n = el ? parseInt(el.getAttribute('data-source-line'), 10) : NaN;",
+    "    if (!el || isNaN(n)) return;",
+    "    var r = el.getBoundingClientRect();",
+    "    try { window.parent.postMessage({ type: 'editLine', line: n, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, groupId: FRAME_ID }, '*'); } catch (_e) {}",
+    "  });",
     ] : []),
     // Release the scroll agent first, or its restore pulls the user back.
     "  function goTo(target, block) {",
@@ -2397,5 +2477,6 @@ defineExpose({
   runFocusedPreviewClipboardAction,
   openFindInFocusedPreview,
   onOpenFullHtmlRequest,
+  onLineEditRequest,
 })
 </script>

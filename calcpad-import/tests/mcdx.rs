@@ -239,7 +239,7 @@ fn lines(res: &ImportResult) -> Vec<String> {
         !l.starts_with("'<!-- Imported") && !l.starts_with("'<style>") && !l.starts_with("'<!--{\"LintIgnore")
     }) {
         if let Some(rest) = l.strip_prefix("'<!-- [import-gap") {
-            let head = rest.split(" --><small>").next().unwrap_or(rest);
+            let head = rest.split(" --><small").next().unwrap_or(rest);
             out.push(format!("'[import-gap{}", head.replacen(" -->", "", 1)));
             in_gap = true;
             continue;

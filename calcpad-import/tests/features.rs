@@ -754,7 +754,7 @@ fn an_unconverted_region_is_shown_with_its_real_names() {
         gap_line(&res, "1")
     );
     assert!(
-        gap_line(&res, "1").contains("<small>not calculated:"),
+        gap_line(&res, "1").contains(">not calculated</small>"),
         "{}",
         gap_line(&res, "1")
     );
@@ -841,7 +841,11 @@ fn ranges_with_run_time_bounds_and_two_dimensions_preallocate() {
         eval(&index1("x", &r("4"))),
     ]);
     assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
-    assert!(res.calcpad.contains("x = vector(max("), "{}", res.calcpad);
+    // The range definition is shown as an equation, as in the source.
+    assert!(res.calcpad.contains("<mo>..</mo>"), "{}", res.calcpad);
+    assert!(res.calcpad.contains("x_w1 = vector(max("), "{}", res.calcpad);
+    // The array is defined from the working one only if every pass was counted.
+    assert!(res.calcpad.contains("x = x_w1*(1/(x_c1 ≡ "), "{}", res.calcpad);
     let nums = numbers(&res.calcpad);
     assert_close(nums[nums.len() - 2], 9.0);
     assert_close(nums[nums.len() - 1], 16.0);
@@ -878,7 +882,7 @@ fn ranges_with_run_time_bounds_and_two_dimensions_preallocate() {
         eval(&index2("M", &r("1"), &r("2"))),
     ]);
     assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
-    assert!(res.calcpad.contains("M = matrix("), "{}", res.calcpad);
+    assert!(res.calcpad.contains("M_w1 = matrix("), "{}", res.calcpad);
     let nums = numbers(&res.calcpad);
     assert_close(nums[nums.len() - 2], 23.0);
     assert_close(nums[nums.len() - 1], 12.0);
@@ -1792,7 +1796,7 @@ fn a_fill_loop_is_hidden_so_its_raw_values_are_not_printed() {
 fn an_error_inside_a_hidden_fill_loop_is_still_reported() {
     let res = fill_loop_sheet();
     // The importer never writes a name the sheet lacks, so break the loop body by hand.
-    let broken = res.calcpad.replace("h.(i) = ", "h.(i) = missing_name + ");
+    let broken = res.calcpad.replace(".(i) = ", ".(i) = missing_name + ");
     assert_ne!(broken, res.calcpad);
     let (_, errors) = run_with_errors(&broken);
     assert!(

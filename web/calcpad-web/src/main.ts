@@ -1628,6 +1628,22 @@ async function bootstrap(): Promise<void> {
     appInstance.onOpenFullHtmlRequest = (groupId: string, html: string) => {
         groups.get(groupId)?.tabs.newUntitled(html, 'HTML Preview Source.html');
     };
+    // Double-click a rendered line: the preview edits that source line in place.
+    appInstance.onLineEditRequest = {
+        text: (groupId: string, line: number) => {
+            const model = groups.get(groupId)?.editor.getModel();
+            return model && line <= model.getLineCount() ? model.getLineContent(line) : null;
+        },
+        apply: (groupId: string, line: number, text: string) => {
+            const ed = groups.get(groupId)?.editor;
+            const model = ed?.getModel();
+            if (!ed || !model || line > model.getLineCount()) return;
+            ed.executeEdits('line-edit', [{
+                range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: model.getLineMaxColumn(line) },
+                text,
+            }]);
+        },
+    };
     appInstance.onTabCloseOthersRequest = (groupId: string, id: string) => {
         const g = groups.get(groupId);
         if (!g) return;
