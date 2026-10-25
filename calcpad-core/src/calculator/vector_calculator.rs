@@ -40,7 +40,7 @@ pub const FUNCTION2_NAMES: [(&str, i64); 9] = [
     ("convolve", 8),
 ];
 
-pub const FUNCTION3_NAMES: [(&str, i64); 22] = [
+pub const FUNCTION3_NAMES: [(&str, i64); 23] = [
     ("slice", 0),
     ("range", 1),
     ("range_hp", 2),
@@ -63,13 +63,14 @@ pub const FUNCTION3_NAMES: [(&str, i64); 22] = [
     ("linspace", 17),
     ("polyfit", 18),
     ("interp", 19),
+    ("linterp", 20),
 ];
 
 pub const MULTI_FUNCTION_NAMES: [(&str, i64); 1] = [("join", 0)];
 
 /// `ValueResultFunctions`
-const VALUE_RESULT_FUNCTIONS: [&str; 10] = [
-    "count", "dot", "len", "last", "norm", "norm1", "normp", "normi", "search", "interp",
+const VALUE_RESULT_FUNCTIONS: [&str; 11] = [
+    "count", "dot", "len", "last", "norm", "norm1", "normp", "normi", "search", "interp", "linterp",
 ];
 
 pub(crate) fn lookup_ci(table: &[(&str, i64)], name: &str) -> Option<i64> {
@@ -230,6 +231,7 @@ pub fn evaluate_vector_function3(index: i64, a: &Value, b: &Value, c: &Value) ->
         17 => super::statistics::linspace(a, b, c),
         18 => super::statistics::polyfit(a, b, c),
         19 => super::statistics::interp(a, b, c),
+        20 => super::statistics::linterp(a, b, c),
         _ => Err(index_out_of_range()),
     }
 }

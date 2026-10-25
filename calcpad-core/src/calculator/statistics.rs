@@ -1,6 +1,6 @@
 //! Statistics and data functions added to the engine (not in the upstream function set):
 //! `median`, `stdev`, `stdevp`, `var`, `varp` (aggregates over any mix of scalars, vectors
-//! and matrices), `cumsum`, `convolve`, `linspace`, `polyfit` and `interp` (vectors).
+//! and matrices), `cumsum`, `convolve`, `linspace`, `polyfit`, `interp` and `linterp` (vectors).
 //!
 //! Units follow the other aggregates: every value is converted to the unit of the first one.
 //! A median or a standard deviation has that unit, a variance its square, a convolution the
@@ -202,6 +202,34 @@ pub fn interp(x: &Value, xs: &Value, ys: &Value) -> CResult<Value> {
     } else {
         ty[k - 1] + (ty[k] - ty[k - 1]) * (xv - tx[k - 1]) / (tx[k] - tx[k - 1])
     };
+    Ok(Value::Real(RealValue::new(d, uy)))
+}
+
+/// `linterp(x; xs; ys)`: linear interpolation in a table with increasing `xs`, continued along the
+/// first and last segment outside the table (the straight line through the two end points
+/// nearest to `x`). The table needs at least two points.
+pub fn linterp(x: &Value, xs: &Value, ys: &Value) -> CResult<Value> {
+    let x = x.as_real_checked(Items::Argument)?;
+    let (tx, ux) = vector_numbers(&xs.as_vector(Items::Argument)?)?;
+    let (ty, uy) = vector_numbers(&ys.as_vector(Items::Argument)?)?;
+    if tx.len() != ty.len() {
+        return Err(err("linterp needs two vectors of the same length."));
+    }
+    if tx.len() < 2 {
+        return Err(err("linterp needs a table with at least two points."));
+    }
+    if tx.windows(2).any(|w| w[0].is_nan() || w[1].is_nan() || w[1] <= w[0]) {
+        return Err(err("linterp needs the x values in strictly increasing order."));
+    }
+    let xv = x.d * Unit::convert(&ux, &x.units, ',')?;
+    if xv.is_nan() {
+        return Ok(Value::Real(RealValue::new(f64::NAN, uy)));
+    }
+    // The segment whose right end is the first table point at or beyond `x`; the end segments
+    // serve a value outside the table.
+    let last = tx.len() - 1;
+    let k = tx.iter().position(|&t| t >= xv).unwrap_or(last).max(1);
+    let d = ty[k - 1] + (ty[k] - ty[k - 1]) * (xv - tx[k - 1]) / (tx[k] - tx[k - 1]);
     Ok(Value::Real(RealValue::new(d, uy)))
 }
 
