@@ -1221,6 +1221,10 @@ struct Tr {
     str_table: Vec<String>,
     /// Names that hold a text now, with the codes they can have.
     str_vars: HashMap<String, Vec<usize>>,
+    /// Names in `str_vars` that hold a number on some path and a text on another (see `strings`).
+    str_mixed: HashSet<String>,
+    /// Whether the definition being translated gives such a value; read by `set_str_var`.
+    next_mixed: bool,
     /// Functions that return a text, with the codes they can return.
     str_funcs: HashMap<String, Vec<usize>>,
     /// Functions whose value is an array (a matrix literal, or an `if` that gives one).
@@ -3562,6 +3566,18 @@ impl Tr {
 
     fn name_ref_engine(&mut self, n: &Name) -> R {
         let flat = tables::normalise_name(&n.flat());
+        if self.str_mixed.contains(&flat)
+            && !self.str_allow
+            && !self.readable
+            && !self.display
+            && !self.params.contains(&flat)
+            && !self.locals.contains_key(&flat)
+        {
+            // A value that is a number on some paths and a text on others: where it holds a text,
+            // the source stops at an arithmetic use of it, so that use is undefined here.
+            let test: Vec<String> = self.str_vars[&flat].iter().map(|c| format!("{flat} ≡ {c}")).collect();
+            return atom(format!("if({}; sqrt(-1); {flat})", test.join(" ∨ ")));
+        }
         if self.str_vars.contains_key(&flat)
             && !self.str_allow
             && !self.readable
@@ -4255,6 +4271,9 @@ impl Tr {
     }
 
     fn region(&mut self, r: &Region) {
+        if self.opts.region_markers {
+            self.lines.push(format!("'@@{}@@", sanitize_id(&r.id)));
+        }
         match &r.kind {
             RegionKind::PageBreak => self.report.page_breaks += 1,
             RegionKind::Text(paras) => {
@@ -4529,7 +4548,7 @@ impl Tr {
         let mut str_mat_def: Option<String> = None;
         let mut str_multi_def: Vec<(String, Option<Vec<usize>>)> = Vec::new();
         // An evaluation of a text: the expression that gives its code and the texts it can be.
-        let mut str_eval: Option<(String, Vec<usize>)> = None;
+        let mut str_eval: Option<(String, Vec<usize>, bool)> = None;
         let shape: &str;
 
         match &m.stmt {
@@ -4642,6 +4661,7 @@ impl Tr {
                         }
                         let text_def = range_def.is_none() && self.is_stringy(value);
                         let text_codes = if text_def { self.str_domain(value) } else { Vec::new() };
+                        self.next_mixed = text_def && self.is_mixed(value);
                         let labels = matches!(value, Expr::Matrix { items, .. } if items.iter().any(|i| matches!(i, Expr::Str(_))));
                         self.str_mat_ok = labels;
                         let rhs = if range_def.is_some() {
@@ -5007,9 +5027,10 @@ impl Tr {
             Stmt::Eval { expr, unit: None } if self.is_stringy(expr) && !self.readable => {
                 shape = "evaluation";
                 let domain = self.str_domain(expr);
+                let mixed = self.is_mixed(expr);
                 let code = self.str_or_expr(expr).s;
                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
-                    str_eval = Some((code.clone(), domain));
+                    str_eval = Some((code.clone(), domain, mixed));
                     emitted = Some(code);
                 } else {
                     attempt = Some(code);
@@ -5192,6 +5213,7 @@ impl Tr {
                     str_var_def = None;
                     str_mat_def = None;
                     if matches!(saved, Expr::Str(_)) {
+                        self.next_mixed = false;
                         let d = self.str_domain(saved);
                         str_var_def = Some((flat.clone(), Some(d)));
                     } else if matches!(saved, Expr::Matrix { items, .. } if items.iter().any(|i| matches!(i, Expr::Str(_))))
@@ -5246,12 +5268,22 @@ impl Tr {
                     )
                 });
                 let text = match &str_eval {
-                    Some((code, domain)) => {
+                    Some((code, domain, mixed)) => {
                         let head = match &m.stmt {
                             Stmt::Eval { expr, .. } => self.typeset_eval_head(expr),
                             _ => None,
                         };
-                        self.str_result_lines(head.as_deref().unwrap_or(""), code, domain)
+                        let texts = self.str_result_lines(head.as_deref().unwrap_or(""), code, domain);
+                        if *mixed {
+                            // A number on the other paths: printed as any number is.
+                            let number = self.present(m, shape, plain_def, elem_def, multi_def, line);
+                            match texts.strip_suffix("#end if") {
+                                Some(t) => format!("{t}#else\n{number}\n#end if"),
+                                None => texts,
+                            }
+                        } else {
+                            texts
+                        }
                     }
                     None => self.present(m, shape, plain_def, elem_def, multi_def, line),
                 };
@@ -5879,6 +5911,8 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         funcs: HashMap::new(),
         str_table: Vec::new(),
         str_vars: HashMap::new(),
+        str_mixed: HashSet::new(),
+        next_mixed: false,
         str_funcs: HashMap::new(),
         array_funcs: HashSet::new(),
         str_mats: HashSet::new(),

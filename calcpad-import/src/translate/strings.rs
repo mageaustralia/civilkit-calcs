@@ -108,14 +108,54 @@ impl Tr {
         }
     }
 
+    /// Whether a text expression is a text on some paths and a number on others.
+    pub(super) fn is_mixed(&self, e: &Expr) -> bool {
+        let (t, n) = self.text_number_leaves(e);
+        t && n
+    }
+
+    /// Whether some leaf of the expression is a text, and whether some leaf is a number.
+    fn text_number_leaves(&self, e: &Expr) -> (bool, bool) {
+        match e {
+            Expr::Str(_) => (true, false),
+            Expr::Name(nm) => {
+                let f = tables::normalise_name(&nm.flat());
+                if self.str_vars.contains_key(&f) && !self.params.contains(&f) && !self.locals.contains_key(&f) {
+                    (true, self.str_mixed.contains(&f))
+                } else {
+                    (false, true)
+                }
+            }
+            Expr::Call(nm, args) => {
+                let f = tables::normalise_name(&nm.flat());
+                if nm.sub.is_none() && f == "if" && args.len() == 3 && !self.funcs.contains_key(&f) {
+                    let (a, b) = (self.text_number_leaves(&args[1]), self.text_number_leaves(&args[2]));
+                    (a.0 || b.0, a.1 || b.1)
+                } else if self.str_funcs.contains_key(&f) && self.funcs.contains_key(&f) {
+                    (true, false)
+                } else {
+                    (false, true)
+                }
+            }
+            _ => (false, true),
+        }
+    }
+
     /// Records that `name` now holds a text (with these possible codes) or no longer does.
     pub(super) fn set_str_var(&mut self, name: &str, domain: Option<Vec<usize>>) {
         match domain {
             Some(d) => {
                 self.str_vars.insert(name.to_string(), d);
+                if std::mem::take(&mut self.next_mixed) {
+                    self.str_mixed.insert(name.to_string());
+                } else {
+                    self.str_mixed.remove(name);
+                }
             }
             None => {
                 self.str_vars.remove(name);
+                self.str_mixed.remove(name);
+                self.next_mixed = false;
             }
         }
     }
