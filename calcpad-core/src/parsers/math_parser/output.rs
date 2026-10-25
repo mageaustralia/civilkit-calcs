@@ -4,6 +4,7 @@ use std::rc::Rc;
 use super::is_assignment;
 use super::tokens::{Rpn, Token, TokenKind, TokenTypes, ValueTypes, DEFAULT_ORDER};
 use super::{MathParser, VariableSubstitutionOptions};
+use crate::base_types::real_value::RealValue;
 use crate::base_types::value::Value;
 use crate::calculator::{operator_index, vector_calculator, NEG_CHAR, NEG_STR, OPERATOR_ORDER, SWITCH_INDEX};
 use crate::exceptions;
@@ -33,6 +34,10 @@ struct RenderToken {
     argument_map: Option<Rc<Vec<usize>>>,
     positional_count: i32,
     is_composite_value: bool,
+    /// For an element of a vector or matrix written as a number with a unit (and for a row of such
+    /// elements): the same content without the unit, and the unit. Lets the vector or matrix write
+    /// a unit its elements share once, after the closing bracket (see `common_unit_content`).
+    unit_once: Option<(String, String)>,
 }
 
 impl RenderToken {
@@ -51,6 +56,7 @@ impl RenderToken {
             argument_map: None,
             positional_count: 0,
             is_composite_value: false,
+            unit_once: None,
         }
     }
 
@@ -415,17 +421,25 @@ impl<'a> Renderer<'a> {
                         self.render_custom_function_token(&mut t, b)?;
                     } else if tt == TokenTypes::Vector {
                         let pc = t.parameter_count;
-                        let s = self.render_parameters(&mut t, b, pc, false)?;
+                        let unit = self.common_unit_content(&b, pc);
+                        let s = self.render_parameters(&mut t, b, pc, false, unit.is_some())?;
                         t.content = self.add_brackets(&s, t.level, t.min_offset, t.max_offset, '[', ']');
+                        self.append_common_unit(&mut t, unit);
                         t.min_offset = 0;
                         t.max_offset = 0;
                     } else if tt == TokenTypes::RowDivisor {
                         let pc = t.parameter_count;
-                        t.content = self.render_parameters(&mut t, b, pc, false)?;
+                        let unit = self.common_unit_content(&b, pc);
+                        let stripped = unit.as_ref().map(|_| self.stripped_row(&b, pc));
+                        let full = self.render_parameters(&mut t, b, pc, false, false)?;
+                        t.unit_once = stripped.zip(unit);
+                        t.content = full;
                     } else if tt == TokenTypes::Matrix {
                         let pc = t.parameter_count;
-                        let s = self.render_parameters(&mut t, b, pc, true)?;
+                        let unit = self.common_unit_content(&b, pc);
+                        let s = self.render_parameters(&mut t, b, pc, true, unit.is_some())?;
                         t.content = self.add_brackets(&s, t.level, t.min_offset, t.max_offset, '[', ']');
+                        self.append_common_unit(&mut t, unit);
                         t.min_offset = 0;
                         t.max_offset = 0;
                     } else if st == "!" {
@@ -521,8 +535,26 @@ impl<'a> Renderer<'a> {
                 t.content = self.writer.format_value(&value);
             }
             t.is_composite_value = value.is_composite();
+            if t.ttype == TokenTypes::Constant {
+                t.unit_once = self.number_and_unit(&value);
+            }
         }
         Ok(())
+    }
+
+    /// A real number with a unit as its content without the unit and the unit, for `unit_once`.
+    fn number_and_unit(&self, value: &Value) -> Option<(String, String)> {
+        if self.p.settings.borrow().unit_per_element {
+            return None;
+        }
+        let (Value::Real(r), Some(u)) = (value, value.units()) else {
+            return None;
+        };
+        if r.is_unit || u.is_angle() || u.format_string().is_some() {
+            return None;
+        }
+        let number = self.writer.format_value(&Value::Real(RealValue::new(r.d, None)));
+        Some((number, self.writer.unit_string(u)))
     }
 
     fn render_variable_token(&mut self, t: &mut RenderToken, i: usize) {
@@ -563,6 +595,7 @@ impl<'a> Renderer<'a> {
                 if self.substitute {
                     t.content = self.writer.format_value(&scalar);
                     t.is_composite_value = scalar.is_composite() || t.content.contains('\u{00D7}');
+                    t.unit_once = self.number_and_unit(&scalar);
                     t.order = DEFAULT_ORDER;
                     if self.p.settings.borrow().is_complex && scalar.is_complex() && scalar.units().is_none() {
                         t.order = if scalar.im() < 0.0 { minus_order() } else { plus_order() };
@@ -671,6 +704,11 @@ impl<'a> Renderer<'a> {
         }
         t.content = format!("{}{}", self.writer.format_operator(NEG_CHAR), sb);
         t.level = b.level;
+        if let Some((n, u)) = &b.unit_once {
+            if sb == b.content {
+                t.unit_once = Some((format!("{}{}", self.writer.format_operator(NEG_CHAR), n), u.clone()));
+            }
+        }
         if b.ttype == TokenTypes::Constant {
             t.ttype = b.ttype;
             t.order = b.order;
@@ -780,6 +818,12 @@ impl<'a> Renderer<'a> {
                 }
                 if content == "*" {
                     if a.val_type == ValueTypes::Number && b.val_type == ValueTypes::Unit {
+                        if a.ttype == TokenTypes::Constant
+                            && b.content != "\u{00B0}"
+                            && !self.p.settings.borrow().unit_per_element
+                        {
+                            t.unit_once = Some((sa.clone(), sb.clone()));
+                        }
                         if b.content == "\u{00B0}" || is_text {
                             t.content = format!("{}{}", sa, sb);
                         } else if self.writer.format_type() == OutputFormat::Xml {
@@ -948,7 +992,7 @@ impl<'a> Renderer<'a> {
             }
             t.content = self.writer.format_switch(&args, t.level);
         } else {
-            let s = self.render_parameters(t, b, mf_param_count, false)?;
+            let s = self.render_parameters(t, b, mf_param_count, false, false)?;
             t.content = format!(
                 "{}{}",
                 self.writer.format_function(&st),
@@ -979,7 +1023,7 @@ impl<'a> Renderer<'a> {
                 b = self.render_keyword_arguments(t, b, &map)?;
             }
         }
-        let s = self.render_parameters(t, b, cf_parameter_count, false)?;
+        let s = self.render_parameters(t, b, cf_parameter_count, false, false)?;
         t.content = format!(
             "{}\u{200A}{}",
             self.writer.format_variable(&t.content, "", false),
@@ -1020,8 +1064,58 @@ impl<'a> Renderer<'a> {
         Ok(last)
     }
 
-    fn render_parameters(&mut self, t: &mut RenderToken, b: RenderToken, count: i32, matrix: bool) -> CResult<String> {
-        let mut s = b.content.clone();
+    /// The unit written by all of `b` and the `count` tokens below it on the stack, when each is a number
+    /// with a unit (or a row of them) and the unit is the same one; the unit as the writer renders it.
+    fn common_unit_content(&self, b: &RenderToken, count: i32) -> Option<String> {
+        let n = self.stack.len();
+        let count = count.max(0) as usize;
+        if count > n {
+            return None;
+        }
+        let unit = &b.unit_once.as_ref()?.1;
+        self.stack[n - count..]
+            .iter()
+            .all(|a| a.unit_once.as_ref().is_some_and(|(_, u)| u == unit))
+            .then(|| unit.clone())
+    }
+
+    /// The elements of a row (`b` and the `count` tokens below it) without their unit, joined as the row is.
+    fn stripped_row(&self, b: &RenderToken, count: i32) -> String {
+        let n = self.stack.len();
+        let count = (count.max(0) as usize).min(n);
+        let mut parts: Vec<&str> = self.stack[n - count..]
+            .iter()
+            .map(|a| a.unit_once.as_ref().map_or(a.content.as_str(), |u| u.0.as_str()))
+            .collect();
+        parts.push(b.unit_once.as_ref().map_or(b.content.as_str(), |u| u.0.as_str()));
+        parts.join(&self.div)
+    }
+
+    /// Writes the unit the elements share once, after the closing bracket (as the writers do for a result).
+    fn append_common_unit(&self, t: &mut RenderToken, unit: Option<String>) {
+        if let Some(u) = unit {
+            if self.writer.format_type() == OutputFormat::Html {
+                t.content.push('\u{200A}');
+            }
+            t.content.push_str(&u);
+        }
+    }
+
+    fn render_parameters(
+        &mut self,
+        t: &mut RenderToken,
+        b: RenderToken,
+        count: i32,
+        matrix: bool,
+        strip: bool,
+    ) -> CResult<String> {
+        let own = |x: &RenderToken| -> String {
+            match (&x.unit_once, strip) {
+                (Some((n, _)), true) => n.clone(),
+                _ => x.content.clone(),
+            }
+        };
+        let mut s = own(&b);
         t.level = b.level;
         t.min_offset = b.min_offset;
         t.max_offset = b.max_offset;
@@ -1032,7 +1126,7 @@ impl<'a> Renderer<'a> {
         };
         for _ in 0..count.max(0) {
             let a = self.pop()?;
-            s = format!("{}{}{}", a.content, d, s);
+            s = format!("{}{}{}", own(&a), d, s);
             if a.level > t.level {
                 t.level = a.level;
             }

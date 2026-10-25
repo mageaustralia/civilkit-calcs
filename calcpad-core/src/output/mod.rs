@@ -38,6 +38,8 @@ pub struct WriterBase {
     pub format_equations: bool,
     pub zero_small_elements: bool,
     pub max_count: i32,
+    /// Write the unit on every element of a vector or matrix (`#settings {"unitPerElement": true}`).
+    pub unit_per_element: bool,
     pub phasor: bool,
     pub degrees: i32,
 }
@@ -51,6 +53,7 @@ impl WriterBase {
                 format_equations: false,
                 zero_small_elements: false,
                 max_count: 20,
+                unit_per_element: true,
                 phasor: false,
                 degrees: 0,
             },
@@ -60,6 +63,7 @@ impl WriterBase {
                 format_equations: s.format_equations,
                 zero_small_elements: s.zero_small_matrix_elements,
                 max_count: s.max_output_count(),
+                unit_per_element: s.unit_per_element,
                 phasor,
                 degrees: s.degrees,
             },
@@ -468,4 +472,56 @@ pub fn get_max_visible_vector_value(vector: &Vector, max_count: i32) -> f64 {
         }
     }
     max_abs
+}
+
+/// The unit all elements of a non-HP vector or matrix share, so the writers can show it once after the
+/// closing bracket. `None` (keep the unit on each element) when the setting `unit_per_element` is on,
+/// when any element is unitless, when two elements differ in dimension, or when a temperature unit
+/// would need an offset to convert. Elements in other units of the same dimension convert to the first
+/// element's unit (see [`scaled_d`]).
+fn common_unit_of(mut it: impl Iterator<Item = RealValue>) -> Option<UnitRef> {
+    use std::rc::Rc;
+    let first = it.next()?.units?;
+    for v in it {
+        let u = v.units?;
+        if Rc::ptr_eq(&u, &first) || u.text() == first.text() {
+            continue;
+        }
+        if !u.is_consistent(&first) || first.is_temp() || u.is_temp() {
+            return None;
+        }
+        // A format string on the unit (`unit:format`) is per unit; do not merge different ones.
+        if u.format_string() != first.format_string() {
+            return None;
+        }
+    }
+    Some(first)
+}
+
+/// See [`common_unit_of`], for a matrix.
+pub fn common_matrix_unit(base: &WriterBase, matrix: &Matrix) -> Option<UnitRef> {
+    if base.unit_per_element {
+        return None;
+    }
+    let (m, n) = (matrix.row_count(), matrix.col_count());
+    common_unit_of((0..m).flat_map(|i| (0..n).map(move |j| matrix.get(i, j))))
+}
+
+/// See [`common_unit_of`], for a vector.
+pub fn common_vector_unit(base: &WriterBase, vector: &Vector) -> Option<UnitRef> {
+    if base.unit_per_element {
+        return None;
+    }
+    common_unit_of((0..vector.len()).map(|i| vector.get(i)))
+}
+
+/// The element's number in the common unit (the number unchanged without one).
+pub fn scaled_d(common: &Option<UnitRef>, value: &RealValue) -> f64 {
+    use crate::base_types::unit::Unit;
+    match (common, &value.units) {
+        (Some(c), Some(u)) if !std::rc::Rc::ptr_eq(c, u) && u.text() != c.text() => {
+            value.d * Unit::convert(&Some(c.clone()), &Some(u.clone()), '+').unwrap_or(1.0)
+        }
+        _ => value.d,
+    }
 }

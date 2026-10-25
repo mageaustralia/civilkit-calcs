@@ -35,6 +35,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 
 ### Changed
+- Engine: a vector or matrix whose elements all carry the same unit writes the unit once after the closing bracket (`s = [16; 12; 3] ft`) instead of on every element, in the equation as typed, as substituted and in a result, in the HTML, text and Word output. Elements that are expressions, unitless or in another unit keep the per-element display, and a result in mixed units of one dimension uses the first element's unit. `#settings {"unitPerElement": true}` restores the old display. The editor accepts the key.
 - Import worksheet: an angle is a plain number, as in the source. `deg` and `°` are pi/180 and `rad` is 1, so `min(5 deg; theta)` with a unitless angle no longer makes the engine report inconsistent units, and a result shown with the unit `deg` is the number over pi/180 carrying the engine's degree, so the value and unit agree with the file (a stored 0.573 deg was shown as 0.01 radians, a factor of 57.2958). On the local beam-stability worksheet the stored results that match went from 95 to 105.
 - Import worksheet: a comparison with a bare `0` takes the other side's unit (`c ≡ 0*getunits(c)`) everywhere, not only in plots, so `if(c = 0; ...)` on a quantity no longer makes the engine report inconsistent units.
 - Import worksheet: a unit override that is only a number (`10^(-3)`) divides the value instead of being read as a unit, which the engine rejected.
