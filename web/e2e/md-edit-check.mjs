@@ -155,6 +155,58 @@ check(/<sub>c<\/sub>/.test(rich) || /~c~/.test(rich), 'the older #md on form sti
 check(/<sup>2<\/sup>/.test(rich) || /\^2\^/.test(rich), '... and its superscript');
 check(/ok$/.test(rich), '... and the typed text');
 
+// A real double-click at the element's place: the preview keeps two frames, and the one that holds the
+// element may be the hidden one, so the click goes to whatever is on top, as a person's would.
+const dbl = async (frame, n) => {
+    const box = await frame.locator(`[data-source-line="${n}"]`).first().boundingBox();
+    await page.mouse.dblclick(box.x + Math.min(20, box.width / 2), box.y + Math.min(8, box.height / 2));
+};
+// 8. A sheet (<!--sheet-->) needs no markers: its prose runs edit as rich text, inputs stay one line.
+const sheetSrc = ['<!--sheet-->', '# Design basis', '', 'The **load** is _applied_ at f~c~ midspan.', '', 'a: 3 m | first side', 'b: 4 m | second side', '', '| Member | Load |', '| --- | --- |', '| AB | 5 kN |', '', 'c: sqrt(a^2 + b^2) | hypotenuse'].join('\n') + '\n';
+await page.evaluate(v => window.calcpadActiveEditor.setValue(v), sheetSrc);
+fr = await findFrame('first side');
+console.log('  sheet tagged lines:', (await fr.evaluate(() => [...document.querySelectorAll('[data-source-line]')].map(e => e.getAttribute('data-source-line') + ':' + e.tagName + ':' + e.textContent.slice(0, 14).replace(/\s+/g, ' ')))).join(' | '));
+await fr.locator('[data-source-line="4"]').first().dblclick();
+await page.waitForSelector('.md-edit .ProseMirror', { timeout: 15000 });
+const sheetShown = await page.locator('.md-edit .ProseMirror').innerText();
+check(/Design basis/.test(sheetShown) && /applied at/.test(sheetShown) && !/3 m/.test(sheetShown), `in a sheet, the paragraph and its heading open as rich text, without the input lines (${JSON.stringify(sheetShown.slice(0, 50))})`);
+await page.locator('.md-edit button.primary').click();
+await page.waitForTimeout(300);
+check(await all() === sheetSrc, 'a sheet: applying without a change leaves the source exactly as it was');
+fr = await findFrame('Design basis');
+await fr.locator('[data-source-line="4"]').first().dblclick();
+await page.waitForSelector('.md-edit .ProseMirror');
+await page.locator('.md-edit .ProseMirror p').first().click();
+await page.keyboard.press('End');
+await page.keyboard.type(' More text.');
+await page.locator('.md-edit button.primary').click();
+await page.waitForTimeout(300);
+check(await line(4) === 'The **load** is _applied_ at f~c~ midspan. More text.' && await line(2) === '# Design basis' && await line(6) === 'a: 3 m | first side' && await line(13) === 'c: sqrt(a^2 + b^2) | hypotenuse', 'a sheet: only the edited paragraph changes; the inputs and the calculation are untouched');
+fr = await findFrame('More text');
+check(!!fr, 'a sheet: the preview shows the edit');
+// The table is a block of its own: add a row.
+await page.waitForTimeout(1200); // the preview swaps its two frames after a render
+fr = await findFrame('Member');
+await dbl(fr, 9);
+await page.waitForSelector('.md-edit .ProseMirror table');
+check(await page.locator('.md-edit .ProseMirror table tr').count() === 2 && !/Design basis/.test(await page.locator('.md-edit .ProseMirror').innerText()), 'a sheet: a table opens by itself, as a table');
+await page.locator('.md-edit .ProseMirror td').first().click();
+await page.locator('.md-edit .md-block-bar button', { hasText: '+ Row' }).click();
+await page.locator('.md-edit .ProseMirror tr').nth(2).locator('td').first().click();
+await page.keyboard.type('BC');
+await page.keyboard.press('Tab');
+await page.keyboard.type('7 kN');
+await page.locator('.md-edit button.primary').click();
+await page.waitForTimeout(300);
+const sheetText = (await all()).split('\n');
+check(sheetText.some(l => /^\| BC +\| 7 kN +\|$/.test(l)) && sheetText.length === sheetSrc.split('\n').length + 1 && sheetText[12] === '' && sheetText[13].startsWith('c:'), `a sheet: the table gets its new row (${JSON.stringify(sheetText.slice(8, 13))})`);
+// An input line still edits as one line.
+fr = await findFrame('first side');
+await dbl(fr, 6);
+await page.waitForSelector('.line-edit-input', { timeout: 5000 });
+check(await page.locator('.md-edit').count() === 0 && (await page.locator('.line-edit-input').inputValue()) === 'a: 3 m | first side', 'a sheet: an input line opens the one-line editor');
+await page.keyboard.press('Escape');
+
 check(errors.length === 0, `no page errors (${errors.join('; ')})`);
 await browser.close();
 server.close();

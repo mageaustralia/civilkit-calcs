@@ -1,3 +1,5 @@
+import { compileSheet, isSheetText } from './wasm/sheet';
+import { findMdBlock, findSheetBlock } from './editor/md-block';
 import { watchForUpdates } from './update-notice';
 import * as monaco from 'monaco-editor';
 import { createApp, nextTick } from 'vue';
@@ -1636,6 +1638,15 @@ async function bootstrap(): Promise<void> {
             return model && line <= model.getLineCount() ? model.getLineContent(line) : null;
         },
         lines: (groupId: string) => groups.get(groupId)?.editor.getModel()?.getLinesContent() ?? null,
+        // The Markdown prose around a line: a #markdown block in a worksheet, a run of prose lines in a sheet.
+        block: async (groupId: string, line: number) => {
+            const model = groups.get(groupId)?.editor.getModel();
+            if (!model) return null;
+            const lines = model.getLinesContent();
+            if (!isSheetText(lines.join('\n'))) return findMdBlock(lines, line);
+            const compiled = await compileSheet(lines.join('\n'));
+            return findSheetBlock(lines, compiled.kinds, line);
+        },
         replace: (groupId: string, from: number, to: number, text: string[]) => {
             const ed = groups.get(groupId)?.editor;
             const model = ed?.getModel();

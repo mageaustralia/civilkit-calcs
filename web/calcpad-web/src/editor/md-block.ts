@@ -22,6 +22,26 @@ export function findMdBlock(lines: string[], line: number): MdBlock | null {
     return findRaw(lines, line) ?? findComments(lines, line);
 }
 
+/**
+ * The run of prose around a source line of a sheet. A sheet is Markdown already, so there are no
+ * markers: the block is the lines the sheet compiler marks as prose (`kinds`, one letter per line,
+ * `p` prose, `b` blank) between lines that are something else (an input like `a: 3 m`, a fence, raw
+ * Calcpad), with the blank lines at either end left out.
+ */
+export function findSheetBlock(lines: string[], kinds: string, line: number): MdBlock | null {
+    const at = line - 1;
+    if (at < 0 || at >= lines.length || kinds[at] !== 'p') return null;
+    // A fence line is classed blank by the compiler but is not an empty line: it ends the run.
+    const inRun = (i: number) => kinds[i] === 'p' || (kinds[i] === 'b' && lines[i].trim() === '');
+    let s = at;
+    while (s > 0 && inRun(s - 1)) s--;
+    let e = at;
+    while (e + 1 < lines.length && inRun(e + 1)) e++;
+    while (s < e && lines[s].trim() === '') s++;
+    while (e > s && lines[e].trim() === '') e--;
+    return { kind: 'block', on: s, off: e + 2, body: lines.slice(s, e + 1) };
+}
+
 function findRaw(lines: string[], line: number): MdBlock | null {
     let on = -1;
     for (let i = line - 1; i >= 0; i--) {

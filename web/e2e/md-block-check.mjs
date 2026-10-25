@@ -1,6 +1,6 @@
 // Unit checks for src/editor/md-block.ts (node --experimental-strip-types).
 import assert from 'node:assert/strict';
-import { findMdBlock, toMarkdown, fromMarkdown, toEditor, fromEditor } from '../calcpad-web/src/editor/md-block.ts';
+import { findMdBlock, findSheetBlock, toMarkdown, fromMarkdown, toEditor, fromEditor } from '../calcpad-web/src/editor/md-block.ts';
 
 // ---- #markdown blocks ----
 const doc = ['a = 1', '#markdown', '## Title', '', 'The **load** is _applied_.', '', '| a | b |', '|---|---|', '| 1 | 2 |', '#end markdown', 'b = 2'];
@@ -50,4 +50,18 @@ assert.deepEqual(fromMarkdown(ob, '## Title\n\n**Bold** text', '## Title\n\nx\n\
 assert.deepEqual(fromMarkdown({ kind: 'comment', on: 1, off: 3, body: ['a'] }, 'a', 'one\ntwo'), ['one two'], 'a soft break stays on one line');
 assert.equal(fromMarkdown({ kind: 'comment', on: 1, off: 3, body: ['a'] }, 'a', '```\ncode\n```'), null, 'a code fence cannot be one line');
 assert.equal(fromMarkdown({ kind: 'comment', on: 1, off: 3, body: ['a'] }, 'a', 'a\n\n| a | b |\n|---|---|\n| 1 | 2 |'), null, 'a table cannot be one line per comment');
+// ---- sheets: prose runs from the compiler's line kinds ----
+const sheet = ['<!--sheet-->', '# Title', '', 'Some **bold**', 'prose.', '', '## Input', 'a: 3 m | first', '', '| A | B |', '| --- | --- |', '| 1 | 2 |', '', '```calcpad', 'x = 1', '```', '', 'Last.'];
+const kk = 'b' + 'p' + 'b' + 'pp' + 'b' + 'p' + 'q' + 'b' + 'ppp' + 'b' + 'b' + 'r' + 'b' + 'b' + 'p';
+assert.equal(kk.length, sheet.length);
+const sb = findSheetBlock(sheet, kk, 4);
+assert.deepEqual([sb.kind, sb.on, sb.off, sb.body], ['block', 1, 8, ['# Title', '', 'Some **bold**', 'prose.', '', '## Input']], 'a run of prose, headings included, stops at an input line');
+assert.deepEqual(findSheetBlock(sheet, kk, 2).body, sb.body, 'any line of the run finds the same block');
+const tb = findSheetBlock(sheet, kk, 11);
+assert.deepEqual([tb.on, tb.off, tb.body], [9, 13, ['| A | B |', '| --- | --- |', '| 1 | 2 |']], 'a table is a block of its own');
+assert.equal(findSheetBlock(sheet, kk, 8), null, 'an input line is not prose');
+assert.equal(findSheetBlock(sheet, kk, 15), null, 'raw Calcpad is not prose');
+assert.equal(findSheetBlock(sheet, kk, 16), null, 'a fence line is not prose');
+assert.deepEqual(findSheetBlock(sheet, kk, 18).body, ['Last.'], 'the last paragraph after a fence');
+assert.equal(findSheetBlock(sheet, kk, 17), null, 'a blank line');
 console.log('md-block checks passed');

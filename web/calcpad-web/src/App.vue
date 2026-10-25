@@ -1007,6 +1007,8 @@ const onLineEditRequest = ref<{
   apply: (groupId: string, line: number, text: string) => void
   /** All lines of the group's editor, to find the #md block around a line. */
   lines?: (groupId: string) => string[] | null
+  /** The Markdown prose around a line (a #markdown block, or a run of prose in a sheet), or null. */
+  block?: (groupId: string, line: number) => Promise<MdBlock | null>
   /** Replaces source lines `from`..`to` (1-based, inclusive) with `text` lines. */
   replace?: (groupId: string, from: number, to: number, text: string[]) => void
 } | null>(null)
@@ -1109,7 +1111,7 @@ function applyLineEdit(): void {
   onLineEditRequest.value?.apply(st.groupId, st.line, st.text.replace(/\r?\n/g, ' '))
 }
 
-function openLineEdit(groupId: string, frameId: string, data: Record<string, unknown>): void {
+async function openLineEdit(groupId: string, frameId: string, data: Record<string, unknown>): Promise<void> {
   const line = Number(data.line)
   const req = onLineEditRequest.value
   const iframe = frontFrame(frameId)
@@ -1123,8 +1125,14 @@ function openLineEdit(groupId: string, frameId: string, data: Record<string, unk
   const x = Math.max(8, Math.min(box.left + (Number(r.left) || 0), window.innerWidth - w - 8))
   const y = Math.max(8, box.top + (Number(r.top) || 0))
   // Prose in a #md block edits as rich text; everything else edits as its source line.
-  const all = req.lines?.(groupId)
-  const block = all ? findMdBlock(all, line) : null
+  let block: MdBlock | null = null
+  try {
+    if (req.block) block = await req.block(groupId, line)
+    else {
+      const all = req.lines?.(groupId)
+      block = all ? findMdBlock(all, line) : null
+    }
+  } catch { /* the sheet compiler did not load: fall back to the source line */ }
   if (block && req.replace) {
     lineEdit.value = null
     mdEdit.value = { x, y, w, frameId, groupId, block, markdown: toMarkdown(block), error: '' }
@@ -1523,7 +1531,7 @@ function onPreviewWindowMessage(e: MessageEvent): void {
     return
   }
   if (data.type === 'editLine') {
-    openLineEdit(groupId, frameId, data)
+    void openLineEdit(groupId, frameId, data)
     return
   }
   if (data.type === 'editAnchor') {
