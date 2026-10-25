@@ -420,6 +420,10 @@ it differs. Tests: `calcpad-highlighter/tests` and the unit tests in `calcpad-hi
   (CPD-3312): its definitions are the author's, and a name used only by a region shown as a picture or
   an unconverted one is not an editor finding.
 
+* **H13. `unitPerElement` is a known `#settings` key.** The engine's `#settings {"unitPerElement": true}`
+  (an extension, see the engine's `MathSettings`) is accepted by the editor's `#settings` check as a
+  boolean; any other unknown key still warns (CPD-3413).
+
 ## D12. A nested block assigns the enclosing block's variable (modification)
 
 **CalcpadCE:** every `$While`, `$Repeat` or `$Block` keeps the names it assigns to itself. A loop
@@ -436,3 +440,19 @@ still cannot assign a worksheet variable. The same function returns 15.
 number of items (`for i in 1 .. rows(A)`) into expression blocks.
 
 **Tests:** `calcpad-core/tests/deviations.rs` (`d12_*`).
+
+## D13. A unit the elements of a vector or matrix share is written once (modification)
+
+**CalcpadCE:** a vector or matrix of numbers that each carry a unit writes the unit on every element in the
+equation as typed and as substituted (`[16 ft; 12 ft; 3 ft]`); only a result held as a single-unit array
+(`[16 12 3] ft`) writes it once.
+
+**Here:** when every element is a number with the same unit (a literal `16*ft`, a substituted variable, a
+negated one), or every row is, the vector or matrix writes the unit once after the closing bracket
+(`[16; 12; 3] ft`), in the HTML, text and Word (OMML) output. An element that is an expression (`2*a`), a
+unitless element, or a different unit keeps the unit on each element. A result whose elements are in
+different units of one dimension is written in the first element's unit. `#settings {"unitPerElement": true}`
+restores the unit on every element.
+
+**Why:** the unit once is how engineers write a vector of one quantity, and it is what the worksheet importer
+produces for a result.

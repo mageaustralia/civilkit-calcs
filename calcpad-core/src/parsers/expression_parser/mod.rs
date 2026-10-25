@@ -2025,6 +2025,7 @@ impl ExpressionParser {
             }
             ("showhiddenoutput", JsonValue::Bool(b)) => self.math_settings.borrow_mut().show_hidden_output = *b,
             ("valmathml", JsonValue::Bool(b)) => self.math_settings.borrow_mut().val_mathml = *b,
+            ("unitperelement", JsonValue::Bool(b)) => self.math_settings.borrow_mut().unit_per_element = *b,
             ("maxoutputcount", JsonValue::Num(d)) => self.math_settings.borrow_mut().set_max_output_count(*d as i32),
             ("isus", JsonValue::Bool(b)) => {
                 self.is_us = *b;
