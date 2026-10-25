@@ -2153,7 +2153,7 @@ impl Tr {
         value: &Expr,
     ) -> Option<(Vec<(String, RangeInfo)>, bool)> {
         let f = flat.as_ref()?;
-        if index.is_empty() || index.len() > 2 || mentions(value, f) || index.iter().any(|e| mentions(e, f)) {
+        if index.is_empty() || index.len() > 2 {
             return None;
         }
         // One element of a vector is a number: an array value is a matrix built row by row.
@@ -2162,6 +2162,12 @@ impl Tr {
         }
         let known = self.defined.contains(f) || self.funcs.contains_key(f) || self.gap_names.contains_key(f);
         let fresh = !known;
+        // A new array has nothing to read yet (a read would silently give the zeros it starts with);
+        // one that has a value may be read by its own update, in the order of the loop, as the
+        // source reads it element by element.
+        if fresh && (mentions(value, f) || index.iter().any(|e| mentions(e, f))) {
+            return None;
+        }
         let array = self.arrays.contains(f) && !self.funcs.contains_key(f) && !self.gap_names.contains_key(f);
         if !fresh && !array {
             return None;
@@ -2224,6 +2230,13 @@ impl Tr {
         }
         out.push("#end hide".to_string());
         Ok(out.join("\n"))
+    }
+
+    /// Whether an expression reads any range variable of the sheet.
+    fn reads_range(&self, e: &Expr) -> bool {
+        self.ranges
+            .keys()
+            .any(|k| !self.params.contains(k) && !self.locals.contains_key(k) && mentions(e, k))
     }
 
     /// The one range variable an expression reads (not as a function argument or a bound name),
@@ -4814,27 +4827,47 @@ impl Tr {
                         // One element of a vector that has a value, at an index that is not a loop: the
                         // vector grows (zeros) when the index is past its end, then the element is set.
                         let grow = match (&flat, &ranges) {
-                            (Some(f), None) if index.len() == 1 && self.arrays.contains(f) => Some(f.clone()),
+                            (Some(f), None)
+                                if (index.len() == 1 || index.len() == 2)
+                                    && self.arrays.contains(f)
+                                    && index.iter().chain(std::iter::once(value)).all(|e| !self.reads_range(e)) =>
+                            {
+                                Some(f.clone())
+                            }
                             _ => None,
                         };
                         if let Some(f) = grow {
-                            let idx = self.index_expr(&index[0]);
+                            let idx: Vec<String> = index.iter().map(|e| self.index_expr(e)).collect();
                             let rhs = self.expr(value);
                             let pre = std::mem::take(&mut self.hoisted);
+                            let at = idx.join("; ");
                             if !pre.is_empty() {
                                 self.issue(
                                     Code::ElementAssignment,
                                     Some("the value indexes the result of a call".to_string()),
                                 );
+                            } else if self.yields_array(value) {
+                                self.issue(
+                                    Code::ElementAssignment,
+                                    Some(
+                                        "the value is an array, which one element of an array cannot hold".to_string(),
+                                    ),
+                                );
                             } else if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
-                                emitted = Some(format!(
-                                    "#hide\n{f} = resize({f}; max(len({f}); {idx}))\n#show\n{f}.({idx}) = {}",
-                                    rhs.s
-                                ));
+                                // The new size is taken from the old one and the index before either changes.
+                                let grown = if idx.len() == 1 {
+                                    format!("{f} = resize({f}; max(len({f}); {}))", idx[0])
+                                } else {
+                                    format!(
+                                        "{f} = mresize({f}; max(n_rows({f}); {}); max(n_cols({f}); {}))",
+                                        idx[0], idx[1]
+                                    )
+                                };
+                                emitted = Some(format!("#hide\n{grown}\n#show\n{f}.({at}) = {}", rhs.s));
                                 elem_def = true;
                                 self.elem_built.remove(&f);
                             } else {
-                                attempt = Some(format!("{f}.({idx}) = {}", rhs.s));
+                                attempt = Some(format!("{f}.({at}) = {}", rhs.s));
                             }
                         } else {
                             let literal = match (&flat, &lits) {
