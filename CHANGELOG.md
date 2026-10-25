@@ -10,6 +10,8 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 (for example `civilkit-calcs-engine-v0.1.0`).
 
 ## [Unreleased]
+
+## [26.10.8] - 2026-10-25
 ### Added
 - Rich-text editing of Markdown prose. Double-click a paragraph, heading, list or table written as Markdown (a `#markdown` ... `#end markdown` block in a worksheet) and a text editor opens in place of the rendered text, with bold, italic, headings, bullets and tables (insert, add a row or column, delete). The preview makes room for it, follows scrolling, and scrolls itself so the buttons stay on screen. Apply writes the block back as raw Markdown in one undo step; a paragraph or table you did not change keeps its exact source lines, so applying without a change rewrites nothing. The older `#md on` comment lines still open, one paragraph per line. The editor is loaded on first use (about 140 KB gzipped) and runs in the app page, not in the sandboxed preview. `docs/rich-text-editing.md`.
 - Rich-text editing in sheets. A sheet is Markdown already, so no markers are needed: the run of prose around the double-clicked line (a heading and its paragraphs, a list, a table) opens as one block, found from the sheet compiler's own line kinds. Input lines (`a: 3 m | note`), calculations, fences and raw Calcpad lines stay one-line edits.

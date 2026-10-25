@@ -189,6 +189,16 @@ node e2e/import-check.mjs         # Import worksheet: a synthetic .xmcd and .mcd
 node ../tools/set_version.mjs --check
 ```
 
+## Checked at 26.10.8
+
+On the merged tree: `cargo test --workspace` (excluding `calcpad-sheet`) passes, run single-threaded because the highlighter's
+`ui_directive_highlighter` tests fail intermittently when run in parallel. `web/e2e/import-check.mjs` (63 checks),
+`md-block-check`, `md-edit-check`, `update-notice-check`, `web/e2e/browser-check.mjs` (123 checks) and `web/e2e/pwa-check.mjs`
+(5 checks) pass; in one run of `browser-check` the select-map check failed under load and passed alone and on a rerun. The
+worksheet importer was re-measured on twelve local worksheets: no engine errors, except one in the truss. The Word and Excel
+exports were checked as XML and by unit tests, not opened in Office. Not re-run for this release: `python-check`,
+`sheet-check`, `tsc`, `clippy`, and `cargo fmt --check` (fails on `calcpad-sheet`).
+
 ## Checked at 26.10.7
 
 On the release build: `web/e2e/import-check.mjs` (worksheet import through the menu, the ribbon and a drop, the error paths, and
