@@ -36,6 +36,11 @@ await page.waitForTimeout(1500);
 // An on-screen keyboard: the window shrinks after the editor opened.
 await page.setViewportSize({ width: 390, height: 430 });
 await page.waitForTimeout(1200);
+const keys = await page.evaluate(() => document.querySelectorAll('.line-edit-keys button').length);
+await page.tap('.line-edit-keys button:nth-child(1)');
+await page.waitForTimeout(300);
+const typed = await page.evaluate(() => document.querySelector('.line-edit-input')?.value);
+console.log('key row:', keys, 'keys; text after tapping ^ ->', JSON.stringify(typed));
 const open = await page.evaluate(() => { const e = document.querySelector('.md-edit, .line-edit'); if (!e) return false; const r = e.getBoundingClientRect(); const bar = document.querySelector('.mobile-bar').getBoundingClientRect(); return r.top >= 0 && r.bottom <= bar.top; });
 console.log('editor opened by long press and kept on screen when the window shrinks:', open);
 await page.screenshot({ path: `${out}/m-longpress.png` });

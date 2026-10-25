@@ -504,8 +504,13 @@
         @keydown.enter.exact.prevent="applyLineEdit"
         @keydown.esc.prevent="closeLineEdit"
       ></textarea>
+      <!-- Touch screens: the characters a phone keyboard buries. mousedown is
+           prevented (not touchstart, which would cancel the tap) so the textarea keeps focus and the keyboard stays up. -->
+      <div class="line-edit-keys" @mousedown.prevent>
+        <button v-for="k in EDIT_KEYS" :key="k.label ?? k.text" type="button" @click="insertEditKey(k.text)">{{ k.label ?? k.text }}</button>
+      </div>
       <div class="line-edit-foot">
-        <span>Enter to apply · Esc to cancel</span>
+        <span class="line-edit-hint">Enter to apply · Esc to cancel</span>
         <button class="modal-btn primary" @click="applyLineEdit">Apply</button>
         <button class="modal-btn" @click="closeLineEdit">Cancel</button>
       </div>
@@ -1103,6 +1108,22 @@ function applyMdEdit(baseline: string, edited: string): void {
 interface LineEditState { x: number; y: number; w: number; frameId: string; to: number; groupId: string; line: number; text: string; note: string }
 const lineEdit = ref<LineEditState | null>(null)
 const lineEditInput = ref<HTMLTextAreaElement | null>(null)
+
+// Keys for the line editor on a touch screen: operators, Greek and the units that come up most.
+const EDIT_KEYS: { text: string; label?: string }[] = [
+  { text: '^' }, { text: '*' }, { text: '/' }, { text: '(' }, { text: ')' }, { text: '=' },
+  { text: '<' }, { text: '>' }, { text: '≤' }, { text: '≥' }, { text: '√(', label: '√' }, { text: 'π' },
+  { text: '°' }, { text: '|' }, { text: '_' }, { text: ',' }, { text: ';' },
+  { text: ' mm' }, { text: ' m' }, { text: ' kN' }, { text: ' MPa' }, { text: ' kN·m', label: 'kN·m' },
+]
+function insertEditKey(text: string): void {
+  const t = lineEditInput.value
+  const st = lineEdit.value
+  if (!t || !st) return
+  const a = t.selectionStart, z = t.selectionEnd
+  st.text = st.text.slice(0, a) + text + st.text.slice(z)
+  void nextTick(() => { t.focus(); t.setSelectionRange(a + text.length, a + text.length); sizeLineEdit() })
+}
 
 // The source line shows in full, so the box grows with it.
 function sizeLineEdit(): void {

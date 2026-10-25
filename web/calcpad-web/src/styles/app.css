@@ -1200,3 +1200,22 @@ select option {
     .preview-toolbar .toolbar-btn { flex: none; white-space: nowrap; }
     .preview-mode-group { flex: none; display: flex; gap: 4px; }
 }
+
+/* Touch screens only: a row of keys for the line editor, scrolling sideways. */
+.line-edit-keys { display: none; }
+@media (hover: none) {
+    .line-edit-keys { display: flex; gap: 4px; margin-top: 6px; overflow-x: auto; scrollbar-width: none; }
+    .line-edit-keys button {
+        flex: none;
+        min-width: 38px;
+        height: 36px;
+        padding: 0 8px;
+        border: 1px solid var(--vscode-widget-border, #888);
+        border-radius: 4px;
+        background: var(--vscode-button-secondaryBackground, #3a3d41);
+        color: var(--vscode-button-secondaryForeground, #ddd);
+        font: inherit;
+        font-size: 15px;
+    }
+    .line-edit-hint { display: none; }
+}
