@@ -1,5 +1,5 @@
 <template>
-  <div class="app-layout" :class="{ resizing: isAnyDividerDragging }">
+  <div class="app-layout" :class="[{ resizing: isAnyDividerDragging, narrow }, narrow ? `m-${mobilePane}` : '']">
     <!-- v-show, not v-if: main.ts mounts a Vue app into #vue-sidebar. -->
     <div
       v-show="sidebarVisible"
@@ -299,7 +299,7 @@
 
     <!-- Rows the input form and its report in UI mode; `display: contents` otherwise. -->
     <div class="preview-area">
-    <div v-if="previewVisible" class="preview-pane" :class="{ fullscreen: uiModeFullscreen }" :style="previewPaneStyle()">
+    <div v-if="previewVisible || narrow" class="preview-pane" :class="{ fullscreen: uiModeFullscreen }" :style="previewPaneStyle()">
       <div class="preview-toolbar" @contextmenu.prevent>
         <span>Results</span>
         <div class="preview-mode-group">
@@ -358,7 +358,7 @@
             @click="exitUiMode"
             title="Return to the editor"
           >Exit input mode</button>
-          <button v-else class="toolbar-btn" @click="togglePreview">✕</button>
+          <button v-else-if="!narrow" class="toolbar-btn" @click="togglePreview">✕</button>
         </template>
       </div>
       <!-- One preview iframe per editor group. allow-same-origin is deliberately
@@ -504,8 +504,13 @@
         @keydown.enter.exact.prevent="applyLineEdit"
         @keydown.esc.prevent="closeLineEdit"
       ></textarea>
+      <!-- Touch screens: the characters a phone keyboard buries. mousedown is
+           prevented (not touchstart, which would cancel the tap) so the textarea keeps focus and the keyboard stays up. -->
+      <div class="line-edit-keys" @mousedown.prevent>
+        <button v-for="k in EDIT_KEYS" :key="k.label ?? k.text" type="button" @click="insertEditKey(k.text)">{{ k.label ?? k.text }}</button>
+      </div>
       <div class="line-edit-foot">
-        <span>Enter to apply · Esc to cancel</span>
+        <span class="line-edit-hint">Enter to apply · Esc to cancel</span>
         <button class="modal-btn primary" @click="applyLineEdit">Apply</button>
         <button class="modal-btn" @click="closeLineEdit">Cancel</button>
       </div>
@@ -578,6 +583,10 @@
         </div>
       </div>
     </div>
+    <!-- Phones: one pane at a time. -->
+    <nav v-if="narrow" class="mobile-bar" aria-label="Panes">
+      <button v-for="p in MOBILE_PANES" :key="p.id" :class="{ on: mobilePane === p.id }" :aria-pressed="mobilePane === p.id" @click="mobilePane = p.id">{{ p.label }}</button>
+    </nav>
   </div>
   <!-- Status bar -->
   <div v-show="!uiModeFullscreen" class="status-bar" @contextmenu.prevent>
@@ -1020,6 +1029,7 @@ const mdEdit = ref<MdEditState | null>(null)
 
 // ---- Editing in place: the editor sits where the rendered text was, and the preview makes room ----
 let editWatch: ResizeObserver | null = null
+let editResize: (() => void) | null = null
 let editHold: { frameId: string; from: number; to: number } | null = null
 
 function sendToFrame(frameId: string, msg: Record<string, unknown>): void {
@@ -1037,12 +1047,18 @@ function trackEdit(frameId: string, from: number, to: number): void {
       // An editor opened low on the page scrolls the preview up so its buttons stay on screen.
       requestAnimationFrame(() => {
         const r = el.getBoundingClientRect()
-        const over = r.bottom - (window.innerHeight - 12)
+        const room = frontFrame(frameId)?.getBoundingClientRect().bottom ?? window.innerHeight
+        const over = r.bottom - (Math.min(room, window.innerHeight, window.visualViewport?.height ?? Infinity) - 12)
         if (over > 0 && r.top > 8) sendToFrame(frameId, { type: 'cpdEditScroll', by: Math.min(over, r.top - 8) })
       })
     }
     editWatch = new ResizeObserver(send)
     editWatch.observe(el)
+    // An on-screen keyboard shrinks the window after the editor opened: keep its buttons in view.
+    let t = 0
+    editResize = () => { clearTimeout(t); t = window.setTimeout(send, 200) }
+    window.addEventListener('resize', editResize)
+    window.visualViewport?.addEventListener('resize', editResize)
     send()
   })
 }
@@ -1050,6 +1066,11 @@ function trackEdit(frameId: string, from: number, to: number): void {
 function untrackEdit(): void {
   editWatch?.disconnect()
   editWatch = null
+  if (editResize) {
+    window.removeEventListener('resize', editResize)
+    window.visualViewport?.removeEventListener('resize', editResize)
+    editResize = null
+  }
   if (editHold) sendToFrame(editHold.frameId, { type: 'cpdEditRelease' })
   editHold = null
 }
@@ -1087,6 +1108,22 @@ function applyMdEdit(baseline: string, edited: string): void {
 interface LineEditState { x: number; y: number; w: number; frameId: string; to: number; groupId: string; line: number; text: string; note: string }
 const lineEdit = ref<LineEditState | null>(null)
 const lineEditInput = ref<HTMLTextAreaElement | null>(null)
+
+// Keys for the line editor on a touch screen: operators, Greek and the units that come up most.
+const EDIT_KEYS: { text: string; label?: string }[] = [
+  { text: '^' }, { text: '*' }, { text: '/' }, { text: '(' }, { text: ')' }, { text: '=' },
+  { text: '<' }, { text: '>' }, { text: '≤' }, { text: '≥' }, { text: '√(', label: '√' }, { text: 'π' },
+  { text: '°' }, { text: '|' }, { text: '_' }, { text: ',' }, { text: ';' },
+  { text: ' mm' }, { text: ' m' }, { text: ' kN' }, { text: ' MPa' }, { text: ' kN·m', label: 'kN·m' },
+]
+function insertEditKey(text: string): void {
+  const t = lineEditInput.value
+  const st = lineEdit.value
+  if (!t || !st) return
+  const a = t.selectionStart, z = t.selectionEnd
+  st.text = st.text.slice(0, a) + text + st.text.slice(z)
+  void nextTick(() => { t.focus(); t.setSelectionRange(a + text.length, a + text.length); sizeLineEdit() })
+}
 
 // The source line shows in full, so the box grows with it.
 function sizeLineEdit(): void {
@@ -1616,6 +1653,12 @@ function setServerStatus(status: ServerStatus): void {
 
 const sidebarVisible = ref(true)
 const previewVisible = ref(true)
+// Phone width shows the editor, the results or the sidebar one at a time (CSS does the hiding).
+const MOBILE_PANES = [{ id: 'edit', label: 'Edit' }, { id: 'preview', label: 'Results' }, { id: 'insert', label: 'Insert' }] as const
+const narrowQuery = window.matchMedia('(max-width: 760px)')
+const narrow = ref(narrowQuery.matches)
+const mobilePane = ref<'edit' | 'preview' | 'insert'>('edit')
+narrowQuery.addEventListener('change', e => { narrow.value = e.matches })
 // Groups with an in-flight preview render; drives the "Calculating…" overlay.
 const previewLoadingGroups = ref(new Set<string>())
 const previewLoading = computed(() => previewLoadingGroups.value.size > 0)
@@ -2057,7 +2100,7 @@ function injectLineLinks(
     "    link.className = 'lineLink';",
     "    link.href = '#0';",
     "    link.setAttribute('data-text', src);",
-    "    link.title = 'Source line ' + src + ' (double-click the line to edit it here)';",
+    "    link.title = 'Source line ' + src + ' (double-click, or long-press on a phone, to edit it here)';",
     "    link.textContent = '\\u2190';",
     "    link.style.display = 'none';",
     "    link.addEventListener('click', function(e) {",
@@ -2072,15 +2115,33 @@ function injectLineLinks(
     "  });",
     "  window.addEventListener('scroll', hideAllLineLinks);",
     // Double-click a rendered line to edit its source line in a popover on the host.
-    "  document.addEventListener('dblclick', function(e) {",
-    "    var t = e.target;",
-    "    if (!t || !t.closest || t.closest('input, select, textarea, button, a[href], .jss_container, [class*=\"calcpad-ui\"]')) return;",
+    "  function editFrom(t) {",
+    "    if (!t || !t.closest || t.closest('input, select, textarea, button, a[href], .jss_container, [class*=\"calcpad-ui\"]')) return false;",
     "    var el = t.closest('[data-source-line]');",
     "    var n = el ? parseInt(el.getAttribute('data-source-line'), 10) : NaN;",
-    "    if (!el || isNaN(n)) return;",
+    "    if (!el || isNaN(n)) return false;",
     "    var r = el.getBoundingClientRect();",
     "    try { window.parent.postMessage({ type: 'editLine', line: n, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, groupId: FRAME_ID }, '*'); } catch (_e) {}",
-    "  });",
+    "    return true;",
+    "  }",
+    "  document.addEventListener('dblclick', function(e) { editFrom(e.target); });",
+    // A finger has no reliable double-click (a double tap zooms): a long press does the same.
+    "  var press = null, pressed = 0, pressAt = null;",
+    "  function endPress() { if (press) clearTimeout(press); press = null; }",
+    "  document.addEventListener('touchstart', function(e) {",
+    "    endPress();",
+    "    if (e.touches.length !== 1) return;",
+    "    var t = e.target, p = e.touches[0];",
+    "    pressAt = { x: p.clientX, y: p.clientY };",
+    "    press = setTimeout(function() { press = null; if (editFrom(t)) pressed = Date.now(); }, 500);",
+    "  }, { passive: true });",
+    "  document.addEventListener('touchmove', function(e) {",
+    "    var p = e.touches[0];",
+    "    if (press && pressAt && (Math.abs(p.clientX - pressAt.x) > 10 || Math.abs(p.clientY - pressAt.y) > 10)) endPress();",
+    "  }, { passive: true });",
+    "  document.addEventListener('touchend', endPress, { passive: true });",
+    "  document.addEventListener('touchcancel', endPress, { passive: true });",
+    "  document.addEventListener('contextmenu', function(e) { if (Date.now() - pressed < 1500) e.preventDefault(); });",
     // The host edits a line in place: it asks this page to keep the room the editor needs (the edited
     // elements are hidden, the first one is held at the editor's height) and is told where that room is.
     "  var held = null;",

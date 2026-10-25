@@ -61,7 +61,7 @@ function run(key: Parameters<typeof callCommand>[0], payload?: unknown): void {
     </div>
     <div ref="root" class="md-block-body"></div>
     <div class="line-edit-foot">
-      <span>Ctrl+Enter to apply · Esc to cancel</span>
+      <span class="md-keys">Ctrl+Enter to apply · Esc to cancel</span>
       <button class="modal-btn primary" @click="apply">Apply</button>
       <button class="modal-btn" @click="emit('cancel')">Cancel</button>
     </div>
@@ -90,4 +90,5 @@ function run(key: Parameters<typeof callCommand>[0], payload?: unknown): void {
 .md-block-body .ProseMirror .selectedCell { background: var(--vscode-editor-selectionBackground, #08f4); }
 .md-block-body .ProseMirror ul { margin: 0 0 .6em; padding-left: 1.4em; }
 .md-block-body .ProseMirror h1 { font-size: 1.5em; } .md-block-body .ProseMirror h2 { font-size: 1.25em; } .md-block-body .ProseMirror h3 { font-size: 1.1em; }
+@media (hover:none){.md-keys{display:none}}
 </style>

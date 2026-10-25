@@ -1137,3 +1137,85 @@ select option {
 }
 .line-edit-foot { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; opacity: 0.9; }
 .line-edit-foot span { flex: 1; opacity: 0.7; }
+
+/* Phones: one pane at a time, switched from the bar along the bottom. */
+.mobile-bar { display: none; }
+
+@media (max-width: 760px) {
+    #app { height: 100dvh; }
+    .app-layout.narrow { flex-direction: column; }
+    .app-layout.narrow .resize-handle,
+    .app-layout.narrow .pane-divider { display: none; }
+
+    .app-layout.narrow .sidebar-pane,
+    .app-layout.narrow .editor-pane,
+    .app-layout.narrow .preview-pane { display: none !important; }
+    .app-layout.narrow .sidebar-pane,
+    .app-layout.narrow .preview-pane { width: 100% !important; min-width: 0; max-width: none; border: 0; }
+    .app-layout.narrow.m-insert .sidebar-pane,
+    .app-layout.narrow.m-edit .editor-pane,
+    .app-layout.narrow.m-preview .preview-pane { display: flex !important; flex: 1; min-height: 0; }
+    /* The input form fills the window on its own. */
+    .app-layout.narrow .work-area.ui-mode { display: contents; }
+
+    .mobile-bar {
+        display: flex;
+        flex: none;
+        order: 99;
+        background: var(--vscode-editorGroupHeader-tabsBackground, #252526);
+        border-top: 1px solid var(--vscode-widget-border, #3c3c3c);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .mobile-bar button {
+        flex: 1;
+        height: 44px;
+        border: 0;
+        border-top: 2px solid transparent;
+        background: none;
+        color: var(--vscode-tab-inactiveForeground, #aaa);
+        font: inherit;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .mobile-bar button.on {
+        color: var(--vscode-tab-activeForeground, #fff);
+        border-top-color: var(--vscode-focusBorder, #007acc);
+        font-weight: 600;
+    }
+
+    /* Finger-sized targets. */
+    .tab { padding-right: 4px; }
+    .tab-close { min-width: 32px; min-height: 32px; }
+    .tab-new, .tab-action { min-width: 40px; }
+    .toolbar-btn { padding: 8px 12px; }
+    .status-bar { padding-bottom: env(safe-area-inset-bottom); }
+    /* Only the tab strip's own buttons make sense here: the panes are not side by side. */
+    .tab-action[aria-label$="results pane"],
+    .tab-action[aria-label="Split editor down"],
+    .tab-action[aria-label="Merge editor groups"] { display: none; }
+    .editor-sidebar-reveal { display: none; }
+    /* The bottom bar already says "Results"; the mode buttons scroll sideways instead of wrapping. */
+    .preview-toolbar { overflow-x: auto; scrollbar-width: none; }
+    .preview-toolbar > span:first-child { display: none; }
+    .preview-toolbar .toolbar-btn { flex: none; white-space: nowrap; }
+    .preview-mode-group { flex: none; display: flex; gap: 4px; }
+}
+
+/* Touch screens only: a row of keys for the line editor, scrolling sideways. */
+.line-edit-keys { display: none; }
+@media (hover: none) {
+    .line-edit-keys { display: flex; gap: 4px; margin-top: 6px; overflow-x: auto; scrollbar-width: none; }
+    .line-edit-keys button {
+        flex: none;
+        min-width: 38px;
+        height: 36px;
+        padding: 0 8px;
+        border: 1px solid var(--vscode-widget-border, #888);
+        border-radius: 4px;
+        background: var(--vscode-button-secondaryBackground, #3a3d41);
+        color: var(--vscode-button-secondaryForeground, #ddd);
+        font: inherit;
+        font-size: 15px;
+    }
+    .line-edit-hint { display: none; }
+}

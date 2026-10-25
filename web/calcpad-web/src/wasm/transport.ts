@@ -119,9 +119,15 @@ const PREVIEW_TABLE = '<style>'
     + 'table:not(.imported-grid):not(.matrix):not([border]):has(>thead) th{background:rgba(128,128,128,.18);font-weight:600}'
     + '</style>';
 
+/** A phone-wide pane: room on the right so text does not run under the scrollbar, long words wrap, and a plot's hover toolbar (it sits over the plot title and a finger cannot hover) is left out; pinch and drag still work. */
+const PREVIEW_PHONE = '<style>@media screen and (max-width:760px){'
+    + 'body{padding-right:22px;overflow-wrap:anywhere}'
+    + '.modebar-container{display:none!important}'
+    + '}</style>';
+
 function addPreviewDark(html: string): string {
     const i = html.toLowerCase().lastIndexOf('</head>');
-    return i < 0 ? html : html.slice(0, i) + PREVIEW_DARK + PREVIEW_MATRIX + PREVIEW_TABLE + html.slice(i);
+    return i < 0 ? html : html.slice(0, i) + PREVIEW_DARK + PREVIEW_MATRIX + PREVIEW_TABLE + PREVIEW_PHONE + html.slice(i);
 }
 
 /** A file the engine can read (#include, #read): an absolute path and its bytes. */
