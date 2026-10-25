@@ -4294,6 +4294,22 @@ impl Tr {
     }
 
     fn region(&mut self, r: &Region) {
+        if !crate::includes::is_included(&r.id) {
+            return self.region_shown(r);
+        }
+        // A region of an included worksheet: computed, never shown, and only its definitions count.
+        if let RegionKind::Math(m) = &r.kind {
+            if !matches!(m.stmt, Stmt::Define { .. } | Stmt::Unsupported { .. }) {
+                return;
+            }
+        }
+        let before = self.lines.len();
+        self.region_shown(r);
+        let shown = self.lines.split_off(before);
+        self.lines.extend(crate::includes::quiet_lines(&shown));
+    }
+
+    fn region_shown(&mut self, r: &Region) {
         if self.opts.region_markers {
             self.lines.push(format!("'@@{}@@", sanitize_id(&r.id)));
         }

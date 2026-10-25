@@ -46,12 +46,12 @@ impl From<ZipError> for McdxError {
     }
 }
 
-fn utf8(bytes: &[u8]) -> Result<&str, McdxError> {
+pub(crate) fn utf8(bytes: &[u8]) -> Result<&str, McdxError> {
     let b = bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes);
     std::str::from_utf8(b).map_err(|_| McdxError::Xml("a part is not UTF-8 text".into()))
 }
 
-fn parse<'a>(xml: &'a str, lim: &Limits) -> Result<Document<'a>, McdxError> {
+pub(crate) fn parse<'a>(xml: &'a str, lim: &Limits) -> Result<Document<'a>, McdxError> {
     if xmcd::xml_depth_exceeds(xml, lim.max_xml_depth) {
         return Err(McdxError::Xml("elements nested too deeply".into()));
     }
@@ -92,7 +92,7 @@ fn resolve(base_dir: &str, target: &str) -> String {
 }
 
 /// Relationship id to resolved part name, from the `.rels` part of `part` (empty when absent).
-fn relationships(zip: &Archive, part: &str, lim: &Limits) -> HashMap<String, (String, String)> {
+pub(crate) fn relationships(zip: &Archive, part: &str, lim: &Limits) -> HashMap<String, (String, String)> {
     let rels_name = format!("{}_rels/{}.rels", dir_of(part), part.rsplit('/').next().unwrap_or(part));
     let mut map = HashMap::new();
     let Ok(Some(bytes)) = zip.read(&rels_name, lim.max_item_bytes) else {
@@ -227,6 +227,7 @@ pub fn read(bytes: &[u8], limits: Limits) -> Result<Sheet, McdxError> {
         results,
         lim: &limits,
         component_names: std::cell::RefCell::new(Vec::new()),
+        in_include: false,
     };
 
     let mut regions = Vec::new();
@@ -305,17 +306,19 @@ fn place_hidden_regions(regions: &mut [Region]) {
     }
 }
 
-struct Ctx<'a, 'd> {
-    zip: &'a Archive<'a>,
+pub(crate) struct Ctx<'a, 'd> {
+    pub(crate) zip: &'a Archive<'a>,
     /// Relationship id to (part name, relationship kind).
-    rels: HashMap<String, (String, String)>,
-    results: HashMap<&'d str, Node<'d, 'd>>,
-    lim: &'a Limits,
+    pub(crate) rels: HashMap<String, (String, String)>,
+    pub(crate) results: HashMap<&'d str, Node<'d, 'd>>,
+    pub(crate) lim: &'a Limits,
     /// Names defined inside components that are skipped.
-    component_names: std::cell::RefCell<Vec<Name>>,
+    pub(crate) component_names: std::cell::RefCell<Vec<Name>>,
+    /// Set while reading a worksheet that a reference included: it holds no further references.
+    pub(crate) in_include: bool,
 }
 
-fn num_attr(n: Node, names: &[&str]) -> Option<f64> {
+pub(crate) fn num_attr(n: Node, names: &[&str]) -> Option<f64> {
     names.iter().find_map(|name| {
         n.attribute(*name)
             .and_then(|v| v.trim().parse::<f64>().ok())
@@ -330,7 +333,7 @@ impl Ctx<'_, '_> {
         self.zip.read(name, self.lim.max_item_bytes).ok().flatten()
     }
 
-    fn collect_region(&self, r: Node, depth: usize, parent: Option<(f64, f64)>, out: &mut Vec<Region>) {
+    pub(crate) fn collect_region(&self, r: Node, depth: usize, parent: Option<(f64, f64)>, out: &mut Vec<Region>) {
         let lim = self.lim;
         let id = r.attribute("region-id").unwrap_or("?").to_string();
         // A nested region is placed relative to its container. One nested in a text region
@@ -445,7 +448,20 @@ impl Ctx<'_, '_> {
             }
             "plot" => out.push(mk(RegionKind::Plot(crate::plotread::read_plot(c, lim)))),
             "oleObject" | "ole" => out.push(mk(RegionKind::Ole)),
-            "reference" => out.push(mk(RegionKind::Reference)),
+            "reference" => {
+                // The package keeps a copy of the worksheet a reference points at: its definitions
+                // are in force below the reference, so they are read in (and not shown).
+                match crate::includes::read_include(self, c, (left, top)) {
+                    Some((note, regions)) => {
+                        out.push(Region {
+                            kind: RegionKind::Text(vec![note]),
+                            ..mk(RegionKind::Reference)
+                        });
+                        out.extend(regions);
+                    }
+                    None => out.push(mk(RegionKind::Reference)),
+                }
+            }
             "pageBreak" => out.push(mk(RegionKind::PageBreak)),
             t if t.ends_with("Component") || t == "component" => {
                 // What the component defines is not run here; note the names so that regions

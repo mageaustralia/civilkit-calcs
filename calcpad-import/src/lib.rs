@@ -29,6 +29,7 @@
 #![forbid(unsafe_code)]
 
 pub(crate) mod controls;
+mod includes;
 pub mod ir;
 pub mod mathml;
 pub mod mcdx;
