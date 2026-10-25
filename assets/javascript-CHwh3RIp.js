@@ -1,4 +1,4 @@
-import{conf as e,language as t}from"./typescript-Z1KhkcTC.js";
+import{conf as e,language as t}from"./typescript-BYmXIp9A.js";
 /*!-----------------------------------------------------------------------------
 * Copyright (c) Microsoft Corporation. All rights reserved.
 * Version: 0.52.2(404545bded1df6ffa41ea0af4e8ddb219018c6c1)

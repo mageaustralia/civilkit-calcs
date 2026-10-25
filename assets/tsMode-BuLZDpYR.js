@@ -1,4 +1,4 @@
-import{m as e}from"./editor.api-B4jukpyn.js";import{C as t}from"./index-JTG2u3FP.js";
+import{m as e}from"./editor.api-B2ObxFEc.js";import{N as t}from"./index-8sa6kHgr.js";
 /*!-----------------------------------------------------------------------------
 * Copyright (c) Microsoft Corporation. All rights reserved.
 * Version: 0.52.2(404545bded1df6ffa41ea0af4e8ddb219018c6c1)
