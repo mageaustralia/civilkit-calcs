@@ -339,7 +339,7 @@ fn a_text_box_holds_its_stored_text() {
 }
 
 #[test]
-fn a_list_box_holds_its_selected_item() {
+fn a_list_box_holds_the_position_of_its_selected_item() {
     let c = r#"<ml:ListBoxScriptableControl SelectedIndex="1" Script="x"><ml:vals><ml:val>one.dat</ml:val><ml:val>two.dat</ml:val></ml:vals></ml:ListBoxScriptableControl>"#;
     let res = import(&[
         math(1, 0.0, &define(&id("pick"), c)),
@@ -348,7 +348,7 @@ fn a_list_box_holds_its_selected_item() {
             20.0,
             &define(
                 &id("n"),
-                &call("if", &[app("equal", &[id("pick"), s("two.dat")]), real("2"), real("1")]),
+                &call("if", &[app("equal", &[id("pick"), real("1")]), real("2"), real("1")]),
             ),
         ),
         math(3, 40.0, &eval(&id("n"))),
@@ -486,4 +486,36 @@ fn a_text_on_its_own_is_a_label() {
     let res = import(&[math(1, 0.0, &s("Case"))]);
     assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
     assert!(res.calcpad.contains("<ms>Case</ms>"), "{}", res.calcpad);
+}
+
+#[test]
+fn an_empty_text_box_read_as_a_number_is_zero_and_says_so() {
+    let res = import(&[
+        math(1, 0.0, &define(&id("inpD"), &text_box(""))),
+        math(
+            2,
+            20.0,
+            &define(&id("D"), &app("mult", &[call("str2num", &[id("inpD")]), id("in")])),
+        ),
+        math(3, 40.0, &eval(&id("D"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.report.notes().any(|i| i.code == Code::ControlInput));
+}
+
+#[test]
+fn a_bare_zero_in_a_sum_takes_the_units_of_the_other_term() {
+    let res = import(&[
+        math(
+            1,
+            0.0,
+            &define(
+                &id("a"),
+                &app("minus", &[real("0"), app("mult", &[real("6"), id("in")])]),
+            ),
+        ),
+        math(2, 20.0, &eval(&id("a"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(engine_text(&res).contains("-6"));
 }

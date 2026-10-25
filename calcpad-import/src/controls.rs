@@ -98,9 +98,11 @@ pub(crate) fn read_control(n: Node, lim: &Limits, depth: usize) -> Option<Contro
             let items = vals(n);
             let sel: usize = n.attribute("SelectedIndex").and_then(|v| v.trim().parse().ok())?;
             let text = items.get(sel)?.clone();
+            // The worksheets compare a list box with whole numbers (`box = 0`): its value is the
+            // position of the selected item, counted from 0.
             Some(Control {
                 kind: "list box".into(),
-                value: Expr::Str(text.clone()),
+                value: Expr::Num(sel.to_string()),
                 chosen: Some(label_text(&text)).filter(|s| !s.is_empty()),
                 options: items.len(),
             })

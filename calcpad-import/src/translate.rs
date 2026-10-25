@@ -818,6 +818,8 @@ struct Tr {
     str_mat_ok: bool,
     /// Text boxes whose stored text is a number: `str2num` of such a name is the name.
     num_texts: HashSet<String>,
+    /// Text boxes that hold no text: `str2num` of one is 0 (the source has no number there).
+    empty_texts: HashSet<String>,
     /// Set while a text name or a call of a text function is translated as a text (a leaf of
     /// `str_expr`); anywhere else such a name is a gap, because its code is not a number.
     str_allow: bool,
@@ -1227,6 +1229,16 @@ impl Tr {
             rmin
         };
         let mut r = self.operand(b, rmin, false);
+        // A bare 0 added to or taken from a quantity is a zero of its dimension.
+        if matches!(op, BinOp::Add | BinOp::Sub) && !self.display && !self.readable {
+            let zero = |e: &Expr| matches!(e, Expr::Num(s) if s.trim().parse::<f64>() == Ok(0.0));
+            let plain = |e: &Expr| matches!(e, Expr::Num(_));
+            if zero(a) && !plain(b) {
+                l = format!("0*getunits({r})");
+            } else if zero(b) && !plain(a) {
+                r = format!("0*getunits({l})");
+            }
+        }
         // A comparison with a bare 0 is a comparison with a zero of the other side's dimension
         // (as in the source); the engine wants both sides in the same units.
         if (self.plot_param.is_some() || !self.holds_array(a) && !self.holds_array(b))
@@ -2894,8 +2906,15 @@ impl Tr {
         // The number a text box holds as text is the number itself.
         if flat == "str2num" && n.sub.is_none() && !self.funcs.contains_key(&flat) && args.len() == 1 {
             if let Expr::Name(a) = &args[0] {
-                if self.num_texts.contains(&tables::normalise_name(&a.flat())) {
+                let f = tables::normalise_name(&a.flat());
+                if self.num_texts.contains(&f) {
                     return self.name_ref(a);
+                }
+                if self.empty_texts.contains(&f) {
+                    // No text, no number: the source reads this only where a condition keeps it
+                    // from being used.
+                    self.issue(Code::ControlInput, Some("str2num of an empty text box is 0".into()));
+                    return atom("0");
                 }
             }
         }
@@ -4349,7 +4368,11 @@ impl Tr {
                 self.str_funcs.remove(&name);
                 self.str_mats.remove(&name);
                 self.num_texts.remove(&name);
+                self.empty_texts.remove(&name);
                 if let Some(c) = &m.control {
+                    if c.kind == "text box" && matches!(&c.value, Expr::Str(t) if t.trim().is_empty()) {
+                        self.empty_texts.insert(name.clone());
+                    }
                     if c.kind == "text box" && matches!(c.value, Expr::Num(_)) {
                         self.num_texts.insert(name.clone());
                     }
@@ -4869,6 +4892,7 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         str_mats: HashSet::new(),
         str_mat_ok: false,
         num_texts: HashSet::new(),
+        empty_texts: HashSet::new(),
         str_allow: false,
         gap_names: HashMap::new(),
         arrays: HashSet::new(),

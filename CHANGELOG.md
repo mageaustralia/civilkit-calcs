@@ -26,7 +26,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ### Changed
 - Import worksheet: an evaluation with a display unit is `((expr)/unit)*unit` instead of `(expr)|unit`. The source shows the named unit first and keeps the rest of the result's unit (a moment shown in `kip` is kip times length); the engine's `|` refused that as inconsistent units. Temperature units keep `|`.
-- Import worksheet: a bare `0` next to a quantity with units takes its units in `if` branches and in `max` and `min` (`0*getunits(x)`), as it already did in comparisons and plots.
+- Import worksheet: a bare `0` next to a quantity with units takes its units in `if` branches, in `max` and `min` and in sums (`0*getunits(x)`), as it already did in comparisons and plots. A list box is its selected position (from 0), as the worksheets compare it; an empty text box read by `str2num` is 0.
 - Import worksheet: a value that is an array (a function that returns a matrix) no longer goes into one element of a vector, which the engine refuses; the region is the `element-assignment` gap, with the reason.
 - Import worksheet: an equation's indent from the page margin is now a spacer that shrinks before the equation does, so in a preview narrower than the page a matrix placed far to the right keeps its full width instead of being squeezed into a thin scroll box.
 - A nested `if` result is spaced out: more line height and room between the nested braces, so the lines and braces no longer touch or overlap.
