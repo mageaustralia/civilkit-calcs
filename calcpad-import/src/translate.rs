@@ -3940,7 +3940,9 @@ impl Tr {
                 // Plotting over the index: a fractional parameter reads between two elements.
                 let at = self.index_expr(i);
                 let arr = self.operand(base, P_ATOM, true);
-                return atom(format!("line({}; {})", at, arr));
+                // Past the end of the array the plot stays on the last point (the source draws
+                // nothing there), so a shorter array does not leave the plot's units.
+                return atom(format!("line(min({}; len({})); {})", at, arr, arr));
             }
         }
         let b = self.operand(base, P_ATOM, true);
@@ -3948,7 +3950,13 @@ impl Tr {
             self.issue(Code::BadStructure, Some("index list".into()));
             return atom("?index?");
         }
-        let parts: Vec<String> = idx.iter().map(|i| self.index_expr(i)).collect();
+        let mut parts: Vec<String> = idx.iter().map(|i| self.index_expr(i)).collect();
+        if let (Some(pp), Expr::Name(_), 2) = (self.plot_param.clone(), base, idx.len()) {
+            // A plotted row index past the last row stays on the last row, as for a vector.
+            if !self.readable && !self.display && mentions(&idx[0], &pp) {
+                parts[0] = format!("min({}; n_rows({}))", parts[0], b);
+            }
+        }
         // Only a name can be followed by `.(i)`; the element of anything else (the result of a call,
         // a negated or scaled array) is `take(i; array)`, which needs no temporary.
         if !self.readable && !matches!(base, Expr::Name(_)) {
