@@ -139,6 +139,9 @@ pub enum FnRule {
     Log,
     /// `round(x)` or `round(x, digits)`.
     Round,
+    /// `Ceil(x, y)`: the smallest multiple of `y` that is not below `x`, with the named engine
+    /// function (`ceiling`, `floor`) of `x / y` times `y`.
+    Multiple(&'static str),
     /// `submatrix(A, ir, jr, ic, jc)`: the four indexes are shifted from the sheet's array origin.
     Submatrix,
 }
@@ -178,6 +181,8 @@ pub const FUNCTIONS: &[(&str, FnRule, usize, usize)] = &[
     ("ceil", FnRule::Direct("ceiling"), 1, 1),
     ("trunc", FnRule::Direct("trunc"), 1, 1),
     ("round", FnRule::Round, 1, 2),
+    ("Ceil", FnRule::Multiple("ceiling"), 2, 2),
+    ("Floor", FnRule::Multiple("floor"), 2, 2),
     ("mod", FnRule::Direct("mod"), 2, 2),
     ("min", FnRule::Direct("min"), 1, 64),
     ("max", FnRule::Direct("max"), 1, 64),

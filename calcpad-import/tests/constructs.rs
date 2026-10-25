@@ -935,3 +935,24 @@ fn a_matrix_that_carries_a_display_size_still_has_its_items() {
     assert_close(v[0], 4.0);
     assert_close(v[1], 2.0);
 }
+
+// ---- rounding to a multiple --------------------------------------------------------------------------------------
+
+#[test]
+fn ceil_and_floor_with_a_second_argument_round_to_a_multiple_of_it() {
+    // Ceil(37, 5) = 40, Floor(37, 5) = 35, and a length rounded up to whole metres keeps its unit: Ceil(7.3 m, m) = 8 m.
+    let res = convert(&[
+        define("a", &call("Ceil", &[r("37"), r("5")])),
+        eval(&n("a")),
+        define("b", &call("Floor", &[r("37"), r("5")])),
+        eval(&n("b")),
+        define("L", &times(&r("7.3"), &n("m"))),
+        eval(&app("div", &[call("Ceil", &[n("L"), n("m")]), n("m")])),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    // Each definition and each evaluation prints a line; the last of each pair is the value.
+    let v = last_numbers(&res, 6);
+    assert_close(v[1], 40.0);
+    assert_close(v[3], 35.0);
+    assert_close(v[5], 8.0);
+}

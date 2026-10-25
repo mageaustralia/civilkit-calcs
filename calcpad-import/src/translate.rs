@@ -4268,6 +4268,15 @@ impl Tr {
                     atom(format!("(ln({})/ln({}))", a[0], a[1]))
                 }
             }
+            FnRule::Multiple(name) => {
+                // Rounding to a multiple of the second argument (a unit, as a rule): the ratio is a plain
+                // number, and the multiple has the unit of the second argument.
+                self.issue(
+                    Code::RoundDigits,
+                    Some("rounded to a multiple of the second argument".into()),
+                );
+                atom(format!("({name}(({a})/({b}))*({b}))", a = a[0], b = a[1]))
+            }
             FnRule::Round => {
                 if a.len() == 1 {
                     atom(format!("round({})", a[0]))

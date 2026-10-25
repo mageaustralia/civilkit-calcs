@@ -724,6 +724,12 @@ fn every_mapped_function_runs_in_the_engine() {
     for (src, rule, lo, _) in FUNCTIONS {
         let target = match rule {
             FnRule::Direct(t) | FnRule::Trig(t) => *t,
+            // A rounding to a multiple is the engine function of a ratio, times the multiple.
+            FnRule::Multiple(t) => {
+                let html = engine_html(&format!("{t}(7/2)*2\n"));
+                assert!(!html.contains("class=\"err\""), "{src}: {html}");
+                continue;
+            }
             FnRule::Log => "log",
             FnRule::Round => "round",
             FnRule::Submatrix => "submatrix",

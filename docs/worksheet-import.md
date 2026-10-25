@@ -290,6 +290,7 @@ arguments are `arity-mismatch` gaps. Caveats are notes: `log(x, b)` becomes `(ln
 | ln, exp, sqrt, abs, sign, signum, floor, trunc, mod, min, max, gcd, lcm, if, identity, matrix, det, rank, augment, stack, sort, reverse, mean | same name (`signum` becomes `sign`) |
 | log(x) | `log(x)` (base 10) |
 | ceil | `ceiling` |
+| Ceil(x, y), Floor(x, y) | `ceiling((x)/(y))*(y)`, `floor((x)/(y))*(y)`: the smallest multiple of `y` not below `x` (the largest not above it), `y` a unit as a rule (`Ceil(L, in)` rounds a length up to whole inches); note `round-digits`. Read from how the worksheets use it (rounding a length to a unit); a stored result that is already a whole multiple does not tell the two readings apart |
 | Re, Im, arg | `re`, `im`, `phase` |
 | rnd | `random` |
 | linterp(xs, ys, x) | `interp(x; xs; ys)`: piecewise linear in the table; a value outside the table is an engine error where the source extrapolates |
