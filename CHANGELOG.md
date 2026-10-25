@@ -11,6 +11,8 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+## [26.10.10] - 2026-10-26
+
 ### Added
 - `polyroots(v)`: the real roots of a polynomial, ascending, from a coefficient vector with the constant term first (`v.1 + v.2*x + ...`). Complex roots are left out, since vectors hold real values. Listed among the editor's function snippets.
 - Sample "Laguerre polynomial roots" (Samples, Sheet syntax): coefficients from a loop, every real root from one `polyroots` call, a residual check and the curve.

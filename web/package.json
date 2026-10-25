@@ -1,6 +1,6 @@
 {
   "name": "calcpad-rs-web",
-  "version": "26.10.9",
+  "version": "26.10.10",
   "private": true,
   "description": "CivilKit Calcs: the CalcpadCE web frontend (MIT) running on a Rust WebAssembly engine",
   "license": "MIT",
