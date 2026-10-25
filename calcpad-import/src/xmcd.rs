@@ -542,6 +542,10 @@ pub(crate) fn read_math(m: Node, lim: &Limits) -> MathRegion {
             .children()
             .find(|c| c.is_element() && c.tag_name().name() == "resultFormat")
             .and_then(general_precision),
+        control: m
+            .descendants()
+            .find(|d| is_ml(*d) && crate::controls::is_control(local(*d)))
+            .and_then(|d| crate::controls::read_control(d, lim, 0)),
     }
 }
 
@@ -562,19 +566,29 @@ pub(crate) fn read_saved_expr(res: Node) -> Option<Expr> {
             return None;
         }
         let t = n.text()?.trim();
-        (!t.is_empty() && t.len() <= 64 && t.parse::<f64>().map(|v| v.is_finite()).unwrap_or(false))
+        // An empty cell of a table read from a file is stored as NaN; the translator reads it as 0.
+        (!t.is_empty() && t.len() <= 64 && (t == "NaN" || t.parse::<f64>().map(|v| v.is_finite()).unwrap_or(false)))
             .then(|| Expr::Num(t.to_string()))
+    }
+    // A text in a stored matrix (the headings of a table read from a file) or alone.
+    fn text(n: Node) -> Option<Expr> {
+        if local(n) != "str" {
+            return None;
+        }
+        let t = n.text().unwrap_or("");
+        (t.len() <= 200).then(|| Expr::Str(t.to_string()))
     }
     fn plain(n: Node) -> Option<Expr> {
         match local(n) {
             "real" => number(n),
+            "str" => text(n),
             "matrix" => {
                 let rows = n.attribute("rows")?.parse::<usize>().ok()?;
                 let cols = n.attribute("cols")?.parse::<usize>().ok()?;
                 let items: Vec<Expr> = n
                     .children()
                     .filter(|c| c.is_element())
-                    .map(number)
+                    .map(|c| number(c).or_else(|| text(c)))
                     .collect::<Option<_>>()?;
                 (rows >= 1 && cols >= 1 && rows.checked_mul(cols)? == items.len() && items.len() <= 4000)
                     .then_some(Expr::Matrix { rows, cols, items })
@@ -694,7 +708,7 @@ pub(crate) fn unwrap_provenance<'a, 'i>(mut n: Node<'a, 'i>) -> Node<'a, 'i> {
 fn unsupported_code(tag: &str) -> Option<Code> {
     Some(match tag {
         "program" | "ifThen" | "otherwise" | "for" | "while" | "break" | "continue" | "return" | "onError"
-        | "localDefine" | "if" | "elseif" | "else" | "tryCatch" => Code::ProgramBlock,
+        | "localDefine" | "if" | "elseif" | "alsoif" | "else" | "tryCatch" => Code::ProgramBlock,
         "symEval" | "symbolicEval" | "symbolic" | "keywordEval" => Code::SymbolicEvaluation,
         "derivative" | "integral" | "nthDerivative" | "partialDerivative" => Code::CalculusOperator,
         "sum" | "product" | "limit" | "iteratedSum" | "iteratedProduct" | "summation" => Code::SummationOperator,
@@ -968,6 +982,10 @@ pub(crate) fn read_expr(n: Node, lim: &Limits, depth: usize) -> Expr {
                 _ => unsupported(Code::ProgramBlock, "tryCatch"),
             }
         }
+        other if crate::controls::is_control(other) => match crate::controls::read_control(n, lim, depth) {
+            Some(c) => c.value,
+            None => unsupported(Code::UnknownElement, other),
+        },
         other => match unsupported_code(other) {
             Some(code) => Expr::Unsupported {
                 code,
@@ -1190,7 +1208,6 @@ fn read_pstmt(k: Node, lim: &Limits, depth: usize) -> PStmt {
                         Some(c) => branches.push((c, read_body(it, lim, depth))),
                         None => return bad("if"),
                     },
-                    // The package format spells "else if" `alsoif`.
                     "elseif" | "alsoif" => {
                         // Flatten its children into the list being walked.
                         let inner = ml_kids(it);
@@ -1207,6 +1224,11 @@ fn read_pstmt(k: Node, lim: &Limits, depth: usize) -> PStmt {
             PStmt::If { branches, otherwise }
         }
         "return" => match kids.as_slice() {
+            // `return x <- e` returns e (the assignment is over with the return).
+            [v] if local(unwrap_provenance(*v)) == "localDefine" => match ml_kids(unwrap_provenance(*v)).as_slice() {
+                [_, value] => PStmt::Return(read_expr(unwrap_provenance(*value), lim, depth + 1)),
+                _ => bad("return"),
+            },
             [v] => PStmt::Return(read_expr(unwrap_provenance(*v), lim, depth + 1)),
             _ => bad("return"),
         },
@@ -1302,15 +1324,12 @@ fn read_apply(n: Node, lim: &Limits, depth: usize) -> Expr {
         "nthRoot" if args.len() == 2 && local(args[0]) == "placeholder" => un(UnOp::Sqrt, &args[1..]),
         // The degree comes first, then the radicand (a cube root is `nthRoot(3, x)`).
         "nthRoot" if args.len() == 2 => Expr::Call(Name::new("nthRoot"), args.iter().map(&rd).collect()),
-        // `2.5%` is 2.5 of the percent unit.
-        "percent" if args.len() == 1 => Expr::Bin(
-            BinOp::Mul,
-            Box::new(rd(&args[0])),
-            Box::new(Expr::Name(Name {
-                unit: true,
-                ..Name::new("%")
-            })),
-        ),
+        // `x%` is x hundredths: the percent sign is a unit.
+        "percent" if args.len() == 1 => {
+            let mut u = Name::new("%");
+            u.unit = true;
+            Expr::Postfix(u, Box::new(rd(&args[0])))
+        }
         "factorial" => un(UnOp::Factorial, &args),
         "transpose" => un(UnOp::Transpose, &args),
         "vectorize" => un(UnOp::Vectorize, &args),

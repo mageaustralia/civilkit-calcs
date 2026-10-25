@@ -55,6 +55,8 @@ pub enum Code {
     AbsOfArray,
     CallAsMultiplication,
     UnitOverride,
+    UncoveredPath,
+    ControlInput,
     SiUnitScale,
     StaticPicture,
     SvgFallback,
@@ -124,6 +126,8 @@ impl Code {
         Code::AbsOfArray,
         Code::CallAsMultiplication,
         Code::UnitOverride,
+        Code::UncoveredPath,
+        Code::ControlInput,
         Code::SiUnitScale,
         Code::StaticPicture,
         Code::SvgFallback,
@@ -182,6 +186,8 @@ impl Code {
             AbsOfArray => "abs-of-array",
             CallAsMultiplication => "call-as-multiplication",
             UnitOverride => "unit-override",
+            UncoveredPath => "uncovered-path",
+            ControlInput => "control-input",
             SiUnitScale => "si-unit-scale",
             StaticPicture => "static-picture",
             SvgFallback => "svg-fallback",
@@ -197,8 +203,8 @@ impl Code {
         use Code::*;
         match self {
             GlobalDefinition | RangeLoop | FrozenValue | AngleMode | ArrayOrigin | OriginAssigned | LogBase
-            | RoundDigits | AbsOfArray | CallAsMultiplication | UnitOverride | SiUnitScale | StaticPicture
-            | SvgFallback | PlotStyle => Severity::Note,
+            | RoundDigits | AbsOfArray | CallAsMultiplication | UnitOverride | UncoveredPath | ControlInput
+            | SiUnitScale | StaticPicture | SvgFallback | PlotStyle => Severity::Note,
             XmlError | NotAWorksheet | InputTooLarge | UnsupportedContainer => Severity::Fatal,
             _ => Severity::Gap,
         }
@@ -218,7 +224,7 @@ impl Code {
             SummationOperator => "sum, product or limit operator",
             VectorizeOperator => "vectorize operator",
             MatrixOperator => "matrix column/row or vector sum operator",
-            StringValue => "string value; Calcpad has no string variables",
+            StringValue => "text value the engine cannot hold (texts are held as codes only to compare and to choose between; no joining, slicing or file names)",
             ConstraintEquation => "equation written as a constraint (an unknown to solve for, or a check): shown, not solved",
             BareExpression => "expression without a definition or evaluation operator (documentation or constraint)",
             ElementAssignment => "assignment to a matrix element",
@@ -257,6 +263,8 @@ impl Code {
                 "name applied like a function but defined as a variable: converted as multiplication"
             }
             UnitOverride => "result shown in a unit: converted to a `|unit` conversion",
+            UncoveredPath => "a program path that no condition covers (the source stops there): that path is undefined, never another branch's value",
+            ControlInput => "input control: its stored value is the input; the options and the script behind it are not carried",
             SiUnitScale => "the SI unit of a quantity is read as the unit it is held in: the same number only when that unit is the SI one or the scale cancels in the result",
             StaticPicture => "shown as a static picture of the original (not live, not editable)",
             SvgFallback => "metafile could not be converted to SVG (failed or too large): the raster picture is used",

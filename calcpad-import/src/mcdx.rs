@@ -227,7 +227,6 @@ pub fn read(bytes: &[u8], limits: Limits) -> Result<Sheet, McdxError> {
         results,
         lim: &limits,
         component_names: std::cell::RefCell::new(Vec::new()),
-        shift: std::cell::Cell::new(0.0),
     };
 
     let mut regions = Vec::new();
@@ -236,6 +235,8 @@ pub fn read(bytes: &[u8], limits: Limits) -> Result<Sheet, McdxError> {
             ctx.collect_region(r, 0, None, &mut regions);
         }
     }
+
+    place_hidden_regions(&mut regions);
 
     // Page headers and footers are not part of the calculation; say so rather than dropping them.
     for (file, tag) in [("header.xml", "header"), ("footer.xml", "footer")] {
@@ -269,6 +270,41 @@ pub fn read(bytes: &[u8], limits: Limits) -> Result<Sheet, McdxError> {
     })
 }
 
+/// Regions with no size on the page (the ones inside a collapsed area) keep the position of the
+/// area's header, which is not where they are calculated: the file lists them in calculation order.
+/// Each takes the place of the last region with a size that precedes it in the file, in file order,
+/// so a name defined in a hidden region is defined before the regions after it use it.
+fn place_hidden_regions(regions: &mut [Region]) {
+    // The file lists regions in the order they are calculated. For regions that have a size the page
+    // agrees, so their own positions stand, except where one is listed after a region lower on the
+    // page: it follows that one. A region with no size takes the largest top seen so far. Before any
+    // region with a size, hidden ones go to the top of the page, in file order.
+    let mut max: Option<(f64, f64)> = None;
+    let mut seq = 0u32;
+    for r in regions.iter_mut() {
+        let hidden = r.height <= 0.0 && matches!(r.kind, RegionKind::Math(_));
+        match max {
+            Some((top, left)) if hidden || r.top < top - 4.0 => {
+                seq += 1;
+                r.top = top;
+                r.left = left + 0.001 * f64::from(seq);
+                r.baseline = None;
+            }
+            _ if hidden => {
+                seq += 1;
+                r.top = -1.0e6;
+                r.left = 0.001 * f64::from(seq);
+                r.baseline = None;
+            }
+            Some((top, _)) if r.top <= top => {}
+            _ => {
+                max = Some((r.top, r.left));
+                seq = 0;
+            }
+        }
+    }
+}
+
 struct Ctx<'a, 'd> {
     zip: &'a Archive<'a>,
     /// Relationship id to (part name, relationship kind).
@@ -277,11 +313,6 @@ struct Ctx<'a, 'd> {
     lim: &'a Limits,
     /// Names defined inside components that are skipped.
     component_names: std::cell::RefCell<Vec<Name>>,
-    /// How far the regions that follow, in the frame being read, are moved down because a collapsed
-    /// area before them is read open. The regions after a collapsed area sit where the page puts them
-    /// with the area closed, but the area's own regions are positioned as if it were open, and the
-    /// sheet is calculated with the area's regions at the area's place in the document order.
-    shift: std::cell::Cell<f64>,
 }
 
 fn num_attr(n: Node, names: &[&str]) -> Option<f64> {
@@ -307,7 +338,7 @@ impl Ctx<'_, '_> {
         // order is stable for equal positions).
         let (pl, pt) = parent.unwrap_or((0.0, 0.0));
         let left = pl + num_attr(r, &["left"]).unwrap_or(0.0);
-        let top = pt + num_attr(r, &["top"]).unwrap_or(0.0) + self.shift.get();
+        let top = pt + num_attr(r, &["top"]).unwrap_or(0.0);
         let width = num_attr(r, &["width", "actualWidth"]).unwrap_or(0.0).max(0.0);
         let height = num_attr(r, &["height", "actualHeight"]).unwrap_or(0.0).max(0.0);
         let mk = |kind: RegionKind| Region {
@@ -383,14 +414,11 @@ impl Ctx<'_, '_> {
                     out.push(mk(RegionKind::Other(format!("xaml{s}"))));
                 }
                 if let Some(nested) = c.children().find(|k| is_ws(*k, "regions")) {
-                    // Regions inside a text region sit where the text does: no area shift.
-                    let outer = self.shift.replace(0.0);
                     for n in nested.children().filter(|k| is_ws(*k, "region")) {
                         if depth < lim.max_depth {
                             self.collect_region(n, depth + 1, Some((left, top)), out);
                         }
                     }
-                    self.shift.set(outer);
                 }
             }
             "picture" => {
@@ -408,21 +436,11 @@ impl Ctx<'_, '_> {
             // A collapsible area only groups regions: they are read as if they stood on the page.
             "Area" => {
                 if let Some(nested) = c.children().find(|k| is_ws(*k, "regions")) {
-                    let collapsed = c.attribute("IsCollapsed").map(str::trim) == Some("true");
-                    let start = out.len();
-                    let outer = self.shift.replace(0.0);
                     for n in nested.children().filter(|k| is_ws(*k, "region")) {
                         if depth < lim.max_depth {
                             self.collect_region(n, depth + 1, Some((left, top)), out);
                         }
                     }
-                    // A collapsed area is read open: what follows it moves down by the height its
-                    // regions take, so they stay after the area's regions as the sheet is calculated.
-                    let extent = out[start..]
-                        .iter()
-                        .map(|g| g.top - top + g.height)
-                        .fold(0.0_f64, f64::max);
-                    self.shift.set(outer + if collapsed { extent } else { 0.0 });
                 }
             }
             "plot" => out.push(mk(RegionKind::Plot(crate::plotread::read_plot(c, lim)))),
@@ -502,6 +520,7 @@ impl Ctx<'_, '_> {
                 saved_expr: None,
                 frozen: true,
                 precision: None,
+                control: None,
             }),
         })
     }
@@ -704,8 +723,14 @@ fn inline(n: Node, fmt: &Run, pieces: &mut Vec<Piece>, skipped: &mut Vec<String>
             }
         } else if c.is_element() {
             match c.tag_name().name() {
-                "Run" => {
-                    let rf = format_of(c, fmt);
+                // A subscript or superscript run (the attributes say which, as on a plain run).
+                "Run" | "SubscriptRun" | "SuperscriptRun" => {
+                    let mut rf = format_of(c, fmt);
+                    match c.tag_name().name() {
+                        "SubscriptRun" => rf.sub = true,
+                        "SuperscriptRun" => rf.sup = true,
+                        _ => {}
+                    }
                     inline(c, &rf, pieces, skipped, depth + 1, lim);
                 }
                 "LineBreak" => pieces.push(Piece::Break),

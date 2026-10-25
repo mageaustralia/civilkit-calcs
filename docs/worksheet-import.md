@@ -177,11 +177,24 @@ kind of unconverted region and checks that it only ever appears inside a marked 
 | `x ≡ expr` (global) | `x = expr` at its reading-order position, with note `global-definition`. A global whose value is only numbers and units is also defined first, in a `#hide` block at the top, because a global holds wherever it is written (a use above it reads it). Other globals are not hoisted. |
 | `expr =` | the bare expression |
 | `x := expr =` | `x = expr` (a display unit on the result is dropped) |
-| `expr = ` with a display unit | `(expr)\|unit`, note `unit-override` |
+| `expr = ` with a display unit | `((expr)/unit)*unit`, note `unit-override`. The source takes the unit as the part of the result's unit to show first and keeps the rest (`kip` on a moment shows kip times length); the engine's `\|` conversion refuses a unit of another dimension. A temperature unit keeps `\|` because of its offset. |
 | `f(a, b) := expr` | `f(a; b) = expr` |
 | `+ - * /`, powers, unary minus, factorial, comparison, and/or/xor | the same operators, with parentheses added from the tree, never from the source |
 | `sqrt`, `\|x\|` | `sqrt(x)`, `abs(x)` (note `abs-of-array` when the operand is a known matrix or vector) |
 | `x_i`, `ρ_tp` (literal subscripts), Greek names | `x_i`, `ρ_tp` |
+| A name the engine cannot spell (dots, `#`, `/`, `:`, spaces, a leading digit: `SF_crack.step2`, `U/R_twist`, `Rod#_top`) | One engine spelling for the whole sheet, `SF_crack_step2`, `U_R_twist`, `RodNum_top`: every other character becomes an underscore, `#` reads "Num", `%` "pct", a leading digit gets a `v`, and runs of underscores collapse. The spelling is chosen once per distinct original (in order of first appearance) and applied to definitions, uses, function names and parameters, program locals, plot expressions and input components alike (`importer::names`). When it equals a name already in the sheet, or would be read as a unit, a constant or an engine function, `_2`, `_3` (or `_v`) is added. The typeset equations show the original: `SF` with the subscript `crack.step2`. A name that carries a superscript caret (text the reader cannot take for a name) stays an `invalid-name` gap. |
+| Text values (`"OK"`, `"NG"`) | Held as whole numbers, the code of the literal in a table of the sheet: `Check := if(x >= 2; "OK"; "NG")` is `Check = if(x ≥ 2; 1; 2)`; two texts are equal when their codes are; a function that returns one works the same. The page shows the author's equation and, for an evaluation of a text, the text of the current code, chosen by an `#if` chain over the texts that name can hold. Which names hold texts is tracked in reading order, so a name that is a number before and a text after (a selection index replaced by its label) is read at each point as what it is there. A matrix literal that mixes text labels with numbers keeps its numbers and holds the labels as codes (a printed evaluation of such a matrix is the `string-value` gap). A text used as a number, joined, sliced, or given to a function (a file name) is the `string-value` gap. |
+| Input controls: combo box, text box, list box | The control's stored value is the input: `x := <control>` becomes `x = <stored value>`. A combo box gives the value of the selected row (times the control's scale factor, a unit as a rule), a text box its text (a number when the text is one, otherwise a text value as above; `str2num` of a number-text box is the number), a list box the position of the selected item, counted from 0 (the worksheets compare it with whole numbers). A note line above the equation says what was taken (`combo box input, stored selection "..." of 3 options`) and the note `control-input` is added; the options, the script behind the control and its links to other names are not carried. A button holds no value and stays an `unknown-element` gap. |
+| A program whose value is its last `if` (`if a {x}`, then `if b {y}`, no `else`), with `alsoif` as `else if`, and `return v <- e` | The value of a program is the last expression it evaluates, so the chain is `if(b; y; if(a; x; ...))`: a later `if` that runs wins. A path along which no `if` ran has no value in the source (it stops there); the engine takes the value of the neighbouring branch there and the region carries the note `uncovered-path`. A local that is only ever given texts (a message set by `if`s) is the empty text on such a path instead. |
+| A program that ends with an assignment (`Fc <- Fc*ksi`), or a block inside a block | The assignment gives its value. A block in a block runs in place. A run of `if`s that only give values is one chain however many there are (no path is copied for the statements after it). |
+| `T := READEXCEL(...)` or `READPRN(...)`: a table read from a data file | The importer cannot see the file, so the table is the value the worksheet saved where it shows it (`T =` further down), as a literal, with the note `frozen-value` and a line that says so. A heading becomes a text code and an empty cell (stored as NaN) is read as 0, which the line counts. The file names in these calls are not text values: a read with nothing saved for it is the `builtin-missing` gap. |
+| A local read on a path where no statement set it (`val` after `if n = 1 {val <- 1}`) | No value there (the source stops): that path is undefined (the engine's not-a-number), never a neighbouring branch's value, note `uncovered-path`. Only for a name the sheet has no value for; a local that shadows a name the sheet defines is not treated this way. |
+| A chained comparison `a < b <= c` | `(a < b) ∧ (b ≤ c)` |
+| A text on its own in a math region | A quiet line showing the text (a label the author put in the worksheet) |
+| `x%` | `x*%` (the percent sign is a unit) |
+| `nthRoot` with a degree (`nthRoot(3; x)`) | `x^(1/3)`; the degree is the first operand, as the empty first slot of the square root shows |
+| `plf`, `pcf`, `klf`, `kcf`, `pli`, `kips` | `(lbf/ft)`, `(lbf/ft^3)`, `(kip/ft)`, `(kip/ft^3)`, `(lbf/in)`, `kip` |
+| A bare `0` against a quantity with units: `if(c; 0; x)`, `max(0; x)`, `x ≡ 0`, `0 - x` | `0*getunits(x)`: the source lets a literal zero take the units of the other operand, the engine wants them equal. `getunits` reads the unit without evaluating the value, so a guard such as `if(s = 0; 0; m/s)` stays safe. |
 | Vector, matrix literal | `[a; b; c]`, `[a; b\|c; d]`, a row vector as `transp([a\|b\|c])`. The file stores matrices column by column; the importer reads them that way. The engine keeps vectors and matrices apart (`len`, `max` and one-index access want a vector), so the transpose of a row literal is written as the column vector `[a; b; c]` and a double transpose is the operand. |
 | Product of two column vectors (`u(i) * Θ(i)`, a scalar times either) | `dot(a; b)`: the source multiplies two column vectors as a dot product, the engine's `*` of two vectors is element by element. Applied when both operands are statically column vectors (a column literal, a transposed row literal, or a name or function the importer saw defined as one); two arrays whose shape is not known keep `*`. |
 | `[A, B] := [1, 2]` (a matrix of names) | One definition per name, each from the item in its place; the matrix must be a literal of the same size. |
@@ -226,6 +239,12 @@ sit on, then by their left edge; position is used only for this and then dropped
   A tall region next to a short one shares the short one's baseline while its top edge is higher, so
   sorting by top alone puts a use before the definition to its left. Real files do this.
 * Regions whose keys are within 4 points of the first region of a row are one row.
+* **`.mcdx` regions with no size** (the ones inside a collapsed area, about half of the regions of a large design
+  program) keep the position of the area's header, which is not where they are calculated: the file lists regions in
+  calculation order. A region with no size takes the largest top seen so far among the regions before it in the
+  file, so the order it is listed in is the order it is calculated in; a region that has a size and is listed after
+  a region lower on the page follows that region. On design programs of this kind a name read before the region that
+  defines it is rare in file order and common in page order.
 
 ### Layout
 
@@ -266,6 +285,7 @@ arguments are `arity-mismatch` gaps. Caveats are notes: `log(x, b)` becomes `(ln
 | ceil | `ceiling` |
 | Re, Im, arg | `re`, `im`, `phase` |
 | rnd | `random` |
+| linterp(xs, ys, x) | `interp(x; xs; ys)`: piecewise linear in the table; a value outside the table is an engine error where the source extrapolates |
 | rows, cols, length | `n_rows`, `n_cols`, `len` |
 | norm2 | `norm_2` |
 
@@ -374,7 +394,7 @@ summary key on them.
 | `symbolic-evaluation` | Symbolic evaluation |
 | `calculus-operator` | Derivative and integral operators that do not meet the conditions under What converts (the detail names which); other derivative forms |
 | `summation-operator`, `vectorize-operator`, `matrix-operator` | A sum or product that does not meet the conditions under What converts, limits; vectorize over an element-by-element product or quotient of arrays; column/row, dot, cross and magnitude operators |
-| `string-value` | Strings; Calcpad has no string variables |
+| `string-value` | A text the engine cannot hold as a code: used as a number, joined, sliced, given to a function (a file name), or a matrix of texts and numbers that is printed |
 | `bare-expression` | An expression with no definition or evaluation operator (documentation) |
 | `constraint-equation` | An equation on its own (`f_B = c*L + d`): a solve block's equation or a check. Shown with its real names, not solved |
 | `element-assignment`, `disabled-region` | `v[i] := x`; a region switched off in the source |
@@ -389,7 +409,7 @@ summary key on them.
 | `invalid-name`, `bad-number`, `arity-mismatch`, `bad-structure`, `too-deep` | Structure the importer will not guess |
 
 Notes (the region converted, with a caveat): `global-definition`, `angle-mode`, `array-origin`,
-`origin-assigned`, `log-base`, `round-digits`, `abs-of-array`, `call-as-multiplication`, `unit-override`, `si-unit-scale`, `range-loop`.
+`origin-assigned`, `log-base`, `round-digits`, `abs-of-array`, `call-as-multiplication`, `unit-override`, `control-input`, `uncovered-path`, `si-unit-scale`, `range-loop`.
 Whole-file problems: `xml-error`, `not-a-worksheet`, `input-too-large`, `unsupported-container` (a zip that is damaged,
 encrypted or uses a zip feature the reader refuses).
 
@@ -493,12 +513,9 @@ What the reader does with the package:
 * **Programs** (`if`, `for`, `while`, `return`, try/catch, local definitions) convert as in `.xmcd` where the
   rules above allow, and are `program-block` gaps otherwise; `alsoif` is `elseif`; `summation` is read like the
   `.xmcd` sum, with its limits as `lowerBound` and `upperBound` elements.
-* **Collapsible areas** only group regions: their regions are positioned relative to the area. A closed area's
-  regions are laid out as if it were open, but the regions after it sit where the page puts them with the area
-  closed, and the sheet is calculated with the area's regions at the area's place. So a closed area is read open:
-  the regions after it move down by the height of its regions, and a name defined late inside the area is
-  defined before what follows the area uses it (a range variable defined at the bottom of an area, read by a
-  region after it, is the usual case). An open area leaves what follows it where it is.
+* **Collapsible areas** only group regions: their regions are read as if on the page, positioned relative to
+  the area; regions with no size (inside a closed area) are placed by the file's order (see the reading order of
+  regions with no size).
 * **Pictures** with a PNG convert like `.xmcd` pictures (the PNG is stored in the library). The package carries no
   cached rendering of a region, so an unconverted region is a placeholder line, never a static picture.
 

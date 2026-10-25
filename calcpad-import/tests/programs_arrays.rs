@@ -731,3 +731,24 @@ fn a_chained_comparison_is_a_conjunction() {
     assert_close(nums[k - 2], 20.0);
     assert_close(nums[k - 1], 20.0);
 }
+
+#[test]
+fn sequential_ifs_that_set_locals_keep_the_value_of_the_one_that_ran() {
+    // dr is set by whichever of three ifs holds (k = 0, 1 or 2); the program's value is the last
+    // statement that ran, here the one assignment. f(0) = 10, f(1) = 20, f(2) = 30; and no later if
+    // that does not hold may hide it.
+    let one = |k: &str, v: &str| if_then(&app("equal", &[n("k"), r(k)]), &[local("dr", &r(v))]);
+    let body = program(&[one("0", "10"), one("1", "20"), one("2", "30")]);
+    let res = convert(&[
+        func("f", &["k"], &body),
+        eval(&call("f", &[r("0")])),
+        eval(&call("f", &[r("1")])),
+        eval(&call("f", &[r("2")])),
+    ]);
+    clean(&res);
+    let nums = numbers(&res.calcpad);
+    let m = nums.len();
+    assert_close(nums[m - 3], 10.0);
+    assert_close(nums[m - 2], 20.0);
+    assert_close(nums[m - 1], 30.0);
+}

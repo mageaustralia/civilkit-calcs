@@ -314,7 +314,7 @@ fn unit_override_with_a_unit_is_a_conversion() {
         r#"<ml:define><ml:id>p</ml:id><ml:apply><ml:mult/><ml:real>100</ml:real><ml:id>kPa</ml:id></ml:apply></ml:define>"#,
         r#"<ml:eval><ml:id>p</ml:id><ml:unitOverride><ml:id>psi</ml:id></ml:unitOverride></ml:eval>"#,
     ]);
-    assert_eq!(lines(&res)[1], "p|psi");
+    assert_eq!(lines(&res)[1], "(p/psi)*psi");
     assert!(res.report.notes().any(|i| i.code == Code::UnitOverride));
 }
 
@@ -633,8 +633,8 @@ fn a_collapsible_area_is_read_through() {
     let regions = r#"<region region-id="1" top="100" left="0" width="600" height="1"><Area IsCollapsed="true"><regions><region region-id="2" top="30" left="10"><math resultRef="2"><ml:define><ml:id>b</ml:id><ml:real>2</ml:real></ml:define></math></region><region region-id="3" top="10" left="10"><math resultRef="3"><ml:define><ml:id>a</ml:id><ml:real>1</ml:real></ml:define></math></region></regions></Area></region>
         <region region-id="4" top="50" left="0"><math resultRef="4"><ml:define><ml:id>c</ml:id><ml:real>0</ml:real></ml:define></math></region>"#;
     let res = Pkg::new(regions).import();
-    // Positions inside the area are relative to it, so its children come after the region at 50.
-    assert_eq!(lines(&res), vec!["c = 0", "a = 1", "b = 2"]);
+    // None of the three has a size, so they are calculated in the order the file lists them.
+    assert_eq!(lines(&res), vec!["b = 2", "a = 1", "c = 0"]);
     assert_eq!(res.report.regions_needing_attention(), 0);
 }
 
@@ -883,7 +883,8 @@ fn hostile_text_in_names_and_prose_only_reaches_the_output_escaped() {
         .part(part("ws/xaml/FlowDocument1.XamlPackage", xaml))
         .import();
     assert!(!res.calcpad.contains("<script"), "{}", res.calcpad);
-    assert!(res.report.gaps().any(|i| i.code == Code::InvalidName));
+    // The name is spelled for the engine; the markup in it never reaches the page.
+    assert!(!res.calcpad.contains("evil'<"), "{}", res.calcpad);
 }
 
 #[test]
@@ -952,7 +953,8 @@ fn a_definition_read_from_an_input_component_takes_the_saved_value() {
     assert_eq!(res.report.frozen_values, 2, "{:?}", res.report.issues);
     assert!(res.report.notes().any(|i| i.code == Code::FrozenValue));
     assert!(
-        res.calcpad.contains("input component (frozen, not live)"),
+        res.calcpad
+            .contains("input component or a data file (frozen, not live)"),
         "{}",
         res.calcpad
     );
@@ -1253,4 +1255,76 @@ fn a_range_that_is_not_all_numbers_or_not_in_the_workbook_is_not_read() {
     }
     let res = p.part(part("ws/excel/x.ole", ole)).import();
     assert!(res.calcpad.contains("Inp = [1; 0|3; 0]"), "{}", res.calcpad);
+}
+
+#[test]
+fn subscript_and_superscript_runs_are_read_as_text() {
+    let region = r#"<region region-id="1" top="0" left="0" width="400"><text is-text-block="true"><FlowDocument xmlns="http://example.invalid/presentation"><Paragraph><Run>A</Run><SubscriptRun Typography.Variants="Subscript">cr</SubscriptRun><Run> and B</Run><SuperscriptRun>2</SuperscriptRun></Paragraph></FlowDocument></text></region>"#;
+    let res = Pkg::new(region).import();
+    let l = res.calcpad.lines().find(|x| x.contains("and B")).expect("line");
+    assert!(l.contains("<sub>cr</sub>") && l.contains("<sup>2</sup>"), "{l}");
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(!res.report.issues.iter().any(|i| i.code == Code::RichTextElement));
+}
+
+#[test]
+fn a_table_read_from_a_data_file_takes_the_value_saved_where_the_sheet_shows_it() {
+    // T := READEXCEL(file; range) has no result of its own; `T =` further down has the table
+    // (a heading, numbers and an empty cell stored as NaN).
+    let regions = [
+        mregion(
+            1,
+            0.0,
+            r#"<ml:define><ml:id>T</ml:id><ml:apply><ml:id>READEXCEL</ml:id><ml:sequence><ml:str>data.xlsx</ml:str><ml:str>A1:B2</ml:str></ml:sequence></ml:apply></ml:define>"#,
+        ),
+        mregion(2, 20.0, r#"<ml:eval><ml:id>T</ml:id></ml:eval>"#),
+        mregion(
+            3,
+            40.0,
+            r#"<ml:define><ml:id>s</ml:id><ml:apply><ml:indexer/><ml:id>T</ml:id><ml:sequence><ml:real>1</ml:real><ml:real>0</ml:real></ml:sequence></ml:apply></ml:define>"#,
+        ),
+    ]
+    .concat();
+    let mut p = Pkg::new(&regions);
+    p.results = [
+        r#"<resultData result-id="1"/>"#,
+        r#"<resultData result-id="2"><ml:result><ml:matrix rows="2" cols="2"><ml:str>Case</ml:str><ml:real>7</ml:real><ml:real>NaN</ml:real><ml:real>9</ml:real></ml:matrix></ml:result></resultData>"#,
+    ]
+    .concat();
+    let res = p.import();
+    assert_eq!(res.report.frozen_values, 1, "{:?}", res.report.issues);
+    assert!(
+        res.calcpad
+            .contains("data file (frozen, not live; 1 empty cells read as 0)"),
+        "{}",
+        res.calcpad
+    );
+    // The heading is a code, the numbers are the file's; the table is stored by columns.
+    assert!(res.calcpad.contains("T = [1; 0|7; 9]"), "{}", res.calcpad);
+    // The read itself no longer blocks; printing a table that holds a heading does.
+    assert!(!res.report.gaps().any(|i| i.code == Code::BuiltinMissing));
+    assert_eq!(res.report.regions_needing_attention(), 1, "{:?}", res.report.issues);
+}
+
+#[test]
+fn regions_without_a_size_are_calculated_in_the_order_the_file_lists_them() {
+    // `a` is defined in a collapsed region (no size) whose stored top is far below the regions that
+    // use it; the file lists it first, so it is defined when they read it.
+    let hidden = r#"<region region-id="1" top="900" left="0"><math resultRef="1"><ml:define><ml:id>a</ml:id><ml:real>4</ml:real></ml:define></math></region>"#;
+    let visible = |id: u32, top: f64, inner: &str| {
+        format!(
+            r#"<region region-id="{id}" top="{top}" left="0" actualWidth="50" actualHeight="20"><math resultRef="{id}">{inner}</math></region>"#
+        )
+    };
+    let regions = [
+        hidden.to_string(),
+        visible(2, 100.0, r#"<ml:define><ml:id>b</ml:id><ml:apply><ml:mult/><ml:id>a</ml:id><ml:real>2</ml:real></ml:apply></ml:define>"#),
+        visible(3, 140.0, r#"<ml:eval><ml:id>b</ml:id></ml:eval>"#),
+    ]
+    .concat();
+    let res = Pkg::new(&regions).import();
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let ia = res.calcpad.find("a = 4").expect("a defined");
+    let ib = res.calcpad.find("b = a*2").expect("b defined");
+    assert!(ia < ib, "{}", res.calcpad);
 }

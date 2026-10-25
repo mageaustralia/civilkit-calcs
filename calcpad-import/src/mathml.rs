@@ -36,7 +36,7 @@ fn atom(s: String) -> M {
     }
 }
 
-fn esc(s: &str) -> String {
+pub(crate) fn esc(s: &str) -> String {
     let mut o = String::with_capacity(s.len());
     for c in s.chars() {
         match c {
@@ -154,7 +154,17 @@ impl MathMl<'_> {
     fn name(&self, n: &Name, kind: Kind) -> String {
         let unit = kind == Kind::Unit || (kind == Kind::Auto && (self.is_unit)(n));
         let as_function = kind == Kind::Func;
-        let shown = (self.original)(&n.base).unwrap_or_else(|| n.base.clone());
+        let mut shown = (self.original)(&n.base).unwrap_or_else(|| n.base.clone());
+        // A name the engine cannot spell is shown as the author wrote it, subscript included.
+        let mut own_sub: Option<String> = None;
+        if n.sub.is_none() {
+            if let Some((b, s)) = shown.split_once('_') {
+                if !b.is_empty() && !s.is_empty() {
+                    own_sub = Some(s.to_string());
+                    shown = b.to_string();
+                }
+            }
+        }
         let (stem, primes) = split_primes(&shown);
         let mut base = if unit {
             format!("<mi mathvariant=\"normal\" class=\"ru\">{}</mi>", esc(&stem))
@@ -167,7 +177,7 @@ impl MathMl<'_> {
         if primes > 0 {
             base = format!("<msup>{base}<mo>{}</mo></msup>", "\u{2032}".repeat(primes));
         }
-        match n.sub.as_deref().filter(|s| !s.is_empty()) {
+        match n.sub.as_deref().filter(|s| !s.is_empty()).or(own_sub.as_deref()) {
             Some(s) => format!("<msub>{base}{}</msub>", row(&[&sub_text(s)])),
             None => base,
         }

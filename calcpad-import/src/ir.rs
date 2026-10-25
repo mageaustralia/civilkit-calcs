@@ -177,6 +177,8 @@ pub struct MathRegion {
     pub frozen: bool,
     /// The decimal places the file shows this region's result with (its own result format).
     pub precision: Option<i32>,
+    /// The input control this definition was set from, when it was one.
+    pub control: Option<Control>,
 }
 
 /// A stored scalar result: the number (or string) as written, and its unit in the source's spelling.
@@ -497,4 +499,18 @@ impl Stmt {
             Stmt::Unsupported { .. } => {}
         }
     }
+}
+
+/// An input control (combo box, text box, list box) a definition was set from. The reader puts the
+/// control's stored value where the control stood; this says what it was.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Control {
+    /// `combo box`, `text box` or `list box`.
+    pub kind: String,
+    /// The stored value, as an expression (a number, a text, or a number times a unit).
+    pub value: Expr,
+    /// The stored selection or text, as the control shows it.
+    pub chosen: Option<String>,
+    /// How many options the control offered (0 for a text box).
+    pub options: usize,
 }

@@ -49,6 +49,7 @@ fn main() -> ExitCode {
     let shown_errors = {
         let mut p = calcpad_core::parsers::expression_parser::ExpressionParser::new();
         p.debug = true;
+        p.plot_settings.vector_graphics = true;
         p.parse(&r.calcpad, true);
         p.errors_list.len() + p.html_result.matches("class=\"err\"").count()
     };
@@ -59,6 +60,7 @@ fn main() -> ExitCode {
     }
     let mut parser = calcpad_core::parsers::expression_parser::ExpressionParser::new();
     parser.debug = true;
+    parser.plot_settings.vector_graphics = true;
     parser.parse(&code, true);
     let _ = std::fs::write(format!("{}.cpd", args[2]), &code);
     parser.debug = true;
@@ -66,6 +68,12 @@ fn main() -> ExitCode {
         "engine errors: shown form {shown_errors}, computed form {}",
         parser.errors_list.len() + parser.html_result.matches("class=\"err\"").count()
     );
+    for e in &parser.errors_list {
+        eprintln!(
+            "error at output line {} (source line {}): {}",
+            e.output_line, e.source_line, e.message
+        );
+    }
     let _ = std::fs::write(format!("{}.html", args[2]), &parser.html_result);
     ExitCode::SUCCESS
 }
@@ -193,6 +201,7 @@ fn with_probes(regions: Vec<Region>, pairs: &mut String) -> Vec<Region> {
                         saved_expr: None,
                         frozen: false,
                         precision: None,
+                        control: None,
                     }),
                     ..r.clone()
                 };

@@ -16,6 +16,7 @@ use crate::tables::{self, Constant, FnRule};
 use crate::{Asset, ImportOptions};
 
 mod plot;
+mod strings;
 
 /// Every placeholder line starts with this (after the leading `'` that makes it a text line).
 pub const GAP_MARKER: &str = "[import-gap";
@@ -42,32 +43,118 @@ struct R {
 /// over a short literal range is unrolled. The program is then one expression, with no
 /// statements and no names of its own. `Err` says why a program is not that: a loop whose
 /// iterations are not known, an element write, `break`/`continue`, or too many paths.
-fn symexec_program(stmts: &[PStmt], unroll: bool) -> Result<Expr, String> {
+/// The marker for a path along which no statement gave a value (replaced before the result is used).
+const NO_VALUE: &str = "\u{1}no-value";
+
+/// The result of running a program symbolically: the expression, and whether some path of the
+/// program gave no value (the source stops there) and was given the value of a neighbouring path.
+fn symexec_program(stmts: &[PStmt], unroll: bool, known: &HashSet<String>) -> Result<(Expr, bool), String> {
     let mut budget = if unroll { 600usize } else { 600_000 };
-    symexec(stmts, &HashMap::new(), None, &mut budget, unroll)?
-        .ok_or_else(|| "the program does not end with a value".into())
+    // A local that is only ever given texts (a message set by `if`s) is the empty text where no
+    // `if` set it, so a path no condition covers has a value.
+    let mut env: HashMap<String, Expr> = HashMap::new();
+    for name in text_locals(stmts) {
+        env.insert(name, Expr::Str(String::new()));
+    }
+    // A local the sheet has no name for, read on a path where no statement set it, has no value
+    // there (the source stops).
+    let mut assigned: HashSet<String> = HashSet::new();
+    assigned_names(stmts, &mut assigned);
+    for name in assigned {
+        if !known.contains(&name) && !env.contains_key(&name) {
+            env.insert(name, Expr::Name(Name::new(NO_VALUE)));
+        }
+    }
+    let e = symexec(stmts, &env, None, &mut budget, unroll)?;
+    let mut uncovered = false;
+    match strip_no_value(e, &mut uncovered) {
+        Some(e) if mentions(&e, NO_VALUE) => {
+            Err("a local is used on a path where no statement gave it a value (the source would stop there)".into())
+        }
+        Some(e) => Ok((e, uncovered)),
+        None => Err("the program does not end with a value".into()),
+    }
 }
 
-const LOOP_NEEDS: &str = "a loop whose number of iterations is not a short literal range cannot be one expression";
-
-/// What a path with no value gives where another path of the same program has one. The source
-/// leaves the result undefined there; the engine's square root of a negative number is the same
-/// (not a number, shown as undefined), and `if` keeps it away from the paths that have a value.
+/// What a path with no value gives where another path of the same program has one: the engine's
+/// undefined (not a number), which `if` keeps away from the paths that have a value.
 fn no_value() -> Expr {
     Expr::Un(UnOp::Sqrt, Box::new(Expr::Num("-1".into())))
 }
 
-/// Symbolic run of `stmts`. A program's value is the value of the last statement it runs (an
-/// expression, or the value an assignment gives), so an `if` that only reaches one in one branch
-/// leaves the earlier value (or none) on the other. `Ok(None)` is a path that ends with no value
-/// at all.
+/// Replaces the paths that gave no value in an `if` chain by the undefined value. `None` when no
+/// path gave a value.
+fn strip_no_value(e: Expr, uncovered: &mut bool) -> Option<Expr> {
+    match e {
+        Expr::Name(ref n) if n.base == NO_VALUE => None,
+        Expr::Call(n, mut args) if n.base == "if" && n.sub.is_none() && args.len() == 3 => {
+            let b = strip_no_value(args.pop()?, uncovered);
+            let a = strip_no_value(args.pop()?, uncovered);
+            let c = args.pop()?;
+            match (a, b) {
+                (Some(a), Some(b)) => Some(Expr::Call(n, vec![c, a, b])),
+                // The source stops on a path that gave no value; the engine's undefined (a square root
+                // of a negative number) is the same, and never a neighbouring branch's number.
+                (Some(x), None) => {
+                    *uncovered = true;
+                    Some(Expr::Call(n, vec![c, x, no_value()]))
+                }
+                (None, Some(x)) => {
+                    *uncovered = true;
+                    Some(Expr::Call(n, vec![c, no_value(), x]))
+                }
+                (None, None) => None,
+            }
+        }
+        other => Some(other),
+    }
+}
+
+/// Locals of a program whose every assignment is a text literal.
+fn text_locals(stmts: &[PStmt]) -> Vec<String> {
+    fn walk(stmts: &[PStmt], text: &mut HashMap<String, bool>) {
+        for st in stmts {
+            match st {
+                PStmt::Local(PTarget::Var(n), e) => {
+                    let all = text.entry(tables::normalise_name(&n.flat())).or_insert(true);
+                    *all &= matches!(e, Expr::Str(_));
+                }
+                PStmt::Local(PTarget::Element { base, .. }, _) => {
+                    text.insert(tables::normalise_name(&base.flat()), false);
+                }
+                PStmt::For { var, body, .. } => {
+                    text.insert(tables::normalise_name(&var.flat()), false);
+                    walk(body, text);
+                }
+                PStmt::While { body, .. } => walk(body, text),
+                PStmt::If { branches, otherwise } => {
+                    for (_, b) in branches {
+                        walk(b, text);
+                    }
+                    if let Some(o) = otherwise {
+                        walk(o, text);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    let mut text: HashMap<String, bool> = HashMap::new();
+    walk(stmts, &mut text);
+    let mut v: Vec<String> = text.into_iter().filter(|(_, t)| *t).map(|(n, _)| n).collect();
+    v.sort();
+    v
+}
+
+const LOOP_NEEDS: &str = "a loop whose number of iterations is not a short literal range cannot be one expression";
+
 fn symexec(
     stmts: &[PStmt],
     env: &HashMap<String, Expr>,
     cur: Option<Expr>,
     budget: &mut usize,
     unroll: bool,
-) -> Result<Option<Expr>, String> {
+) -> Result<Expr, String> {
     if *budget == 0 {
         return Err("too many branches and loop iterations to write as one expression".into());
     }
@@ -79,21 +166,128 @@ fn symexec(
         match st {
             PStmt::Local(PTarget::Var(n), e) => {
                 let v = subst(e, &env).ok_or("a local's value would be captured by an integration variable")?;
-                env.insert(tables::normalise_name(&n.flat()), v.clone());
-                cur = Some(v);
+                // The value of a program is that of the last statement run, an assignment included.
+                cur = Some(v.clone());
+                env.insert(tables::normalise_name(&n.flat()), v);
             }
             PStmt::Local(PTarget::Element { .. }, _) => {
                 return Err(
                     "an element assignment needs an array built by statements, which an expression cannot hold".into(),
                 )
             }
-            PStmt::Return(e) => {
+            PStmt::Expr(e) if !rest.is_empty() => {
+                // The value of a program is the last expression it evaluates: this one stands
+                // unless a later statement gives another.
+                cur = Some(
+                    subst(e, &env)
+                        .ok_or_else(|| "a local's value would be captured by an integration variable".to_string())?,
+                );
+            }
+            PStmt::Expr(e) | PStmt::Return(e) => {
                 return subst(e, &env)
-                    .map(Some)
                     .ok_or_else(|| "a local's value would be captured by an integration variable".to_string());
             }
-            PStmt::Expr(e) => {
-                cur = Some(subst(e, &env).ok_or("a local's value would be captured by an integration variable")?);
+            PStmt::If { branches, otherwise }
+                if branches.iter().all(|(_, b)| matches!(b.as_slice(), [PStmt::Expr(_)]))
+                    && otherwise
+                        .as_ref()
+                        .is_none_or(|o| matches!(o.as_slice(), [PStmt::Expr(_)])) =>
+            {
+                // Every branch only gives a value: the value so far is that of the branch taken,
+                // or what it was. Nothing is copied for the rest of the program.
+                let value_of = |b: &[PStmt]| match b {
+                    [PStmt::Expr(e)] => subst(e, &env),
+                    _ => None,
+                };
+                let mut value = match otherwise {
+                    Some(o) => value_of(o),
+                    None => Some(cur.clone().unwrap_or_else(|| Expr::Name(Name::new(NO_VALUE)))),
+                }
+                .ok_or("a local's value would be captured by an integration variable")?;
+                for (c, b) in branches.iter().rev() {
+                    let cond = subst(c, &env).ok_or("a condition would capture a local")?;
+                    let v = value_of(b).ok_or("a local's value would be captured by an integration variable")?;
+                    value = Expr::Call(Name::new("if"), vec![cond, v, value]);
+                }
+                cur = Some(value);
+            }
+            PStmt::If { branches, otherwise }
+                if branches
+                    .iter()
+                    .map(|(_, b)| b)
+                    .chain(otherwise.iter())
+                    .all(|b| !b.is_empty() && b.iter().all(|x| matches!(x, PStmt::Local(PTarget::Var(_), _)))) =>
+            {
+                // Every branch only sets locals: each local becomes `if(c; value; ...)` over its
+                // old value, so the statements after the `if` are read once, not once per branch.
+                let none = || Expr::Name(Name::new(NO_VALUE));
+                let apply = |body: &[PStmt]| -> Result<(HashMap<String, Expr>, Option<Expr>), String> {
+                    let mut e = env.clone();
+                    let mut last = None;
+                    let mut changed: Vec<String> = Vec::new();
+                    for x in body {
+                        if let PStmt::Local(PTarget::Var(n), v) = x {
+                            let v =
+                                subst(v, &e).ok_or("a local's value would be captured by an integration variable")?;
+                            let key = tables::normalise_name(&n.flat());
+                            last = Some(v.clone());
+                            e.insert(key.clone(), v);
+                            changed.push(key);
+                        }
+                    }
+                    let mut out = HashMap::new();
+                    for k in changed {
+                        out.insert(k.clone(), e[&k].clone());
+                    }
+                    Ok((out, last))
+                };
+                let mut sets: Vec<(Expr, HashMap<String, Expr>, Option<Expr>)> = Vec::new();
+                for (c, b) in branches {
+                    let cond = subst(c, &env).ok_or("a condition would capture a local")?;
+                    let (vars, last) = apply(b)?;
+                    sets.push((cond, vars, last));
+                }
+                let other = match otherwise {
+                    Some(o) => Some(apply(o)?),
+                    None => None,
+                };
+                let mut names: Vec<String> = sets
+                    .iter()
+                    .flat_map(|(_, v, _)| v.keys().cloned())
+                    .chain(other.iter().flat_map(|(v, _)| v.keys().cloned()))
+                    .collect();
+                names.sort();
+                names.dedup();
+                for name in names {
+                    let mut value = other
+                        .as_ref()
+                        .and_then(|(v, _)| v.get(&name).cloned())
+                        .or_else(|| env.get(&name).cloned())
+                        .unwrap_or_else(none);
+                    for (c, v, _) in sets.iter().rev() {
+                        let old = value.clone();
+                        let taken = v
+                            .get(&name)
+                            .cloned()
+                            .unwrap_or_else(|| env.get(&name).cloned().unwrap_or_else(none));
+                        value = Expr::Call(Name::new("if"), vec![c.clone(), taken, old]);
+                    }
+                    env.insert(name, value);
+                }
+                {
+                    // The value so far is the last value the branch that ran set, or what it was
+                    // when no branch ran (a later `if` must not hide an earlier one that ran).
+                    let mut value = match &other {
+                        Some((_, last)) => last.clone().or_else(|| cur.clone()),
+                        None => cur.clone(),
+                    }
+                    .unwrap_or_else(none);
+                    for (c, _, last) in sets.iter().rev() {
+                        let taken = last.clone().or_else(|| cur.clone()).unwrap_or_else(none);
+                        value = Expr::Call(Name::new("if"), vec![c.clone(), taken, value]);
+                    }
+                    cur = Some(value);
+                }
             }
             PStmt::If { branches, otherwise } => {
                 let mut arms = Vec::new();
@@ -105,15 +299,11 @@ fn symexec(
                 }
                 let mut path: Vec<PStmt> = otherwise.clone().unwrap_or_default();
                 path.extend(rest.iter().cloned());
-                let fall = symexec(&path, &env, cur.clone(), budget, unroll)?;
-                if fall.is_none() && arms.iter().all(|(_, v)| v.is_none()) {
-                    return Ok(None);
-                }
-                let mut value = fall.unwrap_or_else(no_value);
+                let mut value = symexec(&path, &env, cur.clone(), budget, unroll)?;
                 for (cond, v) in arms.into_iter().rev() {
-                    value = Expr::Call(Name::new("if"), vec![cond, v.unwrap_or_else(no_value), value]);
+                    value = Expr::Call(Name::new("if"), vec![cond, v, value]);
                 }
-                return Ok(Some(value));
+                return Ok(value);
             }
             PStmt::For { var, range, body } => {
                 let Expr::Range {
@@ -154,7 +344,7 @@ fn symexec(
             PStmt::Unsupported(w) => return Err(format!("{w} is not read")),
         }
     }
-    Ok(cur)
+    Ok(cur.unwrap_or_else(|| Expr::Name(Name::new(NO_VALUE))))
 }
 
 fn subst(e: &Expr, env: &HashMap<String, Expr>) -> Option<Expr> {
@@ -1022,6 +1212,31 @@ struct Tr {
     origin: i64,
     defined: HashSet<String>,
     funcs: HashMap<String, usize>,
+    /// The text literals of the sheet; the engine holds a text as its 1-based position here.
+    str_table: Vec<String>,
+    /// Names that hold a text now, with the codes they can have.
+    str_vars: HashMap<String, Vec<usize>>,
+    /// Functions that return a text, with the codes they can return.
+    str_funcs: HashMap<String, Vec<usize>>,
+    /// Functions whose value is an array (a matrix literal, or an `if` that gives one).
+    array_funcs: HashSet<String>,
+    /// Matrices that hold texts as codes among their numbers (labels of a data table), and whether
+    /// the matrix literal being translated may do so.
+    str_mats: HashSet<String>,
+    str_mat_ok: bool,
+    /// Text boxes whose stored text is a number: `str2num` of such a name is the name.
+    num_texts: HashSet<String>,
+    /// Text boxes that hold no text: `str2num` of one is 0 (the source has no number there).
+    empty_texts: HashSet<String>,
+    /// The value the file saved for a name where the sheet evaluates it (`name =`): for a name read
+    /// from a data file, whose own definition keeps no result.
+    saved_by_name: HashMap<String, Expr>,
+    /// Set while the arguments of a function that reads or writes a file are translated: a file
+    /// name is not a text value (the function is the gap).
+    io_args: bool,
+    /// Set while a text name or a call of a text function is translated as a text (a leaf of
+    /// `str_expr`); anywhere else such a name is a gap, because its code is not a number.
+    str_allow: bool,
     /// Names defined by regions that did not convert, with the code that ultimately blocks them.
     gap_names: HashMap<String, Code>,
     /// Defined names known to hold an array.
@@ -1140,8 +1355,11 @@ impl Tr {
         match e {
             Expr::Num(s) => self.number(s),
             Expr::Str(s) => {
-                self.issue(Code::StringValue, None);
-                if self.readable {
+                // Shown for reading, a text is the text; it is only a gap where it is computed.
+                if !self.readable && !self.display && !self.io_args {
+                    self.issue(Code::StringValue, None);
+                }
+                if self.readable || self.display {
                     atom(format!("\"{}\"", s.chars().take(60).collect::<String>()))
                 } else {
                     atom("?string?")
@@ -1278,7 +1496,7 @@ impl Tr {
                 matches!(
                     f.base.as_str(),
                     "identity" | "matrix" | "augment" | "stack" | "lsolve" | "submatrix"
-                )
+                ) || self.array_funcs.contains(&tables::normalise_name(&f.flat()))
             }
             Expr::Name(_) | Expr::Un(..) | Expr::Bin(..) => self.holds_array(e),
             _ => false,
@@ -1404,6 +1622,19 @@ impl Tr {
             let r = self.expr(b).s;
             return atom(format!("dot({l}; {r})"));
         }
+        if matches!(op, BinOp::Eq | BinOp::Ne)
+            && (self.is_stringy(a) || self.is_stringy(b))
+            && !self.readable
+            && !self.display
+        {
+            // Two texts are equal when their codes are.
+            if let (Some(l), Some(r)) = (self.str_expr(a), self.str_expr(b)) {
+                return R {
+                    s: format!("{}{}{}", l.s, sym, r.s),
+                    prec,
+                };
+            }
+        }
         let mut l = self.operand(a, lmin, true);
         // A product's right operand that is itself a division keeps its parentheses.
         let rmin = if op == BinOp::Mul && matches!(b, Expr::Bin(BinOp::Div, ..)) {
@@ -1412,12 +1643,24 @@ impl Tr {
             rmin
         };
         let mut r = self.operand(b, rmin, false);
-        // A comparison with a bare 0 is a comparison with a zero of the other side's dimension (as in
-        // the source); the engine wants both sides in the same units.
-        if matches!(
-            op,
-            BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge
-        ) && !self.display
+        // A bare 0 added to or taken from a quantity is a zero of its dimension.
+        if matches!(op, BinOp::Add | BinOp::Sub) && !self.display && !self.readable {
+            let zero = |e: &Expr| matches!(e, Expr::Num(s) if s.trim().parse::<f64>() == Ok(0.0));
+            let plain = |e: &Expr| matches!(e, Expr::Num(_));
+            if zero(a) && !plain(b) {
+                l = format!("0*getunits({r})");
+            } else if zero(b) && !plain(a) {
+                r = format!("0*getunits({l})");
+            }
+        }
+        // A comparison with a bare 0 is a comparison with a zero of the other side's dimension
+        // (as in the source); the engine wants both sides in the same units.
+        if (self.plot_param.is_some() || !self.holds_array(a) && !self.holds_array(b))
+            && matches!(
+                op,
+                BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge
+            )
+            && !self.display
             && !self.readable
         {
             let zero = |e: &Expr| matches!(e, Expr::Num(s) if s.trim().parse::<f64>() == Ok(0.0));
@@ -1893,6 +2136,10 @@ impl Tr {
     ) -> Option<(Vec<(String, RangeInfo)>, bool)> {
         let f = flat.as_ref()?;
         if index.is_empty() || index.len() > 2 || mentions(value, f) || index.iter().any(|e| mentions(e, f)) {
+            return None;
+        }
+        // One element of a vector is a number: an array value is a matrix built row by row.
+        if self.yields_array(value) {
             return None;
         }
         let known = self.defined.contains(f) || self.funcs.contains_key(f) || self.gap_names.contains_key(f);
@@ -2840,6 +3087,11 @@ impl Tr {
                             "{flat} starts from a unitless 0 and is then added to: the source lets 0 take the units of what is added, the engine reports inconsistent units"
                         ));
                     }
+                    if self.yields_array(e) {
+                        return Err(format!(
+                            "{flat} gets an array for one element (a matrix built row by row); the engine's vector element is a number"
+                        ));
+                    }
                     let parts: Vec<String> = index.iter().map(|i| self.index_expr(i)).collect();
                     let rhs = match zero_rhs {
                         Some(z) => z,
@@ -3187,6 +3439,17 @@ impl Tr {
 
     fn name_ref_engine(&mut self, n: &Name) -> R {
         let flat = tables::normalise_name(&n.flat());
+        if self.str_vars.contains_key(&flat)
+            && !self.str_allow
+            && !self.readable
+            && !self.display
+            && !self.params.contains(&flat)
+            && !self.locals.contains_key(&flat)
+        {
+            // A text held as a code is not a number.
+            self.issue(Code::StringValue, Some(flat.clone()));
+            return self.stand_in(&flat, "?string?");
+        }
         // The file says this identifier is a unit: it is, whatever variables exist.
         if n.unit && n.sub.is_none() {
             if let Some(u) = tables::map_unit(&n.base) {
@@ -3253,6 +3516,11 @@ impl Tr {
 
     fn call(&mut self, n: &Name, args: &[Expr]) -> R {
         let flat = tables::normalise_name(&n.flat());
+        let text_call_ok = std::mem::take(&mut self.str_allow);
+        if self.str_funcs.contains_key(&flat) && !text_call_ok && !self.readable && !self.display {
+            self.issue(Code::StringValue, Some(flat.clone()));
+            return self.stand_in(&flat, "?string?");
+        }
         // A variable applied like a function is a product.
         if (self.defined.contains(&flat) || self.params.contains(&flat)) && !self.funcs.contains_key(&flat) {
             if args.len() == 1 {
@@ -3267,10 +3535,55 @@ impl Tr {
             let shown = self.render_args(args);
             return self.stand_in(&format!("{}({})", flat, shown.join("; ")), "?call?");
         }
-        let mut rendered = self.render_args(args);
+        // The number a text box holds as text is the number itself.
+        if flat == "str2num" && n.sub.is_none() && !self.funcs.contains_key(&flat) && args.len() == 1 {
+            if let Expr::Name(a) = &args[0] {
+                let f = tables::normalise_name(&a.flat());
+                if self.num_texts.contains(&f) {
+                    return self.name_ref(a);
+                }
+                if self.empty_texts.contains(&f) {
+                    // No text, no number: the source reads this only where a condition keeps it
+                    // from being used.
+                    self.issue(Code::ControlInput, Some("str2num of an empty text box is 0".into()));
+                    return atom("0");
+                }
+            }
+        }
+        let mut rendered = if flat == "if" && n.sub.is_none() && args.len() == 3 && !self.funcs.contains_key(&flat) {
+            // The branches may be texts (held as codes).
+            let c = self.expr(&args[0]).s;
+            let a = self.str_or_expr(&args[1]).s;
+            let b = self.str_or_expr(&args[2]).s;
+            vec![c, a, b]
+        } else {
+            // The names of the files a read or write names are not text values.
+            let io = n.sub.is_none()
+                && matches!(
+                    flat.as_str(),
+                    "READEXCEL" | "WRITEEXCEL" | "READPRN" | "WRITEPRN" | "APPENDPRN"
+                );
+            self.io_args = io;
+            let r = self.render_args(args);
+            self.io_args = false;
+            r
+        };
         // In a plot, a bare 0 branch of `if` is a zero of the other branch's dimension (as in the
         // source); the engine wants both branches in the same units.
-        if self.plot_param.is_some() && flat == "if" && n.sub.is_none() && args.len() == 3 {
+        // The same for `max` and `min`, and (outside a display) for the branches of `if` everywhere.
+        let zero_ok = self.plot_param.is_some() || (!self.display && !self.readable);
+        if zero_ok && matches!(flat.as_str(), "max" | "min") && n.sub.is_none() && !self.funcs.contains_key(&flat) {
+            let zero = |e: &Expr| matches!(e, Expr::Num(s) if s.trim().parse::<f64>() == Ok(0.0));
+            if let Some(k) = args.iter().position(|a| !zero(a)) {
+                let other = rendered[k].clone();
+                for (a, r) in args.iter().zip(rendered.iter_mut()) {
+                    if zero(a) {
+                        *r = format!("0*getunits({other})");
+                    }
+                }
+            }
+        }
+        if zero_ok && flat == "if" && n.sub.is_none() && !self.funcs.contains_key(&flat) && args.len() == 3 {
             let zero = |e: &Expr| matches!(e, Expr::Num(s) if s.trim().parse::<f64>() == Ok(0.0));
             if zero(&args[1]) && !zero(&args[2]) {
                 rendered[1] = format!("0*getunits({})", rendered[2]);
@@ -3317,7 +3630,20 @@ impl Tr {
                     return atom(format!("root({}; {})", rendered[1], rendered[0]));
                 }
                 ("linterp", 3) => {
-                    return atom(format!("linterp({}; {}; {})", rendered[2], rendered[0], rendered[1]));
+                    // The engine wants vectors. A transposed row (a column matrix) is its first column.
+                    let list = |t: &str| {
+                        if t.starts_with("transp(") && t.ends_with(')') {
+                            format!("col({t}; 1)")
+                        } else {
+                            t.to_string()
+                        }
+                    };
+                    return atom(format!(
+                        "linterp({}; {}; {})",
+                        rendered[2],
+                        list(&rendered[0]),
+                        list(&rendered[1])
+                    ));
                 }
                 _ => {}
             }
@@ -3510,7 +3836,13 @@ impl Tr {
 
     fn matrix(&mut self, rows: usize, cols: usize, items: &[Expr]) -> R {
         // The file stores items column by column.
-        let cell: Vec<String> = items.iter().map(|i| self.expr(i).s).collect();
+        let cell: Vec<String> = items
+            .iter()
+            .map(|i| match i {
+                Expr::Str(s) if self.str_mat_ok && !self.readable && !self.display => self.str_code(s).to_string(),
+                _ => self.expr(i).s,
+            })
+            .collect();
         let at = |r: usize, c: usize| cell[c * rows + r].clone();
         if rows * cols > 1_000_000 {
             self.issue(Code::BadStructure, Some("matrix too large".into()));
@@ -4041,6 +4373,15 @@ impl Tr {
         let mut multi_names: Vec<String> = Vec::new();
         let mut plain_def = false;
         let mut elem_def = false;
+        // What a definition does to the texts the sheet holds: a name now holding one (with its
+        // codes) or no longer holding one, and a function that returns one.
+        let mut str_var_def: Option<(String, Option<Vec<usize>>)> = None;
+        let mut str_fn_def: Option<(String, Vec<usize>)> = None;
+        let mut fn_gives_array = false;
+        let mut str_mat_def: Option<String> = None;
+        let mut str_multi_def: Vec<(String, Option<Vec<usize>>)> = Vec::new();
+        // An evaluation of a text: the expression that gives its code and the texts it can be.
+        let mut str_eval: Option<(String, Vec<usize>)> = None;
         let shape: &str;
 
         match &m.stmt {
@@ -4057,8 +4398,18 @@ impl Tr {
                 let mut fn_program: Option<&[PStmt]> = None;
                 let stub: Expr;
                 let value: &Expr = match value {
-                    Expr::Program(stmts) => match symexec_program(stmts, matches!(target, Target::Func(..))) {
-                        Ok(e) => {
+                    Expr::Program(stmts) => match symexec_program(stmts, matches!(target, Target::Func(..)), &{
+                        let mut known = self.defined.clone();
+                        known.extend(self.ranges.keys().cloned());
+                        if let Target::Func(_, ps) = target {
+                            known.extend(ps.iter().map(|p| tables::normalise_name(&p.flat())));
+                        }
+                        known
+                    }) {
+                        Ok((e, uncovered)) => {
+                            if uncovered {
+                                self.issue(Code::UncoveredPath, None);
+                            }
                             inlined = Some(e);
                             inlined.as_ref().unwrap()
                         }
@@ -4141,11 +4492,20 @@ impl Tr {
                                 range_def = Some((flat.clone(), RangeInfo { a, z, lit }));
                             }
                         }
+                        let text_def = range_def.is_none() && self.is_stringy(value);
+                        let text_codes = if text_def { self.str_domain(value) } else { Vec::new() };
+                        let labels = matches!(value, Expr::Matrix { items, .. } if items.iter().any(|i| matches!(i, Expr::Str(_))));
+                        self.str_mat_ok = labels;
                         let rhs = if range_def.is_some() {
                             atom("")
                         } else {
-                            self.expr(value)
+                            self.str_or_expr(value)
                         };
+                        self.str_mat_ok = false;
+                        if labels {
+                            str_mat_def = Some(flat.clone());
+                        }
+                        str_var_def = Some((flat.clone(), text_def.then_some(text_codes)));
                         let is_array = self.yields_array(value);
                         if let Some((_, info)) = &range_def {
                             let (a, z) = (&info.a, &info.z);
@@ -4180,6 +4540,12 @@ impl Tr {
                             plist.push(pf);
                         }
                         self.params = plist.clone();
+                        fn_gives_array = gives_array(value);
+                        let text_fn = fn_program.is_none() && self.is_stringy(value);
+                        if text_fn {
+                            let d = self.str_domain(value);
+                            str_fn_def = Some((flat.clone(), d));
+                        }
                         let rhs = match fn_program {
                             Some(stmts) => match self.lower_fn_block(stmts) {
                                 Ok(t) => atom(t),
@@ -4188,7 +4554,7 @@ impl Tr {
                                     atom("0")
                                 }
                             },
-                            None => self.expr(value),
+                            None => self.str_or_expr(value),
                         };
                         self.params.clear();
                         let head = format!("{}({})", Self::engine_fn(&flat), plist.join("; "));
@@ -4212,10 +4578,15 @@ impl Tr {
                                 if items.len() == flats.len() && distinct && flats.iter().all(|f| valid_ident(f)) =>
                             {
                                 let mut out = Vec::new();
+                                let mut texts: Vec<(String, Option<Vec<usize>>)> = Vec::new();
                                 for (f, it) in flats.iter().zip(items) {
-                                    let rhs = self.expr(it);
+                                    let text = self.is_stringy(it);
+                                    let codes = if text { Some(self.str_domain(it)) } else { None };
+                                    let rhs = self.str_or_expr(it);
                                     out.push(format!("{f} = {}", rhs.s));
+                                    texts.push((f.clone(), codes));
                                 }
+                                str_multi_def = texts;
                                 let text = out.join("\n");
                                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
                                     emitted = Some(text);
@@ -4269,6 +4640,9 @@ impl Tr {
                         let why = match (&flat, &ranges) {
                             (None, _) => Some("the target is not a plain indexed name"),
                             (Some(_), None) => Some("the index is not made of range variables"),
+                            (Some(_), Some(_)) if self.yields_array(value) => {
+                                Some("the value is an array, which one element of a vector cannot hold")
+                            }
                             (Some(_), Some(r)) if r.is_empty() || r.len() > 2 || !distinct => {
                                 Some("the index is not one or two different range variables")
                             }
@@ -4482,8 +4856,28 @@ impl Tr {
                     emitted = Some(self.table_loops(&iv, &info, &e.s, &pre, &tail));
                 }
             }
+            Stmt::Eval { expr, unit: None } if self.is_stringy(expr) && !self.readable => {
+                shape = "evaluation";
+                let domain = self.str_domain(expr);
+                let code = self.str_or_expr(expr).s;
+                if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
+                    str_eval = Some((code.clone(), domain));
+                    emitted = Some(code);
+                } else {
+                    attempt = Some(code);
+                }
+            }
             Stmt::Eval { expr, unit } => {
                 shape = "evaluation";
+                if let Expr::Name(n) = expr {
+                    // Its labels are held as codes; printing the matrix would print the codes.
+                    if self.str_mats.contains(&tables::normalise_name(&n.flat())) {
+                        self.issue(
+                            Code::StringValue,
+                            Some("a matrix of texts and numbers is not printed".into()),
+                        );
+                    }
+                }
                 let e = self.expr(expr);
                 let mut text = e.s.clone();
                 if let Some(u) = unit {
@@ -4492,8 +4886,18 @@ impl Tr {
                     // A "unit" that is only a number (a power of ten) shows the value in multiples of it.
                     text = if numeric_only(u) {
                         format!("{}/({})", text, ur.s)
-                    } else {
+                    } else if matches!(ur.s.as_str(), "°C" | "°F") {
                         format!("{}|{}", text, ur.s)
+                    } else {
+                        // The source takes the unit as the part of the result's unit to show first
+                        // and keeps the rest (`kip` for a moment shows kip times length); the
+                        // engine's `|` refuses a unit of another dimension.
+                        let u = if is_whole(&ur.s) {
+                            ur.s.clone()
+                        } else {
+                            format!("({})", ur.s)
+                        };
+                        format!("({}/{})*{}", text, u, u)
                     };
                     self.issue(Code::UnitOverride, None);
                 }
@@ -4502,6 +4906,22 @@ impl Tr {
                 } else {
                     attempt = Some(text);
                 }
+            }
+            Stmt::Bare(Expr::Str(text)) => {
+                // A text on its own is a label the author put in a math region.
+                shape = "expression";
+                let t: String = text
+                    .chars()
+                    .filter(|c| !c.is_control())
+                    .take(200)
+                    .collect::<String>()
+                    .replace('\'', "\u{2019}");
+                let t = mathml::esc(&t);
+                emitted = Some(if self.opts.mathml {
+                    format!("'<div class=\"imp-eq\"><math class=\"imp-m\"><ms>{t}</ms></math></div>")
+                } else {
+                    format!("'<p><i>{t}</i></p>")
+                });
             }
             Stmt::Bare(expr) if matches!(expr, Expr::Bin(BinOp::Eq, ..)) => {
                 // An equation on its own line is a constraint (a solve block's equation, or a check):
@@ -4560,37 +4980,69 @@ impl Tr {
 
         // A definition that only fails because it reads a name an input component defines is given
         // the value the file saved for it, as a literal, and says so.
+        let saved_here: Option<Expr> = match &m.stmt {
+            Stmt::Define {
+                target: Target::Var(n), ..
+            } => m
+                .saved_expr
+                .clone()
+                .or_else(|| self.saved_by_name.get(&tables::normalise_name(&n.flat())).cloned()),
+            _ => None,
+        };
         if let (
             Stmt::Define {
                 target: Target::Var(n), ..
             },
             Some(saved),
-        ) = (&m.stmt, &m.saved_expr)
+        ) = (&m.stmt, &saved_here)
         {
             let flat = tables::normalise_name(&n.flat());
             let blockers: Vec<&Pending> = self.cur.iter().filter(|p| p.code.severity() == Severity::Gap).collect();
+            // A name an input component defines, or a read of a data file the importer cannot see.
             let only_inputs = !blockers.is_empty()
                 && blockers.iter().all(|p| {
-                    p.code == Code::UndefinedVariable
-                        && p.detail.as_ref().is_some_and(|d| self.component_names.contains(d))
+                    (p.code == Code::UndefinedVariable
+                        && p.detail.as_ref().is_some_and(|d| self.component_names.contains(d)))
+                        || (p.code == Code::BuiltinMissing
+                            && p.detail
+                                .as_deref()
+                                .is_some_and(|d| matches!(d, "READEXCEL" | "READPRN" | "vec2str")))
                 });
             if only_inputs && valid_ident(&flat) {
                 let stash = std::mem::take(&mut self.cur);
-                let v = self.expr(saved);
+                let (saved, empty_cells) = zero_empty_cells(saved);
+                let saved = &saved;
+                self.str_mat_ok = true;
+                let v = self.str_or_expr(saved);
+                self.str_mat_ok = false;
                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
                     self.cur.clear();
                     self.issue(Code::FrozenValue, Some(flat.clone()));
                     self.report.frozen_values += 1;
                     let is_array = matches!(saved, Expr::Matrix { .. })
                         || matches!(saved, Expr::Bin(BinOp::Mul, a, _) if matches!(**a, Expr::Matrix { .. }));
+                    let cells = if empty_cells > 0 {
+                        format!("; {empty_cells} empty cells read as 0")
+                    } else {
+                        String::new()
+                    };
                     emitted = Some(format!(
-                        "'<small><i>R{}: value taken from the saved result of an input component (frozen, not live)</i></small>\n{} = {}",
+                        "'<small><i>R{}: value taken from the saved result of an input component or a data file (frozen, not live{cells})</i></small>\n{} = {}",
                         sanitize_id(&r.id),
                         flat,
                         v.s
                     ));
                     attempt = None;
                     plain_def = false;
+                    str_var_def = None;
+                    str_mat_def = None;
+                    if matches!(saved, Expr::Str(_)) {
+                        let d = self.str_domain(saved);
+                        str_var_def = Some((flat.clone(), Some(d)));
+                    } else if matches!(saved, Expr::Matrix { items, .. } if items.iter().any(|i| matches!(i, Expr::Str(_))))
+                    {
+                        str_mat_def = Some(flat.clone());
+                    }
                     define_name = Some((flat, None, is_array));
                 } else {
                     self.cur = stash;
@@ -4598,6 +5050,9 @@ impl Tr {
             }
         }
 
+        if let Some(c) = &m.control {
+            self.issue(Code::ControlInput, Some(c.kind.clone()));
+        }
         let gap_codes: Vec<Code> = self
             .cur
             .iter()
@@ -4617,7 +5072,32 @@ impl Tr {
             } else if let Some(line) = emitted.take() {
                 self.maths_shown = true;
                 let multi_def = !multi_names.is_empty();
-                let text = self.present(m, shape, plain_def, elem_def, multi_def, line);
+                let control_note = m.control.as_ref().map(|c| {
+                    let pick = match (&c.chosen, c.options) {
+                        (Some(t), 0) => format!("stored text \"{t}\""),
+                        (Some(t), n) => format!("stored selection \"{t}\" of {n} options"),
+                        (None, _) => "stored value".to_string(),
+                    };
+                    format!(
+                        "'<small><i>R{}: {} input, {pick}; the options and the script behind the control are not carried</i></small>",
+                        sanitize_id(&r.id),
+                        c.kind
+                    )
+                });
+                let text = match &str_eval {
+                    Some((code, domain)) => {
+                        let head = match &m.stmt {
+                            Stmt::Eval { expr, .. } => self.typeset_eval_head(expr),
+                            _ => None,
+                        };
+                        self.str_result_lines(head.as_deref().unwrap_or(""), code, domain)
+                    }
+                    None => self.present(m, shape, plain_def, elem_def, multi_def, line),
+                };
+                let text = match control_note {
+                    Some(n) => format!("{n}\n{text}"),
+                    None => text,
+                };
                 self.lines.push(text);
             }
             for name in &multi_names {
@@ -4627,6 +5107,10 @@ impl Tr {
                 self.arrays.remove(name);
                 self.elem_built.remove(name);
                 self.defined.insert(name.clone());
+            }
+            for (n, d) in std::mem::take(&mut str_multi_def) {
+                self.str_funcs.remove(&n);
+                self.set_str_var(&n, d);
             }
             if let Some((name, info)) = &range_def {
                 self.defined.remove(name);
@@ -4646,6 +5130,10 @@ impl Tr {
                     Some(a) => {
                         self.funcs.insert(name.clone(), a);
                         self.defined.remove(&name);
+                        self.array_funcs.remove(&name);
+                        if fn_gives_array {
+                            self.array_funcs.insert(name.clone());
+                        }
                     }
                     None => {
                         if name != "ORIGIN" {
@@ -4655,9 +5143,32 @@ impl Tr {
                     }
                 }
                 if is_array {
-                    self.arrays.insert(name);
+                    self.arrays.insert(name.clone());
                 } else {
                     self.arrays.remove(&name);
+                }
+                // Texts: the name holds one now, or no longer does.
+                self.str_vars.remove(&name);
+                self.str_funcs.remove(&name);
+                self.str_mats.remove(&name);
+                self.num_texts.remove(&name);
+                self.empty_texts.remove(&name);
+                if let Some(c) = &m.control {
+                    if c.kind == "text box" && matches!(&c.value, Expr::Str(t) if t.trim().is_empty()) {
+                        self.empty_texts.insert(name.clone());
+                    }
+                    if c.kind == "text box" && matches!(c.value, Expr::Num(_)) {
+                        self.num_texts.insert(name.clone());
+                    }
+                }
+                if let Some(n) = str_mat_def.take() {
+                    self.str_mats.insert(n);
+                }
+                if let Some((n, d)) = str_var_def.take() {
+                    self.set_str_var(&n, d);
+                }
+                if let Some((n, d)) = str_fn_def.take() {
+                    self.str_funcs.insert(n, d);
                 }
             }
         } else {
@@ -4676,6 +5187,8 @@ impl Tr {
                 self.gap_names.insert(p, root);
             }
             if let Some((name, arity, _)) = define_name {
+                self.str_vars.remove(&name);
+                self.str_funcs.remove(&name);
                 self.col_vecs.remove(&name);
                 self.ranges.remove(&name);
                 self.defined.remove(&name);
@@ -4697,6 +5210,74 @@ impl Tr {
         Self::bump_p(&mut self.report.kinds, "math", converted, has_notes, pictured);
         Self::bump_p(&mut self.report.math_shapes, shape, converted, has_notes, pictured);
     }
+}
+
+/// A stored table with its empty cells (stored as NaN) as 0, and how many there were.
+fn zero_empty_cells(e: &Expr) -> (Expr, usize) {
+    match e {
+        Expr::Num(s) if s == "NaN" => (Expr::Num("0".into()), 1),
+        Expr::Matrix { rows, cols, items } => {
+            let mut n = 0;
+            let items = items
+                .iter()
+                .map(|i| {
+                    let (x, k) = zero_empty_cells(i);
+                    n += k;
+                    x
+                })
+                .collect();
+            (
+                Expr::Matrix {
+                    rows: *rows,
+                    cols: *cols,
+                    items,
+                },
+                n,
+            )
+        }
+        Expr::Bin(op, a, b) => {
+            let (a, n) = zero_empty_cells(a);
+            (Expr::Bin(*op, Box::new(a), b.clone()), n)
+        }
+        other => (other.clone(), 0),
+    }
+}
+
+/// True when a function body gives an array: a matrix literal, or an `if` with such a branch.
+fn gives_array(e: &Expr) -> bool {
+    match e {
+        Expr::Matrix { .. } => true,
+        Expr::Call(n, args) if n.base == "if" && n.sub.is_none() && args.len() == 3 => {
+            gives_array(&args[1]) || gives_array(&args[2])
+        }
+        _ => false,
+    }
+}
+
+/// True when the expression text is one operand: a plain unit name or one parenthesised whole.
+fn is_whole(s: &str) -> bool {
+    if s.chars()
+        .all(|c| c.is_alphanumeric() || matches!(c, '_' | '°' | '%' | '\u{2032}' | '\u{2033}'))
+    {
+        return true;
+    }
+    if !(s.starts_with('(') && s.ends_with(')')) {
+        return false;
+    }
+    let mut depth = 0i32;
+    for (i, c) in s.char_indices() {
+        match c {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 && i != s.len() - 1 {
+                    return false;
+                }
+            }
+            _ => {}
+        }
+    }
+    depth == 0
 }
 
 /// A font family as a CSS stack: the file's name first, then the metric-compatible and generic fallbacks
@@ -5111,13 +5692,25 @@ fn rename_unit_clashes(sheet: &mut Sheet) -> HashMap<String, String> {
 }
 
 pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportReport, Vec<Asset>) {
-    let renamed = rename_unit_clashes(&mut sheet);
+    let mut renamed = rename_unit_clashes(&mut sheet);
+    renamed.extend(crate::names::rename_invalid(&mut sheet));
     let rows = reading_rows(std::mem::take(&mut sheet.regions));
     let has_references = rows.iter().flatten().any(|r| matches!(r.kind, RegionKind::Reference));
     let mut tr = Tr {
         origin: sheet.origin,
         defined: HashSet::new(),
         funcs: HashMap::new(),
+        str_table: Vec::new(),
+        str_vars: HashMap::new(),
+        str_funcs: HashMap::new(),
+        array_funcs: HashSet::new(),
+        str_mats: HashSet::new(),
+        str_mat_ok: false,
+        num_texts: HashSet::new(),
+        empty_texts: HashSet::new(),
+        str_allow: false,
+        io_args: false,
+        saved_by_name: HashMap::new(),
         gap_names: HashMap::new(),
         arrays: HashSet::new(),
         params: Vec::new(),
@@ -5170,6 +5763,17 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
     };
     for r in rows.iter().flatten() {
         if let RegionKind::Math(m) = &r.kind {
+            if let (
+                Stmt::Eval {
+                    expr: Expr::Name(n), ..
+                },
+                Some(v),
+            ) = (&m.stmt, &m.saved_expr)
+            {
+                tr.saved_by_name
+                    .entry(tables::normalise_name(&n.flat()))
+                    .or_insert_with(|| v.clone());
+            }
             if let Stmt::Eval {
                 expr: Expr::Name(n),
                 unit: Some(u),

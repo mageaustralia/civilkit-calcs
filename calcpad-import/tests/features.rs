@@ -136,7 +136,7 @@ fn middle_dot_units_are_units() {
     ]);
     assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
     assert!(res.calcpad.contains("M = 5*(kN*m)"), "{}", res.calcpad);
-    assert!(res.calcpad.contains("M|(N*m)"), "{}", res.calcpad);
+    assert!(res.calcpad.contains("(M/(N*m))*(N*m)"), "{}", res.calcpad);
     let out = engine_lines(&res.calcpad);
     let nums: Vec<f64> = out.iter().filter(|l| l.contains('=')).map(|l| last_number(l)).collect();
     // Defined as 5 kN*m (shown as given); in N*m that is 5000; the ratio is 2.5.

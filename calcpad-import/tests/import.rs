@@ -525,11 +525,14 @@ fn subscripts_and_greek_names() {
 }
 
 #[test]
-fn names_calcpad_cannot_spell_are_gaps() {
+fn names_calcpad_cannot_spell_get_an_engine_spelling() {
     let res = one(&define("a b", &r("1")));
-    assert!(res.report.gaps().any(|i| i.code == Code::InvalidName));
+    assert!(!res.report.gaps().any(|i| i.code == Code::InvalidName));
+    assert_eq!(lines(&res), vec!["a_b = 1"]);
     let res = one(&define("1a", &r("1")));
-    assert!(res.report.gaps().any(|i| i.code == Code::InvalidName));
+    assert!(!res.report.gaps().any(|i| i.code == Code::InvalidName));
+    assert_eq!(lines(&res), vec!["v1a = 1"]);
+    assert_engine_clean(&res.calcpad);
 }
 
 #[test]
@@ -662,7 +665,7 @@ fn unit_override_becomes_a_conversion() {
     ]
     .concat();
     let res = import_xmcd(&sheet(&regs));
-    assert_eq!(lines(&res)[1], "(p + 50*kPa)|psi");
+    assert_eq!(lines(&res)[1], "((p + 50*kPa)/psi)*psi");
     assert!(res.report.notes().any(|i| i.code == Code::UnitOverride));
     assert_engine_clean(&res.calcpad);
 }
@@ -683,7 +686,13 @@ fn every_mapped_unit_exists_in_the_engine() {
         if u == "%" {
             continue;
         }
-        assert!(Unit::exists(u), "unit {u:?} is not in the engine's table");
+        // A composite spelling (`(lbf/ft)`) is checked by its parts.
+        for part in u
+            .split(['(', ')', '*', '/', '^'])
+            .filter(|p| !p.is_empty() && p.parse::<f64>().is_err())
+        {
+            assert!(Unit::exists(part), "unit {part:?} is not in the engine's table");
+        }
     }
 }
 
@@ -717,6 +726,7 @@ fn every_mapped_function_runs_in_the_engine() {
             "col" | "row" => vec!["[1; 2|3; 4]", "1"],
             "submatrix" => vec!["[1; 2|3; 4]", "1", "2", "1", "2"],
             "mod" | "gcd" | "lcm" | "atan2" => vec!["4", "6"],
+            "interp" => vec!["1.5", "[1; 2]", "[10; 20]"],
             _ => vec![arg; (*lo).max(1)],
         };
         let code = format!("{}({})\n", target, args.join("; "));
@@ -796,7 +806,11 @@ fn programs_solve_blocks_and_calculus_are_counted_not_translated() {
 
 #[test]
 fn string_values_and_bare_expressions_and_disabled_regions() {
-    let res = one(&define("s", "<ml:str>hello</ml:str>"));
+    // A text is held as a code; as a number it is a gap.
+    let res = one(&define(
+        "s",
+        &app("plus", &["<ml:str>hello</ml:str>".to_string(), r("1")]),
+    ));
     assert!(res.report.gaps().any(|i| i.code == Code::StringValue));
     let res = one(&app("plus", &[r("1"), r("2")]));
     assert!(res.report.gaps().any(|i| i.code == Code::BareExpression));
@@ -954,6 +968,7 @@ fn mk(id: &str, left: f64, top: f64, baseline: Option<f64>) -> Region {
             saved_expr: None,
             frozen: false,
             precision: None,
+            control: None,
         }),
     }
 }
@@ -1253,12 +1268,17 @@ fn unconverted_regions_never_leak_text_without_the_marker() {
     let payload = "LEAK_PAYLOAD_7731";
     let regs = [
         // Strings, names, ids and tags carrying the payload, in regions that cannot convert.
-        math(1, 0.0, 0.0, &define("s", &format!("<ml:str>{payload}</ml:str>"))),
+        math(
+            1,
+            0.0,
+            0.0,
+            &define("s", &app("plus", &[format!("<ml:str>{payload}</ml:str>"), r("1")])),
+        ),
         math(2, 0.0, 20.0, &eval(&call(&format!("fn_{payload}"), &[r("1")]))),
         math(3, 0.0, 40.0, &format!("<ml:{payload}/>")),
         region(4, 0.0, 60.0, &format!("<{payload}/>")),
         region(5, 0.0, 80.0, &format!("<ole clsid=\"{payload}\" type=\"{payload}\"/>")),
-        math(6, 0.0, 100.0, &define(&format!("v {payload}"), &r("1"))),
+        math(6, 0.0, 100.0, &define(&format!("v^{payload}"), &r("1"))),
         math(7, 0.0, 120.0, &eval(&n(&format!("undef {payload}")))),
         r#"<region region-id="8&#10;#include evil.cpd" left="0" top="140"><plot/></region>"#.to_string(),
     ]
