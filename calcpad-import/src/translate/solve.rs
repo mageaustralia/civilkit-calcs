@@ -22,7 +22,12 @@ struct Residual {
 
 impl Tr {
     /// The text that defines the unknown(s) as the solution of the block's constraints.
-    pub(super) fn solve_block(&mut self, target: &Target, value: &Expr) -> Result<(String, Vec<String>), String> {
+    pub(super) fn solve_block(
+        &mut self,
+        target: &Target,
+        value: &Expr,
+        saved: Option<&Stmt>,
+    ) -> Result<(String, Vec<String>), String> {
         // `Find(x)` or `Find(x) * unit`: a unit the result is multiplied by.
         let (call, factor): (&Expr, Option<&Expr>) = match value {
             Expr::Bin(BinOp::Mul, a, b) if matches!(&**a, Expr::Call(f, _) if f.base == "Find") => (a, Some(b)),
@@ -73,6 +78,30 @@ impl Tr {
         }
         self.prog_n += 1;
         let uid = self.prog_n;
+        // Where solving here fails the check, the value the file saved for that unknown (frozen), when it
+        // saved one; otherwise undefined.
+        let fallbacks: Vec<String> = {
+            let items: Option<Vec<Expr>> = match saved {
+                Some(Stmt::Define { value, .. }) if factor.is_none() => match value {
+                    Expr::Matrix { items, .. } if unknowns.len() > 1 && items.len() == unknowns.len() => {
+                        Some(items.clone())
+                    }
+                    other if unknowns.len() == 1 => Some(vec![other.clone()]),
+                    _ => None,
+                },
+                _ => None,
+            };
+            match items {
+                Some(v) => {
+                    self.issue(
+                        Code::FrozenValue,
+                        Some("used only where solving here does not verify".into()),
+                    );
+                    v.iter().map(|e| self.expr(e).s).collect()
+                }
+                None => vec!["sqrt(-1)".to_string(); unknowns.len()],
+            }
+        };
         // The functions: one per equation, in the unknowns as parameters.
         let saved_params = std::mem::replace(&mut self.params, unknowns.clone());
         let mut lines: Vec<String> = Vec::new();
@@ -103,10 +132,11 @@ impl Tr {
                 "$Block{{{a} = {u}; {b} = {a} + 0.000001*(abs({a}) + getunits({a})); {fa} = {f}({a}); {fb} = {f}({b}); {n} = 0; \
                  $While{{if({n} < 100; if(abs({b} - {a}) > 0.000000000001*(abs({b}) + getunits({b})); if({fb} ≠ {fa}; 1; 0); 0); 0); \
                  {a}2 = {b} - {fb}*({b} - {a})/({fb} - {fa}); {a} = {b}; {fa} = {fb}; {b} = {a}2; {fb} = {f}({b}); {n} = {n} + 1}}; \
-                 if(abs({fb}) ≤ 0.00000001*(abs({l}({b})) + abs({r}({b}))); {b}; sqrt(-1))}}",
+                 if(abs({fb}) ≤ 0.00000001*(abs({l}({b})) + abs({r}({b}))); {b}; {fallback})}}",
                 f = ff.f,
                 l = ff.l,
                 r = ff.r,
+                fallback = fallbacks[0],
             );
             let times = match factor {
                 Some(u) => format!("*({})", self.expr(u).s),
@@ -160,9 +190,10 @@ impl Tr {
                 let block = format!(
                     "$Block{{{a1} = {u1}; {a2} = {u2}; {n} = 0; {ok} = 0; \
                      $While{{if({n} < 100; if({ok} ≡ 0; 1; 0); 0); {body}}}; \
-                     if({c1}; if({c2}; {pick}; sqrt(-1)); sqrt(-1))}}",
+                     if({c1}; if({c2}; {pick}; {fb}); {fb})}}",
                     c1 = check(f1),
                     c2 = check(f2),
+                    fb = fallbacks[which],
                 );
                 lines.push(format!("{t} = {block}"));
             }

@@ -5038,7 +5038,11 @@ impl Tr {
         let solve_try = match (&m.stmt, &m.solve) {
             (Stmt::Define { target, value, .. }, Some(SolveRole::Solver(_))) => {
                 let mark = self.cur.len();
-                let out = self.solve_block(target, value);
+                let saved = match &m.solve {
+                    Some(SolveRole::Solver(Some(f))) => Some(&**f),
+                    _ => None,
+                };
+                let out = self.solve_block(target, value, saved);
                 if let (Err(_), Some(SolveRole::Solver(Some(fallback)))) = (&out, &m.solve) {
                     self.cur.truncate(mark);
                     let mut frozen = m.clone();

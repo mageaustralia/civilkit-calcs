@@ -272,3 +272,22 @@ fn a_solve_block_that_cannot_be_solved_here_falls_back_to_the_saved_solution() {
     assert!(res.report.issues.iter().any(|i| i.code == Code::FrozenValue));
     assert!(res.calcpad.contains("r = 2"), "{}", res.calcpad);
 }
+
+#[test]
+fn a_solve_that_does_not_verify_here_takes_the_saved_value_instead_of_a_wrong_one() {
+    // x * x = -4 has no real solution near the guess: solving here fails its own check, so the unknown is the
+    // value the file saved (3 here, standing for what the source's solver returned), never the last iterate.
+    let block = r#"<region region-id="1" top="0" left="0" height="100" width="300"><solveblock><regions>
+        <region region-id="2" top="10" left="0" solve-block-category="guess-value"><math resultRef="1"><ml:define><ml:id>x</ml:id><ml:real>1</ml:real></ml:define></math></region>
+        <region region-id="3" top="30" left="0" solve-block-category="constraint"><math resultRef="2"><ml:apply><ml:equal/><ml:apply><ml:mult/><ml:id>x</ml:id><ml:id>x</ml:id></ml:apply><ml:real>-4</ml:real></ml:apply></math></region>
+        <region region-id="4" top="60" left="0" solve-block-category="solver"><math resultRef="3"><ml:define><ml:id>r</ml:id><ml:apply><ml:id labels="KEYWORD">Find</ml:id><ml:id>x</ml:id></ml:apply></ml:define></math></region>
+        </regions></solveblock></region>"#;
+    let main = format!("{block}{}", shown(6, 170.0, "r"));
+    let res = package_with(
+        &main,
+        None,
+        r#"<resultData result-id="3"><ml:result><ml:real>3</ml:real></ml:result></resultData>"#,
+    );
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(engine_text(&res.calcpad).contains("r = 3"), "{}", res.calcpad);
+}
