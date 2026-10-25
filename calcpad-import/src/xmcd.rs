@@ -1141,7 +1141,8 @@ fn read_pstmt(k: Node, lim: &Limits, depth: usize) -> PStmt {
                         Some(c) => branches.push((c, read_body(it, lim, depth))),
                         None => return bad("if"),
                     },
-                    "elseif" => {
+                    // The package format spells "else if" `alsoif`.
+                    "elseif" | "alsoif" => {
                         // Flatten its children into the list being walked.
                         let inner = ml_kids(it);
                         items.splice(i + 1..i + 1, inner);
@@ -1254,6 +1255,8 @@ fn read_apply(n: Node, lim: &Limits, depth: usize) -> Expr {
         "transpose" => un(UnOp::Transpose, &args),
         "vectorize" => un(UnOp::Vectorize, &args),
         "vectorSum" => Expr::Call(Name::new("vectorSum"), args.iter().map(&rd).collect()),
+        // `matcol(M, j)` and `matrow(M, i)`: the column or row at an index counted from the array origin.
+        "matcol" | "matrow" if args.len() == 2 => Expr::Call(Name::new(tag), args.iter().map(&rd).collect()),
         "summation" | "product" => {
             read_series(tag == "product", &args, lim, depth).unwrap_or_else(|| Expr::Unsupported {
                 code: Code::SummationOperator,

@@ -187,6 +187,8 @@ pub const FUNCTIONS: &[(&str, FnRule, usize, usize)] = &[
     ("lsolve", FnRule::Direct("lsolve"), 2, 2),
     ("submatrix", FnRule::Submatrix, 5, 5),
     ("stack", FnRule::Direct("stack"), 2, 64),
+    ("matcol", FnRule::Direct("col"), 2, 2),
+    ("matrow", FnRule::Direct("row"), 2, 2),
     ("sort", FnRule::Direct("sort"), 1, 1),
     ("reverse", FnRule::Direct("reverse"), 1, 1),
     ("mean", FnRule::Direct("mean"), 1, 64),

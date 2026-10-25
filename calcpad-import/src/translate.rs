@@ -44,35 +44,66 @@ struct R {
 /// iterations are not known, an element write, `break`/`continue`, or too many paths.
 fn symexec_program(stmts: &[PStmt], unroll: bool) -> Result<Expr, String> {
     let mut budget = if unroll { 600usize } else { 600_000 };
-    symexec(stmts, &HashMap::new(), &mut budget, unroll)
+    symexec(stmts, &HashMap::new(), None, &mut budget, unroll)?
+        .ok_or_else(|| "the program does not end with a value".into())
 }
 
 const LOOP_NEEDS: &str = "a loop whose number of iterations is not a short literal range cannot be one expression";
 
-fn symexec(stmts: &[PStmt], env: &HashMap<String, Expr>, budget: &mut usize, unroll: bool) -> Result<Expr, String> {
+/// What a path with no value gives where another path of the same program has one. The source
+/// leaves the result undefined there; the engine's square root of a negative number is the same
+/// (not a number, shown as undefined), and `if` keeps it away from the paths that have a value.
+fn no_value() -> Expr {
+    Expr::Un(UnOp::Sqrt, Box::new(Expr::Num("-1".into())))
+}
+
+/// The value of the last expression statement run so far, and whether a statement that is not an
+/// expression ran after it (then the value of the program would be that statement's, which is
+/// not read).
+type Last = Option<(Expr, bool)>;
+
+/// Symbolic run of `stmts`. A program's value is the last expression it evaluates, so an `if` that
+/// only sets it in one branch leaves the earlier value (or none) on the other. `Ok(None)` is a path
+/// that ends with no value at all.
+fn symexec(
+    stmts: &[PStmt],
+    env: &HashMap<String, Expr>,
+    cur: Last,
+    budget: &mut usize,
+    unroll: bool,
+) -> Result<Option<Expr>, String> {
     if *budget == 0 {
         return Err("too many branches and loop iterations to write as one expression".into());
     }
     *budget -= 1;
     let mut env = env.clone();
+    let mut cur = cur;
+    let stale = |c: &mut Last| {
+        if let Some((_, s)) = c {
+            *s = true;
+        }
+    };
     for (k, st) in stmts.iter().enumerate() {
         let rest = &stmts[k + 1..];
         match st {
             PStmt::Local(PTarget::Var(n), e) => {
                 let v = subst(e, &env).ok_or("a local's value would be captured by an integration variable")?;
                 env.insert(tables::normalise_name(&n.flat()), v);
+                stale(&mut cur);
             }
             PStmt::Local(PTarget::Element { .. }, _) => {
                 return Err(
                     "an element assignment needs an array built by statements, which an expression cannot hold".into(),
                 )
             }
-            PStmt::Expr(e) | PStmt::Return(e) => {
-                if matches!(st, PStmt::Expr(_)) && !rest.is_empty() {
-                    return Err("an expression statement before the end of the program".into());
-                }
+            PStmt::Return(e) => {
                 return subst(e, &env)
+                    .map(Some)
                     .ok_or_else(|| "a local's value would be captured by an integration variable".to_string());
+            }
+            PStmt::Expr(e) => {
+                let v = subst(e, &env).ok_or("a local's value would be captured by an integration variable")?;
+                cur = Some((v, false));
             }
             PStmt::If { branches, otherwise } => {
                 let mut arms = Vec::new();
@@ -80,15 +111,19 @@ fn symexec(stmts: &[PStmt], env: &HashMap<String, Expr>, budget: &mut usize, unr
                     let cond = subst(c, &env).ok_or("a condition would capture a local")?;
                     let mut path: Vec<PStmt> = body.clone();
                     path.extend(rest.iter().cloned());
-                    arms.push((cond, symexec(&path, &env, budget, unroll)?));
+                    arms.push((cond, symexec(&path, &env, cur.clone(), budget, unroll)?));
                 }
                 let mut path: Vec<PStmt> = otherwise.clone().unwrap_or_default();
                 path.extend(rest.iter().cloned());
-                let mut value = symexec(&path, &env, budget, unroll)?;
-                for (cond, v) in arms.into_iter().rev() {
-                    value = Expr::Call(Name::new("if"), vec![cond, v, value]);
+                let fall = symexec(&path, &env, cur.clone(), budget, unroll)?;
+                if fall.is_none() && arms.iter().all(|(_, v)| v.is_none()) {
+                    return Ok(None);
                 }
-                return Ok(value);
+                let mut value = fall.unwrap_or_else(no_value);
+                for (cond, v) in arms.into_iter().rev() {
+                    value = Expr::Call(Name::new("if"), vec![cond, v.unwrap_or_else(no_value), value]);
+                }
+                return Ok(Some(value));
             }
             PStmt::For { var, range, body } => {
                 let Expr::Range {
@@ -122,14 +157,18 @@ fn symexec(stmts: &[PStmt], env: &HashMap<String, Expr>, budget: &mut usize, unr
                     path.extend(body.iter().cloned());
                 }
                 path.extend(rest.iter().cloned());
-                return symexec(&path, &env, budget, unroll);
+                return symexec(&path, &env, cur, budget, unroll);
             }
             PStmt::While { .. } => return Err(LOOP_NEEDS.into()),
             PStmt::Break | PStmt::Continue => return Err("break or continue outside a loop".into()),
             PStmt::Unsupported(w) => return Err(format!("{w} is not read")),
         }
     }
-    Err("the program does not end with a value".into())
+    match cur {
+        Some((_, true)) => Err("the program ends with an assignment after its last expression".into()),
+        Some((v, false)) => Ok(Some(v)),
+        None => Ok(None),
+    }
 }
 
 fn subst(e: &Expr, env: &HashMap<String, Expr>) -> Option<Expr> {
@@ -217,6 +256,18 @@ fn subst(e: &Expr, env: &HashMap<String, Expr>) -> Option<Expr> {
 }
 
 /// True when `name` (already normalised) occurs as a name anywhere in `e`.
+/// An expression made of numbers and arithmetic only (no name, so no unit).
+fn numeric_only(e: &Expr) -> bool {
+    match e {
+        Expr::Num(_) => true,
+        Expr::Un(UnOp::Neg, a) => numeric_only(a),
+        Expr::Bin(BinOp::Mul | BinOp::Div | BinOp::Pow | BinOp::Add | BinOp::Sub, a, b) => {
+            numeric_only(a) && numeric_only(b)
+        }
+        _ => false,
+    }
+}
+
 fn mentions(e: &Expr, name: &str) -> bool {
     match e {
         Expr::Name(n) => tables::normalise_name(&n.flat()) == name,
@@ -1226,7 +1277,12 @@ impl Tr {
             let mut s = e.s.clone();
             if let Some(u) = unit {
                 let inner = if e.prec >= P_ATOM { e.s } else { format!("({})", e.s) };
-                s = format!("{}|{}", inner, t.expr(u).s);
+                let us = t.expr(u).s;
+                s = if numeric_only(u) {
+                    format!("{inner}/({us})")
+                } else {
+                    format!("{inner}|{us}")
+                };
             }
             (s, t.display_renamed)
         });
@@ -1298,7 +1354,12 @@ impl Tr {
             Stmt::Eval { expr, unit } => {
                 let mut t = self.expr(expr).s;
                 if let Some(u) = unit {
-                    t = format!("{}|{}", t, self.expr(u).s);
+                    let us = self.expr(u).s;
+                    t = if numeric_only(u) {
+                        format!("({t})/({us})")
+                    } else {
+                        format!("{t}|{us}")
+                    };
                 }
                 let bad = self.readable_bad;
                 Some(vec![as_line(t, bad)])
@@ -2807,6 +2868,12 @@ impl Tr {
                     let one_column = matches!((&args[3], &args[4]), (Expr::Num(a), Expr::Num(b)) if a == b);
                     return atom(if one_column { format!("col({text}; 1)") } else { text });
                 }
+                // `matcol(M, j)` and `matrow(M, i)` count from the sheet's array origin.
+                if matches!(flat.as_str(), "matcol" | "matrow") {
+                    let engine = if flat == "matcol" { "col" } else { "row" };
+                    let at = self.index_expr(&args[1]);
+                    return atom(format!("{engine}({}; {at})", rendered[0]));
+                }
                 return self.apply_rule(rule, &rendered);
             }
         }
@@ -3773,6 +3840,11 @@ impl Tr {
                                 } else {
                                     None
                                 };
+                                // An array an earlier element assignment could not set is a gap, and
+                                // this write depends on it: that is where the cause is, not here.
+                                let gap_root = flat
+                                    .as_ref()
+                                    .and_then(|f| self.gap_names.get(f).map(|c| (f.clone(), *c)));
                                 match (why, flat, ranges) {
                                     (Some(_), Some(f), _) if plan.is_some() => {
                                         let (rs, fresh) = plan.unwrap_or_default();
@@ -3831,6 +3903,15 @@ impl Tr {
                                             attempt = Some(format!("{f}.({}) = {}", idx.join("; "), rhs.s));
                                         }
                                     }
+                                    (Some(_), ..) if gap_root.is_some() => {
+                                        if let Some((f, root)) = gap_root {
+                                            self.cur.push(Pending {
+                                                code: Code::DependsOnGap,
+                                                detail: Some(f),
+                                                root: Some(root),
+                                            });
+                                        }
+                                    }
                                     (Some(w), ..) => self.issue(Code::ElementAssignment, Some(w.to_string())),
                                     (None, ..) => {}
                                 }
@@ -3869,7 +3950,12 @@ impl Tr {
                 if let Some(u) = unit {
                     let ur = self.expr(u);
                     text = if e.prec >= P_ATOM { e.s } else { format!("({})", e.s) };
-                    text = format!("{}|{}", text, ur.s);
+                    // A "unit" that is only a number (a power of ten) shows the value in multiples of it.
+                    text = if numeric_only(u) {
+                        format!("{}/({})", text, ur.s)
+                    } else {
+                        format!("{}|{}", text, ur.s)
+                    };
                     self.issue(Code::UnitOverride, None);
                 }
                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
