@@ -706,13 +706,14 @@ fn plausible_calcpad(s: &str) -> bool {
     depth == 0
 }
 
-/// A range variable `i := a .. z` (no step): its bounds as Calcpad text, and as integers when both
-/// are literals and `a <= z`.
+/// A range variable `i := a .. z`: its bounds as Calcpad text, and as integers when both
+/// are literals and `a <= z`. `i := a, b .. z` has the step `b - a` as well.
 #[derive(Debug, Clone, Default)]
 struct RangeInfo {
     a: String,
     z: String,
     lit: Option<(i64, i64)>,
+    step: Option<String>,
 }
 
 /// An enclosing `for` loop while a program is lowered: its variable, the expression for the
@@ -2069,6 +2070,29 @@ impl Tr {
         self.prog_n += 1;
         for (iv, info) in rs {
             let (a, z) = (&info.a, &info.z);
+            if let Some(st) = &info.step {
+                // A step: the passes are floor((z - a) / step) + 1 (a little over, so that 0.1 steps
+                // do not lose the last one), the variable a + k * step.
+                let (lo, hi, sp, k) = (
+                    format!("{iv}_a{}", self.prog_n),
+                    format!("{iv}_z{}", self.prog_n),
+                    format!("{iv}_s{}", self.prog_n),
+                    format!("{iv}_k{}", self.prog_n),
+                );
+                head.push(format!("{lo} = {a}"));
+                head.push(format!("{hi} = {z}"));
+                head.push(format!("{sp} = {st}"));
+                let count = format!("floor(({hi} - {lo})/{sp} + 0.000000001)");
+                let last = format!("({lo} + {count}*{sp})");
+                sizes.push(match o {
+                    1 => format!("max({lo}; {last})"),
+                    o if o > 1 => format!("max({lo}; {last}) - {}", o - 1),
+                    o => format!("max({lo}; {last}) + {}", 1 - o),
+                });
+                steps.push(format!("({count} + 1)"));
+                loops.push(format!("#for {k} = 0 : {count}\n{iv} = {lo} + {k}*{sp}"));
+                continue;
+            }
             match info.lit {
                 Some((x, y)) => {
                     if x < o {
@@ -2244,14 +2268,22 @@ impl Tr {
             format!("{iv}_k{n}"),
             format!("tbl_{n}"),
         );
-        let mut out = vec![
-            "#hide".to_string(),
-            format!("{lo} = {a}"),
-            format!("{hi} = {z}"),
-            format!("{tbl} = vector(abs({hi} - {lo}) + 1)"),
-            format!("#for {k} = 0 : abs({hi} - {lo})"),
-            format!("{iv} = {lo} + {k}*if({hi} ≥ {lo}; 1; -1)"),
-        ];
+        let mut out = vec!["#hide".to_string(), format!("{lo} = {a}"), format!("{hi} = {z}")];
+        match &info.step {
+            Some(st) => {
+                let sp = format!("{iv}_s{n}");
+                let count = format!("floor(({hi} - {lo})/{sp} + 0.000000001)");
+                out.push(format!("{sp} = {st}"));
+                out.push(format!("{tbl} = vector({count} + 1)"));
+                out.push(format!("#for {k} = 0 : {count}"));
+                out.push(format!("{iv} = {lo} + {k}*{sp}"));
+            }
+            None => {
+                out.push(format!("{tbl} = vector(abs({hi} - {lo}) + 1)"));
+                out.push(format!("#for {k} = 0 : abs({hi} - {lo})"));
+                out.push(format!("{iv} = {lo} + {k}*if({hi} ≥ {lo}; 1; -1)"));
+            }
+        }
         out.extend(pre.iter().map(|p| format!("    {p}")));
         out.push(format!("    {tbl}.({k} + 1) = {rhs}"));
         out.push("#loop".to_string());
@@ -4758,31 +4790,26 @@ impl Tr {
                                 }
                             }
                         }
-                        if let (
-                            Expr::Range {
-                                first,
-                                second: None,
-                                last,
-                            },
-                            true,
-                        ) = (value, valid_ident(&flat))
-                        {
+                        if let (Expr::Range { first, second, last }, true) = (value, valid_ident(&flat)) {
                             // The bounds are rendered now, as the source reads them now; a range whose
                             // bounds do not convert is a gap like any other region.
                             let mark = self.cur.len();
                             let a = self.expr(first).s;
                             let z = self.expr(last).s;
+                            let step = second.as_ref().map(|b| format!("(({}) - ({a}))", self.expr(b).s));
                             let bad = self.cur[mark..].iter().any(|p| p.code.severity() == Severity::Gap);
                             self.cur.truncate(mark);
                             if !bad {
-                                let lit = match (&**first, &**last) {
-                                    (Expr::Num(x), Expr::Num(y)) => match (is_int_literal(x), is_int_literal(y)) {
-                                        (Some(x), Some(y)) if x <= y => Some((x, y)),
-                                        _ => None,
-                                    },
+                                let lit = match (&**first, &**last, second) {
+                                    (Expr::Num(x), Expr::Num(y), None) => {
+                                        match (is_int_literal(x), is_int_literal(y)) {
+                                            (Some(x), Some(y)) if x <= y => Some((x, y)),
+                                            _ => None,
+                                        }
+                                    }
                                     _ => None,
                                 };
-                                range_def = Some((flat.clone(), RangeInfo { a, z, lit }));
+                                range_def = Some((flat.clone(), RangeInfo { a, z, lit, step }));
                             }
                         }
                         let text_def = range_def.is_none() && self.is_stringy(value);

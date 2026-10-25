@@ -376,11 +376,6 @@ fn element_assignments_that_cannot_be_a_fill_loop_say_why() {
             .contains("not made of range variables"),
         "{g:?}"
     );
-    // A range with a step, or with a bound that is not a literal, stays a range-variable gap.
-    let stepped =
-        "<ml:range><ml:sequence><ml:real>0</ml:real><ml:real>2</ml:real></ml:sequence><ml:real>10</ml:real></ml:range>";
-    let res = convert(&[define("j", stepped)]);
-    assert!(res.report.gaps().any(|i| i.code == Code::RangeVariable));
     // A bound that does not convert keeps the range a gap.
     let res = convert(&[define(
         "k",

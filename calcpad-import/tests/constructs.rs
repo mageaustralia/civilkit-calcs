@@ -486,3 +486,39 @@ fn stack_takes_a_number_as_a_one_element_array() {
     assert_close(v[1], 5.0);
     assert_close(v[2], 2.0);
 }
+
+// ---- stepped range variables ---------------------------------------------------------------------------------
+
+fn stepped(first: &str, second: &str, last: &str) -> String {
+    format!(
+        "<ml:range><ml:sequence>{}{}</ml:sequence>{}</ml:range>",
+        r(first),
+        r(second),
+        r(last)
+    )
+}
+
+#[test]
+fn a_stepped_range_variable_gives_a_table_with_its_step() {
+    // x := 0, 5 .. 20 has five values; 2 x is the column 0 10 20 30 40. A step of 0.1 keeps its last pass.
+    let res = convert(&[
+        define("x", &stepped("0", "5", "20")),
+        eval(&times(&n("x"), &r("2"))),
+        define("y", &stepped("0", "0.1", "0.3")),
+        eval(&times(&n("y"), &r("1"))),
+    ]);
+    clean(&res);
+    let text = engine_lines(&res.calcpad).join(" ").replace('\u{2002}', " ");
+    assert!(text.contains("[0 10 20 30 40]"), "{text}");
+    // 0, 0.1, 0.2, 0.3: four values, the last of them 0.3.
+    assert!(text.contains("[0 0.1 0.2 0.3]"), "{text}");
+}
+
+#[test]
+fn a_descending_stepped_range_counts_down() {
+    // z := 10, 8 .. 4: 10, 8, 6, 4.
+    let res = convert(&[define("z", &stepped("10", "8", "4")), eval(&times(&n("z"), &r("1")))]);
+    clean(&res);
+    let text = engine_lines(&res.calcpad).join(" ").replace('\u{2002}', " ");
+    assert!(text.contains("[10 8 6 4]"), "{text}");
+}
