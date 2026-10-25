@@ -698,7 +698,7 @@ pub(crate) fn unwrap_provenance<'a, 'i>(mut n: Node<'a, 'i>) -> Node<'a, 'i> {
 fn unsupported_code(tag: &str) -> Option<Code> {
     Some(match tag {
         "program" | "ifThen" | "otherwise" | "for" | "while" | "break" | "continue" | "return" | "onError"
-        | "localDefine" | "if" | "elseif" | "else" | "tryCatch" => Code::ProgramBlock,
+        | "localDefine" | "if" | "elseif" | "alsoif" | "else" | "tryCatch" => Code::ProgramBlock,
         "symEval" | "symbolicEval" | "symbolic" | "keywordEval" => Code::SymbolicEvaluation,
         "derivative" | "integral" | "nthDerivative" | "partialDerivative" => Code::CalculusOperator,
         "sum" | "product" | "limit" | "iteratedSum" | "iteratedProduct" | "summation" => Code::SummationOperator,
@@ -1149,7 +1149,7 @@ fn read_pstmt(k: Node, lim: &Limits, depth: usize) -> PStmt {
                         Some(c) => branches.push((c, read_body(it, lim, depth))),
                         None => return bad("if"),
                     },
-                    "elseif" => {
+                    "elseif" | "alsoif" => {
                         // Flatten its children into the list being walked.
                         let inner = ml_kids(it);
                         items.splice(i + 1..i + 1, inner);
@@ -1165,6 +1165,11 @@ fn read_pstmt(k: Node, lim: &Limits, depth: usize) -> PStmt {
             PStmt::If { branches, otherwise }
         }
         "return" => match kids.as_slice() {
+            // `return x <- e` returns e (the assignment is over with the return).
+            [v] if local(unwrap_provenance(*v)) == "localDefine" => match ml_kids(unwrap_provenance(*v)).as_slice() {
+                [_, value] => PStmt::Return(read_expr(unwrap_provenance(*value), lim, depth + 1)),
+                _ => bad("return"),
+            },
             [v] => PStmt::Return(read_expr(unwrap_provenance(*v), lim, depth + 1)),
             _ => bad("return"),
         },

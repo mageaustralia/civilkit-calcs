@@ -55,6 +55,7 @@ pub enum Code {
     AbsOfArray,
     CallAsMultiplication,
     UnitOverride,
+    UncoveredPath,
     ControlInput,
     SiUnitScale,
     StaticPicture,
@@ -125,6 +126,7 @@ impl Code {
         Code::AbsOfArray,
         Code::CallAsMultiplication,
         Code::UnitOverride,
+        Code::UncoveredPath,
         Code::ControlInput,
         Code::SiUnitScale,
         Code::StaticPicture,
@@ -184,6 +186,7 @@ impl Code {
             AbsOfArray => "abs-of-array",
             CallAsMultiplication => "call-as-multiplication",
             UnitOverride => "unit-override",
+            UncoveredPath => "uncovered-path",
             ControlInput => "control-input",
             SiUnitScale => "si-unit-scale",
             StaticPicture => "static-picture",
@@ -200,8 +203,8 @@ impl Code {
         use Code::*;
         match self {
             GlobalDefinition | RangeLoop | FrozenValue | AngleMode | ArrayOrigin | OriginAssigned | LogBase
-            | RoundDigits | AbsOfArray | CallAsMultiplication | UnitOverride | ControlInput | SiUnitScale
-            | StaticPicture | SvgFallback | PlotStyle => Severity::Note,
+            | RoundDigits | AbsOfArray | CallAsMultiplication | UnitOverride | UncoveredPath | ControlInput
+            | SiUnitScale | StaticPicture | SvgFallback | PlotStyle => Severity::Note,
             XmlError | NotAWorksheet | InputTooLarge | UnsupportedContainer => Severity::Fatal,
             _ => Severity::Gap,
         }
@@ -260,6 +263,7 @@ impl Code {
                 "name applied like a function but defined as a variable: converted as multiplication"
             }
             UnitOverride => "result shown in a unit: converted to a `|unit` conversion",
+            UncoveredPath => "a program path that no condition covers (the source stops there): the value of the neighbouring branch is used",
             ControlInput => "input control: its stored value is the input; the options and the script behind it are not carried",
             SiUnitScale => "the SI unit of a quantity is read as the unit it is held in: the same number only when that unit is the SI one or the scale cancels in the result",
             StaticPicture => "shown as a static picture of the original (not live, not editable)",

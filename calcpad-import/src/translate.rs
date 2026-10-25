@@ -43,19 +43,100 @@ struct R {
 /// over a short literal range is unrolled. The program is then one expression, with no
 /// statements and no names of its own. `Err` says why a program is not that: a loop whose
 /// iterations are not known, an element write, `break`/`continue`, or too many paths.
-fn symexec_program(stmts: &[PStmt], unroll: bool) -> Result<Expr, String> {
+/// The marker for a path along which no statement gave a value (replaced before the result is used).
+const NO_VALUE: &str = "\u{1}no-value";
+
+/// The result of running a program symbolically: the expression, and whether some path of the
+/// program gave no value (the source stops there) and was given the value of a neighbouring path.
+fn symexec_program(stmts: &[PStmt], unroll: bool) -> Result<(Expr, bool), String> {
     let mut budget = if unroll { 600usize } else { 600_000 };
-    symexec(stmts, &HashMap::new(), &mut budget, unroll)
+    // A local that is only ever given texts (a message set by `if`s) is the empty text where no
+    // `if` set it, so a path no condition covers has a value.
+    let mut env: HashMap<String, Expr> = HashMap::new();
+    for name in text_locals(stmts) {
+        env.insert(name, Expr::Str(String::new()));
+    }
+    let e = symexec(stmts, &env, None, &mut budget, unroll)?;
+    let mut uncovered = false;
+    match strip_no_value(e, &mut uncovered) {
+        Some(e) => Ok((e, uncovered)),
+        None => Err("the program does not end with a value".into()),
+    }
+}
+
+/// Removes the paths that gave no value from an `if` chain: such a branch takes the value of the
+/// other one. `None` when no path gave a value.
+fn strip_no_value(e: Expr, uncovered: &mut bool) -> Option<Expr> {
+    match e {
+        Expr::Name(ref n) if n.base == NO_VALUE => None,
+        Expr::Call(n, mut args) if n.base == "if" && n.sub.is_none() && args.len() == 3 => {
+            let b = strip_no_value(args.pop()?, uncovered);
+            let a = strip_no_value(args.pop()?, uncovered);
+            let c = args.pop()?;
+            match (a, b) {
+                (Some(a), Some(b)) => Some(Expr::Call(n, vec![c, a, b])),
+                (Some(x), None) | (None, Some(x)) => {
+                    *uncovered = true;
+                    Some(x)
+                }
+                (None, None) => None,
+            }
+        }
+        other => Some(other),
+    }
+}
+
+/// Locals of a program whose every assignment is a text literal.
+fn text_locals(stmts: &[PStmt]) -> Vec<String> {
+    fn walk(stmts: &[PStmt], text: &mut HashMap<String, bool>) {
+        for st in stmts {
+            match st {
+                PStmt::Local(PTarget::Var(n), e) => {
+                    let all = text.entry(tables::normalise_name(&n.flat())).or_insert(true);
+                    *all &= matches!(e, Expr::Str(_));
+                }
+                PStmt::Local(PTarget::Element { base, .. }, _) => {
+                    text.insert(tables::normalise_name(&base.flat()), false);
+                }
+                PStmt::For { var, body, .. } => {
+                    text.insert(tables::normalise_name(&var.flat()), false);
+                    walk(body, text);
+                }
+                PStmt::While { body, .. } => walk(body, text),
+                PStmt::If { branches, otherwise } => {
+                    for (_, b) in branches {
+                        walk(b, text);
+                    }
+                    if let Some(o) = otherwise {
+                        walk(o, text);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    let mut text: HashMap<String, bool> = HashMap::new();
+    walk(stmts, &mut text);
+    let mut v: Vec<String> = text.into_iter().filter(|(_, t)| *t).map(|(n, _)| n).collect();
+    v.sort();
+    v
 }
 
 const LOOP_NEEDS: &str = "a loop whose number of iterations is not a short literal range cannot be one expression";
 
-fn symexec(stmts: &[PStmt], env: &HashMap<String, Expr>, budget: &mut usize, unroll: bool) -> Result<Expr, String> {
+fn symexec(
+    stmts: &[PStmt],
+    env: &HashMap<String, Expr>,
+    cur: Option<Expr>,
+    budget: &mut usize,
+    unroll: bool,
+) -> Result<Expr, String> {
     if *budget == 0 {
         return Err("too many branches and loop iterations to write as one expression".into());
     }
     *budget -= 1;
     let mut env = env.clone();
+    let mut cur = cur;
     for (k, st) in stmts.iter().enumerate() {
         let rest = &stmts[k + 1..];
         match st {
@@ -68,10 +149,15 @@ fn symexec(stmts: &[PStmt], env: &HashMap<String, Expr>, budget: &mut usize, unr
                     "an element assignment needs an array built by statements, which an expression cannot hold".into(),
                 )
             }
+            PStmt::Expr(e) if !rest.is_empty() => {
+                // The value of a program is the last expression it evaluates: this one stands
+                // unless a later statement gives another.
+                cur = Some(
+                    subst(e, &env)
+                        .ok_or_else(|| "a local's value would be captured by an integration variable".to_string())?,
+                );
+            }
             PStmt::Expr(e) | PStmt::Return(e) => {
-                if matches!(st, PStmt::Expr(_)) && !rest.is_empty() {
-                    return Err("an expression statement before the end of the program".into());
-                }
                 return subst(e, &env)
                     .ok_or_else(|| "a local's value would be captured by an integration variable".to_string());
             }
@@ -81,11 +167,11 @@ fn symexec(stmts: &[PStmt], env: &HashMap<String, Expr>, budget: &mut usize, unr
                     let cond = subst(c, &env).ok_or("a condition would capture a local")?;
                     let mut path: Vec<PStmt> = body.clone();
                     path.extend(rest.iter().cloned());
-                    arms.push((cond, symexec(&path, &env, budget, unroll)?));
+                    arms.push((cond, symexec(&path, &env, cur.clone(), budget, unroll)?));
                 }
                 let mut path: Vec<PStmt> = otherwise.clone().unwrap_or_default();
                 path.extend(rest.iter().cloned());
-                let mut value = symexec(&path, &env, budget, unroll)?;
+                let mut value = symexec(&path, &env, cur.clone(), budget, unroll)?;
                 for (cond, v) in arms.into_iter().rev() {
                     value = Expr::Call(Name::new("if"), vec![cond, v, value]);
                 }
@@ -123,14 +209,14 @@ fn symexec(stmts: &[PStmt], env: &HashMap<String, Expr>, budget: &mut usize, unr
                     path.extend(body.iter().cloned());
                 }
                 path.extend(rest.iter().cloned());
-                return symexec(&path, &env, budget, unroll);
+                return symexec(&path, &env, cur, budget, unroll);
             }
             PStmt::While { .. } => return Err(LOOP_NEEDS.into()),
             PStmt::Break | PStmt::Continue => return Err("break or continue outside a loop".into()),
             PStmt::Unsupported(w) => return Err(format!("{w} is not read")),
         }
     }
-    Err("the program does not end with a value".into())
+    Ok(cur.unwrap_or_else(|| Expr::Name(Name::new(NO_VALUE))))
 }
 
 fn subst(e: &Expr, env: &HashMap<String, Expr>) -> Option<Expr> {
@@ -1086,6 +1172,17 @@ impl Tr {
     }
 
     fn binary(&mut self, op: BinOp, a: &Expr, b: &Expr) -> R {
+        // `x < y <= z` is `x < y` and `y <= z`, not a comparison of a truth value.
+        let ordering = |o: BinOp| matches!(o, BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge);
+        if ordering(op) {
+            if let Expr::Bin(op2, x, y) = a {
+                if ordering(*op2) {
+                    let left = Expr::Bin(*op2, x.clone(), y.clone());
+                    let right = Expr::Bin(op, y.clone(), Box::new(b.clone()));
+                    return self.binary(BinOp::And, &left, &right);
+                }
+            }
+        }
         let (sym, lmin, rmin, prec, rneg): (&str, u8, u8, u8, bool) = match op {
             BinOp::Add => (" + ", P_ADD, P_ADD, P_ADD, false),
             BinOp::Sub => (" - ", P_ADD, P_MUL, P_ADD, false),
@@ -3569,7 +3666,10 @@ impl Tr {
                 let stub: Expr;
                 let value: &Expr = match value {
                     Expr::Program(stmts) => match symexec_program(stmts, matches!(target, Target::Func(..))) {
-                        Ok(e) => {
+                        Ok((e, uncovered)) => {
+                            if uncovered {
+                                self.issue(Code::UncoveredPath, None);
+                            }
                             inlined = Some(e);
                             inlined.as_ref().unwrap()
                         }
@@ -4035,6 +4135,22 @@ impl Tr {
                 } else {
                     attempt = Some(text);
                 }
+            }
+            Stmt::Bare(Expr::Str(text)) => {
+                // A text on its own is a label the author put in a math region.
+                shape = "expression";
+                let t: String = text
+                    .chars()
+                    .filter(|c| !c.is_control())
+                    .take(200)
+                    .collect::<String>()
+                    .replace('\'', "\u{2019}");
+                let t = mathml::esc(&t);
+                emitted = Some(if self.opts.mathml {
+                    format!("'<div class=\"imp-eq\"><math class=\"imp-m\"><ms>{t}</ms></math></div>")
+                } else {
+                    format!("'<p><i>{t}</i></p>")
+                });
             }
             Stmt::Bare(expr) if matches!(expr, Expr::Bin(BinOp::Eq, ..)) => {
                 // An equation on its own line is a constraint (a solve block's equation, or a check):

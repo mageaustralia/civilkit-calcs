@@ -380,3 +380,110 @@ fn percent_and_nth_root_convert() {
     assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
     assert!(engine_text(&res).contains("= 4.5"));
 }
+
+// ---- programs that give a value by their last `if` ----------------------------------------------------
+
+fn prog(stmts: &[String]) -> String {
+    format!("<ml:program>{}</ml:program>", stmts.concat())
+}
+fn iff(test: &str, then: &str) -> String {
+    format!(
+        "<ml:if><ml:test>{test}</ml:test><ml:then>{}</ml:then></ml:if>",
+        prog(&[then.to_string()])
+    )
+}
+fn fun(name: &str, params: &[&str], body: &str) -> String {
+    let p: String = params.iter().map(|x| id(x)).collect();
+    format!(
+        "<ml:define><ml:function>{}<ml:boundVars>{p}</ml:boundVars></ml:function>{body}</ml:define>",
+        id(name)
+    )
+}
+
+#[test]
+fn the_last_if_that_runs_gives_the_value() {
+    // f(n): 0.26 below 20, then 0.5 below 16: the value is the last one that ran.
+    let body = prog(&[
+        iff(&app("lessThan", &[id("n"), real("20")]), &real("0.26")),
+        iff(&app("lessThan", &[id("n"), real("16")]), &real("0.5")),
+    ]);
+    let res = import(&[
+        math(1, 0.0, &fun("f", &["n"], &body)),
+        math(2, 20.0, &eval(&call("f", &[real("10")]))),
+        math(3, 40.0, &eval(&call("f", &[real("18")]))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.report.notes().any(|i| i.code == Code::UncoveredPath));
+    let t = engine_text(&res);
+    assert!(t.contains("= 0.5") && t.contains("= 0.26"), "{t}");
+}
+
+#[test]
+fn alsoif_is_an_else_if_and_return_of_an_assignment_returns_its_value() {
+    let alsoif = format!(
+        "<ml:alsoif><ml:test>{}</ml:test><ml:then>{}</ml:then></ml:alsoif>",
+        app("lessThan", &[id("n"), real("10")]),
+        prog(&[real("2")])
+    );
+    let first = format!(
+        "<ml:if><ml:test>{}</ml:test><ml:then>{}</ml:then>{alsoif}<ml:else>{}</ml:else></ml:if>",
+        app("lessThan", &[id("n"), real("5")]),
+        prog(&[format!(
+            "<ml:return><ml:localDefine>{}{}</ml:localDefine></ml:return>",
+            id("r"),
+            real("1")
+        )]),
+        prog(&[real("3")])
+    );
+    let res = import(&[
+        math(1, 0.0, &fun("g", &["n"], &prog(&[first]))),
+        math(2, 20.0, &eval(&call("g", &[real("3")]))),
+        math(3, 40.0, &eval(&call("g", &[real("7")]))),
+        math(4, 60.0, &eval(&call("g", &[real("12")]))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let t = engine_text(&res);
+    assert!(t.contains("= 1") && t.contains("= 2") && t.contains("= 3"), "{t}");
+}
+
+#[test]
+fn a_chained_comparison_is_both_comparisons() {
+    let chain = app("lessOrEqual", &[app("lessThan", &[real("1"), id("x")]), real("3")]);
+    let res = import(&[
+        math(1, 0.0, &define(&id("x"), &app("mult", &[real("2"), id("m")]))),
+        math(2, 20.0, &define(&id("y"), &call("if", &[chain, real("1"), real("0")]))),
+        math(3, 40.0, &eval(&id("y"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(engine_text(&res).contains("y = 1"));
+}
+
+#[test]
+fn a_message_set_by_ifs_is_a_text() {
+    let body = prog(&[
+        iff(
+            &app("greaterThan", &[id("x"), real("1")]),
+            "<ml:localDefine><ml:id>msg</ml:id><ml:str>OK</ml:str></ml:localDefine>",
+        ),
+        iff(
+            &app("lessOrEqual", &[id("x"), real("1")]),
+            "<ml:localDefine><ml:id>msg</ml:id><ml:str>LOW</ml:str></ml:localDefine>",
+        ),
+        id("msg"),
+    ]);
+    let res = import(&[
+        math(1, 0.0, &define(&id("x"), &real("0.5"))),
+        math(2, 20.0, &define(&id("Check"), &body)),
+        math(3, 40.0, &eval(&id("Check"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let t = engine_text(&res);
+    assert!(t.contains("LOW") && !t.contains("OK"), "{t}");
+}
+
+#[test]
+fn a_text_on_its_own_is_a_label() {
+    let res = import(&[math(1, 0.0, &s("Case"))]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.calcpad.contains("<ms>Case</ms>"), "{}", res.calcpad);
+}
