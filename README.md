@@ -205,6 +205,16 @@ node e2e/symbolic-check.mjs       # Symbolic dialog: each operation, typeset res
 node ../tools/set_version.mjs --check
 ```
 
+## Checked at 26.10.9
+
+On the release build: `cargo test --workspace` (excluding `calcpad-sheet`) passed, 6051 tests, run single-threaded because the
+highlighter's `ui_directive_highlighter` tests fail intermittently in parallel (and `HPMatrixCond2` once under load; it passes alone).
+`web/e2e/symbolic-check.mjs` (the Symbolic dialog: eight operations, errors, insert into a worksheet and a sheet, lazy loading),
+`import-check.mjs` (65 checks), `md-block-check`, `md-edit-check`, `update-notice-check`, `ribbon-check`, `browser-check.mjs`
+(123 checks) and `pwa-check.mjs` (offline, 470 files cached) pass. The caskit crate has 346 tests of its own, including the
+simply supported beam and cantilever derivations. Not re-run for this release: `python-check`, `sheet-check`, `tsc`, `clippy`
+on the whole workspace, and `cargo fmt --check` (fails on `calcpad-sheet`). The Word and Excel exports have not been opened in Office.
+
 ## Checked at 26.10.8
 
 On the merged tree: `cargo test --workspace` (excluding `calcpad-sheet`) passes, run single-threaded because the highlighter's

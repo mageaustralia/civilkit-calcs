@@ -10,6 +10,8 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 (for example `civilkit-calcs-engine-v0.1.0`).
 
 ## [Unreleased]
+
+## [26.10.9] - 2026-10-26
 ### Added
 - A Symbolic dialog (Functions tab) over the new `caskit` crate: simplify, expand, factor, differentiate (any order), integrate (indefinite or between limits), solve an equation or a linear system, substitute and evaluate. The result is typeset with KaTeX and shown as text, can be copied, and can be inserted into a Calcpad worksheet (a calculation line or a comment) or a sheet (a `$$` formula block or a quantity line). A refusal is shown with the library's message. A new `calcpad-caskit-wasm` module (290 KB, 122 KB gzipped) runs in a worker and is downloaded only when the dialog first runs something; `tools/build_wasm.sh caskit` builds it. `web/e2e/symbolic-check.mjs` checks it in the browser.
 - `caskit`, a new workspace crate (`civilkit-calcs-caskit`, library `caskit`): a small pure-Rust computer algebra library for engineering formulas. Exact rational numbers, canonical expressions (so `1/(E*I)` is a product of reciprocals and equal expressions compare equal), a parser and ASCII and LaTeX printers, `simplify`, `expand`, `factor`, `diff`, `integrate` and definite integrals, `solve` for linear and quadratic equations and for rearranging a formula, and a linear solver for up to 4 unknowns. Anything outside the supported forms is an explicit error. Not yet loaded by the web app and not yet published. `docs/caskit.md`, `caskit/README.md`.
