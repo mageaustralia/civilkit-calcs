@@ -1440,12 +1440,18 @@ fn function_bodies_that_have_no_value_on_some_path_are_gaps() {
         &program(&[for_in("i", &r("1"), &n("x"), &[local("t", &n("i"))]), n("t")]),
     )]);
     assert!(reason(&res).contains("first set inside a loop"), "{}", reason(&res));
-    // An element of an array the function neither received nor created.
+    // An element of an array the function neither received nor created, at an index that is not a
+    // loop variable or a number (so the size it needs is not known ahead).
     let res = convert(&[function(
         "e",
         &["x"],
         &program(&[
-            for_in("i", &r("1"), &n("x"), &[local_el("z", &n("i"), &n("i"))]),
+            for_in(
+                "i",
+                &r("1"),
+                &n("x"),
+                &[local_el("z", &app("mult", &[n("i"), n("i")]), &n("i"))],
+            ),
             n("z"),
         ]),
     )]);
