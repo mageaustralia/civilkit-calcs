@@ -212,6 +212,13 @@ pub enum Target {
     },
     /// `[a, b] := ...`: several names defined at once by a matrix of names.
     Multi(Vec<Name>),
+    /// `M<j> := ...` (or the row `M[i]` of `matrow`): a whole column (or row) of an array, at an
+    /// index counted from the array origin.
+    Slice {
+        base: Name,
+        index: Box<Expr>,
+        row: bool,
+    },
 }
 
 /// An identifier with its literal subscript (`x_i` is base `x`, sub `i`).
@@ -338,6 +345,12 @@ pub enum PTarget {
         base: Name,
         index: Vec<Expr>,
     },
+    /// `M<j> <- ...` (or a row): a whole column of an array, at an index counted from the array origin.
+    Slice {
+        base: Name,
+        index: Expr,
+        row: bool,
+    },
 }
 
 /// One statement of a program.
@@ -436,6 +449,10 @@ impl PStmt {
                         f(base);
                         index.iter_mut().for_each(|a| a.for_each_name_mut(f));
                     }
+                    PTarget::Slice { base, index, .. } => {
+                        f(base);
+                        index.for_each_name_mut(f);
+                    }
                 }
                 e.for_each_name_mut(f);
             }
@@ -485,6 +502,10 @@ impl Stmt {
                         for n in names.iter_mut() {
                             f(n);
                         }
+                    }
+                    Target::Slice { base, index, .. } => {
+                        f(base);
+                        index.for_each_name_mut(f);
                     }
                 }
                 value.for_each_name_mut(f);

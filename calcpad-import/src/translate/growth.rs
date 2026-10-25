@@ -16,6 +16,8 @@ pub(super) struct WriteScan {
     pub ranks: Vec<usize>,
     /// Some write is not under an `if`.
     pub uncond: bool,
+    /// Some write is a whole column or row, which the sizes of the element writes do not cover.
+    pub has_slice: bool,
 }
 
 /// The arrays a body writes by element: where, with how many indexes, and whether always.
@@ -34,6 +36,19 @@ pub(super) fn scan_element_writes(body: &[PStmt]) -> HashMap<String, WriteScan> 
                         e.ranks.push(index.len());
                     }
                     e.uncond |= !cond;
+                }
+                PStmt::Local(PTarget::Slice { base, .. }, _) => {
+                    let e = out
+                        .entry(tables::normalise_name(&base.flat()))
+                        .or_insert_with(|| WriteScan {
+                            first: at,
+                            ..WriteScan::default()
+                        });
+                    if !e.ranks.contains(&2) {
+                        e.ranks.push(2);
+                    }
+                    e.uncond |= !cond;
+                    e.has_slice = true;
                 }
                 PStmt::For { body, .. } | PStmt::While { body, .. } => walk(body, at, cond, out),
                 PStmt::If { branches, otherwise } => {

@@ -695,3 +695,75 @@ fn several_names_defined_from_a_program_that_returns_its_locals() {
     assert_close(v[0], 6.0);
     assert_close(v[1], 12.0);
 }
+
+// ---- whole columns as assignment targets -------------------------------------------------------------------------
+
+fn matcol_target(base: &str, idx: &str) -> String {
+    format!("<ml:apply><ml:matcol/>{}{}</ml:apply>", n(base), idx)
+}
+fn matcol(base: &str, idx: &str) -> String {
+    matcol_target(base, idx)
+}
+fn set_column(base: &str, idx: &str, value: &str) -> String {
+    format!("<ml:define>{}{}</ml:define>", matcol_target(base, idx), value)
+}
+
+#[test]
+fn a_column_assigned_from_an_expression_replaces_that_column() {
+    // M = [1 2; 3 4; 5 6]; M<2> := M<1> * 10 gives the second column 10, 30, 50; the first is unchanged.
+    let res = convert(&[
+        define("M", &mat(3, 2, &["1", "3", "5", "2", "4", "6"])),
+        set_column("M", &r("2"), &times(&matcol("M", &r("1")), &r("10"))),
+        eval(&index2("M", &r("1"), &r("2"))),
+        eval(&index2("M", &r("3"), &r("2"))),
+        eval(&index2("M", &r("3"), &r("1"))),
+        eval(&call("cols", &[n("M")])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 4);
+    assert_close(v[0], 10.0);
+    assert_close(v[1], 50.0);
+    assert_close(v[2], 5.0);
+    assert_close(v[3], 2.0);
+}
+
+#[test]
+fn a_column_assigned_to_a_new_name_makes_the_array_as_large_as_it_needs() {
+    // N<2> := [7; 8] makes N a 2 x 2 matrix with zeros in the first column.
+    let res = convert(&[
+        set_column("N", &r("2"), &mat(2, 1, &["7", "8"])),
+        eval(&call("rows", &[n("N")])),
+        eval(&index2("N", &r("2"), &r("2"))),
+        eval(&index2("N", &r("1"), &r("1"))),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 3);
+    assert_close(v[0], 2.0);
+    assert_close(v[1], 8.0);
+    assert_close(v[2], 0.0);
+}
+
+#[test]
+fn a_function_assigns_a_column_of_its_argument() {
+    // f(c): c<1> <- c<2> + 100 on c = [1 2; 3 4] gives the first column 102, 104.
+    let body = program(&[
+        format!(
+            "<ml:localDefine>{}{}</ml:localDefine>",
+            matcol_target("c", &r("1")),
+            plus(&matcol("c", &r("2")), &r("100"))
+        ),
+        n("c"),
+    ]);
+    let res = convert(&[
+        func("f", &["c"], &body),
+        define("w", &call("f", &[mat(2, 2, &["1", "3", "2", "4"])])),
+        eval(&index2("w", &r("1"), &r("1"))),
+        eval(&index2("w", &r("2"), &r("1"))),
+        eval(&index2("w", &r("2"), &r("2"))),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 3);
+    assert_close(v[0], 102.0);
+    assert_close(v[1], 104.0);
+    assert_close(v[2], 4.0);
+}

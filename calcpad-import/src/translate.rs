@@ -20,6 +20,7 @@ mod growth;
 mod multi;
 mod nested;
 mod plot;
+mod slices;
 mod strings;
 mod trycatch;
 
@@ -175,7 +176,7 @@ fn symexec(
                 cur = Some(v.clone());
                 env.insert(tables::normalise_name(&n.flat()), v);
             }
-            PStmt::Local(PTarget::Element { .. }, _) => {
+            PStmt::Local(PTarget::Element { .. } | PTarget::Slice { .. }, _) => {
                 return Err(
                     "an element assignment needs an array built by statements, which an expression cannot hold".into(),
                 )
@@ -1042,7 +1043,9 @@ fn name_counts(stmts: &[PStmt]) -> HashMap<String, usize> {
 fn assigned_names(stmts: &[PStmt], out: &mut HashSet<String>) {
     for st in stmts {
         match st {
-            PStmt::Local(PTarget::Var(n), _) | PStmt::Local(PTarget::Element { base: n, .. }, _) => {
+            PStmt::Local(PTarget::Var(n), _)
+            | PStmt::Local(PTarget::Element { base: n, .. }, _)
+            | PStmt::Local(PTarget::Slice { base: n, .. }, _) => {
                 out.insert(tables::normalise_name(&n.flat()));
             }
             PStmt::For { body, .. } | PStmt::While { body, .. } => assigned_names(body, out),
@@ -1509,6 +1512,12 @@ impl Tr {
     fn yields_array(&self, e: &Expr) -> bool {
         match e {
             Expr::Matrix { .. } => true,
+            // An `if` gives an array when one of its branches does.
+            Expr::Call(f, args)
+                if f.base == "if" && f.sub.is_none() && args.len() == 3 && !self.funcs.contains_key("if") =>
+            {
+                self.yields_array(&args[1]) || self.yields_array(&args[2])
+            }
             Expr::Call(f, _) => {
                 matches!(
                     f.base.as_str(),
@@ -1828,10 +1837,12 @@ impl Tr {
                     Target::Var(n) | Target::Func(n, _) => vec![tables::normalise_name(&n.flat())],
                     Target::Element { base, .. } => base.iter().map(|b| tables::normalise_name(&b.flat())).collect(),
                     Target::Multi(ns) => ns.iter().map(|n| tables::normalise_name(&n.flat())).collect(),
+                    Target::Slice { base, .. } => vec![tables::normalise_name(&base.flat())],
                 };
                 // An element assignment is only valid for an array the engine holds; a function that
                 // mentions itself is a circular reference to it.
-                let head_bad = names.iter().any(|n| !valid_ident(n)) || matches!(target, Target::Element { .. });
+                let head_bad = names.iter().any(|n| !valid_ident(n))
+                    || matches!(target, Target::Element { .. } | Target::Slice { .. });
                 let head = match target {
                     Target::Var(n) => tables::normalise_name(&n.flat()),
                     Target::Func(n, ps) => {
@@ -1850,6 +1861,15 @@ impl Tr {
                     Target::Multi(names) => {
                         let l: Vec<String> = names.iter().map(|n| tables::normalise_name(&n.flat())).collect();
                         format!("[{}]", l.join("; "))
+                    }
+                    Target::Slice { base, index, row } => {
+                        let i = self.expr(index).s;
+                        format!(
+                            "{}({}; {})",
+                            if *row { "row" } else { "col" },
+                            tables::normalise_name(&base.flat()),
+                            i
+                        )
                     }
                 };
                 if let Expr::Program(stmts) = value {
@@ -1924,6 +1944,16 @@ impl Tr {
                     let t = format!("{} = {}", name, self.expr(e).s);
                     out.push((!self.readable_bad && valid_ident(&name) && plausible_calcpad(&t), t));
                 }
+                PStmt::Local(PTarget::Slice { base, index, row }, e) => {
+                    let t = format!(
+                        "{}({}; {}) = {}",
+                        if *row { "row" } else { "col" },
+                        tables::normalise_name(&base.flat()),
+                        self.expr(index).s,
+                        self.expr(e).s
+                    );
+                    out.push((false, t));
+                }
                 PStmt::Local(PTarget::Element { base, index }, e) => {
                     let idx: Vec<String> = index.iter().map(|i| self.expr(i).s).collect();
                     let t = format!(
@@ -1990,6 +2020,15 @@ impl Tr {
             parts.push(match st {
                 PStmt::Local(PTarget::Var(n), e) => {
                     format!("{} = {}", tables::normalise_name(&n.flat()), self.expr(e).s)
+                }
+                PStmt::Local(PTarget::Slice { base, index, row }, e) => {
+                    format!(
+                        "{}({}; {}) = {}",
+                        if *row { "row" } else { "col" },
+                        tables::normalise_name(&base.flat()),
+                        self.expr(index).s,
+                        self.expr(e).s
+                    )
                 }
                 PStmt::Local(PTarget::Element { base, index }, e) => {
                     let idx: Vec<String> = index.iter().map(|i| self.expr(i).s).collect();
@@ -2831,7 +2870,9 @@ impl Tr {
                 let literal_only = mine.iter().all(|w| w.needs.iter().all(|n| matches!(n, Need::Lit(_))));
                 // Sized ahead when its writes are in one statement, or all at numbers (the size does
                 // not depend on what runs between them).
-                if !st.no_alloc.contains_key(&b) && !places.is_empty() && (places.len() == 1 || literal_only) {
+                let slices = st.scan.get(&b).is_some_and(|i| i.has_slice);
+                if !slices && !st.no_alloc.contains_key(&b) && !places.is_empty() && (places.len() == 1 || literal_only)
+                {
                     st.allocs.push((places[0], b));
                     continue;
                 }
@@ -3059,6 +3100,24 @@ impl Tr {
                             Some(g) => format!("{flag} = if({g}; 1; {flag})"),
                         });
                     }
+                }
+                PStmt::Local(PTarget::Slice { base, index, row }, e) => {
+                    let flat = tables::normalise_name(&base.flat());
+                    let (Some(mapped), true) = (self.locals.get(&flat).cloned(), st.arrays.contains(&flat)) else {
+                        return Err(format!(
+                            "assignment to a column of {flat}, an array the function neither received nor created"
+                        ));
+                    };
+                    let idx = self.index_expr(index);
+                    let rhs = self.expr(e).s;
+                    self.prog_n += 1;
+                    let uid = self.prog_n;
+                    let t = format!("sl_t{uid}");
+                    items.push(match g {
+                        None => format!("{t} = {rhs}"),
+                        Some(g) => format!("{t} = if({g}; {rhs}; vector(1))"),
+                    });
+                    items.extend(self.slice_write(&mapped, &idx, *row, &t, uid, g));
                 }
                 PStmt::Local(PTarget::Element { base, index }, e) => {
                     let flat = tables::normalise_name(&base.flat());
@@ -3414,6 +3473,9 @@ impl Tr {
                         self.local_arrays.remove(&mapped);
                     }
                     out.push(format!("{pad}{mapped} = {rhs}"));
+                }
+                PStmt::Local(PTarget::Slice { .. }, _) => {
+                    return Err("assignment to a whole column of an array in a worksheet-level program".into());
                 }
                 PStmt::Local(PTarget::Element { base, index }, e) => {
                     let flat = tables::normalise_name(&base.flat());
@@ -5047,6 +5109,25 @@ impl Tr {
                                 .map(|b| tables::normalise_name(&b.flat()))
                                 .filter(|f| valid_ident(f)),
                         );
+                    }
+                    Target::Slice { base, index, row } => {
+                        let flat = tables::normalise_name(&base.flat());
+                        if valid_ident(&flat) {
+                            define_name = Some((flat.clone(), None, true));
+                        }
+                        match self.slice_assign(base, index, *row, value) {
+                            Ok((text, labels)) => {
+                                if labels {
+                                    str_mat_def = Some(flat.clone());
+                                }
+                                if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
+                                    emitted = Some(text);
+                                } else {
+                                    attempt = Some(text);
+                                }
+                            }
+                            Err(why) => self.issue(Code::ElementAssignment, Some(why)),
+                        }
                     }
                     Target::Element { base, index } => {
                         let flat = base

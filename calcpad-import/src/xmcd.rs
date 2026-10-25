@@ -856,6 +856,17 @@ fn read_target(n: Node, lim: &Limits) -> Option<Target> {
         }
         "apply" => {
             let kids = ml_kids(n);
+            // A whole column or row: `matcol(M, j) := ...`.
+            if let [op, first, idx] = kids.as_slice() {
+                let tag = local(unwrap_provenance(*op));
+                if matches!(tag, "matcol" | "matrow") && local(unwrap_provenance(*first)) == "id" {
+                    return Some(Target::Slice {
+                        base: read_name(unwrap_provenance(*first)),
+                        index: Box::new(read_expr(*idx, lim, 1)),
+                        row: tag == "matrow",
+                    });
+                }
+            }
             let (base, index) = match kids.as_slice() {
                 [op, first, ..]
                     if local(unwrap_provenance(*op)) == "indexer" && local(unwrap_provenance(*first)) == "id" =>
@@ -1161,6 +1172,14 @@ fn read_pstmt(k: Node, lim: &Limits, depth: usize) -> PStmt {
                         base: Some(base),
                         index,
                     }) => PStmt::Local(PTarget::Element { base, index }, value),
+                    Some(Target::Slice { base, index, row }) => PStmt::Local(
+                        PTarget::Slice {
+                            base,
+                            index: *index,
+                            row,
+                        },
+                        value,
+                    ),
                     _ => bad("local assignment target"),
                 },
                 _ => bad("local assignment target"),

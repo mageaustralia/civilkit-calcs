@@ -93,6 +93,10 @@ fn walk_stmt(s: &mut Stmt, f: &mut dyn FnMut(&mut Name)) {
                     index.iter_mut().for_each(|e| walk_expr(e, f));
                 }
                 Target::Multi(ns) => ns.iter_mut().for_each(&mut *f),
+                Target::Slice { base, index, .. } => {
+                    f(base);
+                    walk_expr(index, f);
+                }
             }
             walk_expr(value, f);
         }
@@ -167,6 +171,10 @@ fn walk_pstmt(s: &mut PStmt, f: &mut dyn FnMut(&mut Name)) {
                 PTarget::Element { base, index } => {
                     f(base);
                     index.iter_mut().for_each(|a| walk_expr(a, f));
+                }
+                PTarget::Slice { base, index, .. } => {
+                    f(base);
+                    walk_expr(index, f);
                 }
             }
             walk_expr(e, f);
