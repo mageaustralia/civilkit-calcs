@@ -333,3 +333,10 @@ fn a_vector_that_mixes_texts_and_numbers_stays_a_gap() {
         res.report.issues
     );
 }
+
+#[test]
+fn a_display_size_inside_a_matrix_is_not_an_item() {
+    let m = "<ml:matrix rows=\"1\" cols=\"3\"><ml:display size=\"1,12\"/><ml:real>1</ml:real><ml:real>2</ml:real></ml:matrix>";
+    let res = import(&[math(1, 0.0, &define(&id("v"), m)), math(2, 20.0, &eval(&id("v")))]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+}
