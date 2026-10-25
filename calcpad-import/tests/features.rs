@@ -1400,34 +1400,32 @@ fn function_loops_with_while_and_chained_conditions() {
 }
 
 #[test]
-fn function_bodies_that_have_no_value_on_some_path_are_gaps() {
-    let reason = |res: &ImportResult| -> String {
-        res.report
-            .gaps()
-            .find(|i| i.code == Code::ProgramBlock)
-            .and_then(|i| i.detail.clone())
-            .unwrap_or_default()
-    };
-    // An element of an array the function neither received nor created, at an index that is not a
-    // loop variable or a number (so the size it needs is not known ahead).
-    let res = convert(&[function(
-        "e",
-        &["x"],
-        &program(&[
-            for_in(
-                "i",
-                &r("1"),
-                &n("x"),
-                &[local_el("z", &app("mult", &[n("i"), n("i")]), &n("i"))],
-            ),
-            n("z"),
-        ]),
-    )]);
-    assert!(
-        reason(&res).contains("neither received nor created"),
-        "{}",
-        reason(&res)
-    );
+fn an_element_written_at_a_computed_index_grows_the_array_to_that_index() {
+    // z[i * i] <- i for i in 1..3 puts 1, 2, 3 at 1, 4, 9: nine elements, the others zero.
+    let res = convert(&[
+        function(
+            "e",
+            &["x"],
+            &program(&[
+                for_in(
+                    "i",
+                    &r("1"),
+                    &n("x"),
+                    &[local_el("z", &app("mult", &[n("i"), n("i")]), &n("i"))],
+                ),
+                n("z"),
+            ]),
+        ),
+        define("w", &call("e", &[r("3")])),
+        eval(&call("rows", &[n("w")])),
+        eval(&index1("w", &r("4"))),
+        eval(&index1("w", &r("5"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 3], 9.0);
+    assert_close(nums[nums.len() - 2], 2.0);
+    assert_close(nums[nums.len() - 1], 0.0);
 }
 
 #[test]
