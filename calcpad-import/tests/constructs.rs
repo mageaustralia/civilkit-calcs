@@ -199,3 +199,214 @@ fn a_literal_element_past_the_end_of_a_matrix_grows_it_with_zeros() {
     assert_close(nums[k - 2], 0.0);
     assert_close(nums[k - 1], 4.0);
 }
+
+// ---- early exits in function bodies -------------------------------------------------------------------------
+
+fn func(name: &str, params: &[&str], body: &str) -> String {
+    let p: String = params.iter().map(|x| n(x)).collect();
+    format!(
+        "<ml:define><ml:function>{}<ml:boundVars>{p}</ml:boundVars></ml:function>{body}</ml:define>",
+        n(name)
+    )
+}
+fn program(stmts: &[String]) -> String {
+    format!("<ml:program>{}</ml:program>", stmts.join(""))
+}
+fn local(name: &str, value: &str) -> String {
+    format!("<ml:localDefine>{}{}</ml:localDefine>", n(name), value)
+}
+fn gt(a: &str, b: &str) -> String {
+    app("greaterThan", &[a.to_string(), b.to_string()])
+}
+fn lt(a: &str, b: &str) -> String {
+    app("lessThan", &[a.to_string(), b.to_string()])
+}
+fn for_in(var: &str, lo: &str, hi: &str, body: &[String]) -> String {
+    format!(
+        "<ml:for>{}<ml:range>{lo}{hi}</ml:range>{}</ml:for>",
+        n(var),
+        program(body)
+    )
+}
+fn while_do(cond: &str, body: &[String]) -> String {
+    format!("<ml:while>{cond}{}</ml:while>", program(body))
+}
+fn if_then(test: &str, then: &[String]) -> String {
+    format!(
+        "<ml:if><ml:test>{test}</ml:test><ml:then>{}</ml:then></ml:if>",
+        program(then)
+    )
+}
+fn ret(value: &str) -> String {
+    format!("<ml:return>{value}</ml:return>")
+}
+const BREAK: &str = "<ml:break/>";
+const CONTINUE: &str = "<ml:continue/>";
+
+/// The numbers the last `count` evaluations printed.
+fn last_numbers(res: &ImportResult, count: usize) -> Vec<f64> {
+    let nums = numbers(&res.calcpad);
+    nums[nums.len() - count..].to_vec()
+}
+
+#[test]
+fn a_return_inside_a_loop_ends_the_function() {
+    // f(x): the first i in 1..5 with i * i > x, else 0. f(10) = 4, f(1) = 2, f(100) = 0.
+    let body = program(&[
+        for_in(
+            "i",
+            &r("1"),
+            &r("5"),
+            &[if_then(&gt(&times(&n("i"), &n("i")), &n("x")), &[ret(&n("i"))])],
+        ),
+        r("0"),
+    ]);
+    let res = convert(&[
+        func("f", &["x"], &body),
+        eval(&call("f", &[r("10")])),
+        eval(&call("f", &[r("1")])),
+        eval(&call("f", &[r("100")])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 3);
+    assert_close(v[0], 4.0);
+    assert_close(v[1], 2.0);
+    assert_close(v[2], 0.0);
+}
+
+#[test]
+fn a_break_stops_the_loop_and_what_follows_it_in_the_pass() {
+    // g(n): the sum of 1..10 stopping when i exceeds n, the statement after the break not run:
+    // s = s + i runs only for i <= n. g(4) = 10, g(20) = 55.
+    let body = program(&[
+        local("s", &r("0")),
+        for_in(
+            "i",
+            &r("1"),
+            &r("10"),
+            &[
+                if_then(&gt(&n("i"), &n("n")), &[BREAK.to_string()]),
+                local("s", &plus(&n("s"), &n("i"))),
+            ],
+        ),
+        n("s"),
+    ]);
+    let res = convert(&[
+        func("g", &["n"], &body),
+        eval(&call("g", &[r("4")])),
+        eval(&call("g", &[r("20")])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 2);
+    assert_close(v[0], 10.0);
+    assert_close(v[1], 55.0);
+}
+
+#[test]
+fn a_continue_skips_the_rest_of_the_pass_only() {
+    // h(): the sum of the odd numbers up to 6, skipping the even ones: 1 + 3 + 5 = 9.
+    let even = app("equal", &[call("mod", &[n("i"), r("2")]), r("0")]);
+    let body = program(&[
+        local("s", &r("0")),
+        for_in(
+            "i",
+            &r("1"),
+            &r("6"),
+            &[
+                if_then(&even, &[CONTINUE.to_string()]),
+                local("s", &plus(&n("s"), &n("i"))),
+            ],
+        ),
+        n("s"),
+    ]);
+    let res = convert(&[func("h", &["x"], &body), eval(&call("h", &[r("0")]))]);
+    clean(&res);
+    assert_close(last_numbers(&res, 1)[0], 9.0);
+}
+
+#[test]
+fn a_while_loop_with_a_break_and_a_return_after_it() {
+    // w(lim): count up until the square passes lim, then return the count: w(50) = 8.
+    let body = program(&[
+        local("i", &r("0")),
+        while_do(
+            &lt(&n("i"), &r("100")),
+            &[
+                local("i", &plus(&n("i"), &r("1"))),
+                if_then(&gt(&times(&n("i"), &n("i")), &n("lim")), &[BREAK.to_string()]),
+            ],
+        ),
+        n("i"),
+    ]);
+    let res = convert(&[func("w", &["lim"], &body), eval(&call("w", &[r("50")]))]);
+    clean(&res);
+    assert_close(last_numbers(&res, 1)[0], 8.0);
+}
+
+#[test]
+fn a_local_set_only_in_a_loop_is_not_a_number_where_nothing_set_it() {
+    // k(x): the first j in 0..5 with j * j > x, found by break; read after the loop.
+    // k(5) = 3. k(100) finds none: the source has no value there, and so does the engine.
+    let body = program(&[
+        for_in(
+            "j",
+            &r("0"),
+            &r("5"),
+            &[if_then(
+                &gt(&times(&n("j"), &n("j")), &n("x")),
+                &[local("ans", &n("j")), BREAK.to_string()],
+            )],
+        ),
+        n("ans"),
+    ]);
+    let res = convert(&[
+        func("k", &["x"], &body),
+        eval(&call("k", &[r("5")])),
+        eval(&call("k", &[r("100")])),
+    ]);
+    clean(&res);
+    // The engine shows a not-a-number result as an error span, so read the page directly.
+    let mut parser = calcpad_core::parsers::expression_parser::ExpressionParser::new();
+    parser.parse(&format!("#round 10\n{}", legacy(&res.calcpad)), true);
+    let html = parser.html_result;
+    assert!(html.contains("= 3"), "{html}");
+    assert_eq!(html.matches("Undefined").count(), 1, "{html}");
+}
+
+#[test]
+fn a_return_keeps_the_units_of_the_value_returned() {
+    // u(x): returns 2 m early when x > 0, else 7 m: u(1) = 2 m, u(-1) = 7 m, shown in metres.
+    let body = program(&[
+        if_then(&gt(&n("x"), &r("0")), &[ret(&times(&r("2"), &n("m")))]),
+        times(&r("7"), &n("m")),
+    ]);
+    let res = convert(&[
+        func("u", &["x"], &body),
+        define("a", &call("u", &[r("1")])),
+        define("b", &call("u", &[r("-1")])),
+        eval(&app("div", &[n("a"), n("m")])),
+        eval(&app("div", &[n("b"), n("m")])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 2);
+    assert_close(v[0], 2.0);
+    assert_close(v[1], 7.0);
+}
+
+#[test]
+fn a_function_defined_twice_keeps_each_definition_for_the_calls_after_it() {
+    // c(x) = x + 1, then c(x) = x + 100: c(1) before is 2, after is 101, and the engine sees no redefinition.
+    let res = convert(&[
+        func("c", &["x"], &plus(&n("x"), &r("1"))),
+        eval(&call("c", &[r("1")])),
+        func("c", &["x"], &plus(&n("x"), &r("100"))),
+        eval(&call("c", &[r("1")])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 2);
+    assert_close(v[0], 2.0);
+    assert_close(v[1], 101.0);
+    let mut parser = calcpad_core::parsers::expression_parser::ExpressionParser::new();
+    parser.parse(&legacy(&res.calcpad), true);
+    assert!(!parser.html_result.contains("redefined"), "{}", parser.html_result);
+}

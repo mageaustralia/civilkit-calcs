@@ -15,6 +15,7 @@ use crate::report::{Code, ImportReport, Issue, KindStats, Severity};
 use crate::tables::{self, Constant, FnRule};
 use crate::{Asset, ImportOptions};
 
+mod exits;
 mod plot;
 mod strings;
 
@@ -774,6 +775,10 @@ struct FnBlk {
     allocs: Vec<(usize, String)>,
     no_alloc: HashMap<String, String>,
     writes: Vec<ElemWrite>,
+    /// The result and done flags of an early `return`, when the body has one.
+    ret: Option<exits::RetFlags>,
+    /// The break and continue flags of the loops being lowered, innermost last.
+    flags: Vec<exits::LoopFlags>,
 }
 
 /// What one dimension of an array needs: a literal index, or the end of a loop (plus an offset).
@@ -1265,6 +1270,12 @@ struct Tr {
     local_arrays: HashSet<String>,
     /// Output names of local arrays whose elements were set to a unitless 0 literal.
     zero_started: HashSet<String>,
+    /// Output names of function-body locals that may have no value on some path, with the flag that
+    /// says whether one was set: a read is `if(flag; x; undefined)`.
+    partial: HashMap<String, String>,
+    /// A function the sheet defines more than once: the engine name of its current definition (the
+    /// engine warns when a name is defined again, so each later definition has a name of its own).
+    fn_alias: HashMap<String, String>,
     /// Output names of local arrays that grow as they are written (their size is not known ahead).
     growable: HashSet<String>,
     /// Lines a program lowered to statements starts with (the allocation of its growing arrays).
@@ -2711,6 +2722,7 @@ impl Tr {
         };
         self.prog_n += 1;
         let saved_locals = std::mem::take(&mut self.locals);
+        let saved_partial = std::mem::take(&mut self.partial);
         let mut st = FnBlk {
             total: name_counts(stmts),
             arrays: HashSet::new(),
@@ -2720,6 +2732,8 @@ impl Tr {
             allocs: Vec::new(),
             no_alloc: HashMap::new(),
             writes: Vec::new(),
+            ret: None,
+            flags: Vec::new(),
         };
         let mut items: Vec<String> = Vec::new();
         let r = (|| -> Result<String, String> {
@@ -2737,6 +2751,15 @@ impl Tr {
                 // `*1` makes a new array: the engine's `B = A` would share it, and a write to B would change A.
                 items.push(format!("{m} = {c}*1"));
                 st.arrays.insert(c);
+            }
+            // A `return` before the end sets a result and a done flag (zero until set: a value
+            // that is not a number cannot be held in a loop, and the result is read only once the
+            // flag is set).
+            if exits::exits_of(body).ret {
+                let (res, done) = (format!("ret_p{}", self.prog_n), format!("done_p{}", self.prog_n));
+                st.starts.push(format!("{res} = 0"));
+                st.starts.push(format!("{done} = 0"));
+                st.ret = Some(exits::RetFlags { res, done });
             }
             // Arrays the body fills by element without having made them are allocated, at the size
             // their writes need, just before the statement that writes them.
@@ -2781,7 +2804,10 @@ impl Tr {
             }
             let at = items.len().min(copies_len);
             items.splice(at..at, st.starts.drain(..));
-            let value = self.expr(tail).s;
+            let mut value = self.expr(tail).s;
+            if let Some(r) = &st.ret {
+                value = format!("if({}; {}; {})", r.done, r.res, value);
+            }
             Ok(if items.is_empty() {
                 value
             } else {
@@ -2789,6 +2815,7 @@ impl Tr {
             })
         })();
         self.locals = saved_locals;
+        self.partial = saved_partial;
         r
     }
 
@@ -2899,7 +2926,11 @@ impl Tr {
         if loops > 6 {
             return Err("loops nested too deeply".into());
         }
+        // The guard changes along the list: after a statement that can end the pass, the loop or the
+        // function, the statements that follow run only while no flag is set.
+        let mut guard: Option<String> = guard.map(str::to_string);
         for stmt in stmts {
+            let g = guard.as_deref();
             match stmt {
                 PStmt::Local(PTarget::Var(n), e) => {
                     let flat = tables::normalise_name(&n.flat());
@@ -2910,20 +2941,32 @@ impl Tr {
                     let mapped = match self.locals.get(&flat) {
                         Some(m) => m.clone(),
                         None => {
-                            if let Some(why) = st.first_set_problem(&flat, guard, loops) {
+                            if let Some(why) = st.first_set_problem(&flat, g, loops) {
                                 // The program's own result variable may be unset on a path (the source
                                 // then has no value): it starts as not a number, which the engine shows
                                 // as undefined. Outside a loop only: a not-a-number inside a loop body
                                 // is an engine error even on the iterations that do not use it.
-                                if flat != RESULT_LOCAL || loops > 0 {
+                                if flat == RESULT_LOCAL && loops == 0 {
+                                    let mapped = self.local_name(&flat);
+                                    st.starts.push(format!("{mapped} = sqrt(-1)"));
+                                    mapped
+                                } else if self.yields_array(e) || matches!(e, Expr::Matrix { .. }) {
                                     return Err(why);
+                                } else {
+                                    // Any other local that may have no value where it is read keeps a
+                                    // flag that says whether it was set; it starts at zero (a number
+                                    // can be held in a loop) and a read of it is not a number while
+                                    // the flag is clear.
+                                    let mapped = self.local_name(&flat);
+                                    let flag = format!("{mapped}_set");
+                                    st.starts.push(format!("{mapped} = 0"));
+                                    st.starts.push(format!("{flag} = 0"));
+                                    self.partial.insert(mapped.clone(), flag);
+                                    mapped
                                 }
-                                let mapped = self.local_name(&flat);
-                                st.starts.push(format!("{mapped} = sqrt(-1)"));
-                                mapped
                             } else {
                                 let mapped = self.local_name(&flat);
-                                if guard.is_some() {
+                                if g.is_some() {
                                     // Set in every arm of an `if`: the first write reads the name's
                                     // earlier value, which only has to exist for the engine.
                                     st.starts.push(format!("{mapped} = sqrt(-1)"));
@@ -2939,10 +2982,16 @@ impl Tr {
                     } else {
                         st.arrays.remove(&flat);
                     }
-                    items.push(match guard {
+                    items.push(match g {
                         None => format!("{mapped} = {rhs}"),
                         Some(g) => format!("{mapped} = if({g}; {rhs}; {mapped})"),
                     });
+                    if let Some(flag) = self.partial.get(&mapped) {
+                        items.push(match g {
+                            None => format!("{flag} = 1"),
+                            Some(g) => format!("{flag} = if({g}; 1; {flag})"),
+                        });
+                    }
                 }
                 PStmt::Local(PTarget::Element { base, index }, e) => {
                     let flat = tables::normalise_name(&base.flat());
@@ -2962,7 +3011,7 @@ impl Tr {
                     let parts: Vec<String> = index.iter().map(|i| self.index_expr(i)).collect();
                     let rhs = self.expr(e).s;
                     let at = format!("{mapped}.({})", parts.join("; "));
-                    items.push(match guard {
+                    items.push(match g {
                         None => format!("{at} = {rhs}"),
                         Some(g) => format!("{at} = if({g}; {rhs}; {at})"),
                     });
@@ -2976,9 +3025,6 @@ impl Tr {
                     else {
                         return Err("a loop over something other than a plain range a .. b".into());
                     };
-                    if body.iter().any(has_break) {
-                        return Err("break or continue in a loop".into());
-                    }
                     let v = tables::normalise_name(&var.flat());
                     if !valid_ident(&v) {
                         return Err(format!("loop variable {v} that Calcpad cannot spell"));
@@ -3002,10 +3048,14 @@ impl Tr {
                             format!("{k} = 0 : abs({hi} - {lo})")
                         }
                     };
+                    let (loop_guard, ex) = self.enter_loop(body, g, st, items, &mut inner);
                     let prev = self.locals.insert(v.clone(), mapped);
                     let outer = st.inside.replace(name_counts(body));
-                    let r = self.lower_fn_stmts(body, guard, loops + 1, st, &mut inner);
+                    let r = self.lower_fn_stmts(body, loop_guard.as_deref(), loops + 1, st, &mut inner);
                     st.inside = outer;
+                    if ex.brk || ex.cont {
+                        st.flags.pop();
+                    }
                     match prev {
                         Some(p) => self.locals.insert(v, p),
                         None => self.locals.remove(&v),
@@ -3017,18 +3067,33 @@ impl Tr {
                     items.push(format!("$Repeat{{{} @ {header}}}", inner.join("; ")));
                 }
                 PStmt::While { cond, body } => {
-                    if body.iter().any(has_break) {
-                        return Err("break or continue in a loop".into());
-                    }
                     let c = self.expr(cond).s;
-                    let c = match guard {
-                        None => c,
-                        Some(g) => format!("if({g}; {c}; 0)"),
+                    // The test runs only while the loop is live: not after a `break`, nor a `return`.
+                    let mut inner: Vec<String> = Vec::new();
+                    let (loop_guard, ex) = self.enter_loop(body, g, st, items, &mut inner);
+                    let stop = {
+                        let mut flags = Vec::new();
+                        if let Some(r) = &st.ret {
+                            flags.push(r.done.clone());
+                        }
+                        if ex.brk {
+                            if let Some(b) = st.flags.last().and_then(|f| f.brk.clone()) {
+                                flags.push(b);
+                            }
+                        }
+                        flags
                     };
-                    let mut inner: Vec<String> = vec![c];
+                    let c = match exits::and_live(g, &stop) {
+                        None => c,
+                        Some(live) => format!("if({live}; {c}; 0)"),
+                    };
                     let outer = st.inside.replace(name_counts(body));
-                    let r = self.lower_fn_stmts(body, None, loops + 1, st, &mut inner);
+                    inner.insert(0, c);
+                    let r = self.lower_fn_stmts(body, loop_guard.as_deref(), loops + 1, st, &mut inner);
                     st.inside = outer;
+                    if ex.brk || ex.cont {
+                        st.flags.pop();
+                    }
                     r?;
                     if inner.len() < 2 {
                         return Err("an empty loop".into());
@@ -3038,7 +3103,7 @@ impl Tr {
                 PStmt::If { branches, otherwise } => {
                     self.prog_n += 1;
                     let n = self.prog_n;
-                    if let (None, 0, Some(other)) = (guard, loops, otherwise) {
+                    if let (None, 0, Some(other)) = (g, loops, otherwise) {
                         // A name every arm assigns at its top level has a value after the `if`.
                         let sets = |b: &[PStmt]| -> HashSet<String> {
                             b.iter()
@@ -3069,7 +3134,7 @@ impl Tr {
                         } else {
                             format!("if({}; 0; {test})", taken.join(" + "))
                         };
-                        let test = match guard {
+                        let test = match g {
                             None => test,
                             Some(g) => format!("if({g}; {test}; 0)"),
                         };
@@ -3080,7 +3145,7 @@ impl Tr {
                     }
                     if let Some(b) = otherwise {
                         let test = format!("if({}; 0; 1)", taken.join(" + "));
-                        let test = match guard {
+                        let test = match g {
                             None => test,
                             Some(g) => format!("if({g}; {test}; 0)"),
                         };
@@ -3092,13 +3157,116 @@ impl Tr {
                         self.lower_fn_stmts(b, Some(&a), loops, st, items)?;
                     }
                 }
-                PStmt::Break | PStmt::Continue => return Err("break or continue".into()),
-                PStmt::Return(_) => return Err("a return before the end of the program (an early exit)".into()),
+                PStmt::Break | PStmt::Continue => {
+                    let is_break = matches!(stmt, PStmt::Break);
+                    let flag = st
+                        .flags
+                        .last()
+                        .and_then(|f| if is_break { f.brk.clone() } else { f.cont.clone() });
+                    let Some(flag) = flag else {
+                        return Err("break or continue outside a loop".into());
+                    };
+                    items.push(match g {
+                        None => format!("{flag} = 1"),
+                        Some(g) => format!("{flag} = if({g}; 1; {flag})"),
+                    });
+                }
+                PStmt::Return(e) => {
+                    let Some(r) = st.ret.clone() else {
+                        return Err("a return before the end of the program (an early exit)".into());
+                    };
+                    if self.yields_array(e) {
+                        return Err("an early return of an array".into());
+                    }
+                    let rhs = self.expr(e).s;
+                    match g {
+                        None => {
+                            items.push(format!("{} = {rhs}", r.res));
+                            items.push(format!("{} = 1", r.done));
+                        }
+                        Some(g) => {
+                            items.push(format!("{} = if({g}; {rhs}; {})", r.res, r.res));
+                            items.push(format!("{} = if({g}; 1; {})", r.done, r.done));
+                        }
+                    }
+                }
                 PStmt::Expr(_) => return Err("an expression statement before the end of the program".into()),
                 PStmt::Unsupported(w) => return Err(format!("{w} is not read")),
             }
+            // What the statement can end (the pass, the loop, the function) stops the rest of this list.
+            let ex = exits::exits_of(std::slice::from_ref(stmt));
+            if ex.any() {
+                let mut flags = Vec::new();
+                if ex.ret {
+                    if let Some(r) = &st.ret {
+                        flags.push(r.done.clone());
+                    }
+                }
+                if let Some(f) = st.flags.last() {
+                    if ex.brk {
+                        flags.extend(f.brk.clone());
+                    }
+                    if ex.cont {
+                        flags.extend(f.cont.clone());
+                    }
+                }
+                if let Some(live) = exits::and_live(guard.as_deref(), &flags) {
+                    self.prog_n += 1;
+                    let name = format!("go_p{}", self.prog_n);
+                    items.push(format!("{name} = {live}"));
+                    guard = Some(name);
+                }
+            }
         }
         Ok(())
+    }
+
+    /// Sets up the flags of a loop about to be lowered: a `break` flag and a `continue` flag when its
+    /// body has them (cleared before the loop, and the `continue` one at the start of every pass), and
+    /// the guard of the body, which holds while the pass is live. Returns that guard and what the
+    /// body can exit; when it has a `break` or `continue`, the flags are pushed (the caller pops them).
+    fn enter_loop(
+        &mut self,
+        body: &[PStmt],
+        outer: Option<&str>,
+        st: &mut FnBlk,
+        items: &mut Vec<String>,
+        inner: &mut Vec<String>,
+    ) -> (Option<String>, exits::Exits) {
+        let ex = exits::exits_of(body);
+        let mut flags = Vec::new();
+        if ex.ret {
+            if let Some(r) = &st.ret {
+                flags.push(r.done.clone());
+            }
+        }
+        if ex.brk || ex.cont {
+            self.prog_n += 1;
+            let n = self.prog_n;
+            let mut lf = exits::LoopFlags::default();
+            if ex.brk {
+                let b = format!("brk_p{n}");
+                items.push(format!("{b} = 0"));
+                flags.push(b.clone());
+                lf.brk = Some(b);
+            }
+            if ex.cont {
+                let c = format!("cont_p{n}");
+                inner.push(format!("{c} = 0"));
+                lf.cont = Some(c);
+            }
+            st.flags.push(lf);
+        }
+        let guard = match exits::and_live(outer, &flags) {
+            Some(live) if !flags.is_empty() => {
+                self.prog_n += 1;
+                let name = format!("go_p{}", self.prog_n);
+                inner.push(format!("{name} = {live}"));
+                Some(name)
+            }
+            other => other,
+        };
+        (guard, ex)
     }
 
     /// The value of `e`; an array that is just another array's name is copied (`*1`), because the
@@ -3593,6 +3761,9 @@ impl Tr {
             }
         }
         if let Some(m) = self.locals.get(&flat) {
+            if let Some(flag) = self.partial.get(m) {
+                return atom(format!("if({flag}; {m}; sqrt(-1))"));
+            }
             return atom(m.clone());
         }
         if self.ranges.contains_key(&flat) && !self.params.contains(&flat) {
@@ -3791,7 +3962,7 @@ impl Tr {
                     self.readable_bad = true;
                 }
             }
-            return atom(format!("{}({})", Self::engine_fn(&flat), rendered.join("; ")));
+            return atom(format!("{}({})", self.fn_name(&flat), rendered.join("; ")));
         }
         if let Some(root) = self.gap_names.get(&flat).copied() {
             self.cur.push(Pending {
@@ -3877,6 +4048,13 @@ impl Tr {
 
     /// The engine's spelling of a worksheet function's name: the engine reads a function name
     /// without regard to case, so `Norm` or `Max` would be taken for its own `norm` and `max`.
+    fn fn_name(&self, flat: &str) -> String {
+        self.fn_alias
+            .get(flat)
+            .cloned()
+            .unwrap_or_else(|| Self::engine_fn(flat))
+    }
+
     fn engine_fn(flat: &str) -> String {
         if tables::is_engine_function(flat) {
             format!("{flat}_f")
@@ -4684,6 +4862,13 @@ impl Tr {
                         if !valid_ident(&flat) {
                             self.issue(Code::InvalidName, Some(flat.clone()));
                         }
+                        if self.funcs.contains_key(&flat) {
+                            // Defined before: this definition is a function of its own for the engine.
+                            self.prog_n += 1;
+                            let k = self.prog_n;
+                            self.fn_alias
+                                .insert(flat.clone(), format!("{}_v{k}", Self::engine_fn(&flat)));
+                        }
                         let mut plist = Vec::new();
                         for p in params {
                             let pf = tables::normalise_name(&p.flat());
@@ -4710,7 +4895,7 @@ impl Tr {
                             None => self.str_or_expr(value),
                         };
                         self.params.clear();
-                        let head = format!("{}({})", Self::engine_fn(&flat), plist.join("; "));
+                        let head = format!("{}({})", self.fn_name(&flat), plist.join("; "));
                         if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
                             emitted = Some(format!("{} = {}", head, rhs.s));
                             plain_def = true;
@@ -5927,6 +6112,8 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         locals: HashMap::new(),
         local_arrays: HashSet::new(),
         zero_started: HashSet::new(),
+        partial: HashMap::new(),
+        fn_alias: HashMap::new(),
         col_vecs: HashSet::new(),
         growable: HashSet::new(),
         prologue: Vec::new(),

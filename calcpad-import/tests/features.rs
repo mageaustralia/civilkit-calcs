@@ -639,18 +639,6 @@ fn programs_that_cannot_be_read_faithfully_say_why() {
         ]),
     )]);
     assert!(reason(&res).contains("tryCatch"), "{}", reason(&res));
-    // A function whose loop leaves early: not an expression block either.
-    let res = convert(&[format!(
-        "<ml:define><ml:function>{}<ml:boundVars>{}</ml:boundVars></ml:function>{}</ml:define>",
-        n("h"),
-        n("x"),
-        program(&[
-            local("s", &r("0")),
-            for_in("i", &r("1"), &n("x"), &[local("s", &n("i")), "<ml:break/>".to_string()]),
-            n("s")
-        ])
-    )]);
-    assert!(reason(&res).contains("break or continue"), "{}", reason(&res));
     // A gap leaves the name blocked for later uses.
     let res = convert(&[
         define(
@@ -1425,25 +1413,6 @@ fn function_bodies_that_have_no_value_on_some_path_are_gaps() {
             .and_then(|i| i.detail.clone())
             .unwrap_or_default()
     };
-    // y is first set under a condition and read after it.
-    let res = convert(&[function(
-        "p",
-        &["x"],
-        &program(&[
-            local("s", &r("0")),
-            for_in("i", &r("1"), &n("x"), &[local("s", &plus(&n("s"), &n("i")))]),
-            if_then(&gt(&n("x"), &r("0")), &[local("y", &r("1"))], None),
-            n("y"),
-        ]),
-    )]);
-    assert!(reason(&res).contains("first set under a condition"), "{}", reason(&res));
-    // t is first set inside a loop and read after it.
-    let res = convert(&[function(
-        "q",
-        &["x"],
-        &program(&[for_in("i", &r("1"), &n("x"), &[local("t", &n("i"))]), n("t")]),
-    )]);
-    assert!(reason(&res).contains("first set inside a loop"), "{}", reason(&res));
     // An element of an array the function neither received nor created, at an index that is not a
     // loop variable or a number (so the size it needs is not known ahead).
     let res = convert(&[function(
