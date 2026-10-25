@@ -340,3 +340,26 @@ fn a_display_size_inside_a_matrix_is_not_an_item() {
     let res = import(&[math(1, 0.0, &define(&id("v"), m)), math(2, 20.0, &eval(&id("v")))]);
     assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
 }
+
+#[test]
+fn csort_sorts_the_rows_by_a_column() {
+    // The rows (3, 10), (1, 30), (2, 20) sorted by column 1 come out as 1, 2, 3.
+    let m = "<ml:matrix rows=\"3\" cols=\"2\"><ml:real>3</ml:real><ml:real>1</ml:real><ml:real>2</ml:real><ml:real>10</ml:real><ml:real>30</ml:real><ml:real>20</ml:real></ml:matrix>";
+    let res = import(&[
+        math(1, 0.0, &define(&id("A"), m)),
+        math(2, 20.0, &define(&id("B"), &call("csort", &[id("A"), real("1")]))),
+        math(3, 40.0, &define(&id("first"), &indexed2("B", "1", "2"))),
+        math(4, 60.0, &eval(&id("first"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.calcpad.contains("B = sort_rows(A; 1)"), "{}", res.calcpad);
+    // After sorting, row 1 is (1, 30).
+    assert!(engine_text(&res).contains("first = 30"), "{}", res.calcpad);
+}
+
+fn indexed2(name: &str, i: &str, j: &str) -> String {
+    format!(
+        "<ml:apply><ml:indexer/>{}<ml:sequence><ml:real>{i}</ml:real><ml:real>{j}</ml:real></ml:sequence></ml:apply>",
+        id(name)
+    )
+}

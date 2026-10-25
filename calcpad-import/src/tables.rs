@@ -203,6 +203,10 @@ pub const FUNCTIONS: &[(&str, FnRule, usize, usize)] = &[
     ("matcol", FnRule::Direct("col"), 2, 2),
     ("matrow", FnRule::Direct("row"), 2, 2),
     ("sort", FnRule::Direct("sort"), 1, 1),
+    // `csort(A, j)` sorts the rows by column j, `rsort(A, i)` the columns by row i; the index counts
+    // from the sheet's array origin.
+    ("csort", FnRule::Direct("sort_rows"), 2, 2),
+    ("rsort", FnRule::Direct("sort_cols"), 2, 2),
     ("reverse", FnRule::Direct("reverse"), 1, 1),
     ("mean", FnRule::Direct("mean"), 1, 64),
     ("norm2", FnRule::Direct("norm_2"), 1, 1),

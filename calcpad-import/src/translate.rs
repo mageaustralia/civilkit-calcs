@@ -3851,8 +3851,13 @@ impl Tr {
                     return atom(if one_column { format!("col({text}; 1)") } else { text });
                 }
                 // `matcol(M, j)` and `matrow(M, i)` count from the sheet's array origin.
-                if matches!(flat.as_str(), "matcol" | "matrow") {
-                    let engine = if flat == "matcol" { "col" } else { "row" };
+                if matches!(flat.as_str(), "matcol" | "matrow" | "csort" | "rsort") {
+                    let engine = match flat.as_str() {
+                        "matcol" => "col",
+                        "matrow" => "row",
+                        "csort" => "sort_rows",
+                        _ => "sort_cols",
+                    };
                     let at = self.index_expr(&args[1]);
                     return atom(format!("{engine}({}; {at})", rendered[0]));
                 }
