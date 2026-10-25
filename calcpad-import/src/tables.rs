@@ -664,6 +664,7 @@ pub const ENGINE_FUNCTIONS: &[&str] = &[
     "order_rows",
     "phase",
     "polyfit",
+    "polyroots",
     "product",
     "qr",
     "random",
