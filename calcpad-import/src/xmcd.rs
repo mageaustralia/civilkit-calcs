@@ -932,7 +932,12 @@ pub(crate) fn read_expr(n: Node, lim: &Limits, depth: usize) -> Expr {
         "matrix" => {
             let rows = n.attribute("rows").and_then(|v| v.parse::<usize>().ok());
             let cols = n.attribute("cols").and_then(|v| v.parse::<usize>().ok());
-            let items: Vec<Expr> = ml_kids(n).into_iter().map(|k| read_expr(k, lim, depth + 1)).collect();
+            // A `display` child is how the author's window showed the matrix (its size), not an item.
+            let items: Vec<Expr> = ml_kids(n)
+                .into_iter()
+                .filter(|k| local(unwrap_provenance(*k)) != "display")
+                .map(|k| read_expr(k, lim, depth + 1))
+                .collect();
             match (rows, cols) {
                 (Some(r), Some(c)) if r >= 1 && c >= 1 && r.checked_mul(c) == Some(items.len()) => Expr::Matrix {
                     rows: r,

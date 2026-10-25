@@ -919,3 +919,19 @@ fn an_array_written_only_in_the_arms_that_read_it_is_made_where_it_is_written() 
     assert_close(v[0], 6.0);
     assert_close(v[1], -1.0);
 }
+
+#[test]
+fn a_matrix_that_carries_a_display_size_still_has_its_items() {
+    // The author's window size (`display`) is stored among the items; it is not one of them.
+    let m =
+        r#"<ml:matrix rows="1" cols="2"><ml:display size="1,2"/><ml:real>3</ml:real><ml:real>4</ml:real></ml:matrix>"#;
+    let res = convert(&[
+        define("M", m),
+        eval(&index2("M", &r("1"), &r("2"))),
+        eval(&call("cols", &[n("M")])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 2);
+    assert_close(v[0], 4.0);
+    assert_close(v[1], 2.0);
+}
