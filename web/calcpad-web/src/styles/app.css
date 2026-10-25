@@ -1194,4 +1194,9 @@ select option {
     .tab-action[aria-label="Split editor down"],
     .tab-action[aria-label="Merge editor groups"] { display: none; }
     .editor-sidebar-reveal { display: none; }
+    /* The bottom bar already says "Results"; the mode buttons scroll sideways instead of wrapping. */
+    .preview-toolbar { overflow-x: auto; scrollbar-width: none; }
+    .preview-toolbar > span:first-child { display: none; }
+    .preview-toolbar .toolbar-btn { flex: none; white-space: nowrap; }
+    .preview-mode-group { flex: none; display: flex; gap: 4px; }
 }

@@ -119,9 +119,10 @@ const PREVIEW_TABLE = '<style>'
     + 'table:not(.imported-grid):not(.matrix):not([border]):has(>thead) th{background:rgba(128,128,128,.18);font-weight:600}'
     + '</style>';
 
-/** A phone-wide pane: room on the right so text does not run under the scrollbar, and long words wrap. */
+/** A phone-wide pane: room on the right so text does not run under the scrollbar, long words wrap, and a plot's hover toolbar (it sits over the plot title and a finger cannot hover) is left out; pinch and drag still work. */
 const PREVIEW_PHONE = '<style>@media screen and (max-width:760px){'
     + 'body{padding-right:22px;overflow-wrap:anywhere}'
+    + '.modebar-container{display:none!important}'
     + '}</style>';
 
 function addPreviewDark(html: string): string {
