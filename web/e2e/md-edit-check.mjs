@@ -52,6 +52,8 @@ const lines = fr ? await fr.evaluate(() => [...document.querySelectorAll('[data-
 console.log('  tagged lines:', lines.join(' | '));
 
 // 1. Double-click the paragraph: the rich-text editor opens with the block's text.
+const geo = () => fr.evaluate(() => { const r = n => document.querySelector(`[data-source-line="${n}"]`).getBoundingClientRect(); return { top: Math.round(r(3).top), left: Math.round(r(3).left), next: Math.round(r(6).top) }; });
+const g0 = await geo();
 await fr.locator('[data-source-line="4"]').first().dblclick();
 await page.waitForSelector('.md-edit .ProseMirror', { timeout: 15000 });
 check(true, 'double-click on a Markdown paragraph opens the rich-text editor');
@@ -59,7 +61,21 @@ const shown = await page.locator('.md-edit .ProseMirror').innerText();
 check(/Design basis/.test(shown) && /applied at midspan/.test(shown), `the editor shows the whole block (${JSON.stringify(shown.slice(0, 60))})`);
 check(await page.locator('.md-edit .ProseMirror h2').count() === 1 && await page.locator('.md-edit .ProseMirror strong').count() === 1, 'heading and bold are shown as formatting, not as symbols');
 await page.screenshot({ path: join(process.env.TMPDIR ?? '/tmp', 'md-edit-open.png') });
+// The editor opens in place of the text, and the preview makes room for it.
+await page.waitForTimeout(500);
+const eb = await page.locator('.md-edit').boundingBox();
+const fb = await page.locator('iframe').evaluateAll(l => l.filter(f => f.getBoundingClientRect().width > 0).map(f => { const r = f.getBoundingClientRect(); return { left: r.left, top: r.top }; })[0]);
+check(Math.abs(eb.y - (fb.top + g0.top)) < 3 && Math.abs(eb.x - (fb.left + g0.left)) < 3, `the editor opens over the rendered text (editor ${Math.round(eb.x)},${Math.round(eb.y)} vs text ${Math.round(fb.left + g0.left)},${Math.round(fb.top + g0.top)})`);
+const g1 = await geo();
+check(fb.top + g1.next >= eb.y + eb.height - 2 && g1.next > g0.next, `the rest of the page starts below the editor, not under it (next line at ${Math.round(fb.top + g1.next)}, editor ends ${Math.round(eb.y + eb.height)})`);
 
+await page.keyboard.press('Escape');
+await page.waitForTimeout(400);
+const g2 = await geo();
+check(g2.next === g0.next && g2.top === g0.top, 'cancelling gives the page back exactly as it was');
+fr = await findFrame('Design basis');
+await fr.locator('[data-source-line="4"]').first().dblclick();
+await page.waitForSelector('.md-edit .ProseMirror', { timeout: 15000 });
 // 2. Apply without a change: the source is untouched.
 await page.locator('.md-edit button.primary').click();
 await page.waitForTimeout(300);

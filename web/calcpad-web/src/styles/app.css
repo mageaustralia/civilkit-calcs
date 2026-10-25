@@ -1117,14 +1117,16 @@ select option {
     background: var(--vscode-menu-background, var(--vscode-editor-background, #252526));
     color: var(--vscode-menu-foreground, var(--vscode-foreground, #cccccc));
     border: 1px solid var(--vscode-focusBorder, #007fd4);
-    border-radius: 4px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    border-radius: 3px;
+    /* Opens over the text it replaces; the preview makes room, so no floating shadow. */
+    box-shadow: none;
 }
 .line-edit-head { font-size: 11px; opacity: 0.75; margin-bottom: 4px; }
 .line-edit-input {
     box-sizing: border-box;
     width: 100%;
-    resize: vertical;
+    resize: none;
+    overflow: hidden;
     padding: 4px 6px;
     font-family: var(--vscode-editor-font-family, monospace);
     font-size: 13px;

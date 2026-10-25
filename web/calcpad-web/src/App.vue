@@ -493,13 +493,14 @@
       @mousedown.stop
       @click.stop
     >
-      <div class="line-edit-head">Line {{ lineEdit.line }}<span v-if="lineEdit.note"> · {{ lineEdit.note }}</span></div>
+      <div v-if="lineEdit.note" class="line-edit-head">{{ lineEdit.note }}</div>
       <textarea
         ref="lineEditInput"
         v-model="lineEdit.text"
         class="line-edit-input"
         spellcheck="false"
-        rows="2"
+        rows="1"
+        @input="sizeLineEdit"
         @keydown.enter.exact.prevent="applyLineEdit"
         @keydown.esc.prevent="closeLineEdit"
       ></textarea>
@@ -518,7 +519,7 @@
       @mousedown.stop
       @click.stop
     >
-      <div class="line-edit-head">Text, lines {{ mdEdit.on + 1 }}–{{ mdEdit.off - 1 }}<span v-if="mdEdit.error"> · {{ mdEdit.error }}</span></div>
+      <div v-if="mdEdit.error" class="line-edit-head">{{ mdEdit.error }}</div>
       <MdBlockEditor :markdown="mdEdit.markdown" @apply="applyMdEdit" @cancel="closeMdEdit" />
     </div>
 
@@ -1012,10 +1013,50 @@ const onLineEditRequest = ref<{
 
 // Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
-interface MdEditState { x: number; y: number; w: number; groupId: string; on: number; off: number; paragraphs: string[]; markdown: string; error: string }
+interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; on: number; off: number; paragraphs: string[]; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
 
+// ---- Editing in place: the editor sits where the rendered text was, and the preview makes room ----
+let editWatch: ResizeObserver | null = null
+let editHold: { frameId: string; from: number; to: number } | null = null
+
+function sendToFrame(frameId: string, msg: Record<string, unknown>): void {
+  try { frontFrame(frameId)?.contentWindow?.postMessage(msg, '*') } catch { /* frame is going away */ }
+}
+
+function trackEdit(frameId: string, from: number, to: number): void {
+  untrackEdit()
+  editHold = { frameId, from, to }
+  void nextTick(() => {
+    const el = document.querySelector<HTMLElement>('.line-edit')
+    if (!el || !editHold) return
+    const send = () => sendToFrame(frameId, { type: 'cpdEditHold', from, to, height: el.offsetHeight })
+    editWatch = new ResizeObserver(send)
+    editWatch.observe(el)
+    send()
+  })
+}
+
+function untrackEdit(): void {
+  editWatch?.disconnect()
+  editWatch = null
+  if (editHold) sendToFrame(editHold.frameId, { type: 'cpdEditRelease' })
+  editHold = null
+}
+
+// Scrolling the preview moves the room the editor sits in.
+function onEditAnchor(frameId: string, data: Record<string, unknown>): void {
+  const st = lineEdit.value ?? mdEdit.value
+  const iframe = frontFrame(frameId)
+  const r = (data.rect ?? {}) as Record<string, unknown>
+  if (!st || st.frameId !== frameId || !iframe) return
+  const box = iframe.getBoundingClientRect()
+  st.x = box.left + (Number(r.left) || 0)
+  st.y = box.top + (Number(r.top) || 0)
+}
+
 function closeMdEdit(): void {
+  untrackEdit()
   mdEdit.value = null
 }
 
@@ -1027,15 +1068,25 @@ function applyMdEdit(baseline: string, edited: string): void {
     st.error = 'a code block cannot be written as one line; remove it to apply'
     return
   }
+  untrackEdit()
   mdEdit.value = null
   onLineEditRequest.value?.replace?.(st.groupId, st.on + 1, st.off - 1, next.map(l => "'" + l))
 }
 
-interface LineEditState { x: number; y: number; w: number; groupId: string; line: number; text: string; note: string }
+interface LineEditState { x: number; y: number; w: number; frameId: string; to: number; groupId: string; line: number; text: string; note: string }
 const lineEdit = ref<LineEditState | null>(null)
 const lineEditInput = ref<HTMLTextAreaElement | null>(null)
 
+// The source line shows in full, so the box grows with it.
+function sizeLineEdit(): void {
+  const t = lineEditInput.value
+  if (!t) return
+  t.style.height = 'auto'
+  t.style.height = t.scrollHeight + 2 + 'px'
+}
+
 function closeLineEdit(): void {
+  untrackEdit()
   lineEdit.value = null
   mdEdit.value = null
 }
@@ -1043,6 +1094,7 @@ function closeLineEdit(): void {
 function applyLineEdit(): void {
   const st = lineEdit.value
   if (!st) return
+  untrackEdit()
   lineEdit.value = null
   // One source line stays one line, so the numbers the preview carries remain right.
   onLineEditRequest.value?.apply(st.groupId, st.line, st.text.replace(/\r?\n/g, ' '))
@@ -1057,21 +1109,24 @@ function openLineEdit(groupId: string, frameId: string, data: Record<string, unk
   if (text === null) return
   const r = (data.rect ?? {}) as Record<string, unknown>
   const box = iframe.getBoundingClientRect()
-  const w = Math.min(Math.max(Number(r.width) || 0, 420), 760)
+  // The editor opens over the rendered text, as wide as it was (not narrower than a line of source).
+  const w = Math.min(Math.max(Number(r.width) || 0, 320), window.innerWidth - 16)
   const x = Math.max(8, Math.min(box.left + (Number(r.left) || 0), window.innerWidth - w - 8))
-  const y = Math.max(8, Math.min(box.top + (Number(r.top) || 0), window.innerHeight - 150))
+  const y = Math.max(8, box.top + (Number(r.top) || 0))
   // Prose in a #md block edits as rich text; everything else edits as its source line.
   const all = req.lines?.(groupId)
   const block = all ? findMdBlock(all, line) : null
   if (block && req.replace) {
     lineEdit.value = null
-    mdEdit.value = { x, y: Math.min(y, window.innerHeight - 280), w, groupId, on: block.on, off: block.off, paragraphs: block.paragraphs, markdown: toMarkdown(block.paragraphs), error: '' }
+    mdEdit.value = { x, y, w, frameId, groupId, on: block.on, off: block.off, paragraphs: block.paragraphs, markdown: toMarkdown(block.paragraphs), error: '' }
+    trackEdit(frameId, block.on + 1, block.off - 1)
     return
   }
   // An imported equation is a typeset copy; its calculation is the plain line beside it.
   const note = /class="imp-eq"/.test(text) ? 'typeset copy of a Mathcad equation (display only)' : ''
-  lineEdit.value = { x, y, w, groupId, line, text, note }
-  void nextTick(() => { lineEditInput.value?.focus(); lineEditInput.value?.select() })
+  lineEdit.value = { x, y, w, frameId, to: line, groupId, line, text, note }
+  trackEdit(frameId, line, line)
+  void nextTick(() => { sizeLineEdit(); lineEditInput.value?.focus(); lineEditInput.value?.select() })
 }
 
 interface TabContextMenuState {
@@ -1460,6 +1515,10 @@ function onPreviewWindowMessage(e: MessageEvent): void {
   }
   if (data.type === 'editLine') {
     openLineEdit(groupId, frameId, data)
+    return
+  }
+  if (data.type === 'editAnchor') {
+    onEditAnchor(frameId, data)
     return
   }
   if (data.type === 'previewContextMenu') {
@@ -2004,6 +2063,40 @@ function injectLineLinks(
     "    if (!el || isNaN(n)) return;",
     "    var r = el.getBoundingClientRect();",
     "    try { window.parent.postMessage({ type: 'editLine', line: n, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, groupId: FRAME_ID }, '*'); } catch (_e) {}",
+    "  });",
+    // The host edits a line in place: it asks this page to keep the room the editor needs (the edited
+    // elements are hidden, the first one is held at the editor's height) and is told where that room is.
+    "  var held = null;",
+    "  function releaseHold() {",
+    "    if (!held) return;",
+    "    held.forEach(function(h) { h.el.style.cssText = h.css; });",
+    "    held = null;",
+    "  }",
+    "  function postAnchor() {",
+    "    if (!held) return;",
+    "    var r = held[0].el.getBoundingClientRect();",
+    "    try { window.parent.postMessage({ type: 'editAnchor', rect: { left: r.left, top: r.top, width: r.width, height: r.height }, groupId: FRAME_ID }, '*'); } catch (_e) {}",
+    "  }",
+    "  window.addEventListener('scroll', postAnchor, true);",
+    "  window.addEventListener('resize', postAnchor);",
+    "  window.addEventListener('message', function(e) {",
+    "    var d = e.data;",
+    "    if (!d || typeof d !== 'object') return;",
+    "    if (d.type === 'cpdEditRelease') { releaseHold(); return; }",
+    "    if (d.type !== 'cpdEditHold') return;",
+    "    var keep = held && held[0].from === d.from ? held[0] : null;",
+    "    if (!keep) {",
+    "      releaseHold();",
+    "      var els = [];",
+    "      for (var n = d.from; n <= d.to; n++) document.querySelectorAll('[data-source-line=\"' + n + '\"]').forEach(function(x) { els.push(x); });",
+    "      if (!els.length) return;",
+    "      held = els.map(function(el, i) { return { el: el, css: el.style.cssText, from: d.from, first: i === 0 }; });",
+    "      held.slice(1).forEach(function(h) { h.el.style.display = 'none'; });",
+    "      held[0].el.style.visibility = 'hidden';",
+    "      held[0].el.style.overflow = 'hidden';",
+    "    }",
+    "    held[0].el.style.height = Math.max(0, Number(d.height) || 0) + 'px';",
+    "    postAnchor();",
     "  });",
     ] : []),
     // Release the scroll agent first, or its restore pulls the user back.
