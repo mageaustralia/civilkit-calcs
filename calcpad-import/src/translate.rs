@@ -1869,6 +1869,7 @@ impl Tr {
         }
         // A row of equations (a table's columns) with a caption over each: the captions go with their
         // equations, so they stay column headings instead of lines above the whole row.
+        let mut captioned: HashSet<usize> = HashSet::new();
         for (ri, row) in rows.iter().enumerate() {
             let mut caps: Vec<(usize, (usize, usize))> = Vec::new();
             for (ci, m) in row.iter().enumerate() {
@@ -1899,6 +1900,7 @@ impl Tr {
             if caps.len() < 2 {
                 continue;
             }
+            captioned.insert(ri);
             for (ci, (rj, cj)) in caps {
                 taken.insert((rj, cj));
                 let mut lines = std::mem::take(&mut done[rj][cj].lines);
@@ -1947,10 +1949,11 @@ impl Tr {
                 for c in done[i].iter().filter(|c| !c.visible()) {
                     self.lines.extend(c.lines.iter().cloned());
                 }
-                self.lines.push(
-                    "'<div class=\"imported-row\" style=\"display:flex;flex-wrap:wrap;gap:0 2em;align-items:baseline;align-items:last baseline\">"
-                        .to_string(),
-                );
+                // Columns with captions line up at the top, so each caption sits over its own equation.
+                let align = if captioned.contains(&i) { "flex-start" } else { "baseline;align-items:last baseline" };
+                self.lines.push(format!(
+                    "'<div class=\"imported-row\" style=\"display:flex;flex-wrap:wrap;gap:0 2em;align-items:{align}\">"
+                ));
                 // Each block sits where the source puts it: the gap to the block before it, when the
                 // file gives widths.
                 let mut prev_right: Option<f64> = None;
@@ -3516,7 +3519,8 @@ impl Tr {
         };
         let m = match stmt {
             Stmt::Bare(e) => ml.bare(e)?,
-            Stmt::Eval { expr, .. } => mathml::wrap(&ml.eval_head(expr)?),
+            // The result was not computed: a dash shows that, where an empty `x =` reads as a broken line.
+            Stmt::Eval { expr, .. } => mathml::wrap(&format!("{}<mtext class=\"imp-nv\" style=\"opacity:.55\">\u{2009}\u{2014}</mtext>", ml.eval_head(expr)?)),
             Stmt::Define { target, value, global } => ml.define(target, value, *global)?,
             _ => return None,
         };
