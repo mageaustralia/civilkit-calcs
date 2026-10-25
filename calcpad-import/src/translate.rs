@@ -1242,6 +1242,8 @@ struct Tr {
     funcs: HashMap<String, usize>,
     /// The text literals of the sheet; the engine holds a text as its 1-based position here.
     str_table: Vec<String>,
+    /// Names that hold vectors of texts (as codes), found before translating (see `textvec`).
+    text_vecs: HashMap<String, Vec<usize>>,
     /// Names that hold a text now, with the codes they can have.
     str_vars: HashMap<String, Vec<usize>>,
     /// Names in `str_vars` that hold a number on some path and a text on another (see `strings`).
@@ -4588,6 +4590,8 @@ impl Tr {
         let mut str_multi_def: Vec<(String, Option<Vec<usize>>)> = Vec::new();
         // An evaluation of a text: the expression that gives its code and the texts it can be.
         let mut str_eval: Option<(String, Vec<usize>, bool)> = None;
+        // Lines that are printed as they are (a vector of texts).
+        let mut raw_out: Option<String> = None;
         let shape: &str;
 
         match &m.stmt {
@@ -5063,6 +5067,22 @@ impl Tr {
                     emitted = Some(self.table_loops(&iv, &info, &e.s, &pre, &tail));
                 }
             }
+            Stmt::Eval {
+                expr: Expr::Name(vn),
+                unit: None,
+            } if !self.readable
+                && self.text_vecs.contains_key(&tables::normalise_name(&vn.flat()))
+                && self.defined.contains(&tables::normalise_name(&vn.flat())) =>
+            {
+                // A vector of texts (held as codes): the texts are printed, not the codes.
+                shape = "evaluation";
+                let flat = tables::normalise_name(&vn.flat());
+                let head = self.typeset_eval_head(&Expr::Name(vn.clone()));
+                let domain = self.text_vecs.get(&flat).cloned().unwrap_or_default();
+                let lines = self.text_vec_lines(head.as_deref(), &flat, &vn.flat(), &domain);
+                raw_out = Some(lines);
+                emitted = Some(String::new());
+            }
             Stmt::Eval { expr, unit: None } if self.is_stringy(expr) && !self.readable => {
                 shape = "evaluation";
                 let domain = self.str_domain(expr);
@@ -5122,7 +5142,12 @@ impl Tr {
                     attempt = Some(text);
                 }
             }
-            Stmt::Bare(Expr::Str(text)) if m.control.is_none() => {
+            Stmt::Bare(Expr::Str(text))
+                if !m
+                    .control
+                    .as_ref()
+                    .is_some_and(|c| matches!(c.kind.as_str(), "button" | "check box")) =>
+            {
                 // A text on its own is a label the author put in a math region.
                 shape = "expression";
                 let t: String = text
@@ -5370,6 +5395,7 @@ impl Tr {
                     )
                 });
                 let text = match &str_eval {
+                    _ if raw_out.is_some() => raw_out.take().unwrap_or_default(),
                     Some((code, domain, mixed)) => {
                         let head = match &m.stmt {
                             Stmt::Eval { expr, .. } => self.typeset_eval_head(expr),
@@ -6005,13 +6031,15 @@ fn rename_unit_clashes(sheet: &mut Sheet) -> HashMap<String, String> {
 pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportReport, Vec<Asset>) {
     let mut renamed = rename_unit_clashes(&mut sheet);
     renamed.extend(crate::names::rename_invalid(&mut sheet));
+    let text_vecs = crate::textvec::rewrite(&mut sheet);
     let rows = reading_rows(std::mem::take(&mut sheet.regions));
     let has_references = rows.iter().flatten().any(|r| matches!(r.kind, RegionKind::Reference));
     let mut tr = Tr {
         origin: sheet.origin,
         defined: HashSet::new(),
         funcs: HashMap::new(),
-        str_table: Vec::new(),
+        str_table: text_vecs.table,
+        text_vecs: text_vecs.names,
         str_vars: HashMap::new(),
         str_mixed: HashSet::new(),
         next_mixed: false,

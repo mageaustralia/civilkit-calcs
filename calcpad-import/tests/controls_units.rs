@@ -37,6 +37,13 @@ fn s(v: &str) -> String {
 fn app(op: &str, args: &[String]) -> String {
     format!("<ml:apply><ml:{op}/>{}</ml:apply>", args.join(""))
 }
+fn call(name: &str, args: &[String]) -> String {
+    format!(
+        "<ml:apply>{}<ml:sequence>{}</ml:sequence></ml:apply>",
+        id(name),
+        args.join("")
+    )
+}
 fn define(target: &str, value: &str) -> String {
     format!("<ml:define>{target}{value}</ml:define>")
 }
@@ -240,4 +247,89 @@ fn a_comparison_on_its_own_stays_a_gap() {
         math(2, 20.0, &app("greaterOrEqual", &[id("a"), real("2")])),
     ]);
     assert!(res.report.gaps().any(|i| i.code == Code::BareExpression));
+}
+
+// ---- vectors of texts ---------------------------------------------------------------------------------
+
+fn indexed(name: &str, i: &str) -> String {
+    format!("<ml:apply><ml:indexer/>{}{}</ml:apply>", id(name), i)
+}
+
+fn text_vector_sheet() -> ImportResult {
+    let element = |text: &str| {
+        format!(
+            "<ml:localDefine>{}<ml:str>{text}</ml:str></ml:localDefine>",
+            indexed("msg", "<ml:id labels=\"*\">i</ml:id>")
+        )
+    };
+    let body = format!(
+        "<ml:program><ml:for><ml:id>i</ml:id><ml:range><ml:real>1</ml:real><ml:real>2</ml:real></ml:range><ml:program>{}</ml:program></ml:for>{}</ml:program>",
+        format!(
+            "<ml:if><ml:test>{}</ml:test><ml:then><ml:program>{}</ml:program></ml:then><ml:else><ml:program>{}</ml:program></ml:else></ml:if>",
+            app("greaterOrEqual", &[indexed("x", &id("i")), real("2")]),
+            element("OK"),
+            element("NG")
+        ),
+        id("msg")
+    );
+    import(&[
+        math(
+            1,
+            0.0,
+            &define(
+                &id("x"),
+                "<ml:matrix rows=\"2\" cols=\"1\"><ml:real>3</ml:real><ml:real>1</ml:real></ml:matrix>",
+            ),
+        ),
+        math(2, 20.0, &define(&id("Chk"), &body)),
+        math(
+            3,
+            40.0,
+            &define(
+                &id("n"),
+                &call(
+                    "if",
+                    &[
+                        app("equal", &[indexed("Chk", &real("2")), s("NG")]),
+                        real("10"),
+                        real("20"),
+                    ],
+                ),
+            ),
+        ),
+        math(4, 60.0, &eval(&id("Chk"))),
+        math(5, 80.0, &eval(&id("n"))),
+    ])
+}
+
+#[test]
+fn a_vector_of_texts_is_held_as_codes_and_prints_its_texts() {
+    let res = text_vector_sheet();
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let t = engine_text(&res);
+    // The second element is "NG": the comparison with the text holds, and the column prints both.
+    assert!(t.contains("n = 10"), "{t}");
+    assert!(t.contains("OK") && t.contains("NG"), "{t}");
+}
+
+#[test]
+fn a_vector_that_mixes_texts_and_numbers_stays_a_gap() {
+    let element = |value: &str| {
+        format!(
+            "<ml:localDefine>{}{value}</ml:localDefine>",
+            indexed("val", "<ml:id labels=\"*\">i</ml:id>")
+        )
+    };
+    let body = format!(
+        "<ml:program><ml:for><ml:id>i</ml:id><ml:range><ml:real>1</ml:real><ml:real>2</ml:real></ml:range><ml:program>{}{}</ml:program></ml:for>{}</ml:program>",
+        element("<ml:str>n/a</ml:str>"),
+        element("<ml:real>4</ml:real>"),
+        id("val")
+    );
+    let res = import(&[math(1, 0.0, &define(&id("V"), &body))]);
+    assert!(
+        res.report.gaps().any(|i| i.code == Code::StringValue),
+        "{:?}",
+        res.report.issues
+    );
 }

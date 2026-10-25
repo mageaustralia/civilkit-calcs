@@ -39,6 +39,7 @@ mod plotread;
 pub mod report;
 mod solve;
 pub mod tables;
+mod textvec;
 pub mod translate;
 pub mod xls;
 pub mod xmcd;

@@ -160,6 +160,38 @@ impl Tr {
         }
     }
 
+    /// The lines that print a vector of texts held as codes: the author's left side, then a column
+    /// with the text of each element's code.
+    pub(super) fn text_vec_lines(&self, head: Option<&str>, name: &str, shown: &str, domain: &[usize]) -> String {
+        let all: Vec<usize> = (1..=self.str_table.len()).collect();
+        let domain: &[usize] = if domain.is_empty() { &all } else { domain };
+        let mut out = String::new();
+        let mathml = head.is_some();
+        match head {
+            Some(h) => out.push_str(&format!(
+                "'<div class=\"imp-eq\"><math class=\"imp-m\">{h}<mrow><mo>[</mo><mtable>\n"
+            )),
+            None => out.push_str(&format!("'<p><b>{}</b> =\n", crate::mathml::esc(shown))),
+        }
+        out.push_str(&format!("#for i_textvec = 1 : len({name})\n"));
+        out.push_str(if mathml { "'<mtr><mtd>\n" } else { "'<br>\n" });
+        for (k, &c) in domain.iter().enumerate() {
+            let kw = if k == 0 { "#if" } else { "#else if" };
+            let t = crate::mathml::esc(&self.str_table[c - 1]);
+            let item = if mathml { format!("<ms>{t}</ms>") } else { t };
+            out.push_str(&format!("{kw} {name}.(i_textvec) ≡ {c}\n'{item}\n"));
+        }
+        if !domain.is_empty() {
+            out.push_str("#end if\n");
+        }
+        if mathml {
+            out.push_str("'</mtd></mtr>\n#loop\n'</mtable><mo>]</mo></mrow></math></div>");
+        } else {
+            out.push_str("#loop\n'</p>");
+        }
+        out
+    }
+
     /// The lines that print a text result: for each text the expression can have, the equation
     /// head and that text, under a test of the code.
     pub(super) fn str_result_lines(&mut self, head: &str, code: &str, domain: &[usize]) -> String {
