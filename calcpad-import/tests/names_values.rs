@@ -517,5 +517,6 @@ fn a_bare_zero_in_a_sum_takes_the_units_of_the_other_term() {
         math(2, 20.0, &eval(&id("a"))),
     ]);
     assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
-    assert!(engine_text(&res).contains("-6"));
+    let t = engine_text(&res);
+    assert!(t.contains("a = \u{2212} 6 in") || t.contains("a = - 6 in"), "{t}");
 }
