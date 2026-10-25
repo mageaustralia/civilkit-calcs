@@ -236,6 +236,8 @@ pub fn read(bytes: &[u8], limits: Limits) -> Result<Sheet, McdxError> {
         }
     }
 
+    place_hidden_regions(&mut regions);
+
     // Page headers and footers are not part of the calculation; say so rather than dropping them.
     for (file, tag) in [("header.xml", "header"), ("footer.xml", "footer")] {
         if let Ok(Some(b)) = zip.read(&format!("{base}{file}"), limits.max_item_bytes) {
@@ -266,6 +268,41 @@ pub fn read(bytes: &[u8], limits: Limits) -> Result<Sheet, McdxError> {
         text_styles: Default::default(),
         default_precision,
     })
+}
+
+/// Regions with no size on the page (the ones inside a collapsed area) keep the position of the
+/// area's header, which is not where they are calculated: the file lists them in calculation order.
+/// Each takes the place of the last region with a size that precedes it in the file, in file order,
+/// so a name defined in a hidden region is defined before the regions after it use it.
+fn place_hidden_regions(regions: &mut [Region]) {
+    // The file lists regions in the order they are calculated. For regions that have a size the page
+    // agrees, so their own positions stand, except where one is listed after a region lower on the
+    // page: it follows that one. A region with no size takes the largest top seen so far. Before any
+    // region with a size, hidden ones go to the top of the page, in file order.
+    let mut max: Option<(f64, f64)> = None;
+    let mut seq = 0u32;
+    for r in regions.iter_mut() {
+        let hidden = r.height <= 0.0 && matches!(r.kind, RegionKind::Math(_));
+        match max {
+            Some((top, left)) if hidden || r.top < top - 4.0 => {
+                seq += 1;
+                r.top = top;
+                r.left = left + 0.001 * f64::from(seq);
+                r.baseline = None;
+            }
+            _ if hidden => {
+                seq += 1;
+                r.top = -1.0e6;
+                r.left = 0.001 * f64::from(seq);
+                r.baseline = None;
+            }
+            Some((top, _)) if r.top <= top => {}
+            _ => {
+                max = Some((r.top, r.left));
+                seq = 0;
+            }
+        }
+    }
 }
 
 struct Ctx<'a, 'd> {

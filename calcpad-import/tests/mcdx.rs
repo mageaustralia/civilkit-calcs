@@ -633,8 +633,8 @@ fn a_collapsible_area_is_read_through() {
     let regions = r#"<region region-id="1" top="100" left="0" width="600" height="1"><Area IsCollapsed="true"><regions><region region-id="2" top="30" left="10"><math resultRef="2"><ml:define><ml:id>b</ml:id><ml:real>2</ml:real></ml:define></math></region><region region-id="3" top="10" left="10"><math resultRef="3"><ml:define><ml:id>a</ml:id><ml:real>1</ml:real></ml:define></math></region></regions></Area></region>
         <region region-id="4" top="50" left="0"><math resultRef="4"><ml:define><ml:id>c</ml:id><ml:real>0</ml:real></ml:define></math></region>"#;
     let res = Pkg::new(regions).import();
-    // Positions inside the area are relative to it, so its children come after the region at 50.
-    assert_eq!(lines(&res), vec!["c = 0", "a = 1", "b = 2"]);
+    // None of the three has a size, so they are calculated in the order the file lists them.
+    assert_eq!(lines(&res), vec!["b = 2", "a = 1", "c = 0"]);
     assert_eq!(res.report.regions_needing_attention(), 0);
 }
 
@@ -1282,4 +1282,27 @@ fn a_table_read_from_a_data_file_takes_the_value_saved_where_the_sheet_shows_it(
     // The read itself no longer blocks; printing a table that holds a heading does.
     assert!(!res.report.gaps().any(|i| i.code == Code::BuiltinMissing));
     assert_eq!(res.report.regions_needing_attention(), 1, "{:?}", res.report.issues);
+}
+
+#[test]
+fn regions_without_a_size_are_calculated_in_the_order_the_file_lists_them() {
+    // `a` is defined in a collapsed region (no size) whose stored top is far below the regions that
+    // use it; the file lists it first, so it is defined when they read it.
+    let hidden = r#"<region region-id="1" top="900" left="0"><math resultRef="1"><ml:define><ml:id>a</ml:id><ml:real>4</ml:real></ml:define></math></region>"#;
+    let visible = |id: u32, top: f64, inner: &str| {
+        format!(
+            r#"<region region-id="{id}" top="{top}" left="0" actualWidth="50" actualHeight="20"><math resultRef="{id}">{inner}</math></region>"#
+        )
+    };
+    let regions = [
+        hidden.to_string(),
+        visible(2, 100.0, r#"<ml:define><ml:id>b</ml:id><ml:apply><ml:mult/><ml:id>a</ml:id><ml:real>2</ml:real></ml:apply></ml:define>"#),
+        visible(3, 140.0, r#"<ml:eval><ml:id>b</ml:id></ml:eval>"#),
+    ]
+    .concat();
+    let res = Pkg::new(&regions).import();
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let ia = res.calcpad.find("a = 4").expect("a defined");
+    let ib = res.calcpad.find("b = a*2").expect("b defined");
+    assert!(ia < ib, "{}", res.calcpad);
 }

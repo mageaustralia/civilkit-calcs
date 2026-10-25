@@ -230,6 +230,12 @@ sit on, then by their left edge; position is used only for this and then dropped
   A tall region next to a short one shares the short one's baseline while its top edge is higher, so
   sorting by top alone puts a use before the definition to its left. Real files do this.
 * Regions whose keys are within 4 points of the first region of a row are one row.
+* **`.mcdx` regions with no size** (the ones inside a collapsed area, about half of the regions of a large design
+  program) keep the position of the area's header, which is not where they are calculated: the file lists regions in
+  calculation order. A region with no size takes the largest top seen so far among the regions before it in the
+  file, so the order it is listed in is the order it is calculated in; a region that has a size and is listed after
+  a region lower on the page follows that region. Measured on six local worksheets, a name used before the region
+  that defines it is rare in file order (2 to 9 uses in hundreds) and common in page order (34 to 301).
 
 ### Layout
 
