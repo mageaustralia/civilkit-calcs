@@ -122,6 +122,8 @@ check(/^\| Member +\| Load +\| *\|$/m.test(text) && /^\| *-{3,}[ |:-]*$/m.test(t
 check(!/<table|<tr|<td/.test(text), 'no HTML in the file');
 fr = await findFrame('Member');
 check(!!fr && await fr.evaluate(() => document.querySelectorAll('table tr').length) === 4, 'the preview renders it as a table');
+const rules = await fr.evaluate(() => { const td = document.querySelector('table td'); const th = document.querySelector('table th'); const c = getComputedStyle(td); return { td: c.borderTopWidth + ' ' + c.borderTopStyle, pad: c.paddingLeft, thBg: getComputedStyle(th).backgroundColor }; });
+check(rules.td === '1px solid' && rules.pad !== '0px' && rules.thBg !== 'rgba(0, 0, 0, 0)', `a table has rules, padding and a shaded header (${JSON.stringify(rules)})`);
 await page.evaluate(() => { window.calcpadActiveEditor.focus(); window.calcpadActiveEditor.trigger('t', 'undo', null); });
 check(await all() === src, 'undo removes the table in one step');
 

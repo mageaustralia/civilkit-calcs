@@ -108,9 +108,20 @@ const PREVIEW_MATRIX = '<style>@media screen{'
     + '.matrix::-webkit-scrollbar-thumb{background:rgba(128,128,128,.55);border-radius:5px}'
     + '}</style>';
 
+/**
+ * A Markdown pipe table comes out of the engine as a bare `<table>` with a `<thead>`, which browsers
+ * draw with no lines at all. It gets thin grey rules, a shaded header and some padding; on screen and
+ * in print. Layout tables (`imported-grid`, a border attribute, no header) and matrices are left alone.
+ */
+const PREVIEW_TABLE = '<style>'
+    + 'table:not(.imported-grid):not(.matrix):not([border]):has(>thead){border-collapse:collapse;margin:.4em 0 .9em}'
+    + 'table:not(.imported-grid):not(.matrix):not([border]):has(>thead) :is(th,td){border:1px solid rgba(128,128,128,.55);padding:3px 10px;vertical-align:top}'
+    + 'table:not(.imported-grid):not(.matrix):not([border]):has(>thead) th{background:rgba(128,128,128,.18);font-weight:600}'
+    + '</style>';
+
 function addPreviewDark(html: string): string {
     const i = html.toLowerCase().lastIndexOf('</head>');
-    return i < 0 ? html : html.slice(0, i) + PREVIEW_DARK + PREVIEW_MATRIX + html.slice(i);
+    return i < 0 ? html : html.slice(0, i) + PREVIEW_DARK + PREVIEW_MATRIX + PREVIEW_TABLE + html.slice(i);
 }
 
 /** A file the engine can read (#include, #read): an absolute path and its bytes. */

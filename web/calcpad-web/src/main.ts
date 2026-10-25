@@ -1,3 +1,4 @@
+import { watchForUpdates } from './update-notice';
 import * as monaco from 'monaco-editor';
 import { createApp, nextTick } from 'vue';
 import App from './App.vue';
@@ -2966,6 +2967,8 @@ bootstrap().catch((err) => {
 // `?nosw` skips it, which is what the browser checks use.
 if (import.meta.env.PROD && import.meta.env.VITE_PLATFORM === 'web' && 'serviceWorker' in navigator && !location.search.includes('nosw')) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => { /* private window or blocked: the app works online as before */ });
+        navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`)
+            .then(reg => watchForUpdates(reg))
+            .catch(() => { /* private window or blocked: the app works online as before */ });
     });
 }
