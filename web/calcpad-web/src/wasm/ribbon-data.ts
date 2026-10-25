@@ -399,6 +399,9 @@ export const RIBBON: RibbonTab[] = [
             { name: 'Define', buttons: [
                 big('d-func', 'Function', 'fx', 'Define a function', { text: 'g_1(t) = t^2 + 1\n', line: true }),
             ] },
+            { name: 'Symbolic', buttons: [
+                action('fn-symbolic', 'Symbolic', 'symbolic', 'Exact algebra: simplify, expand, factor, differentiate, integrate and solve, then insert the result', 'symbolic'),
+            ] },
         ],
     },
     {

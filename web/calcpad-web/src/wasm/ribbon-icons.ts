@@ -47,6 +47,7 @@ export const ICONS_BIG: Record<string, string> = {
     // functions and data
     func: tile(t(15, 21, 15, 'ƒ') + t(23, 21, 9, 'x')),
     fx: tile(t(13, 21, 15, 'ƒ') + w('M20 12l5 8M25 12l-5 8')),
+    symbolic: tile(t(11, 21, 15, '∫') + t(22, 21, 13, 'x', 'k')),
     trig: tile('<path class="w" d="M6 17c3-9 6-9 8 0s5 9 8 0 3-5 4-5"/>'),
     stat: tile('<path class="k" d="M8 22v-6h4v6zM14 22V9h4v13zM20 22v-9h4v9z"/>'),
     round: tile(t(11, 21, 14, '.0') + a('M21 21h3v-3z')),
@@ -147,6 +148,7 @@ export const ICONS_SMALL: Record<string, string> = {
     constants: '<path d="M5 7h14M9 7v11M15 7c0 6 0 9 3 11"/>',
     units: '<path d="M3 15h18v4H3z"/><path d="M6 15v-3M10 15v-2M14 15v-3M18 15v-2"/>',
     cube: '<path d="M12 3l8 4v10l-8 4-8-4V7z"/><path d="M12 12l8-5M12 12v9M12 12L4 7"/>',
+    symbolic: '<path d="M12 3c-3 0-3 2-3 5v8c0 3 0 5-3 5"/><path d="M14 9l6 7M20 9l-6 7"/>',
     fx: '<path d="M10 4C7 4 8 9 8 12s-1 8-4 8M5 11h6"/><path d="M13 12l6 6M19 12l-6 6"/>',
     sub: '<path d="M4 6l8 10M12 6L4 16"/><path d="M15 17h5v4h-5z"/>',
     split: '<path d="M4 8h16M4 16h8"/><path d="M16 14l3 2-3 2"/>',

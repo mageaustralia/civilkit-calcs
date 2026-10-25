@@ -5,6 +5,7 @@ import type { WebFiles } from './web-files';
 import { getResolvedAppTheme } from '../editor/app-theme';
 import { convertToCalcpad, newSheet, showCompiled } from './sheet-ui';
 import { sheetInsert } from './sheet-insert';
+import { SymbolicDialog } from './symbolic';
 
 /** The editor's file is a sheet (its Monaco language, which follows the marker line). */
 export const isSheetEditor = (editor: any): boolean => editor?.getModel?.()?.getLanguageId?.() === 'calcpad-sheet';
@@ -97,6 +98,8 @@ function dialog(title: string, paragraphs: string[]): void {
     close.focus();
 }
 
+let symbolic: SymbolicDialog | null = null;
+
 type Handler = (c: RibbonCtx, arg: string) => void;
 export const ACTIONS: Record<string, Handler> = {
     newsheet: c => newSheet(c.files.o.tabs()),
@@ -112,6 +115,10 @@ export const ACTIONS: Record<string, Handler> = {
     importWorksheet: c => void c.files.o.importer?.pick(),
     tidyText: c => void c.files.o.importer?.transformActive('tidy'),
     markdownText: c => void c.files.o.importer?.transformActive('markdown'),
+    symbolic: c => {
+        symbolic ??= new SymbolicDialog({ editor: () => c.editor(), isSheet: isSheetEditor, insert: insertSnippet });
+        symbolic.open();
+    },
     pdf: c => c.files.o.print(),
     word: c => c.files.o.exportDocx?.(),
     excel: c => c.files.o.exportXlsx?.(),

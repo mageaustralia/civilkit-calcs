@@ -17,6 +17,14 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 - A row of keys under the line editor on touch screens: `^ * / ( ) = < > ≤ ≥ √ π ° | _ , ;` and the common units (mm, m, kN, MPa, kN·m). A tap inserts at the cursor and keeps the keyboard open. The row scrolls sideways.
 - On a phone the results toolbar drops its "Results" label (the bottom bar names the pane) and scrolls sideways instead of wrapping Print PDF, and a plot's hover toolbar, which sat over the plot title, is left out; pinch and drag still work.
 
+### Added
+- Sample "Beam deflection derived symbolically" (Samples, Sheet syntax): the midspan deflection of a simply supported beam derived step by step with the Symbolic dialog, typeset as LaTeX, then fed with numbers and checked against the derived curve.
+
+## [26.10.9] - 2026-10-26
+### Added
+- A Symbolic dialog (Functions tab) over the new `caskit` crate: simplify, expand, factor, differentiate (any order), integrate (indefinite or between limits), solve an equation or a linear system, substitute and evaluate. The result is typeset with KaTeX and shown as text, can be copied, and can be inserted into a Calcpad worksheet (a calculation line or a comment) or a sheet (a `$$` formula block or a quantity line). A refusal is shown with the library's message. A new `calcpad-caskit-wasm` module (290 KB, 122 KB gzipped) runs in a worker and is downloaded only when the dialog first runs something; `tools/build_wasm.sh caskit` builds it. `web/e2e/symbolic-check.mjs` checks it in the browser.
+- `caskit`, a new workspace crate (`civilkit-calcs-caskit`, library `caskit`): a small pure-Rust computer algebra library for engineering formulas. Exact rational numbers, canonical expressions (so `1/(E*I)` is a product of reciprocals and equal expressions compare equal), a parser and ASCII and LaTeX printers, `simplify`, `expand`, `factor`, `diff`, `integrate` and definite integrals, `solve` for linear and quadratic equations and for rearranging a formula, and a linear solver for up to 4 unknowns. Anything outside the supported forms is an explicit error. Not yet loaded by the web app and not yet published. `docs/caskit.md`, `caskit/README.md`.
+
 ## [26.10.8] - 2026-10-25
 ### Added
 - Rich-text editing of Markdown prose. Double-click a paragraph, heading, list or table written as Markdown (a `#markdown` ... `#end markdown` block in a worksheet) and a text editor opens in place of the rendered text, with bold, italic, headings, bullets and tables (insert, add a row or column, delete). The preview makes room for it, follows scrolling, and scrolls itself so the buttons stay on screen. Apply writes the block back as raw Markdown in one undo step; a paragraph or table you did not change keeps its exact source lines, so applying without a change rewrites nothing. The older `#md on` comment lines still open, one paragraph per line. The editor is loaded on first use (about 140 KB gzipped) and runs in the app page, not in the sandboxed preview. `docs/rich-text-editing.md`.
@@ -256,6 +264,10 @@ worksheet language, with the engine, highlighter and Word and Excel export reimp
 ## Crates
 
 Published on crates.io. The API follows the needs of the web app and may change between 0.x minor versions.
+
+### civilkit-calcs-caskit 0.1.0 - unreleased
+
+Not published yet. A pure-Rust computer algebra library for engineering formulas (see `caskit/README.md`); it has no dependencies and builds for `wasm32-unknown-unknown`.
 
 ### civilkit-calcs-engine 0.1.0, civilkit-calcs-highlighter 0.1.0, civilkit-calcs-docx 0.1.0 - 2026-10-22
 

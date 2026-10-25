@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
-members = ["calcpad-core", "calcpad-cli", "calcpad-wasm", "calcpad-docx", "calcpad-docx-wasm", "calcpad-highlighter", "calcpad-highlighter-wasm", "calcpad-import", "calcpad-import-wasm", "calcpad-sheet", "calcpad-sheet-wasm", "calcpad-linalg-wasm"]
+members = ["calcpad-core", "calcpad-cli", "calcpad-wasm", "calcpad-docx", "calcpad-docx-wasm", "calcpad-highlighter", "calcpad-highlighter-wasm", "calcpad-import", "calcpad-import-wasm", "calcpad-sheet", "calcpad-sheet-wasm", "calcpad-linalg-wasm", "caskit", "calcpad-caskit-wasm"]
 
 [workspace.package]
-version = "26.10.8"
+version = "26.10.9"
 edition = "2021"
 license = "MIT"
 
