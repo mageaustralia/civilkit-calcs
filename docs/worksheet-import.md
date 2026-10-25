@@ -276,6 +276,7 @@ arguments are `arity-mismatch` gaps. Caveats are notes: `log(x, b)` becomes `(ln
 | ceil | `ceiling` |
 | Re, Im, arg | `re`, `im`, `phase` |
 | rnd | `random` |
+| linterp(xs, ys, x) | `interp(x; xs; ys)`: piecewise linear in the table; a value outside the table is an engine error where the source extrapolates |
 | rows, cols, length | `n_rows`, `n_cols`, `len` |
 | norm2 | `norm_2` |
 

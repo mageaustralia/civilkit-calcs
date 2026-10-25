@@ -133,6 +133,8 @@ pub enum FnRule {
     Log,
     /// `round(x)` or `round(x, digits)`.
     Round,
+    /// `linterp(xs, ys, x)`: the engine's `interp(x; xs; ys)` (piecewise linear; a value outside the table is an error).
+    Linterp,
     /// `submatrix(A, ir, jr, ic, jc)`: the four indexes are shifted from the sheet's array origin.
     Submatrix,
 }
@@ -172,6 +174,7 @@ pub const FUNCTIONS: &[(&str, FnRule, usize, usize)] = &[
     ("ceil", FnRule::Direct("ceiling"), 1, 1),
     ("trunc", FnRule::Direct("trunc"), 1, 1),
     ("round", FnRule::Round, 1, 2),
+    ("linterp", FnRule::Linterp, 3, 3),
     ("mod", FnRule::Direct("mod"), 2, 2),
     ("min", FnRule::Direct("min"), 1, 64),
     ("max", FnRule::Direct("max"), 1, 64),
@@ -291,7 +294,6 @@ pub const BUILTIN_MISSING: &[&str] = &[
     "vlookup",
     "match",
     "interp",
-    "linterp",
     "cspline",
     "lspline",
     "pspline",

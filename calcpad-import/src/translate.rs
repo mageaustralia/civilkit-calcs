@@ -3184,6 +3184,17 @@ impl Tr {
                     atom(format!("(ln({})/ln({}))", a[0], a[1]))
                 }
             }
+            FnRule::Linterp => {
+                // The engine wants vectors. A transposed row (a column matrix) is its first column.
+                let list = |t: &str| {
+                    if t.starts_with("transp(") && t.ends_with(')') {
+                        format!("col({t}; 1)")
+                    } else {
+                        t.to_string()
+                    }
+                };
+                atom(format!("interp({}; {}; {})", a[2], list(&a[0]), list(&a[1])))
+            }
             FnRule::Round => {
                 if a.len() == 1 {
                     atom(format!("round({})", a[0]))

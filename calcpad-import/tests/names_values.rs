@@ -587,3 +587,15 @@ fn a_local_no_statement_set_has_no_value_on_that_path() {
     assert!(res.report.notes().any(|i| i.code == Code::UncoveredPath));
     assert!(engine_text(&res).contains("pick = 20"));
 }
+
+#[test]
+fn linterp_is_the_engines_interp_with_its_arguments_in_order() {
+    let col = |a: &str, b: &str| format!("<ml:matrix rows=\"2\" cols=\"1\">{}{}</ml:matrix>", real(a), real(b));
+    let res = import(&[
+        math(1, 0.0, &define(&id("xs"), &col("1", "3"))),
+        math(2, 20.0, &define(&id("ys"), &col("10", "30"))),
+        math(3, 40.0, &eval(&call("linterp", &[id("xs"), id("ys"), real("2")]))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(engine_text(&res).contains("= 20"));
+}

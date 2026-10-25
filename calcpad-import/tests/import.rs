@@ -705,6 +705,7 @@ fn every_mapped_function_runs_in_the_engine() {
             FnRule::Log => "log",
             FnRule::Round => "round",
             FnRule::Submatrix => "submatrix",
+            FnRule::Linterp => "interp",
         };
         // Matrix functions take matrix arguments; give them one.
         let arg = match target {
@@ -725,6 +726,7 @@ fn every_mapped_function_runs_in_the_engine() {
             "lsolve" => vec!["[1; 2|3; 4]", "[1; 2]"],
             "submatrix" => vec!["[1; 2|3; 4]", "1", "2", "1", "2"],
             "mod" | "gcd" | "lcm" | "atan2" => vec!["4", "6"],
+            "interp" => vec!["1.5", "[1; 2]", "[10; 20]"],
             _ => vec![arg; (*lo).max(1)],
         };
         let code = format!("{}({})\n", target, args.join("; "));
