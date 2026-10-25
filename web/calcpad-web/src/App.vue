@@ -510,6 +510,18 @@
       </div>
     </div>
 
+    <!-- Double-click on prose written as Markdown (#md on): rich-text editing of that block. -->
+    <div
+      v-if="mdEdit"
+      class="line-edit md-edit"
+      :style="{ left: mdEdit.x + 'px', top: mdEdit.y + 'px', width: mdEdit.w + 'px' }"
+      @mousedown.stop
+      @click.stop
+    >
+      <div class="line-edit-head">Text, lines {{ mdEdit.on + 1 }}–{{ mdEdit.off - 1 }}<span v-if="mdEdit.error"> · {{ mdEdit.error }}</span></div>
+      <MdBlockEditor :markdown="mdEdit.markdown" @apply="applyMdEdit" @cancel="closeMdEdit" />
+    </div>
+
     <!-- HTML modal rather than a native dialog, for web/desktop consistency. -->
     <div v-if="confirmState" class="modal-backdrop" @click.self="resolveConfirm('cancel')">
       <div class="modal-card" role="dialog" aria-modal="true">
@@ -591,7 +603,8 @@
 <script setup lang="ts">
 const appVersion = import.meta.env.VITE_APP_VERSION as string
 const upstreamVersion = import.meta.env.VITE_UPSTREAM_VERSION as string
-import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
+import { findMdBlock, fromMarkdown, toMarkdown } from './editor/md-block'
 import {
   extractBodyHtml,
   isCompiledPath,
@@ -991,7 +1004,32 @@ const onOpenFullHtmlRequest = ref<((groupId: string, html: string) => void) | nu
 const onLineEditRequest = ref<{
   text: (groupId: string, line: number) => string | null
   apply: (groupId: string, line: number, text: string) => void
+  /** All lines of the group's editor, to find the #md block around a line. */
+  lines?: (groupId: string) => string[] | null
+  /** Replaces source lines `from`..`to` (1-based, inclusive) with `text` lines. */
+  replace?: (groupId: string, from: number, to: number, text: string[]) => void
 } | null>(null)
+
+// Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
+const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
+interface MdEditState { x: number; y: number; w: number; groupId: string; on: number; off: number; paragraphs: string[]; markdown: string; error: string }
+const mdEdit = ref<MdEditState | null>(null)
+
+function closeMdEdit(): void {
+  mdEdit.value = null
+}
+
+function applyMdEdit(baseline: string, edited: string): void {
+  const st = mdEdit.value
+  if (!st) return
+  const next = fromMarkdown(st.paragraphs, baseline, edited)
+  if (!next) {
+    st.error = 'a code block cannot be written as one line; remove it to apply'
+    return
+  }
+  mdEdit.value = null
+  onLineEditRequest.value?.replace?.(st.groupId, st.on + 1, st.off - 1, next.map(l => "'" + l))
+}
 
 interface LineEditState { x: number; y: number; w: number; groupId: string; line: number; text: string; note: string }
 const lineEdit = ref<LineEditState | null>(null)
@@ -999,6 +1037,7 @@ const lineEditInput = ref<HTMLTextAreaElement | null>(null)
 
 function closeLineEdit(): void {
   lineEdit.value = null
+  mdEdit.value = null
 }
 
 function applyLineEdit(): void {
@@ -1021,6 +1060,14 @@ function openLineEdit(groupId: string, frameId: string, data: Record<string, unk
   const w = Math.min(Math.max(Number(r.width) || 0, 420), 760)
   const x = Math.max(8, Math.min(box.left + (Number(r.left) || 0), window.innerWidth - w - 8))
   const y = Math.max(8, Math.min(box.top + (Number(r.top) || 0), window.innerHeight - 150))
+  // Prose in a #md block edits as rich text; everything else edits as its source line.
+  const all = req.lines?.(groupId)
+  const block = all ? findMdBlock(all, line) : null
+  if (block && req.replace) {
+    lineEdit.value = null
+    mdEdit.value = { x, y: Math.min(y, window.innerHeight - 280), w, groupId, on: block.on, off: block.off, paragraphs: block.paragraphs, markdown: toMarkdown(block.paragraphs), error: '' }
+    return
+  }
   // An imported equation is a typeset copy; its calculation is the plain line beside it.
   const note = /class="imp-eq"/.test(text) ? 'typeset copy of a Mathcad equation (display only)' : ''
   lineEdit.value = { x, y, w, groupId, line, text, note }

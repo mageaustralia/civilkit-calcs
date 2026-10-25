@@ -1634,6 +1634,17 @@ async function bootstrap(): Promise<void> {
             const model = groups.get(groupId)?.editor.getModel();
             return model && line <= model.getLineCount() ? model.getLineContent(line) : null;
         },
+        lines: (groupId: string) => groups.get(groupId)?.editor.getModel()?.getLinesContent() ?? null,
+        replace: (groupId: string, from: number, to: number, text: string[]) => {
+            const ed = groups.get(groupId)?.editor;
+            const model = ed?.getModel();
+            if (!ed || !model || to > model.getLineCount() || from > to + 1) return;
+            // The whole run between #md on and #md off, in one undo step.
+            ed.executeEdits('md-edit', [{
+                range: { startLineNumber: from, startColumn: 1, endLineNumber: to, endColumn: model.getLineMaxColumn(to) },
+                text: text.join('\n'),
+            }]);
+        },
         apply: (groupId: string, line: number, text: string) => {
             const ed = groups.get(groupId)?.editor;
             const model = ed?.getModel();
