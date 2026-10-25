@@ -57,18 +57,14 @@ fn no_value() -> Expr {
     Expr::Un(UnOp::Sqrt, Box::new(Expr::Num("-1".into())))
 }
 
-/// The value of the last expression statement run so far, and whether a statement that is not an
-/// expression ran after it (then the value of the program would be that statement's, which is
-/// not read).
-type Last = Option<(Expr, bool)>;
-
-/// Symbolic run of `stmts`. A program's value is the last expression it evaluates, so an `if` that
-/// only sets it in one branch leaves the earlier value (or none) on the other. `Ok(None)` is a path
-/// that ends with no value at all.
+/// Symbolic run of `stmts`. A program's value is the value of the last statement it runs (an
+/// expression, or the value an assignment gives), so an `if` that only reaches one in one branch
+/// leaves the earlier value (or none) on the other. `Ok(None)` is a path that ends with no value
+/// at all.
 fn symexec(
     stmts: &[PStmt],
     env: &HashMap<String, Expr>,
-    cur: Last,
+    cur: Option<Expr>,
     budget: &mut usize,
     unroll: bool,
 ) -> Result<Option<Expr>, String> {
@@ -78,18 +74,13 @@ fn symexec(
     *budget -= 1;
     let mut env = env.clone();
     let mut cur = cur;
-    let stale = |c: &mut Last| {
-        if let Some((_, s)) = c {
-            *s = true;
-        }
-    };
     for (k, st) in stmts.iter().enumerate() {
         let rest = &stmts[k + 1..];
         match st {
             PStmt::Local(PTarget::Var(n), e) => {
                 let v = subst(e, &env).ok_or("a local's value would be captured by an integration variable")?;
-                env.insert(tables::normalise_name(&n.flat()), v);
-                stale(&mut cur);
+                env.insert(tables::normalise_name(&n.flat()), v.clone());
+                cur = Some(v);
             }
             PStmt::Local(PTarget::Element { .. }, _) => {
                 return Err(
@@ -102,8 +93,7 @@ fn symexec(
                     .ok_or_else(|| "a local's value would be captured by an integration variable".to_string());
             }
             PStmt::Expr(e) => {
-                let v = subst(e, &env).ok_or("a local's value would be captured by an integration variable")?;
-                cur = Some((v, false));
+                cur = Some(subst(e, &env).ok_or("a local's value would be captured by an integration variable")?);
             }
             PStmt::If { branches, otherwise } => {
                 let mut arms = Vec::new();
@@ -164,11 +154,7 @@ fn symexec(
             PStmt::Unsupported(w) => return Err(format!("{w} is not read")),
         }
     }
-    match cur {
-        Some((_, true)) => Err("the program ends with an assignment after its last expression".into()),
-        Some((v, false)) => Ok(Some(v)),
-        None => Ok(None),
-    }
+    Ok(cur)
 }
 
 fn subst(e: &Expr, env: &HashMap<String, Expr>) -> Option<Expr> {
@@ -552,13 +538,18 @@ struct FnBlk {
     inside: Option<HashMap<String, usize>>,
     /// Source names known to hold an array (received, copied or created by the body).
     arrays: HashSet<String>,
+    /// Locals that start as not a number (they may be read on a path that never set them).
+    starts: Vec<String>,
+    /// Names every arm of an `if`/`else` sets: they have a value after it, whichever arm ran.
+    exhaustive: HashSet<String>,
 }
 
 impl FnBlk {
-    /// A local set for the first time here: it must have a value on every path that reads it.
-    fn check_new(&self, flat: &str, guard: Option<&str>, loops: usize) -> Result<(), String> {
-        if guard.is_some() {
-            return Err(format!(
+    /// A local set for the first time here: it must have a value on every path that reads it. The
+    /// reason it does not, if it does not.
+    fn first_set_problem(&self, flat: &str, guard: Option<&str>, loops: usize) -> Option<String> {
+        if guard.is_some() && !(loops == 0 && self.exhaustive.contains(flat)) {
+            return Some(format!(
                 "{flat} is first set under a condition, so it has no value on the other path (the source would stop there, the engine would have no value)"
             ));
         }
@@ -568,13 +559,95 @@ impl FnBlk {
                 .as_ref()
                 .is_some_and(|m| m.get(flat) == self.total.get(flat));
             if !confined {
-                return Err(format!(
+                return Some(format!(
                     "{flat} is first set inside a loop and read outside it, so it has no value if the loop does not run"
                 ));
             }
         }
-        Ok(())
+        None
     }
+}
+
+/// The local that holds the value of a program that is written with statements.
+const RESULT_LOCAL: &str = "val_of_program";
+
+/// Does some path of the program end in a way whose value is not read: a loop or an element
+/// assignment last, or an `if` with no `else` after a statement that is not a value (the value is
+/// then that statement's when the condition fails)? An assignment as the last statement is read:
+/// its value is the program's.
+fn ends_without_value(stmts: &[PStmt]) -> bool {
+    match stmts.last() {
+        Some(PStmt::Local(PTarget::Element { .. }, _) | PStmt::For { .. } | PStmt::While { .. }) => true,
+        Some(PStmt::If { branches, otherwise }) => {
+            let before = stmts.len().checked_sub(2).map(|k| &stmts[k]);
+            let falls_through = otherwise.is_none() && matches!(before, Some(PStmt::Local(..)));
+            falls_through
+                || branches.iter().any(|(_, b)| ends_without_value(b))
+                || otherwise.as_ref().is_some_and(|o| ends_without_value(o))
+        }
+        _ => false,
+    }
+}
+
+/// Does a program keep its value in a way a final `value` statement cannot show: it ends in a
+/// statement that is not an expression, or has value statements before the end (the last one run
+/// is the program's value)?
+fn needs_result_form(stmts: &[PStmt]) -> bool {
+    fn has_expr(list: &[PStmt]) -> bool {
+        list.iter().any(|st| match st {
+            PStmt::Expr(_) => true,
+            PStmt::For { body, .. } | PStmt::While { body, .. } => has_expr(body),
+            PStmt::If { branches, otherwise } => {
+                branches.iter().any(|(_, b)| has_expr(b)) || otherwise.as_ref().is_some_and(|o| has_expr(o))
+            }
+            _ => false,
+        })
+    }
+    match stmts.split_last() {
+        Some((PStmt::Expr(_) | PStmt::Return(_), body)) => has_expr(body),
+        Some(_) => true,
+        None => false,
+    }
+}
+
+/// The program with its value kept in a local: every value statement assigns it (so the last one
+/// run wins, as in the source), an assignment or `return` as the last thing a path does assigns it
+/// too, and the program ends by reading it. A path that never sets it leaves it without a value.
+fn result_form(stmts: &[PStmt]) -> Vec<PStmt> {
+    let res = Name::new(RESULT_LOCAL);
+    fn walk(list: &[PStmt], tail: bool, res: &Name) -> Vec<PStmt> {
+        let n = list.len();
+        let mut out = Vec::new();
+        for (k, st) in list.iter().enumerate() {
+            let last = tail && k + 1 == n;
+            match st {
+                PStmt::Expr(e) => out.push(PStmt::Local(PTarget::Var(res.clone()), e.clone())),
+                PStmt::Return(e) if last => out.push(PStmt::Local(PTarget::Var(res.clone()), e.clone())),
+                PStmt::Local(PTarget::Var(v), _) if last => {
+                    out.push(st.clone());
+                    out.push(PStmt::Local(PTarget::Var(res.clone()), Expr::Name(v.clone())));
+                }
+                PStmt::For { var, range, body } => out.push(PStmt::For {
+                    var: var.clone(),
+                    range: range.clone(),
+                    body: walk(body, false, res),
+                }),
+                PStmt::While { cond, body } => out.push(PStmt::While {
+                    cond: cond.clone(),
+                    body: walk(body, false, res),
+                }),
+                PStmt::If { branches, otherwise } => out.push(PStmt::If {
+                    branches: branches.iter().map(|(c, b)| (c.clone(), walk(b, last, res))).collect(),
+                    otherwise: otherwise.as_ref().map(|o| walk(o, last, res)),
+                }),
+                other => out.push(other.clone()),
+            }
+        }
+        out
+    }
+    let mut out = walk(stmts, true, &res);
+    out.push(PStmt::Expr(Expr::Name(res)));
+    out
 }
 
 /// How often each identifier occurs in a list of statements.
@@ -1960,6 +2033,16 @@ impl Tr {
     /// sheet's variables; an array is only written element by element if the program created it
     /// whole first, because the engine cannot grow one.
     fn lower_program(&mut self, stmts: &[PStmt], name: &str) -> Result<(String, bool), String> {
+        let owned;
+        let stmts = if needs_result_form(stmts) {
+            if ends_without_value(stmts) {
+                return Err("the program does not end with a value".into());
+            }
+            owned = result_form(stmts);
+            &owned[..]
+        } else {
+            stmts
+        };
         let Some((last, body)) = stmts.split_last() else {
             return Err("an empty program".into());
         };
@@ -2036,6 +2119,16 @@ impl Tr {
     /// no value in the source on some paths and none here, so such a function is a gap, as are
     /// `break`, `continue`, an early `return` and an array the function grows.
     fn lower_fn_block(&mut self, stmts: &[PStmt]) -> Result<String, String> {
+        let owned;
+        let stmts = if needs_result_form(stmts) {
+            if ends_without_value(stmts) {
+                return Err("the program does not end with a value".into());
+            }
+            owned = result_form(stmts);
+            &owned[..]
+        } else {
+            stmts
+        };
         let Some((last, body)) = stmts.split_last() else {
             return Err("an empty program".into());
         };
@@ -2049,6 +2142,8 @@ impl Tr {
             total: name_counts(stmts),
             arrays: HashSet::new(),
             inside: None,
+            starts: Vec::new(),
+            exhaustive: HashSet::new(),
         };
         let mut items: Vec<String> = Vec::new();
         let r = (|| -> Result<String, String> {
@@ -2057,6 +2152,7 @@ impl Tr {
             assigned_names(body, &mut written);
             let mut copies: Vec<String> = written.into_iter().filter(|w| self.params.contains(w)).collect();
             copies.sort();
+            let copies_len = copies.len();
             for c in copies {
                 if !valid_ident(&c) {
                     return Err(format!("argument name {c} that Calcpad cannot spell"));
@@ -2067,6 +2163,8 @@ impl Tr {
                 st.arrays.insert(c);
             }
             self.lower_fn_stmts(body, None, 0, &mut st, &mut items)?;
+            let at = items.len().min(copies_len);
+            items.splice(at..at, st.starts.drain(..));
             let value = self.expr(tail).s;
             Ok(if items.is_empty() {
                 value
@@ -2100,8 +2198,26 @@ impl Tr {
                     let mapped = match self.locals.get(&flat) {
                         Some(m) => m.clone(),
                         None => {
-                            st.check_new(&flat, guard, loops)?;
-                            self.local_name(&flat)
+                            if let Some(why) = st.first_set_problem(&flat, guard, loops) {
+                                // The program's own result variable may be unset on a path (the source
+                                // then has no value): it starts as not a number, which the engine shows
+                                // as undefined. Outside a loop only: a not-a-number inside a loop body
+                                // is an engine error even on the iterations that do not use it.
+                                if flat != RESULT_LOCAL || loops > 0 {
+                                    return Err(why);
+                                }
+                                let mapped = self.local_name(&flat);
+                                st.starts.push(format!("{mapped} = sqrt(-1)"));
+                                mapped
+                            } else {
+                                let mapped = self.local_name(&flat);
+                                if guard.is_some() {
+                                    // Set in every arm of an `if`: the first write reads the name's
+                                    // earlier value, which only has to exist for the engine.
+                                    st.starts.push(format!("{mapped} = sqrt(-1)"));
+                                }
+                                mapped
+                            }
                         }
                     };
                     let is_array = matches!(e, Expr::Matrix { .. })
@@ -2205,6 +2321,27 @@ impl Tr {
                 PStmt::If { branches, otherwise } => {
                     self.prog_n += 1;
                     let n = self.prog_n;
+                    if let (None, 0, Some(other)) = (guard, loops, otherwise) {
+                        // A name every arm assigns at its top level has a value after the `if`.
+                        let sets = |b: &[PStmt]| -> HashSet<String> {
+                            b.iter()
+                                .filter_map(|x| match x {
+                                    PStmt::Local(PTarget::Var(v), _) => Some(tables::normalise_name(&v.flat())),
+                                    _ => None,
+                                })
+                                .collect()
+                        };
+                        let mut common = sets(other);
+                        for (_, b) in branches {
+                            let here = sets(b);
+                            common.retain(|v| here.contains(v));
+                        }
+                        for v in common {
+                            if !self.locals.contains_key(&v) {
+                                st.exhaustive.insert(v);
+                            }
+                        }
+                    }
                     let mut taken: Vec<String> = Vec::new();
                     let mut arms: Vec<(String, &[PStmt])> = Vec::new();
                     for (k, (c, b)) in branches.iter().enumerate() {
@@ -2968,18 +3105,17 @@ impl Tr {
                 return atom(format!("line({}; {})", at, arr));
             }
         }
-        let mut b = self.operand(base, P_ATOM, true);
-        if !self.readable && matches!(base, Expr::Call(..)) {
-            self.prog_n += 1;
-            let tmp = format!("ix_{}", self.prog_n);
-            self.hoisted.push(format!("{tmp} = {b}"));
-            b = tmp;
-        }
+        let b = self.operand(base, P_ATOM, true);
         if idx.is_empty() || idx.len() > 2 {
             self.issue(Code::BadStructure, Some("index list".into()));
             return atom("?index?");
         }
         let parts: Vec<String> = idx.iter().map(|i| self.index_expr(i)).collect();
+        // Only a name can be followed by `.(i)`; the element of anything else (the result of a call,
+        // a negated or scaled array) is `take(i; array)`, which needs no temporary.
+        if !self.readable && !matches!(base, Expr::Name(_)) {
+            return atom(format!("take({}; {})", parts.join("; "), b));
+        }
         atom(format!("{}.({})", b, parts.join("; ")))
     }
 
@@ -3842,9 +3978,23 @@ impl Tr {
                                 };
                                 // An array an earlier element assignment could not set is a gap, and
                                 // this write depends on it: that is where the cause is, not here.
-                                let gap_root = flat
+                                let mut gap_root = flat
                                     .as_ref()
                                     .and_then(|f| self.gap_names.get(f).map(|c| (f.clone(), *c)));
+                                if gap_root.is_none() {
+                                    // An index that reads a name a gap defines (a range variable whose
+                                    // bounds did not convert, a counter) is the same dependency.
+                                    for e in index {
+                                        e.clone().for_each_name_mut(&mut |n| {
+                                            let f = tables::normalise_name(&n.flat());
+                                            if gap_root.is_none() {
+                                                if let Some(c) = self.gap_names.get(&f) {
+                                                    gap_root = Some((f, *c));
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
                                 match (why, flat, ranges) {
                                     (Some(_), Some(f), _) if plan.is_some() => {
                                         let (rs, fresh) = plan.unwrap_or_default();

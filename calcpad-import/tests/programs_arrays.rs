@@ -224,10 +224,37 @@ fn alsoif_is_else_if() {
 }
 
 #[test]
-fn a_program_that_ends_in_an_assignment_after_its_value_is_not_guessed() {
-    let body = program(&[r("1"), local("z", &r("2"))]);
-    let res = convert(&[func("h", &["x"], &body)]);
-    assert!(res.report.gaps().any(|i| i.code == Code::ProgramBlock));
+fn a_program_that_ends_in_an_assignment_gives_the_assigned_value() {
+    // The value of a program is the value of the last statement it runs, an assignment included:
+    // h(x) = (1; z = 2 x) gives 2 x.  h(3) = 6.
+    let body = program(&[r("1"), local("z", &times(&r("2"), &n("x")))]);
+    let res = convert(&[func("h", &["x"], &body), eval(&call("h", &[r("3")]))]);
+    clean(&res);
+    assert_close(*numbers(&res.calcpad).last().unwrap(), 6.0);
+}
+
+#[test]
+fn an_if_whose_arms_end_in_assignments_gives_the_value_assigned_in_the_arm_run() {
+    // With a loop in front the function is a statement block: n = loop count, t = 1 + 2 + .. + n,
+    // then (if t > 5: u = 2 t else u = t).  g(4): t = 10, u = 20.  g(2): t = 3, u = 3.
+    let body = program(&[
+        local("t", &r("0")),
+        for_in("i", &r("1"), &n("n"), &[local("t", &plus(&n("t"), &n("i")))]),
+        if_else(
+            &gt(&n("t"), &r("5")),
+            &[local("u", &times(&n("t"), &r("2")))],
+            &[local("u", &n("t"))],
+        ),
+    ]);
+    let res = convert(&[
+        func("g", &["n"], &body),
+        eval(&call("g", &[r("4")])),
+        eval(&call("g", &[r("2")])),
+    ]);
+    clean(&res);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 2], 20.0);
+    assert_close(nums[nums.len() - 1], 3.0);
 }
 
 #[test]
@@ -277,4 +304,123 @@ fn matcol_index_is_shifted_from_a_zero_origin() {
     assert!(res.calcpad.contains("col(M; 1)"), "{}", res.calcpad);
     let nums = numbers(&res.calcpad);
     assert_close(*nums.last().unwrap(), 3.0);
+}
+
+// ---- programs that keep their value in a local, nested programs, start values --------------------------------
+
+fn for_in(var: &str, lo: &str, hi: &str, body: &[String]) -> String {
+    format!(
+        "<ml:for>{}<ml:range>{lo}{hi}</ml:range>{}</ml:for>",
+        n(var),
+        program(body)
+    )
+}
+fn if_else(test: &str, then: &[String], otherwise: &[String]) -> String {
+    if_chain(&[(test.to_string(), then.to_vec())], Some(otherwise))
+}
+
+#[test]
+fn a_program_ending_in_an_if_with_a_loop_in_one_arm_converts() {
+    // f(n) = (t = 0; if n > 0: (for i in 1..n: t = t + i; t) else 0).  f(4) = 10, f(-1) = 0.
+    let body = program(&[
+        local("t", &r("0")),
+        if_else(
+            &gt(&n("n"), &r("0")),
+            &[
+                for_in("i", &r("1"), &n("n"), &[local("t", &plus(&n("t"), &n("i")))]),
+                n("t"),
+            ],
+            &[r("0")],
+        ),
+    ]);
+    let res = convert(&[
+        func("f", &["n"], &body),
+        eval(&call("f", &[r("4")])),
+        eval(&call("f", &[r("-1")])),
+    ]);
+    clean(&res);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 2], 10.0);
+    assert_close(nums[nums.len() - 1], 0.0);
+}
+
+#[test]
+fn a_program_that_ends_in_a_loop_is_not_guessed() {
+    // The value of a program is the last statement it runs; with a loop last, that is not read.
+    let body = program(&[for_in(
+        "i",
+        &r("1"),
+        &n("n"),
+        &[if_then(&lt(&n("i"), &r("3")), &[times(&n("i"), &r("10"))])],
+    )]);
+    let res = convert(&[func("f", &["n"], &body)]);
+    assert!(res.report.gaps().any(|i| i.code == Code::ProgramBlock));
+}
+
+#[test]
+fn a_user_local_first_set_under_a_condition_is_a_reported_gap() {
+    // g(n) = (for i in 1..n: if i > 1: a = i); a * 2. Where the loop never sets `a` the source has no
+    // value, and a not-a-number inside a loop is an engine error, so the function is not converted.
+    let body = program(&[
+        for_in(
+            "i",
+            &r("1"),
+            &n("n"),
+            &[if_then(&gt(&n("i"), &r("1")), &[local("a", &n("i"))])],
+        ),
+        times(&n("a"), &r("2")),
+    ]);
+    let res = convert(&[func("g", &["n"], &body)]);
+    let why = res
+        .report
+        .gaps()
+        .find(|i| i.code == Code::ProgramBlock)
+        .and_then(|i| i.detail.clone())
+        .unwrap_or_default();
+    assert!(why.contains("no value"), "{why}");
+}
+
+#[test]
+fn the_result_of_a_program_with_a_path_that_gives_none_is_undefined_there() {
+    // f(n) = (t = 0; for i in 1..n: t = t + i; if t > 5: t * 2). Where t <= 5 the program gives no value.
+    let body = program(&[
+        local("t", &r("0")),
+        for_in("i", &r("1"), &n("n"), &[local("t", &plus(&n("t"), &n("i")))]),
+        if_then(&gt(&n("t"), &r("5")), &[times(&n("t"), &r("2"))]),
+    ]);
+    let res = convert(&[
+        func("f", &["n"], &body),
+        eval(&call("f", &[r("4")])),
+        eval(&call("f", &[r("1")])),
+    ]);
+    clean(&res);
+    let mut parser = calcpad_core::parsers::expression_parser::ExpressionParser::new();
+    parser.parse(&format!("#round 10\n{}", legacy(&res.calcpad)), true);
+    let html = parser.html_result;
+    assert!(html.contains("= 20"), "{html}");
+    assert!(html.contains("Undefined"), "{html}");
+}
+
+#[test]
+fn a_nested_program_runs_in_place() {
+    // f(x) = (program(a = x + 1); a * 2): f(2) = 6.
+    let body = program(&[program(&[local("a", &plus(&n("x"), &r("1")))]), times(&n("a"), &r("2"))]);
+    let res = convert(&[func("f", &["x"], &body), eval(&call("f", &[r("2")]))]);
+    clean(&res);
+    assert_close(*numbers(&res.calcpad).last().unwrap(), 6.0);
+}
+
+#[test]
+fn an_element_of_a_call_result_in_a_function_body_needs_no_temporary() {
+    // A x = b with A = diag(2, 4), b = (2, 8): x = (1, 2).  h(k) = lsolve(A, b)[k]; h(2) = 2.
+    let at = |base: &str, i: &str| format!("<ml:apply><ml:indexer/>{base}{i}</ml:apply>");
+    let res = convert(&[
+        define("A", &mat(2, 2, &["2", "0", "0", "4"])),
+        define("b", &mat(2, 1, &["2", "8"])),
+        func("h", &["k"], &at(&call("lsolve", &[n("A"), n("b")]), &n("k"))),
+        eval(&call("h", &[r("2")])),
+    ]);
+    clean(&res);
+    assert!(res.calcpad.contains("take("), "{}", res.calcpad);
+    assert_close(*numbers(&res.calcpad).last().unwrap(), 2.0);
 }
