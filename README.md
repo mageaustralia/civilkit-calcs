@@ -205,6 +205,16 @@ node e2e/symbolic-check.mjs       # Symbolic dialog: each operation, typeset res
 node ../tools/set_version.mjs --check
 ```
 
+## Checked at 26.10.10
+
+On the merged tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded, `--no-fail-fast`) passed 6101 tests; the
+two failures were `HPMatrixCond2` (flaky under load, known) and an importer list test and five highlighter snippet-count tests that
+the new `polyroots` function changed; both were fixed and those two crates re-run green. The rest of the workspace was not re-run
+after that fix. Browser checks on the release build: `sheet-check` (all), `browser-check` (123), `pwa-check` (472 files cached, offline),
+`symbolic-check` (60), `import-check`, `md-block-check`, `md-edit-check`, `update-notice-check`, `ribbon-check` (phone checks included)
+and `mobile-longpress-check`. Not tested: a real phone with its on-screen keyboard, `python-check`, `tsc`, `clippy` on the whole
+workspace, `cargo fmt --check` (fails on `calcpad-sheet`).
+
 ## Checked at 26.10.9
 
 On the release build: `cargo test --workspace` (excluding `calcpad-sheet`) passed, 6051 tests, run single-threaded because the

@@ -70,7 +70,8 @@ async function result(marker, tries = 80) {
     return '';
 }
 const openDialog = async () => {
-    await page.locator('[data-ribbon-tab=functions]').click();
+    // Clicking the active tab folds the ribbon (the phone layout starts folded), so click only when the button is hidden.
+    if (!(await page.locator('[data-ribbon-btn=fn-symbolic]').isVisible())) await page.locator('[data-ribbon-tab=functions]').click();
     await page.locator('[data-ribbon-btn=fn-symbolic]').click();
     await page.locator(D).waitFor();
 };
@@ -291,6 +292,8 @@ for (const theme of ['Light', 'Dark']) {
 check(lum(shots.Light.bg) !== lum(shots.Dark.bg), 'the two themes differ');
 await page.setViewportSize({ width: 390, height: 800 });
 await page.waitForTimeout(300);
+// On a phone the panes show one at a time: go to Edit, where the ribbon is.
+if (await page.locator('.mobile-bar').isVisible()) await page.locator('.mobile-bar button:nth-child(1)').click();
 await openDialog();
 r = await run('integrate', 'w*L*x/2 - w*x^2/2', { var: 'x', lower: '0', upper: 'L' });
 const fit = await page.evaluate(() => { const b = document.querySelector('#cprs-sym-dialog .sym-box'); const r_ = b.getBoundingClientRect(); return { left: r_.left, right: r_.right, vw: innerWidth, hscroll: b.scrollWidth > b.clientWidth + 1, pageScroll: document.documentElement.scrollWidth > innerWidth }; });
