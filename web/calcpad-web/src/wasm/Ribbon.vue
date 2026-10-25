@@ -16,7 +16,7 @@
       <button v-for="t in RIBBON" :key="t.id" class="rb-tab" :class="{ on: t.id === active }" role="tab"
         :aria-selected="t.id === active" :data-ribbon-tab="t.id" @click="selectTab(t.id)">{{ t.label }}</button>
     </div>
-    <div class="rb-panel" role="tabpanel" :data-ribbon-panel="active">
+    <div v-show="!folded" class="rb-panel" role="tabpanel" :data-ribbon-panel="active">
       <div v-for="g in tab.groups" :key="g.name" class="rb-group">
         <div class="rb-cells">
           <template v-for="(cell, ci) in cells(g)" :key="ci">
@@ -116,8 +116,12 @@ function closePop(refocus: boolean): void {
   popAnchor = null;
   if (refocus) (props.ctx.editor() as any)?.focus();
 }
+// Phones: the panel starts folded, and tapping the open tab folds it again.
+const phone = window.matchMedia('(max-width: 760px)');
+const folded = ref(phone.matches);
 function selectTab(id: string): void {
   closePop(false);
+  folded.value = phone.matches && id === active.value && !folded.value;
   active.value = id;
 }
 
@@ -247,6 +251,12 @@ onBeforeUnmount(() => {
 .rb-raw{position:relative}
 .rb-raw::after{content:'>>';position:absolute;right:1px;top:0;font:700 8px/1 var(--vscode-editor-font-family,monospace);color:var(--vscode-descriptionForeground,#888);pointer-events:none}
 .rb-glyph:hover{background:var(--vscode-menu-selectionBackground,#0060c0);color:var(--vscode-menu-selectionForeground,#fff)}
+@media (max-width:760px){
+  .rb-quick{height:40px}
+  .rb-q{width:36px;height:34px}
+  .rb-file{height:32px}
+  .rb-tab{height:36px}
+}
 @media (max-width:700px){
   .rb-pop,.rb-pop.wide{left:0;right:0;bottom:0;top:auto;width:auto;max-width:none;max-height:55vh;border-radius:10px 10px 0 0}
   .rb-glyph{min-width:36px;height:34px}

@@ -1,5 +1,5 @@
 <template>
-  <div class="app-layout" :class="{ resizing: isAnyDividerDragging }">
+  <div class="app-layout" :class="[{ resizing: isAnyDividerDragging, narrow }, narrow ? `m-${mobilePane}` : '']">
     <!-- v-show, not v-if: main.ts mounts a Vue app into #vue-sidebar. -->
     <div
       v-show="sidebarVisible"
@@ -299,7 +299,7 @@
 
     <!-- Rows the input form and its report in UI mode; `display: contents` otherwise. -->
     <div class="preview-area">
-    <div v-if="previewVisible" class="preview-pane" :class="{ fullscreen: uiModeFullscreen }" :style="previewPaneStyle()">
+    <div v-if="previewVisible || narrow" class="preview-pane" :class="{ fullscreen: uiModeFullscreen }" :style="previewPaneStyle()">
       <div class="preview-toolbar" @contextmenu.prevent>
         <span>Results</span>
         <div class="preview-mode-group">
@@ -358,7 +358,7 @@
             @click="exitUiMode"
             title="Return to the editor"
           >Exit input mode</button>
-          <button v-else class="toolbar-btn" @click="togglePreview">✕</button>
+          <button v-else-if="!narrow" class="toolbar-btn" @click="togglePreview">✕</button>
         </template>
       </div>
       <!-- One preview iframe per editor group. allow-same-origin is deliberately
@@ -578,6 +578,10 @@
         </div>
       </div>
     </div>
+    <!-- Phones: one pane at a time. -->
+    <nav v-if="narrow" class="mobile-bar" aria-label="Panes">
+      <button v-for="p in MOBILE_PANES" :key="p.id" :class="{ on: mobilePane === p.id }" :aria-pressed="mobilePane === p.id" @click="mobilePane = p.id">{{ p.label }}</button>
+    </nav>
   </div>
   <!-- Status bar -->
   <div v-show="!uiModeFullscreen" class="status-bar" @contextmenu.prevent>
@@ -1616,6 +1620,12 @@ function setServerStatus(status: ServerStatus): void {
 
 const sidebarVisible = ref(true)
 const previewVisible = ref(true)
+// Phone width shows the editor, the results or the sidebar one at a time (CSS does the hiding).
+const MOBILE_PANES = [{ id: 'edit', label: 'Edit' }, { id: 'preview', label: 'Results' }, { id: 'insert', label: 'Insert' }] as const
+const narrowQuery = window.matchMedia('(max-width: 760px)')
+const narrow = ref(narrowQuery.matches)
+const mobilePane = ref<'edit' | 'preview' | 'insert'>('edit')
+narrowQuery.addEventListener('change', e => { narrow.value = e.matches })
 // Groups with an in-flight preview render; drives the "Calculating…" overlay.
 const previewLoadingGroups = ref(new Set<string>())
 const previewLoading = computed(() => previewLoadingGroups.value.size > 0)
