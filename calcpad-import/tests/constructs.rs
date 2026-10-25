@@ -868,3 +868,29 @@ fn a_program_that_writes_elements_of_a_name_the_sheet_also_defines_starts_empty(
     assert_close(v[1], 6.0);
     assert_close(v[2], 9.0);
 }
+
+#[test]
+fn an_array_written_by_element_then_scaled_whole_then_written_again() {
+    // a[1] <- 4; a[2] <- 5; a <- a * 2; a[3] <- 1; a is [8; 10; 1].
+    let body = program(&[
+        local_el("a", &r("1"), &r("4")),
+        local_el("a", &r("2"), &r("5")),
+        local("a", &times(&n("a"), &r("2"))),
+        local_el("a", &r("3"), &r("1")),
+        n("a"),
+    ]);
+    let res = convert(&[
+        func("f", &["x"], &body),
+        define("w", &call("f", &[r("0")])),
+        eval(&call("rows", &[n("w")])),
+        eval(&index1("w", &r("1"))),
+        eval(&index1("w", &r("2"))),
+        eval(&index1("w", &r("3"))),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 4);
+    assert_close(v[0], 3.0);
+    assert_close(v[1], 8.0);
+    assert_close(v[2], 10.0);
+    assert_close(v[3], 1.0);
+}

@@ -2917,7 +2917,13 @@ impl Tr {
             let mut bases: Vec<String> = st.scan.keys().cloned().collect();
             bases.sort();
             for b in bases {
-                if self.params.contains(&b) || st.arrays.contains(&b) || whole.contains(&b) {
+                if self.params.contains(&b) || st.arrays.contains(&b) {
+                    continue;
+                }
+                // Also assigned whole somewhere: the array may exist already when it is first written
+                // (checked as the statements are lowered), so it is made lazily and grows.
+                if whole.contains(&b) {
+                    st.grow_from(&b);
                     continue;
                 }
                 let mine: Vec<&ElemWrite> = st.writes.iter().filter(|w| w.base == b).collect();
@@ -3140,8 +3146,7 @@ impl Tr {
                             }
                         }
                     };
-                    let is_array = matches!(e, Expr::Matrix { .. })
-                        || matches!(e, Expr::Call(f, _) if matches!(f.base.as_str(), "identity" | "matrix" | "augment" | "stack" | "lsolve" | "submatrix"));
+                    let is_array = self.fn_gives_array(e, &st.arrays);
                     if is_array {
                         st.arrays.insert(flat);
                     } else {

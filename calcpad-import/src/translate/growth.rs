@@ -71,6 +71,29 @@ pub(super) fn scan_element_writes(body: &[PStmt]) -> HashMap<String, WriteScan> 
 }
 
 impl Tr {
+    /// Whether the value of `e` in a function body is an array: a matrix literal, a function that makes
+    /// one, arithmetic on an array the body holds (`arrays`: source names), or an `if` of arrays.
+    pub(super) fn fn_gives_array(&self, e: &Expr, arrays: &HashSet<String>) -> bool {
+        match e {
+            Expr::Matrix { .. } => true,
+            Expr::Name(n) => arrays.contains(&tables::normalise_name(&n.flat())),
+            Expr::Call(f, args) if f.base == "if" && f.sub.is_none() && args.len() == 3 => {
+                self.fn_gives_array(&args[1], arrays) || self.fn_gives_array(&args[2], arrays)
+            }
+            Expr::Call(f, _) => {
+                matches!(
+                    f.base.as_str(),
+                    "identity" | "matrix" | "augment" | "stack" | "lsolve" | "submatrix"
+                ) || self.array_funcs.contains(&tables::normalise_name(&f.flat()))
+            }
+            Expr::Un(UnOp::Neg | UnOp::Transpose, a) => self.fn_gives_array(a, arrays),
+            Expr::Bin(BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div, a, b) => {
+                self.fn_gives_array(a, arrays) || self.fn_gives_array(b, arrays)
+            }
+            _ => false,
+        }
+    }
+
     /// The statements that write one element of a growing array, under the guard (if any).
     pub(super) fn growing_write(&self, mapped: &str, parts: &[String], rhs: &str, guard: Option<&str>) -> Vec<String> {
         let grown = if parts.len() == 1 {
