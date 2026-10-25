@@ -1,0 +1,38 @@
+<!--sheet-->
+# Laguerre polynomial roots
+
+The Laguerre polynomial of degree $n$ is
+
+$$L_n(z) = \sum_{k=0}^{n} \frac{(-1)^k}{k!}\binom{n}{k} z^k$$
+
+Its coefficients come from a loop, and `polyroots` finds every real root of the
+polynomial in one call. The coefficients go in from the constant term up.
+
+n: 5
+
+>> #hide
+>> a = vector(n + 1)
+for k in 0..n:
+    >> a.(k + 1) = (-1)^k*fact(n)/(fact(k)*fact(n - k))/fact(k)
+>> #show
+
+coefficients: a
+
+## Roots
+
+roots: polyroots(a)
+
+>> #hide
+>> p(x) = $Sum{a.(j + 1)*x^j @ j = 0 : n}
+>> #show
+
+Check that each root makes the polynomial vanish:
+
+for i in 1..n:
+    residual: p(roots.i)
+
+## Shape
+
+The curve crosses zero at each root.
+
+plot p(x) for x in 0..14

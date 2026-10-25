@@ -1,0 +1,38 @@
+<!--sheet-->
+# Beam deflection derived symbolically
+
+The midspan deflection of a simply supported beam, worked out with the **Symbolic** dialog (Functions, then Symbolic). Each step below is an exact result from the dialog. The numbers come in at the end, so the derived formula can be checked against the engine.
+
+## Step 1: integrate the bending equation
+
+Take $y$ in the direction of the load, so $E I \, \dfrac{d^2 y}{dx^2} = -M(x)$ with $M(x) = \dfrac{w L x}{2} - \dfrac{w x^2}{2}$. Operation **integrate** with respect to $x$, adding a constant after each integration, gives
+
+$$y(x) = -\frac{L w x^3}{12 E I} + \frac{w x^4}{24 E I} + C_1 x + C_2$$
+
+## Step 2: boundary conditions
+
+The beam sits on supports at both ends, so $y(0) = 0$ and $y(L) = 0$. Operation **solve** on those two equations for $C_1$ and $C_2$ gives
+
+$$C_1 = \frac{L^3 w}{24 E I} \qquad C_2 = 0$$
+
+## Step 3: midspan
+
+Operation **substitute** $x = L/2$, then **simplify**, gives
+
+$$y\left(\frac{L}{2}\right) = \frac{5 L^4 w}{384 E I}$$
+
+## Numbers
+
+w: 12 kN/m | design load
+L: 6 m | span
+E: 200 GPa | modulus of elasticity
+I: 250000000 mm^4 | second moment of area
+delta: 5 * w * L^4 / (384 * E * I) -> mm | midspan deflection from the formula
+
+## Check against the derived deflection curve
+
+y(x): -L * w * x^3 / (12 * E * I) + w * x^4 / (24 * E * I) + L^3 * w * x / (24 * E * I) | the curve from step 2 with its constants
+y_mid: y(L / 2) -> mm | the curve at midspan
+ratio: y_mid / delta | 1 when the formula and the curve agree
+
+plot -y(x * 1 m) / (1 mm) for x in 0..L / (1 m)

@@ -129,6 +129,34 @@
    "read": false,
    "python": true,
    "assets": []
+  },
+  {
+   "id": "sheet-beam-deflection-symbolic",
+   "title": "Beam deflection derived symbolically",
+   "group": "Sheet syntax",
+   "folder": "Sheet syntax",
+   "file": "sheet-samples/Beam deflection derived symbolically.sheet",
+   "upstream": "",
+   "description": "The midspan deflection of a simply supported beam derived step by step with the Symbolic dialog (integrate, solve for the constants, substitute), typeset as LaTeX, then fed with numbers and checked against the derived curve.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "assets": []
+  },
+  {
+   "id": "sheet-laguerre-roots",
+   "title": "Laguerre polynomial roots",
+   "group": "Sheet syntax",
+   "folder": "Sheet syntax",
+   "file": "sheet-samples/Laguerre polynomial roots.sheet",
+   "upstream": "",
+   "description": "Coefficients from a loop, every real root from one polyroots call, a residual check and the curve.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "assets": []
   }
  ]
 }
