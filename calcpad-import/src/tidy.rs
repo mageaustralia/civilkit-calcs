@@ -4,6 +4,7 @@
 //! * [`tidy`] drops the formatting the importer carries over from the original (fonts, sizes,
 //!   colours) so a paragraph is plain text or a `<p>`/`<hN>` with only its own tags, turns a gap
 //!   marker into a short visible note.
+//!   Plain layout wrappers (indent and row divs) are dropped so the text reads top to bottom.
 //! * [`markdown`] tidies, then writes each simple paragraph as Markdown inside `#md on` / `#md off`.
 //!
 //! A line that is not a simple paragraph is never rewritten, so both are safe to run on any text.
@@ -36,11 +37,52 @@ pub fn tidy(src: &str) -> String {
             out.push(line.to_string());
         }
     }
-    let mut s = out.join("\n");
+    let mut s = flatten(out).join("\n");
     if src.ends_with('\n') {
         s.push('\n');
     }
     s
+}
+
+/// Drops the plain wrapper divs the importer uses for indent and rows (`<div>`, a `margin-left`
+/// div, an `imported-row`) with their closing `</div>`, so the text reads top to bottom. A div
+/// with any other role (grids, plots, pictures beside text, equations) stays.
+fn flatten(lines: Vec<String>) -> Vec<String> {
+    let removable = |l: &str| {
+        l == "'<div>"
+            || (l.starts_with("'<div style=\"margin-left:") && l.ends_with("\">") && l.matches('<').count() == 1)
+            || (l.starts_with("'<div class=\"imported-row\"") && l.ends_with("\">") && l.matches('<').count() == 1)
+    };
+    let mut stack: Vec<bool> = Vec::new();
+    let mut out = Vec::with_capacity(lines.len());
+    for l in lines {
+        if !l.starts_with('\'') {
+            out.push(l);
+            continue;
+        }
+        if removable(&l) {
+            stack.push(true);
+            continue;
+        }
+        let delta = count(&l, "<div") - count(&l, "</div>");
+        if delta > 0 {
+            for _ in 0..delta {
+                stack.push(false);
+            }
+        } else if delta < 0 {
+            let mut drop = l == "'</div>" && stack.last() == Some(&true);
+            for _ in 0..-delta {
+                if stack.pop() != Some(true) {
+                    drop = false;
+                }
+            }
+            if drop {
+                continue;
+            }
+        }
+        out.push(l);
+    }
+    out
 }
 
 /// Tidies, then writes simple paragraphs as Markdown (see the module documentation).
@@ -366,6 +408,12 @@ mod tests {
         assert_eq!(tidy(src), src);
         let md = "'<table>\n'cell text\n'</table>\n'after";
         assert_eq!(markdown(md), "'<table>\n'cell text\n'</table>\n#md on\n'after\n#md off");
+    }
+
+    #[test]
+    fn plain_wrapper_divs_are_dropped_and_others_kept() {
+        let src = "'<div class=\"imported-row\" style=\"display:flex\">\n'<div>\n'text\n'</div>\n'<div style=\"margin-left:13pt\">\n'<div class=\"imported-grid\">\n'x\n'</div>\n'</div>\n'</div>";
+        assert_eq!(tidy(src), "'text\n'<div class=\"imported-grid\">\n'x\n'</div>");
     }
 
     #[test]

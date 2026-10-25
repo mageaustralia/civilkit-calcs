@@ -28,6 +28,7 @@ export interface ImportOptionsJson {
     convertMetafiles?: boolean;
     tidy?: boolean;
     markdown?: boolean;
+    mathml?: boolean;
 }
 
 /** Human wording for the gap codes (the report's own reasons are written for developers). */
@@ -159,6 +160,7 @@ interface Session {
     savedResults: boolean;
     tidy: boolean;
     markdown: boolean;
+    mathml: boolean;
     paths: Set<string>;
 }
 
@@ -216,7 +218,7 @@ export class WorksheetImport {
         this.busy = true;
         try {
             const bytes = new Uint8Array(await file.arrayBuffer());
-            const session: Session = { name, prefix: `imported/${slug(name)}`, bytes, tabId: '', pictures: true, savedResults: false, tidy: false, markdown: false, paths: new Set() };
+            const session: Session = { name, prefix: `imported/${slug(name)}`, bytes, tabId: '', pictures: true, savedResults: false, tidy: false, markdown: false, mathml: true, paths: new Set() };
             const rep = await this.convert(session, true);
             if (rep) this.showResult(session, rep);
         } catch (e) {
@@ -257,6 +259,7 @@ export class WorksheetImport {
             savedResults: s.savedResults,
             tidy: s.tidy,
             markdown: s.markdown,
+            mathml: s.mathml,
             assetPrefix: s.prefix,
         });
         if (report.fatal) {
@@ -383,8 +386,11 @@ export class WorksheetImport {
         };
         toggle('Pictures of unconverted regions', s.pictures, 'data-cprs-import-pictures', v => { s.pictures = v; });
         toggle('Show saved results as static values', s.savedResults, 'data-cprs-import-saved', v => { s.savedResults = v; });
-        toggle('Tidy text (plain paragraphs, no imported fonts or colours)', s.tidy || s.markdown, 'data-cprs-import-tidy', v => { s.tidy = v; if (!v) s.markdown = false; });
-        toggle('Text as Markdown (#md blocks; includes tidy)', s.markdown, 'data-cprs-import-markdown', v => { s.markdown = v; if (v) s.tidy = true; });
+        // Tidy and Markdown are about reading the source, so they also write equations as plain Calcpad
+        // (typeset MathML is dozens of tags per equation); the equations toggle can put MathML back.
+        toggle('Tidy text (plain paragraphs, no imported fonts or colours)', s.tidy || s.markdown, 'data-cprs-import-tidy', v => { s.tidy = v; s.mathml = !v; if (!v) s.markdown = false; });
+        toggle('Text as Markdown (#md blocks; includes tidy)', s.markdown, 'data-cprs-import-markdown', v => { s.markdown = v; s.tidy = v || s.tidy; if (v) s.mathml = false; });
+        toggle('Equations as plain Calcpad (off: typeset MathML)', !s.mathml, 'data-cprs-import-plain-eq', v => { s.mathml = !v; });
         box.append(toggles);
 
         const note = document.createElement('p');

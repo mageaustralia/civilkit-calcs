@@ -21,6 +21,7 @@ fn main() -> ExitCode {
     let r = calcpad_import::import_bytes(&bytes, &calcpad_import::ImportOptions {
         tidy: args.iter().any(|a| a == "--tidy"),
         markdown: args.iter().any(|a| a == "--markdown"),
+        mathml: !args.iter().any(|a| a == "--no-mathml"),
         ..Default::default()
     });
     print!("{}", r.calcpad);
