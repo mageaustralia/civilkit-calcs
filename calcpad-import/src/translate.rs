@@ -201,6 +201,85 @@ fn symexec(
                 }
                 cur = Some(value);
             }
+            PStmt::If { branches, otherwise }
+                if branches
+                    .iter()
+                    .map(|(_, b)| b)
+                    .chain(otherwise.iter())
+                    .all(|b| !b.is_empty() && b.iter().all(|x| matches!(x, PStmt::Local(PTarget::Var(_), _)))) =>
+            {
+                // Every branch only sets locals: each local becomes `if(c; value; ...)` over its
+                // old value, so the statements after the `if` are read once, not once per branch.
+                let none = || Expr::Name(Name::new(NO_VALUE));
+                let apply = |body: &[PStmt]| -> Result<(HashMap<String, Expr>, Option<Expr>), String> {
+                    let mut e = env.clone();
+                    let mut last = None;
+                    let mut changed: Vec<String> = Vec::new();
+                    for x in body {
+                        if let PStmt::Local(PTarget::Var(n), v) = x {
+                            let v =
+                                subst(v, &e).ok_or("a local's value would be captured by an integration variable")?;
+                            let key = tables::normalise_name(&n.flat());
+                            last = Some(v.clone());
+                            e.insert(key.clone(), v);
+                            changed.push(key);
+                        }
+                    }
+                    let mut out = HashMap::new();
+                    for k in changed {
+                        out.insert(k.clone(), e[&k].clone());
+                    }
+                    Ok((out, last))
+                };
+                let mut sets: Vec<(Expr, HashMap<String, Expr>, Option<Expr>)> = Vec::new();
+                for (c, b) in branches {
+                    let cond = subst(c, &env).ok_or("a condition would capture a local")?;
+                    let (vars, last) = apply(b)?;
+                    sets.push((cond, vars, last));
+                }
+                let other = match otherwise {
+                    Some(o) => Some(apply(o)?),
+                    None => None,
+                };
+                let mut names: Vec<String> = sets
+                    .iter()
+                    .flat_map(|(_, v, _)| v.keys().cloned())
+                    .chain(other.iter().flat_map(|(v, _)| v.keys().cloned()))
+                    .collect();
+                names.sort();
+                names.dedup();
+                for name in names {
+                    let mut value = other
+                        .as_ref()
+                        .and_then(|(v, _)| v.get(&name).cloned())
+                        .or_else(|| env.get(&name).cloned())
+                        .unwrap_or_else(none);
+                    for (c, v, _) in sets.iter().rev() {
+                        let old = value.clone();
+                        let taken = v
+                            .get(&name)
+                            .cloned()
+                            .unwrap_or_else(|| env.get(&name).cloned().unwrap_or_else(none));
+                        value = Expr::Call(Name::new("if"), vec![c.clone(), taken, old]);
+                    }
+                    env.insert(name, value);
+                }
+                if rest.is_empty() {
+                    // An `if` that ends the program gives the last value its branch set.
+                    let mut value = match &other {
+                        Some((_, last)) => last.clone(),
+                        None => cur.clone(),
+                    }
+                    .unwrap_or_else(none);
+                    for (c, _, last) in sets.iter().rev() {
+                        value = Expr::Call(
+                            Name::new("if"),
+                            vec![c.clone(), last.clone().unwrap_or_else(none), value],
+                        );
+                    }
+                    cur = Some(value);
+                }
+            }
             PStmt::If { branches, otherwise } => {
                 let mut arms = Vec::new();
                 for (c, body) in branches {
