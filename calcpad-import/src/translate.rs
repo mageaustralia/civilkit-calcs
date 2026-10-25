@@ -4600,6 +4600,38 @@ impl Tr {
         let shape: &str;
 
         match &m.stmt {
+            Stmt::Define {
+                value: Expr::Call(f, _),
+                ..
+            }
+            | Stmt::Eval {
+                expr: Expr::Call(f, _), ..
+            } if f.sub.is_none() && matches!(f.base.as_str(), "WRITEEXCEL" | "WRITEPRN" | "APPENDPRN" | "WRITEBMP") => {
+                // A write to a file: nothing the sheet computes depends on it, and it cannot be done here.
+                shape = "other";
+                self.issue(Code::FileOutput, Some(f.base.clone()));
+                let saved = std::mem::take(&mut self.cur);
+                self.io_args = true;
+                self.readable = true;
+                let text = match &m.stmt {
+                    Stmt::Define {
+                        target: Target::Var(n),
+                        value,
+                        ..
+                    } => {
+                        format!("{} := {}", n.flat(), self.expr(value).s)
+                    }
+                    Stmt::Eval { expr, .. } => self.expr(expr).s,
+                    _ => String::new(),
+                };
+                self.readable = false;
+                self.io_args = false;
+                self.cur = saved;
+                emitted = Some(
+                    self.typeset_gap(&m.stmt)
+                        .unwrap_or_else(|| format!("'<p><i>{}</i></p>", mathml::esc(&text.replace('\'', "\u{2019}")))),
+                );
+            }
             Stmt::Define { target, value, global } => {
                 shape = if matches!(target, Target::Func(..)) {
                     "function"

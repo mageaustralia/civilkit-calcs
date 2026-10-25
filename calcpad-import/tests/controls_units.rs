@@ -363,3 +363,33 @@ fn indexed2(name: &str, i: &str, j: &str) -> String {
         id(name)
     )
 }
+
+#[test]
+fn a_call_that_writes_a_file_is_shown_and_defines_nothing() {
+    let res = import(&[
+        math(
+            1,
+            0.0,
+            &define(
+                &id("A"),
+                "<ml:matrix rows=\"2\" cols=\"1\"><ml:real>1</ml:real><ml:real>2</ml:real></ml:matrix>",
+            ),
+        ),
+        math(
+            2,
+            20.0,
+            &define(&id("W"), &call("WRITEEXCEL", &[s("out.xlsx"), id("A"), s("Sheet!A1")])),
+        ),
+        math(3, 40.0, &eval(&call("WRITEPRN", &[s("out.txt"), id("A")]))),
+        math(4, 60.0, &eval(&id("A"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert_eq!(
+        res.report.issues.iter().filter(|i| i.code == Code::FileOutput).count(),
+        2,
+        "{:?}",
+        res.report.issues
+    );
+    assert!(!res.calcpad.contains("W ="), "{}", res.calcpad);
+    engine_text(&res);
+}
