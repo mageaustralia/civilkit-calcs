@@ -546,6 +546,7 @@ pub(crate) fn read_math(m: Node, lim: &Limits) -> MathRegion {
             .descendants()
             .find(|d| is_ml(*d) && crate::controls::is_control(local(*d)))
             .and_then(|d| crate::controls::read_control(d, lim, 0)),
+        solve: None,
     }
 }
 
@@ -856,6 +857,17 @@ fn read_target(n: Node, lim: &Limits) -> Option<Target> {
         }
         "apply" => {
             let kids = ml_kids(n);
+            // A whole column or row: `matcol(M, j) := ...`.
+            if let [op, first, idx] = kids.as_slice() {
+                let tag = local(unwrap_provenance(*op));
+                if matches!(tag, "matcol" | "matrow") && local(unwrap_provenance(*first)) == "id" {
+                    return Some(Target::Slice {
+                        base: read_name(unwrap_provenance(*first)),
+                        index: Box::new(read_expr(*idx, lim, 1)),
+                        row: tag == "matrow",
+                    });
+                }
+            }
             let (base, index) = match kids.as_slice() {
                 [op, first, ..]
                     if local(unwrap_provenance(*op)) == "indexer" && local(unwrap_provenance(*first)) == "id" =>
@@ -921,7 +933,12 @@ pub(crate) fn read_expr(n: Node, lim: &Limits, depth: usize) -> Expr {
         "matrix" => {
             let rows = n.attribute("rows").and_then(|v| v.parse::<usize>().ok());
             let cols = n.attribute("cols").and_then(|v| v.parse::<usize>().ok());
-            let items: Vec<Expr> = ml_kids(n).into_iter().map(|k| read_expr(k, lim, depth + 1)).collect();
+            // A `display` child is how the author's window showed the matrix (its size), not an item.
+            let items: Vec<Expr> = ml_kids(n)
+                .into_iter()
+                .filter(|k| local(unwrap_provenance(*k)) != "display")
+                .map(|k| read_expr(k, lim, depth + 1))
+                .collect();
             match (rows, cols) {
                 (Some(r), Some(c)) if r >= 1 && c >= 1 && r.checked_mul(c) == Some(items.len()) => Expr::Matrix {
                     rows: r,
@@ -955,6 +972,8 @@ pub(crate) fn read_expr(n: Node, lim: &Limits, depth: usize) -> Expr {
             }
         }
         "program" => Expr::Program(read_program(n, lim, depth + 1)),
+        // A function whose whole value is an `if` or a loop, written without the block around it.
+        "if" | "for" | "while" => Expr::Program(vec![read_pstmt(n, lim, depth + 1)]),
         // `try expr on error fallback`, when each side is a single expression: kept as a call of that
         // name, which the translator turns into a test of the division that may fail.
         "tryCatch" => {
@@ -1159,6 +1178,14 @@ fn read_pstmt(k: Node, lim: &Limits, depth: usize) -> PStmt {
                         base: Some(base),
                         index,
                     }) => PStmt::Local(PTarget::Element { base, index }, value),
+                    Some(Target::Slice { base, index, row }) => PStmt::Local(
+                        PTarget::Slice {
+                            base,
+                            index: *index,
+                            row,
+                        },
+                        value,
+                    ),
                     _ => bad("local assignment target"),
                 },
                 _ => bad("local assignment target"),
@@ -1234,7 +1261,10 @@ fn read_pstmt(k: Node, lim: &Limits, depth: usize) -> PStmt {
         },
         "break" => PStmt::Break,
         "continue" => PStmt::Continue,
-        "tryCatch" => bad("tryCatch"),
+        "tryCatch" => match read_expr(k, lim, depth + 1) {
+            e @ Expr::Call(..) => PStmt::Expr(e),
+            _ => bad("tryCatch"),
+        },
         "program" => bad("nested program"),
         _ => PStmt::Expr(read_expr(k, lim, depth + 1)),
     }

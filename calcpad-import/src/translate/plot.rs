@@ -87,6 +87,15 @@ impl Tr {
             }
         }
         let all: Vec<&Expr> = pairs.iter().flat_map(|(x, y)| [x, y]).collect();
+        // An array of several columns is drawn as one trace per column; the engine plots a vector
+        // against a vector.
+        if let Some(m) = self.matrices.iter().find(|m| all.iter().any(|e| mentions(e, m))) {
+            let m = m.trim_end_matches("__im").trim_end_matches("__re").to_string();
+            return self.plot_gap(
+                r,
+                &format!("{m} is an array with several columns, which the source draws as one trace per column"),
+            );
+        }
 
         // Range variables the expressions use.
         let mut range_vars: Vec<String> = self
@@ -121,6 +130,7 @@ impl Tr {
         // The parameter, and the range it runs over.
         // With no usable parameter (several range variables, or several names nothing defines) the
         // expressions are rendered as they are, which reports the names that are missing.
+        let mut multi_len = false;
         let (param, from, to, synthetic): (Option<String>, String, String, bool);
         if range_vars.len() > 1 {
             return self.plot_gap(r, &format!("several range variables ({})", range_vars.join(", ")));
@@ -157,13 +167,29 @@ impl Tr {
             // Arrays against each other, or constants.
             param = Some("i_plot".to_string());
             from = "1".to_string();
-            let first_array = all.iter().find(|e| self.plot_array(e)).map(|e| (*e).clone());
-            to = match first_array {
-                Some(e) => format!("len({})", self.expr(&e).s),
-                None => {
+            // The longest array sets the range; a shorter one repeats its last point (see `side`).
+            let mut lens: Vec<String> = Vec::new();
+            // One length per trace: the x and y of a trace have the same.
+            let mut arrays: Vec<Expr> = Vec::new();
+            for (x, y) in &pairs {
+                if let Some(e) = [x, y].into_iter().find(|e| self.plot_array(e)) {
+                    arrays.push((*e).clone());
+                }
+            }
+            for e in &arrays {
+                let l = format!("len({})", self.expr(e).s);
+                if !lens.contains(&l) {
+                    lens.push(l);
+                }
+            }
+            multi_len = lens.len() > 1;
+            to = match lens.len() {
+                0 => {
                     // Constants only: a point per trace.
                     "2".to_string()
                 }
+                1 => lens.remove(0),
+                _ => format!("max({})", lens.join("; ")),
             };
             synthetic = true;
         }
@@ -209,7 +235,12 @@ impl Tr {
                     };
                 }
                 if synthetic && tr.plot_array(e) {
-                    format!("line({}; ({}))", pname, s)
+                    if multi_len {
+                        // Arrays of different lengths: a shorter one stays on its last point.
+                        format!("line(min({}; len({})); ({}))", pname, s, s)
+                    } else {
+                        format!("line({}; ({}))", pname, s)
+                    }
                 } else {
                     s
                 }

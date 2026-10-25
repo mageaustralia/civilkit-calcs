@@ -376,11 +376,6 @@ fn element_assignments_that_cannot_be_a_fill_loop_say_why() {
             .contains("not made of range variables"),
         "{g:?}"
     );
-    // A range with a step, or with a bound that is not a literal, stays a range-variable gap.
-    let stepped =
-        "<ml:range><ml:sequence><ml:real>0</ml:real><ml:real>2</ml:real></ml:sequence><ml:real>10</ml:real></ml:range>";
-    let res = convert(&[define("j", stepped)]);
-    assert!(res.report.gaps().any(|i| i.code == Code::RangeVariable));
     // A bound that does not convert keeps the range a gap.
     let res = convert(&[define(
         "k",
@@ -639,18 +634,6 @@ fn programs_that_cannot_be_read_faithfully_say_why() {
         ]),
     )]);
     assert!(reason(&res).contains("tryCatch"), "{}", reason(&res));
-    // A function whose loop leaves early: not an expression block either.
-    let res = convert(&[format!(
-        "<ml:define><ml:function>{}<ml:boundVars>{}</ml:boundVars></ml:function>{}</ml:define>",
-        n("h"),
-        n("x"),
-        program(&[
-            local("s", &r("0")),
-            for_in("i", &r("1"), &n("x"), &[local("s", &n("i")), "<ml:break/>".to_string()]),
-            n("s")
-        ])
-    )]);
-    assert!(reason(&res).contains("break or continue"), "{}", reason(&res));
     // A gap leaves the name blocked for later uses.
     let res = convert(&[
         define(
@@ -1119,9 +1102,10 @@ fn counters_and_conditions_pick_elements_into_a_growing_vector_and_matrix() {
 }
 
 #[test]
-fn an_array_the_sheet_already_has_is_not_replaced_by_a_new_local() {
-    // v has a value on the sheet; a program that writes v[2] is the source's copy-and-modify
-    // question, not read: a reported gap, not a fresh zero array.
+fn a_program_array_written_by_element_is_its_own_not_the_sheets() {
+    // v has a value on the sheet; a program that writes v[2] makes its own v (zeros, then 9 at 2): a stored
+    // 2 x 19 result of a real program that writes rows 1 and 2 of a name the sheet also defines shows
+    // that it does not start from the sheet's array. The sheet's v is unchanged.
     let res = convert(&[
         define("v", &mat(3, 1, &["1", "2", "3"])),
         define(
@@ -1131,9 +1115,17 @@ fn an_array_the_sheet_already_has_is_not_replaced_by_a_new_local() {
                 n("v"),
             ]),
         ),
+        eval(&call("rows", &[n("W")])),
+        eval(&index1("W", &r("2"))),
+        eval(&index1("W", &r("1"))),
+        eval(&index1("v", &r("3"))),
     ]);
-    let g = res.report.gaps().find(|i| i.code == Code::ProgramBlock).expect("gap");
-    assert!(g.detail.as_deref().unwrap_or("").contains("did not create"), "{g:?}");
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 4], 2.0);
+    assert_close(nums[nums.len() - 3], 9.0);
+    assert_close(nums[nums.len() - 2], 0.0);
+    assert_close(nums[nums.len() - 1], 3.0);
 }
 
 #[test]
@@ -1417,53 +1409,32 @@ fn function_loops_with_while_and_chained_conditions() {
 }
 
 #[test]
-fn function_bodies_that_have_no_value_on_some_path_are_gaps() {
-    let reason = |res: &ImportResult| -> String {
-        res.report
-            .gaps()
-            .find(|i| i.code == Code::ProgramBlock)
-            .and_then(|i| i.detail.clone())
-            .unwrap_or_default()
-    };
-    // y is first set under a condition and read after it.
-    let res = convert(&[function(
-        "p",
-        &["x"],
-        &program(&[
-            local("s", &r("0")),
-            for_in("i", &r("1"), &n("x"), &[local("s", &plus(&n("s"), &n("i")))]),
-            if_then(&gt(&n("x"), &r("0")), &[local("y", &r("1"))], None),
-            n("y"),
-        ]),
-    )]);
-    assert!(reason(&res).contains("first set under a condition"), "{}", reason(&res));
-    // t is first set inside a loop and read after it.
-    let res = convert(&[function(
-        "q",
-        &["x"],
-        &program(&[for_in("i", &r("1"), &n("x"), &[local("t", &n("i"))]), n("t")]),
-    )]);
-    assert!(reason(&res).contains("first set inside a loop"), "{}", reason(&res));
-    // An element of an array the function neither received nor created, at an index that is not a
-    // loop variable or a number (so the size it needs is not known ahead).
-    let res = convert(&[function(
-        "e",
-        &["x"],
-        &program(&[
-            for_in(
-                "i",
-                &r("1"),
-                &n("x"),
-                &[local_el("z", &app("mult", &[n("i"), n("i")]), &n("i"))],
-            ),
-            n("z"),
-        ]),
-    )]);
-    assert!(
-        reason(&res).contains("neither received nor created"),
-        "{}",
-        reason(&res)
-    );
+fn an_element_written_at_a_computed_index_grows_the_array_to_that_index() {
+    // z[i * i] <- i for i in 1..3 puts 1, 2, 3 at 1, 4, 9: nine elements, the others zero.
+    let res = convert(&[
+        function(
+            "e",
+            &["x"],
+            &program(&[
+                for_in(
+                    "i",
+                    &r("1"),
+                    &n("x"),
+                    &[local_el("z", &app("mult", &[n("i"), n("i")]), &n("i"))],
+                ),
+                n("z"),
+            ]),
+        ),
+        define("w", &call("e", &[r("3")])),
+        eval(&call("rows", &[n("w")])),
+        eval(&index1("w", &r("4"))),
+        eval(&index1("w", &r("5"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 3], 9.0);
+    assert_close(nums[nums.len() - 2], 2.0);
+    assert_close(nums[nums.len() - 1], 0.0);
 }
 
 #[test]

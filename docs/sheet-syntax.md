@@ -96,6 +96,12 @@ f(x): x^2 + 1
   `[1; 2 | 3; 4]`.) Rows must have equal length. Elements are expressions. An element is
   reached with `v.2` and `A.(1, 2)`.
 * A quantity cannot have a bare unit after a bracket (`[1, 2] kN`); put the unit on the elements.
+* **A unit the elements share is shown once.** When every element of a vector or matrix is a number
+  with the same unit (`[16 ft; 12 ft]`), the result and the equation show it once after the closing
+  bracket, `[16; 12] ft`, in the page and in the Word and Excel exports. Elements in another unit of
+  the same dimension are converted to the first element's unit in a result; an element that is an
+  expression, is unitless or has another dimension keeps its own unit. To write the unit on every
+  element as before, put `#settings {"unitPerElement": true}` in the sheet.
 
 ## Conditions
 
@@ -216,6 +222,9 @@ snippets), and these work on names:
   Calcpad spelling) work on the names a sheet defines; references are searched in code lines, not
   in prose. Names are also coloured by semantic highlighting.
 * **Show compiled** and **Convert to Calcpad**, above.
+* **Rich-text editing**: double-click prose in the preview (a paragraph with its heading, a list, a
+  table) to edit it as formatted text in place; input lines and calculations stay one-line edits.
+  See `docs/rich-text-editing.md`.
 
 ## Ribbon and the Insert tab
 

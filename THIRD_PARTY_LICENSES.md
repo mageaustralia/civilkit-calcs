@@ -122,13 +122,14 @@ None.
 | zlib-rs | 0.6.8 | Zlib |
 | zmij | 1.0.23 | MIT |
 
-## npm packages in the web app (34, production)
+## npm packages in the web app (170, production)
 
 | Licence | Count |
 | --- | --- |
-| MIT | 21 |
+| MIT | 156 |
 | MIT OR Apache-2.0 | 8 |
 | Apache-2.0 OR MIT | 1 |
+| (MPL-2.0 OR Apache-2.0) | 1 |
 | BSD-2-Clause | 1 |
 | ISC | 1 |
 | BSD-3-Clause | 1 |
@@ -140,7 +141,41 @@ None.
 | @babel/helper-validator-identifier | 7.29.7 | MIT |
 | @babel/parser | 7.29.9 | MIT |
 | @babel/types | 7.29.8 | MIT |
+| @codemirror/language | 6.13.1 | MIT |
+| @codemirror/state | 6.7.6 | MIT |
+| @codemirror/streamparser | 6.0.0 | MIT |
+| @codemirror/view | 6.43.15 | MIT |
+| @floating-ui/core | 1.8.0 | MIT |
+| @floating-ui/dom | 1.8.0 | MIT |
+| @floating-ui/utils | 0.2.12 | MIT |
 | @jridgewell/sourcemap-codec | 1.6.0 | MIT |
+| @lezer/common | 1.5.4 | MIT |
+| @lezer/highlight | 1.2.5 | MIT |
+| @lezer/lr | 1.4.11 | MIT |
+| @marijn/find-cluster-break | 1.0.4 | MIT |
+| @milkdown/components | 7.22.3 | MIT |
+| @milkdown/core | 7.22.3 | MIT |
+| @milkdown/ctx | 7.22.3 | MIT |
+| @milkdown/exception | 7.22.3 | MIT |
+| @milkdown/kit | 7.22.3 | MIT |
+| @milkdown/plugin-block | 7.22.3 | MIT |
+| @milkdown/plugin-clipboard | 7.22.3 | MIT |
+| @milkdown/plugin-cursor | 7.22.3 | MIT |
+| @milkdown/plugin-diff | 7.22.3 | MIT |
+| @milkdown/plugin-history | 7.22.3 | MIT |
+| @milkdown/plugin-indent | 7.22.3 | MIT |
+| @milkdown/plugin-listener | 7.22.3 | MIT |
+| @milkdown/plugin-slash | 7.22.3 | MIT |
+| @milkdown/plugin-streaming | 7.22.3 | MIT |
+| @milkdown/plugin-tooltip | 7.22.3 | MIT |
+| @milkdown/plugin-trailing | 7.22.3 | MIT |
+| @milkdown/plugin-upload | 7.22.3 | MIT |
+| @milkdown/preset-commonmark | 7.22.3 | MIT |
+| @milkdown/preset-gfm | 7.22.3 | MIT |
+| @milkdown/prose | 7.22.3 | MIT |
+| @milkdown/transformer | 7.22.3 | MIT |
+| @milkdown/utils | 7.22.3 | MIT |
+| @ocavue/utils | 1.9.0 | MIT |
 | @tauri-apps/api | 2.12.4 | Apache-2.0 OR MIT |
 | @tauri-apps/plugin-clipboard-manager | 2.5.0 | MIT OR Apache-2.0 |
 | @tauri-apps/plugin-dialog | 2.8.3 | MIT OR Apache-2.0 |
@@ -150,6 +185,13 @@ None.
 | @tauri-apps/plugin-os | 2.4.0 | MIT OR Apache-2.0 |
 | @tauri-apps/plugin-process | 2.4.0 | MIT OR Apache-2.0 |
 | @tauri-apps/plugin-store | 2.5.0 | MIT OR Apache-2.0 |
+| @types/debug | 4.1.13 | MIT |
+| @types/lodash | 4.17.27 | MIT |
+| @types/lodash-es | 4.17.12 | MIT |
+| @types/mdast | 4.0.4 | MIT |
+| @types/ms | 2.1.0 | MIT |
+| @types/trusted-types | 2.0.7 | MIT |
+| @types/unist | 3.0.3 | MIT |
 | @vue/compiler-core | 3.5.44 | MIT |
 | @vue/compiler-dom | 3.5.44 | MIT |
 | @vue/compiler-sfc | 3.5.44 | MIT |
@@ -159,17 +201,112 @@ None.
 | @vue/runtime-dom | 3.5.44 | MIT |
 | @vue/server-renderer | 3.5.44 | MIT |
 | @vue/shared | 3.5.44 | MIT |
+| bail | 2.0.2 | MIT |
+| ccount | 2.0.1 | MIT |
+| character-entities | 2.0.2 | MIT |
+| clsx | 2.1.1 | MIT |
+| commander | 8.3.0 | MIT |
+| crelt | 1.0.7 | MIT |
 | csstype | 3.2.3 | MIT |
+| debug | 4.4.3 | MIT |
+| decode-named-character-reference | 1.3.0 | MIT |
+| dequal | 2.0.3 | MIT |
+| devlop | 1.1.0 | MIT |
+| dompurify | 3.4.17 | (MPL-2.0 OR Apache-2.0) |
 | entities | 7.0.1 | BSD-2-Clause |
+| escape-string-regexp | 5.0.0 | MIT |
 | estree-walker | 2.0.2 | MIT |
+| extend | 3.0.2 | MIT |
+| is-plain-obj | 4.1.0 | MIT |
+| katex | 0.16.47 | MIT |
+| lodash-es | 4.18.1 | MIT |
+| longest-streak | 3.1.0 | MIT |
 | magic-string | 0.30.21 | MIT |
+| markdown-table | 3.0.4 | MIT |
+| mdast-util-definitions | 6.0.0 | MIT |
+| mdast-util-find-and-replace | 3.0.4 | MIT |
+| mdast-util-from-markdown | 2.1.0 | MIT |
+| mdast-util-gfm | 3.1.0 | MIT |
+| mdast-util-gfm-autolink-literal | 2.0.1 | MIT |
+| mdast-util-gfm-footnote | 2.1.0 | MIT |
+| mdast-util-gfm-strikethrough | 2.0.1 | MIT |
+| mdast-util-gfm-table | 2.0.0 | MIT |
+| mdast-util-gfm-task-list-item | 2.0.0 | MIT |
+| mdast-util-phrasing | 4.1.0 | MIT |
+| mdast-util-to-markdown | 2.2.0 | MIT |
+| mdast-util-to-string | 4.0.0 | MIT |
+| micromark | 4.0.3 | MIT |
+| micromark-core-commonmark | 2.0.4 | MIT |
+| micromark-extension-gfm | 3.0.0 | MIT |
+| micromark-extension-gfm-autolink-literal | 2.1.0 | MIT |
+| micromark-extension-gfm-footnote | 2.1.0 | MIT |
+| micromark-extension-gfm-strikethrough | 2.1.0 | MIT |
+| micromark-extension-gfm-table | 2.1.2 | MIT |
+| micromark-extension-gfm-tagfilter | 2.0.0 | MIT |
+| micromark-extension-gfm-task-list-item | 2.1.0 | MIT |
+| micromark-factory-destination | 2.0.1 | MIT |
+| micromark-factory-label | 2.0.1 | MIT |
+| micromark-factory-space | 2.1.0 | MIT |
+| micromark-factory-title | 2.0.1 | MIT |
+| micromark-factory-whitespace | 2.0.1 | MIT |
+| micromark-util-character | 2.1.1 | MIT |
+| micromark-util-chunked | 2.0.1 | MIT |
+| micromark-util-classify-character | 2.0.1 | MIT |
+| micromark-util-combine-extensions | 2.0.1 | MIT |
+| micromark-util-decode-numeric-character-reference | 2.0.2 | MIT |
+| micromark-util-decode-string | 2.0.1 | MIT |
+| micromark-util-edit-map | 1.0.0 | MIT |
+| micromark-util-encode | 2.0.1 | MIT |
+| micromark-util-html-tag-name | 2.0.1 | MIT |
+| micromark-util-normalize-identifier | 2.0.1 | MIT |
+| micromark-util-resolve-all | 2.0.1 | MIT |
+| micromark-util-sanitize-uri | 2.0.1 | MIT |
+| micromark-util-subtokenize | 2.1.0 | MIT |
+| micromark-util-symbol | 2.0.1 | MIT |
+| micromark-util-types | 2.0.3 | MIT |
 | monaco-editor | 0.52.2 | MIT |
+| ms | 2.1.3 | MIT |
+| nanoid | 6.0.2 | MIT |
+| nanoid | 6.0.2 | MIT |
 | nanoid | 3.3.20 | MIT |
+| orderedmap | 2.1.1 | MIT |
 | picocolors | 1.1.1 | ISC |
 | postcss | 8.5.31 | MIT |
+| prosemirror-changeset | 2.4.4 | MIT |
+| prosemirror-commands | 1.7.2 | MIT |
+| prosemirror-drop-indicator | 0.1.4 | MIT |
+| prosemirror-dropcursor | 1.8.4 | MIT |
+| prosemirror-gapcursor | 1.4.1 | MIT |
+| prosemirror-history | 1.5.1 | MIT |
+| prosemirror-inputrules | 1.5.1 | MIT |
+| prosemirror-keymap | 1.2.3 | MIT |
+| prosemirror-model | 1.25.12 | MIT |
+| prosemirror-safari-ime-span | 1.0.2 | MIT |
+| prosemirror-schema-list | 1.5.1 | MIT |
+| prosemirror-state | 1.4.4 | MIT |
+| prosemirror-tables | 1.8.5 | MIT |
+| prosemirror-transform | 1.12.4 | MIT |
+| prosemirror-view | 1.42.8 | MIT |
+| remark | 15.0.1 | MIT |
+| remark-gfm | 4.0.1 | MIT |
+| remark-inline-links | 7.0.0 | MIT |
+| remark-parse | 11.0.0 | MIT |
+| remark-stringify | 11.0.0 | MIT |
+| rope-sequence | 1.3.4 | MIT |
 | source-map-js | 1.2.2 | BSD-3-Clause |
+| style-mod | 4.1.4 | MIT |
+| trough | 2.2.0 | MIT |
 | typescript | 5.9.3 | Apache-2.0 |
+| unified | 11.0.5 | MIT |
+| unist-util-is | 6.0.1 | MIT |
+| unist-util-stringify-position | 4.0.0 | MIT |
+| unist-util-visit | 5.2.0 | MIT |
+| unist-util-visit-parents | 6.1.0 | MIT |
+| vfile | 6.0.3 | MIT |
+| vfile-message | 4.0.3 | MIT |
 | vue | 3.5.44 | MIT |
+| w3c-keyname | 2.2.8 | MIT |
+| zwitch | 2.0.4 | MIT |
 
 ## Bundled files with their own licence
 
@@ -189,17 +326,90 @@ Upstream: https://github.com/micropython/micropython. Licence: MIT. The text is 
 ```
 The MIT License (MIT)
 
-Copyright (c) 2013-2024 Damien P. George and contributors
+Copyright (c) 2013-2024 Damien P. George
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
-modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+--------------------------------------------------------------------------------
+
+Unless specified otherwise (see below), the above license and copyright applies
+to all files in this repository.
+
+Individual files may include additional copyright holders.
+
+The various ports of MicroPython may include third-party software that is
+licensed under different terms. These licenses are summarised in the tree
+below, please refer to these files and directories for further license and
+copyright information. Note that (L)GPL-licensed code listed below is only
+used during the build process and is not part of the compiled source code.
+
+/ (MIT)
+    /drivers
+        /cc3100 (BSD-3-clause)
+    /lib
+        /asf4 (Apache-2.0)
+        /axtls (BSD-3-clause)
+            /config
+                /scripts
+                    /config (GPL-2.0-or-later)
+                /Rules.mak (GPL-2.0)
+        /berkeley-db-1xx (BSD-4-clause)
+        /btstack (See btstack/LICENSE)
+        /cmsis (BSD-3-clause)
+        /crypto-algorithms (NONE)
+        /libhydrogen (ISC)
+        /libmetal (BSD-3-clause)
+        /littlefs (BSD-3-clause)
+        /lwip (BSD-3-clause)
+        /mynewt-nimble (Apache-2.0)
+        /nrfx (BSD-3-clause)
+        /nxp_driver (BSD-3-Clause)
+        /oofatfs (BSD-1-clause)
+        /open-amp (BSD-3-clause)
+        /pico-sdk (BSD-3-clause)
+        /re15 (BSD-3-clause)
+        /stm32lib (BSD-3-clause)
+        /tinyusb (MIT)
+        /uzlib (Zlib)
+        /wiznet5k (MIT)
+    /logo (uses OFL-1.1)
+    /ports
+        /cc3200
+            /hal (BSD-3-clause)
+            /simplelink (BSD-3-clause)
+            /FreeRTOS (GPL-2.0 with FreeRTOS exception)
+        /esp32
+            /ppp_set_auth.* (Apache-2.0)
+        /rp2
+            /mutex_extra.c (BSD-3-clause)
+            /clocks_extra.c (BSD-3-clause)
+        /stm32
+            /usbd*.c (MCD-ST Liberty SW License Agreement V2)
+            /stm32_it.* (MIT + BSD-3-clause)
+            /system_stm32*.c (MIT + BSD-3-clause)
+            /boards
+                /startup_stm32*.s (BSD-3-clause)
+                /*/stm32*.h (BSD-3-clause)
+            /usbdev (MCD-ST Liberty SW License Agreement V2)
+            /usbhost (MCD-ST Liberty SW License Agreement V2)
+        /zephyr
+            /src (Apache-2.0)
+    /tools
+        /dfu.py (LGPL-3.0-only)
 ```

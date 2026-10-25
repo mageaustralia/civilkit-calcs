@@ -179,6 +179,20 @@ pub struct MathRegion {
     pub precision: Option<i32>,
     /// The input control this definition was set from, when it was one.
     pub control: Option<Control>,
+    /// The part this region plays in a solve block.
+    pub solve: Option<SolveRole>,
+}
+
+/// The part a region plays in a solve block (guess values are ordinary definitions).
+#[derive(Debug, Clone, PartialEq)]
+pub enum SolveRole {
+    /// An equation the solution satisfies; `live` when the block has the shape that is solved here.
+    Constraint { live: bool },
+    /// The solver region (`x := Find(x)`). The payload is the definition of the unknowns at the values the
+    /// file saved for the solution, used when the block cannot be solved here.
+    Solver(Option<Box<Stmt>>),
+    /// A solver region taken at the values the file saved (frozen), not solved here.
+    Solution,
 }
 
 /// A stored scalar result: the number (or string) as written, and its unit in the source's spelling.
@@ -212,6 +226,13 @@ pub enum Target {
     },
     /// `[a, b] := ...`: several names defined at once by a matrix of names.
     Multi(Vec<Name>),
+    /// `M<j> := ...` (or the row `M[i]` of `matrow`): a whole column (or row) of an array, at an
+    /// index counted from the array origin.
+    Slice {
+        base: Name,
+        index: Box<Expr>,
+        row: bool,
+    },
 }
 
 /// An identifier with its literal subscript (`x_i` is base `x`, sub `i`).
@@ -338,6 +359,12 @@ pub enum PTarget {
         base: Name,
         index: Vec<Expr>,
     },
+    /// `M<j> <- ...` (or a row): a whole column of an array, at an index counted from the array origin.
+    Slice {
+        base: Name,
+        index: Expr,
+        row: bool,
+    },
 }
 
 /// One statement of a program.
@@ -436,6 +463,10 @@ impl PStmt {
                         f(base);
                         index.iter_mut().for_each(|a| a.for_each_name_mut(f));
                     }
+                    PTarget::Slice { base, index, .. } => {
+                        f(base);
+                        index.for_each_name_mut(f);
+                    }
                 }
                 e.for_each_name_mut(f);
             }
@@ -486,6 +517,10 @@ impl Stmt {
                             f(n);
                         }
                     }
+                    Target::Slice { base, index, .. } => {
+                        f(base);
+                        index.for_each_name_mut(f);
+                    }
                 }
                 value.for_each_name_mut(f);
             }
@@ -505,7 +540,7 @@ impl Stmt {
 /// control's stored value where the control stood; this says what it was.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Control {
-    /// `combo box`, `text box` or `list box`.
+    /// `combo box`, `text box`, `list box`, `button` or `check box`.
     pub kind: String,
     /// The stored value, as an expression (a number, a text, or a number times a unit).
     pub value: Expr,
@@ -513,4 +548,6 @@ pub struct Control {
     pub chosen: Option<String>,
     /// How many options the control offered (0 for a text box).
     pub options: usize,
+    /// The label on a button or check box.
+    pub caption: Option<String>,
 }

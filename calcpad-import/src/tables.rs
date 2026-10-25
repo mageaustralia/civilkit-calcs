@@ -139,6 +139,9 @@ pub enum FnRule {
     Log,
     /// `round(x)` or `round(x, digits)`.
     Round,
+    /// `Ceil(x, y)`: the smallest multiple of `y` that is not below `x`, with the named engine
+    /// function (`ceiling`, `floor`) of `x / y` times `y`.
+    Multiple(&'static str),
     /// `submatrix(A, ir, jr, ic, jc)`: the four indexes are shifted from the sheet's array origin.
     Submatrix,
 }
@@ -178,6 +181,8 @@ pub const FUNCTIONS: &[(&str, FnRule, usize, usize)] = &[
     ("ceil", FnRule::Direct("ceiling"), 1, 1),
     ("trunc", FnRule::Direct("trunc"), 1, 1),
     ("round", FnRule::Round, 1, 2),
+    ("Ceil", FnRule::Multiple("ceiling"), 2, 2),
+    ("Floor", FnRule::Multiple("floor"), 2, 2),
     ("mod", FnRule::Direct("mod"), 2, 2),
     ("min", FnRule::Direct("min"), 1, 64),
     ("max", FnRule::Direct("max"), 1, 64),
@@ -203,6 +208,10 @@ pub const FUNCTIONS: &[(&str, FnRule, usize, usize)] = &[
     ("matcol", FnRule::Direct("col"), 2, 2),
     ("matrow", FnRule::Direct("row"), 2, 2),
     ("sort", FnRule::Direct("sort"), 1, 1),
+    // `csort(A, j)` sorts the rows by column j, `rsort(A, i)` the columns by row i; the index counts
+    // from the sheet's array origin.
+    ("csort", FnRule::Direct("sort_rows"), 2, 2),
+    ("rsort", FnRule::Direct("sort_cols"), 2, 2),
     ("reverse", FnRule::Direct("reverse"), 1, 1),
     ("mean", FnRule::Direct("mean"), 1, 64),
     ("norm2", FnRule::Direct("norm_2"), 1, 1),
@@ -453,6 +462,8 @@ pub fn lookup_constant(name: &str) -> Option<Constant> {
         "e" => Some(Constant::Text("e")),
         // The source's built-in gravitational acceleration. Calcpad's `g` is the gram.
         "g" => Some(Constant::Text("(9.80665*m/s^2)")),
+        // Not a number: the engine's undefined value (a square root of a negative number).
+        "NaN" => Some(Constant::Text("sqrt(-1)")),
         "ORIGIN" => Some(Constant::Origin),
         _ => None,
     }

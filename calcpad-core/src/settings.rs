@@ -12,6 +12,10 @@ pub struct MathSettings {
     /// Opt-in (`#settings {"valMathml": true}`): `#val` writes a result as MathML with its unit once
     /// after the brackets, for the worksheet importer's typeset results. Off by default.
     pub val_mathml: bool,
+    /// `#settings {"unitPerElement": true}`: write the unit on every element of a vector or matrix whose
+    /// elements share one unit, as the engine did before; off (the default) writes the unit once after
+    /// the closing bracket.
+    pub unit_per_element: bool,
     max_output_count: i32,
     pub format_string: Option<String>,
     pub precision: f64,
@@ -29,6 +33,7 @@ impl Default for MathSettings {
             zero_small_matrix_elements: true,
             show_hidden_output: false,
             val_mathml: false,
+            unit_per_element: false,
             max_output_count: 20,
             format_string: None,
             precision: 1e-14,

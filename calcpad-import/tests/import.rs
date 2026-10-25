@@ -724,6 +724,12 @@ fn every_mapped_function_runs_in_the_engine() {
     for (src, rule, lo, _) in FUNCTIONS {
         let target = match rule {
             FnRule::Direct(t) | FnRule::Trig(t) => *t,
+            // A rounding to a multiple is the engine function of a ratio, times the multiple.
+            FnRule::Multiple(t) => {
+                let html = engine_html(&format!("{t}(7/2)*2\n"));
+                assert!(!html.contains("class=\"err\""), "{src}: {html}");
+                continue;
+            }
             FnRule::Log => "log",
             FnRule::Round => "round",
             FnRule::Submatrix => "submatrix",
@@ -745,7 +751,7 @@ fn every_mapped_function_runs_in_the_engine() {
             "matrix" => vec!["2", "2"],
             "augment" | "stack" => vec![arg, arg],
             "lsolve" => vec!["[1; 2|3; 4]", "[1; 2]"],
-            "col" | "row" => vec!["[1; 2|3; 4]", "1"],
+            "col" | "row" | "sort_rows" | "sort_cols" => vec!["[1; 2|3; 4]", "1"],
             "submatrix" => vec!["[1; 2|3; 4]", "1", "2", "1", "2"],
             "mod" | "gcd" | "lcm" | "atan2" => vec!["4", "6"],
             "interp" => vec!["1.5", "[1; 2]", "[10; 20]"],
@@ -759,9 +765,10 @@ fn every_mapped_function_runs_in_the_engine() {
 
 // ---- gaps: ranges, programs, solve blocks, symbolic, plots, images ----------------------------------------
 
-/// A range with a step (`1, 2 .. last`): not read, so it is the standing example of a gap.
+/// A range with a step of zero (`1, 1 .. last`): it never reaches its end, so it is not read and is the
+/// standing example of a gap.
 fn range(first: &str, last: &str) -> String {
-    format!("<ml:range><ml:sequence>{first}<ml:real>2</ml:real></ml:sequence>{last}</ml:range>")
+    format!("<ml:range><ml:sequence>{first}{first}</ml:sequence>{last}</ml:range>")
 }
 
 #[test]
@@ -805,8 +812,8 @@ fn range_variable_is_a_marked_placeholder_with_downstream_counts() {
 
 #[test]
 fn programs_solve_blocks_and_calculus_are_counted_not_translated() {
-    // A return from inside a loop is an early exit, which a function body cannot express.
-    let program = "<ml:program><ml:for><ml:id>i</ml:id><ml:range><ml:real>1</ml:real><ml:id>x</ml:id></ml:range><ml:program><ml:return><ml:id>i</ml:id></ml:return></ml:program></ml:for><ml:real>0</ml:real></ml:program>";
+    // A try whose sides are statements cannot be tested beforehand.
+    let program = "<ml:program><ml:tryCatch><ml:program><ml:localDefine><ml:id>a</ml:id><ml:real>1</ml:real></ml:localDefine></ml:program><ml:program><ml:real>0</ml:real></ml:program></ml:tryCatch><ml:real>1</ml:real></ml:program>";
     let res = one(&func("f", &["x"], program));
     assert!(res.report.gaps().any(|i| i.code == Code::ProgramBlock));
     let res = one(&eval(&call("Find", &[n("x")])));
@@ -991,6 +998,7 @@ fn mk(id: &str, left: f64, top: f64, baseline: Option<f64>) -> Region {
             frozen: false,
             precision: None,
             control: None,
+            solve: None,
         }),
     }
 }

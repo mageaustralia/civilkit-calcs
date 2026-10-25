@@ -160,10 +160,31 @@ impl OutputWriter for TextWriter {
         let nc = matrix.col_count() as i64 - 1;
         let (max, row, col) = super::get_max_visible_matrix_value(matrix, max_count);
         let zero_threshold = max * 1e-14;
-        let len = self
-            .format_matrix_value(&matrix.get(row, col), zero_threshold)
-            .encode_utf16()
-            .count();
+        let is_hp = matrix.is_hp();
+        let common = if is_hp {
+            None
+        } else {
+            super::common_matrix_unit(&self.base, matrix)
+        };
+        let hp = is_hp || common.is_some();
+        let units = if is_hp {
+            crate::matrix::hp_matrix::units(matrix)
+        } else {
+            common.clone()
+        };
+        let fs = units.as_ref().and_then(|u| u.format_string());
+        let len = if common.is_some() {
+            let d = super::scaled_d(&common, &matrix.get(row, col));
+            self.format_real(
+                d,
+                fs.as_deref(),
+                self.base.zero_small_elements && d.abs() < zero_threshold,
+            )
+        } else {
+            self.format_matrix_value(&matrix.get(row, col), zero_threshold)
+        }
+        .encode_utf16()
+        .count();
         let pad = |s: &str| -> String {
             let l = s.encode_utf16().count();
             if l >= len {
@@ -173,13 +194,6 @@ impl OutputWriter for TextWriter {
             }
         };
         let cont = pad("...");
-        let hp = matrix.is_hp();
-        let units = if hp {
-            crate::matrix::hp_matrix::units(matrix)
-        } else {
-            None
-        };
-        let fs = units.as_ref().and_then(|u| u.format_string());
         let nr = matrix.row_count() as i64 - 1;
         let mut i = 0i64;
         while i <= nr {
@@ -198,7 +212,7 @@ impl OutputWriter for TextWriter {
                 let s = if !hp {
                     self.format_matrix_value(&matrix.get(i as usize, j as usize), zero_threshold)
                 } else {
-                    let d = matrix.get(i as usize, j as usize).d;
+                    let d = super::scaled_d(&common, &matrix.get(i as usize, j as usize));
                     self.format_real(
                         d,
                         fs.as_deref(),
@@ -233,14 +247,20 @@ impl OutputWriter for TextWriter {
         if zero_threshold > TOL {
             zero_threshold = TOL;
         }
-        let hp = vector.is_hp();
-        let units = if hp { vector.hp_units() } else { None };
+        let is_hp = vector.is_hp();
+        let common = if is_hp {
+            None
+        } else {
+            super::common_vector_unit(&self.base, vector)
+        };
+        let hp = is_hp || common.is_some();
+        let units = if is_hp { vector.hp_units() } else { common.clone() };
         let fs = units.as_ref().and_then(|u| u.format_string());
         let append = |sb: &mut String, index: usize| {
             if !hp {
                 sb.push_str(&self.format_matrix_value(&vector.get(index), zero_threshold));
             } else {
-                let d = vector.get(index).d;
+                let d = super::scaled_d(&common, &vector.get(index));
                 sb.push_str(&self.format_real(
                     d,
                     fs.as_deref(),

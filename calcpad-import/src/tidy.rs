@@ -119,7 +119,11 @@ pub fn markdown(src: &str) -> String {
                 continue;
             }
         }
-        let converted = if depth == 0 { parse_text_line(line).and_then(|p| render_md(&p)) } else { None };
+        let converted = if depth == 0 {
+            parse_text_line(line).and_then(|p| render_md(&p))
+        } else {
+            None
+        };
         match converted {
             Some(md) => block.push(md),
             None => {
@@ -239,7 +243,10 @@ fn parse_text_line(line: &str) -> Option<Para> {
                 Some(t) => (true, t),
                 None => (false, tag),
             };
-            let name = name_attrs.split(|c: char| c.is_whitespace() || c == '/').next().unwrap_or("");
+            let name = name_attrs
+                .split(|c: char| c.is_whitespace() || c == '/')
+                .next()
+                .unwrap_or("");
             match name {
                 "span" => {
                     if !closing {
@@ -293,7 +300,11 @@ fn parse_text_line(line: &str) -> Option<Para> {
         .filter_map(|p| style_prop(&outer_style, p).map(|v| format!("{p}:{v}")))
         .collect::<Vec<_>>()
         .join(";");
-    Some(Para { level, style, inline: out })
+    Some(Para {
+        level,
+        style,
+        inline: out,
+    })
 }
 
 fn heading_level(body: &str) -> Option<u8> {
@@ -329,7 +340,11 @@ fn style_size(attrs: &str) -> Option<f64> {
 }
 
 fn render_html(p: &Para) -> String {
-    let style = if p.style.is_empty() { String::new() } else { format!(" style=\"{}\"", p.style) };
+    let style = if p.style.is_empty() {
+        String::new()
+    } else {
+        format!(" style=\"{}\"", p.style)
+    };
     match p.level {
         Some(n) => format!("'<h{n}{style}>{}</h{n}>", p.inline.trim()),
         None if p.inline.contains('<') || !style.is_empty() => format!("'<p{style}>{}</p>", p.inline),
@@ -349,7 +364,11 @@ fn render_md(p: &Para) -> Option<String> {
         return Some(md);
     }
     let md = render_md_with(p, Marks::Underscores)?;
-    if md.contains("****") { render_md_with(p, Marks::Html) } else { Some(md) }
+    if md.contains("****") {
+        render_md_with(p, Marks::Html)
+    } else {
+        Some(md)
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -408,8 +427,12 @@ fn render_md_with(p: &Para, marks: Marks) -> Option<String> {
                         // Markdown only reads a mark as emphasis next to punctuation when the
                         // other side is a space or punctuation too; otherwise keep the HTML tag.
                         let flank = (
-                            !is_punct(t.chars().next()) || lead.len() > 0 || before.map_or(true, |c| !c.is_alphanumeric()),
-                            !is_punct(t.chars().last()) || trail.len() > 0 || after.map_or(true, |c| !c.is_alphanumeric()),
+                            !is_punct(t.chars().next())
+                                || lead.len() > 0
+                                || before.map_or(true, |c| !c.is_alphanumeric()),
+                            !is_punct(t.chars().last())
+                                || trail.len() > 0
+                                || after.map_or(true, |c| !c.is_alphanumeric()),
                         );
                         let mark = match name {
                             "b" => Some("**"),
@@ -470,8 +493,15 @@ fn render_md_with(p: &Para, marks: Marks) -> Option<String> {
     let second = text.chars().nth(1);
     let block_start = matches!(first, '#' | '>')
         || (matches!(first, '-' | '+') && second.map_or(true, char::is_whitespace))
-        || (first.is_ascii_digit() && text.trim_start_matches(|c: char| c.is_ascii_digit()).starts_with(['.', ')']));
-    let text = if block_start { format!("\\{text}") } else { text.to_string() };
+        || (first.is_ascii_digit()
+            && text
+                .trim_start_matches(|c: char| c.is_ascii_digit())
+                .starts_with(['.', ')']));
+    let text = if block_start {
+        format!("\\{text}")
+    } else {
+        text.to_string()
+    };
     Some(match p.level {
         Some(n) => format!("{} {text}", "#".repeat(n as usize)),
         None => text,
@@ -506,7 +536,10 @@ mod tests {
     #[test]
     fn inline_marks_survive_and_alignment_is_kept() {
         let src = "'<p style=\"font-size:12pt;text-align:center\"><span class=\"imp-c-2e3192\"><b>Total</b></span> is <i>x</i><sub>1</sub></p>";
-        assert_eq!(tidy(src), "'<p style=\"text-align:center\"><b>Total</b> is <i>x</i><sub>1</sub></p>");
+        assert_eq!(
+            tidy(src),
+            "'<p style=\"text-align:center\"><b>Total</b> is <i>x</i><sub>1</sub></p>"
+        );
         // Alignment has no Markdown form, so that line stays HTML.
         assert_eq!(markdown(src), tidy(src));
     }
@@ -514,14 +547,32 @@ mod tests {
     #[test]
     fn markdown_escapes_and_moves_spaces_out_of_emphasis() {
         let src = "'<p><b>Note: </b>use a_b * 2 and [x]</p>";
-        assert_eq!(markdown(src), "#markdown\n**Note:** use a\\_b \\* 2 and \\[x\\]\n#end markdown");
+        assert_eq!(
+            markdown(src),
+            "#markdown\n**Note:** use a\\_b \\* 2 and \\[x\\]\n#end markdown"
+        );
         // Punctuation against a letter is not emphasis to Markdown, so those marks stay HTML.
-        assert_eq!(markdown("'<p><b>d:</b>x and <b>ok</b></p>"), "#markdown\n<b>d:</b>x and **ok**\n#end markdown");
-        assert_eq!(markdown("'<p><i><b>d</b></i><b>:</b> x</p>"), "#markdown\n_**d**_**:** x\n#end markdown");
+        assert_eq!(
+            markdown("'<p><b>d:</b>x and <b>ok</b></p>"),
+            "#markdown\n<b>d:</b>x and **ok**\n#end markdown"
+        );
+        assert_eq!(
+            markdown("'<p><i><b>d</b></i><b>:</b> x</p>"),
+            "#markdown\n_**d**_**:** x\n#end markdown"
+        );
         // The engine reads `>=` as an operator, even right after a tag, so a tag followed by `=` is spelled safely.
-        assert_eq!(markdown("'<p><u>a</u>=1 <sub>x y</sub>=2</p>"), "#markdown\n++a++=1 <sub>x y</sub>&#61;2\n#end markdown");
-        assert_eq!(markdown("'Designer''s 1/8\"\" a == b != c ====="), "#markdown\nDesigner's 1/8\" a &#61;&#61; b !&#61; c &#61;&#61;&#61;&#61;&#61;\n#end markdown");
-        assert_eq!(markdown("'Total\n'=========="), "#markdown\nTotal\n\n---\n#end markdown");
+        assert_eq!(
+            markdown("'<p><u>a</u>=1 <sub>x y</sub>=2</p>"),
+            "#markdown\n++a++=1 <sub>x y</sub>&#61;2\n#end markdown"
+        );
+        assert_eq!(
+            markdown("'Designer''s 1/8\"\" a == b != c ====="),
+            "#markdown\nDesigner's 1/8\" a &#61;&#61; b !&#61; c &#61;&#61;&#61;&#61;&#61;\n#end markdown"
+        );
+        assert_eq!(
+            markdown("'Total\n'=========="),
+            "#markdown\nTotal\n\n---\n#end markdown"
+        );
         assert_eq!(markdown("'1. first"), "#markdown\n\\1. first\n#end markdown");
     }
 
@@ -529,7 +580,10 @@ mod tests {
     fn gap_markers_become_one_visible_note() {
         let g = "'<!-- [import-gap R56 worksheet-reference] reference to another worksheet --><small class=\"imp-gap\" style=\"font-size:8pt\" title=\"x: y\">reference to another worksheet (not converted)</small>";
         let src = format!("{g}\n'text");
-        assert_eq!(tidy(&src), "'<small><i>reference to another worksheet (not converted)</i></small>\n'text");
+        assert_eq!(
+            tidy(&src),
+            "'<small><i>reference to another worksheet (not converted)</i></small>\n'text"
+        );
     }
 
     #[test]
@@ -537,7 +591,10 @@ mod tests {
         let src = "'<div class=\"imp-eq\"><math class=\"imp-m\"><mi>x</mi></math></div>\n'<table>\n'<td>\nplain in a cell\n'</table>\n#hide\nx = 1\n#end hide";
         assert_eq!(tidy(src), src);
         let md = "'<table>\n'cell text\n'</table>\n'after";
-        assert_eq!(markdown(md), "'<table>\n'cell text\n'</table>\n#markdown\nafter\n#end markdown");
+        assert_eq!(
+            markdown(md),
+            "'<table>\n'cell text\n'</table>\n#markdown\nafter\n#end markdown"
+        );
     }
 
     #[test]
@@ -572,6 +629,9 @@ mod tests {
     #[test]
     fn the_header_comment_drops_its_pointer_to_removed_markers() {
         let src = "'<!-- Imported from a foreign worksheet: 1 of 2 regions need attention. Lines that start with [import-gap mark what did not convert. -->";
-        assert_eq!(tidy(src), "'<!-- Imported from a foreign worksheet: 1 of 2 regions need attention. -->");
+        assert_eq!(
+            tidy(src),
+            "'<!-- Imported from a foreign worksheet: 1 of 2 regions need attention. -->"
+        );
     }
 }

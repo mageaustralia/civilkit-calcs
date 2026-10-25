@@ -15,8 +15,16 @@ use crate::report::{Code, ImportReport, Issue, KindStats, Severity};
 use crate::tables::{self, Constant, FnRule};
 use crate::{Asset, ImportOptions};
 
+mod complex;
+mod exits;
+mod growth;
+mod multi;
+mod nested;
 mod plot;
+mod slices;
+mod solve;
 mod strings;
+mod trycatch;
 
 /// Every placeholder line starts with this (after the leading `'` that makes it a text line).
 pub const GAP_MARKER: &str = "[import-gap";
@@ -170,7 +178,7 @@ fn symexec(
                 cur = Some(v.clone());
                 env.insert(tables::normalise_name(&n.flat()), v);
             }
-            PStmt::Local(PTarget::Element { .. }, _) => {
+            PStmt::Local(PTarget::Element { .. } | PTarget::Slice { .. }, _) => {
                 return Err(
                     "an element assignment needs an array built by statements, which an expression cannot hold".into(),
                 )
@@ -429,39 +437,6 @@ fn subst(e: &Expr, env: &HashMap<String, Expr>) -> Option<Expr> {
         }
         Expr::Program(_) => return None,
     })
-}
-
-/// True when `name` (already normalised) occurs as a name anywhere in `e`.
-/// Can the expression fail only by dividing by zero? Collects the divisors. Sums, products,
-/// differences, negation, absolute value, integer powers, names and numbers cannot fail; a call, an
-/// index or anything else might, and then the reason says what.
-fn only_division_fails<'a>(e: &'a Expr, divisors: &mut Vec<&'a Expr>) -> Result<(), String> {
-    match e {
-        Expr::Num(_) | Expr::Name(_) => Ok(()),
-        Expr::Un(UnOp::Neg | UnOp::Abs, a) => only_division_fails(a, divisors),
-        Expr::Postfix(_, a) => only_division_fails(a, divisors),
-        Expr::Bin(BinOp::Add | BinOp::Sub | BinOp::Mul, a, b) => {
-            only_division_fails(a, divisors)?;
-            only_division_fails(b, divisors)
-        }
-        Expr::Bin(BinOp::Div, a, b) => {
-            only_division_fails(a, divisors)?;
-            only_division_fails(b, divisors)?;
-            divisors.push(b);
-            Ok(())
-        }
-        Expr::Bin(BinOp::Pow, a, b) if matches!(&**b, Expr::Num(s) if is_int_literal(s).is_some_and(|v| v >= 0)) => {
-            only_division_fails(a, divisors)
-        }
-        Expr::Index(base, idx) if matches!(&**base, Expr::Name(_)) => {
-            for i in idx {
-                only_division_fails(i, divisors)?;
-            }
-            Ok(())
-        }
-        Expr::Call(..) => Err("the body calls a function, which could fail in ways other than a division".into()),
-        _ => Err("the body could fail in ways other than a division".into()),
-    }
 }
 
 /// The unit `deg` (or `°`): a display unit for an angle, which the source holds in radians.
@@ -737,13 +712,14 @@ fn plausible_calcpad(s: &str) -> bool {
     depth == 0
 }
 
-/// A range variable `i := a .. z` (no step): its bounds as Calcpad text, and as integers when both
-/// are literals and `a <= z`.
+/// A range variable `i := a .. z`: its bounds as Calcpad text, and as integers when both
+/// are literals and `a <= z`. `i := a, b .. z` has the step `b - a` as well.
 #[derive(Debug, Clone, Default)]
 struct RangeInfo {
     a: String,
     z: String,
     lit: Option<(i64, i64)>,
+    step: Option<String>,
 }
 
 /// An enclosing `for` loop while a program is lowered: its variable, the expression for the
@@ -774,6 +750,17 @@ struct FnBlk {
     allocs: Vec<(usize, String)>,
     no_alloc: HashMap<String, String>,
     writes: Vec<ElemWrite>,
+    /// The result and done flags of an early `return`, when the body has one.
+    ret: Option<exits::RetFlags>,
+    /// The break and continue flags of the loops being lowered, innermost last.
+    flags: Vec<exits::LoopFlags>,
+    /// Arrays made at exactly the size their writes need (no write grows them).
+    exact: HashSet<String>,
+    /// Arrays that start with one zero where first written and grow with each write: the statement
+    /// they are made before, the name and the number of indexes.
+    grow_starts: Vec<(usize, String, usize)>,
+    /// What the body does to each array by element.
+    scan: HashMap<String, growth::WriteScan>,
 }
 
 /// What one dimension of an array needs: a literal index, or the end of a loop (plus an offset).
@@ -921,6 +908,26 @@ fn whole_assigned(stmts: &[PStmt], out: &mut HashSet<String>) {
 }
 
 impl FnBlk {
+    /// The array is made with one zero where it is first written and grows with each write, when the
+    /// source's own result does not depend on whether some write happens: one of its writes is not
+    /// under an `if`, and every write has the same number of indexes.
+    fn grow_from(&mut self, name: &str) {
+        let why = match self.scan.get(name) {
+            Some(info) if info.ranks.len() != 1 || !(1..=2).contains(&info.ranks[0]) => {
+                "it is indexed with a different number of indexes"
+            }
+            // Written only under conditions, but never read on a path that did not write it: the
+            // source's array exists wherever it is used.
+            Some(info) if !info.uncond && !info.reads_after_writes => "it is written only under a condition",
+            Some(info) => {
+                self.grow_starts.push((info.first, name.to_string(), info.ranks[0]));
+                return;
+            }
+            None => "it is not written",
+        };
+        self.no_alloc.entry(name.to_string()).or_insert_with(|| why.to_string());
+    }
+
     /// A local set for the first time here: it must have a value on every path that reads it. The
     /// reason it does not, if it does not.
     fn first_set_problem(&self, flat: &str, guard: Option<&str>, loops: usize) -> Option<String> {
@@ -1040,7 +1047,9 @@ fn name_counts(stmts: &[PStmt]) -> HashMap<String, usize> {
 fn assigned_names(stmts: &[PStmt], out: &mut HashSet<String>) {
     for st in stmts {
         match st {
-            PStmt::Local(PTarget::Var(n), _) | PStmt::Local(PTarget::Element { base: n, .. }, _) => {
+            PStmt::Local(PTarget::Var(n), _)
+            | PStmt::Local(PTarget::Element { base: n, .. }, _)
+            | PStmt::Local(PTarget::Slice { base: n, .. }, _) => {
                 out.insert(tables::normalise_name(&n.flat()));
             }
             PStmt::For { body, .. } | PStmt::While { body, .. } => assigned_names(body, out),
@@ -1063,6 +1072,38 @@ fn is_col_literal(e: &Expr) -> bool {
         Expr::Matrix { rows, cols, .. } => *cols == 1 && *rows > 1,
         Expr::Un(UnOp::Transpose, a) => matches!(&**a, Expr::Matrix { rows: 1, cols, .. } if *cols > 1),
         Expr::Program(stmts) => matches!(stmts.last(), Some(PStmt::Expr(x) | PStmt::Return(x)) if is_col_literal(x)),
+        _ => false,
+    }
+}
+
+/// A matrix literal with several rows and several columns (or the transpose of one).
+fn literal_matrix(e: &Expr) -> bool {
+    match e {
+        Expr::Matrix { rows, cols, .. } => *rows > 1 && *cols > 1,
+        Expr::Un(UnOp::Transpose, a) => literal_matrix(a),
+        _ => false,
+    }
+}
+
+/// A program that returns a local it writes by element with two indexes.
+fn returns_matrix(stmts: &[PStmt]) -> bool {
+    fn writes_two(list: &[PStmt], name: &str) -> bool {
+        list.iter().any(|st| match st {
+            PStmt::Local(PTarget::Element { base, index }, _) => {
+                index.len() == 2 && tables::normalise_name(&base.flat()) == name
+            }
+            PStmt::For { body, .. } | PStmt::While { body, .. } => writes_two(body, name),
+            PStmt::If { branches, otherwise } => {
+                branches.iter().any(|(_, b)| writes_two(b, name))
+                    || otherwise.as_ref().is_some_and(|o| writes_two(o, name))
+            }
+            _ => false,
+        })
+    }
+    match stmts.last() {
+        Some(PStmt::Expr(Expr::Name(n)) | PStmt::Return(Expr::Name(n))) => {
+            writes_two(stmts, &tables::normalise_name(&n.flat()))
+        }
         _ => false,
     }
 }
@@ -1213,14 +1254,43 @@ fn first_accumulated(
     None
 }
 
+/// Whether the expression has a name in it (a quantity, not a bare number sum).
+fn mentions_a_name(e: &Expr) -> bool {
+    if matches!(e, Expr::Matrix { .. }) {
+        // A table written out on its own.
+        return true;
+    }
+    let mut found = false;
+    let mut c = e.clone();
+    c.for_each_name_mut(&mut |_| found = true);
+    found
+}
+
+/// Whether the expression compares or equates (a constraint or a check rather than a quantity).
+fn is_relation(e: &Expr) -> bool {
+    matches!(
+        e,
+        Expr::Bin(
+            BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge,
+            ..
+        )
+    )
+}
+
 struct Tr {
     origin: i64,
     defined: HashSet<String>,
     funcs: HashMap<String, usize>,
     /// The text literals of the sheet; the engine holds a text as its 1-based position here.
     str_table: Vec<String>,
+    /// Names that hold vectors of texts (as codes), found before translating (see `textvec`).
+    text_vecs: HashMap<String, Vec<usize>>,
     /// Names that hold a text now, with the codes they can have.
     str_vars: HashMap<String, Vec<usize>>,
+    /// Names in `str_vars` that hold a number on some path and a text on another (see `strings`).
+    str_mixed: HashSet<String>,
+    /// Whether the definition being translated gives such a value; read by `set_str_var`.
+    next_mixed: bool,
     /// Functions that return a text, with the codes they can return.
     str_funcs: HashMap<String, Vec<usize>>,
     /// Functions whose value is an array (a matrix literal, or an `if` that gives one).
@@ -1265,6 +1335,27 @@ struct Tr {
     local_arrays: HashSet<String>,
     /// Output names of local arrays whose elements were set to a unitless 0 literal.
     zero_started: HashSet<String>,
+    /// Output names of function-body locals that may have no value on some path, with the flag that
+    /// says whether one was set: a read is `if(flag; x; undefined)`.
+    partial: HashMap<String, String>,
+    /// A function the sheet defines more than once: the engine name of its current definition (the
+    /// engine warns when a name is defined again, so each later definition has a name of its own).
+    fn_alias: HashMap<String, String>,
+    /// Arrays that hold an array in each element, kept as a matrix with one row per element.
+    nested: HashSet<String>,
+    /// The parameters and the value of each worksheet function that is one expression.
+    fn_defs: HashMap<String, (Vec<String>, Expr)>,
+    /// The sheet has complex numbers; the names that hold one (`name` is the real part and
+    /// `name__im` the imaginary part), and the complex locals of the program being split.
+    cx_any: bool,
+    cplx: HashSet<String>,
+    cx_locals: HashSet<String>,
+    /// Arrays known to have several rows and several columns (a plot draws a trace per column).
+    matrices: HashSet<String>,
+    /// The complex program just split returns an array with several rows and columns.
+    cx_matrix: bool,
+    /// The equations of the solve block being read, until its solver region.
+    solve_cons: Vec<Expr>,
     /// Output names of local arrays that grow as they are written (their size is not known ahead).
     growable: HashSet<String>,
     /// Lines a program lowered to statements starts with (the allocation of its growing arrays).
@@ -1338,6 +1429,21 @@ impl Tr {
         if self.depth > MAX_RENDER_DEPTH {
             self.issue(Code::TooDeep, None);
             return atom("?too-deep?");
+        }
+        // Complex values are written out as real ones (a pair per value); one left over is a gap.
+        if let Some(r) = self.realified(e) {
+            return match r {
+                Ok(real) => {
+                    self.depth += 1;
+                    let out = self.expr_inner(&real);
+                    self.depth -= 1;
+                    out
+                }
+                Err(why) => {
+                    self.issue(Code::UnknownElement, Some(format!("complex number: {why}")));
+                    atom("?complex?")
+                }
+            };
         }
         self.depth += 1;
         let r = self.expr_inner(e);
@@ -1497,6 +1603,12 @@ impl Tr {
     fn yields_array(&self, e: &Expr) -> bool {
         match e {
             Expr::Matrix { .. } => true,
+            // An `if` gives an array when one of its branches does.
+            Expr::Call(f, args)
+                if f.base == "if" && f.sub.is_none() && args.len() == 3 && !self.funcs.contains_key("if") =>
+            {
+                self.yields_array(&args[1]) || self.yields_array(&args[2])
+            }
             Expr::Call(f, _) => {
                 matches!(
                     f.base.as_str(),
@@ -1816,10 +1928,12 @@ impl Tr {
                     Target::Var(n) | Target::Func(n, _) => vec![tables::normalise_name(&n.flat())],
                     Target::Element { base, .. } => base.iter().map(|b| tables::normalise_name(&b.flat())).collect(),
                     Target::Multi(ns) => ns.iter().map(|n| tables::normalise_name(&n.flat())).collect(),
+                    Target::Slice { base, .. } => vec![tables::normalise_name(&base.flat())],
                 };
                 // An element assignment is only valid for an array the engine holds; a function that
                 // mentions itself is a circular reference to it.
-                let head_bad = names.iter().any(|n| !valid_ident(n)) || matches!(target, Target::Element { .. });
+                let head_bad = names.iter().any(|n| !valid_ident(n))
+                    || matches!(target, Target::Element { .. } | Target::Slice { .. });
                 let head = match target {
                     Target::Var(n) => tables::normalise_name(&n.flat()),
                     Target::Func(n, ps) => {
@@ -1838,6 +1952,15 @@ impl Tr {
                     Target::Multi(names) => {
                         let l: Vec<String> = names.iter().map(|n| tables::normalise_name(&n.flat())).collect();
                         format!("[{}]", l.join("; "))
+                    }
+                    Target::Slice { base, index, row } => {
+                        let i = self.expr(index).s;
+                        format!(
+                            "{}({}; {})",
+                            if *row { "row" } else { "col" },
+                            tables::normalise_name(&base.flat()),
+                            i
+                        )
                     }
                 };
                 if let Expr::Program(stmts) = value {
@@ -1912,6 +2035,16 @@ impl Tr {
                     let t = format!("{} = {}", name, self.expr(e).s);
                     out.push((!self.readable_bad && valid_ident(&name) && plausible_calcpad(&t), t));
                 }
+                PStmt::Local(PTarget::Slice { base, index, row }, e) => {
+                    let t = format!(
+                        "{}({}; {}) = {}",
+                        if *row { "row" } else { "col" },
+                        tables::normalise_name(&base.flat()),
+                        self.expr(index).s,
+                        self.expr(e).s
+                    );
+                    out.push((false, t));
+                }
                 PStmt::Local(PTarget::Element { base, index }, e) => {
                     let idx: Vec<String> = index.iter().map(|i| self.expr(i).s).collect();
                     let t = format!(
@@ -1978,6 +2111,15 @@ impl Tr {
             parts.push(match st {
                 PStmt::Local(PTarget::Var(n), e) => {
                     format!("{} = {}", tables::normalise_name(&n.flat()), self.expr(e).s)
+                }
+                PStmt::Local(PTarget::Slice { base, index, row }, e) => {
+                    format!(
+                        "{}({}; {}) = {}",
+                        if *row { "row" } else { "col" },
+                        tables::normalise_name(&base.flat()),
+                        self.expr(index).s,
+                        self.expr(e).s
+                    )
                 }
                 PStmt::Local(PTarget::Element { base, index }, e) => {
                     let idx: Vec<String> = index.iter().map(|i| self.expr(i).s).collect();
@@ -2088,6 +2230,29 @@ impl Tr {
         self.prog_n += 1;
         for (iv, info) in rs {
             let (a, z) = (&info.a, &info.z);
+            if let Some(st) = &info.step {
+                // A step: the passes are floor((z - a) / step) + 1 (a little over, so that 0.1 steps
+                // do not lose the last one), the variable a + k * step.
+                let (lo, hi, sp, k) = (
+                    format!("{iv}_a{}", self.prog_n),
+                    format!("{iv}_z{}", self.prog_n),
+                    format!("{iv}_s{}", self.prog_n),
+                    format!("{iv}_k{}", self.prog_n),
+                );
+                head.push(format!("{lo} = {a}"));
+                head.push(format!("{hi} = {z}"));
+                head.push(format!("{sp} = {st}"));
+                let count = format!("floor(({hi} - {lo})/{sp} + 0.000000001)");
+                let last = format!("({lo} + {count}*{sp})");
+                sizes.push(match o {
+                    1 => format!("max({lo}; {last})"),
+                    o if o > 1 => format!("max({lo}; {last}) - {}", o - 1),
+                    o => format!("max({lo}; {last}) + {}", 1 - o),
+                });
+                steps.push(format!("({count} + 1)"));
+                loops.push(format!("#for {k} = 0 : {count}\n{iv} = {lo} + {k}*{sp}"));
+                continue;
+            }
             match info.lit {
                 Some((x, y)) => {
                     if x < o {
@@ -2152,16 +2317,33 @@ impl Tr {
         index: &[Expr],
         value: &Expr,
     ) -> Option<(Vec<(String, RangeInfo)>, bool)> {
+        self.fill_plan(flat, index, value, false)
+    }
+
+    /// `grow_fill_plan`, or (`nested`) the plan for an array that holds an array in each element.
+    fn fill_plan(
+        &self,
+        flat: &Option<String>,
+        index: &[Expr],
+        value: &Expr,
+        nested: bool,
+    ) -> Option<(Vec<(String, RangeInfo)>, bool)> {
         let f = flat.as_ref()?;
-        if index.is_empty() || index.len() > 2 || mentions(value, f) || index.iter().any(|e| mentions(e, f)) {
+        if index.is_empty() || index.len() > 2 {
             return None;
         }
         // One element of a vector is a number: an array value is a matrix built row by row.
-        if self.yields_array(value) {
+        if self.yields_array(value) != nested {
             return None;
         }
         let known = self.defined.contains(f) || self.funcs.contains_key(f) || self.gap_names.contains_key(f);
         let fresh = !known;
+        // A new array has nothing to read yet (a read would silently give the zeros it starts with);
+        // one that has a value may be read by its own update, in the order of the loop, as the
+        // source reads it element by element.
+        if fresh && (mentions(value, f) || index.iter().any(|e| mentions(e, f))) {
+            return None;
+        }
         let array = self.arrays.contains(f) && !self.funcs.contains_key(f) && !self.gap_names.contains_key(f);
         if !fresh && !array {
             return None;
@@ -2226,6 +2408,13 @@ impl Tr {
         Ok(out.join("\n"))
     }
 
+    /// Whether an expression reads any range variable of the sheet.
+    fn reads_range(&self, e: &Expr) -> bool {
+        self.ranges
+            .keys()
+            .any(|k| !self.params.contains(k) && !self.locals.contains_key(k) && mentions(e, k))
+    }
+
     /// The one range variable an expression reads (not as a function argument or a bound name),
     /// when it reads exactly one.
     fn table_range(&self, e: &Expr) -> Option<(String, RangeInfo)> {
@@ -2250,14 +2439,22 @@ impl Tr {
             format!("{iv}_k{n}"),
             format!("tbl_{n}"),
         );
-        let mut out = vec![
-            "#hide".to_string(),
-            format!("{lo} = {a}"),
-            format!("{hi} = {z}"),
-            format!("{tbl} = vector(abs({hi} - {lo}) + 1)"),
-            format!("#for {k} = 0 : abs({hi} - {lo})"),
-            format!("{iv} = {lo} + {k}*if({hi} ≥ {lo}; 1; -1)"),
-        ];
+        let mut out = vec!["#hide".to_string(), format!("{lo} = {a}"), format!("{hi} = {z}")];
+        match &info.step {
+            Some(st) => {
+                let sp = format!("{iv}_s{n}");
+                let count = format!("floor(({hi} - {lo})/{sp} + 0.000000001)");
+                out.push(format!("{sp} = {st}"));
+                out.push(format!("{tbl} = vector({count} + 1)"));
+                out.push(format!("#for {k} = 0 : {count}"));
+                out.push(format!("{iv} = {lo} + {k}*{sp}"));
+            }
+            None => {
+                out.push(format!("{tbl} = vector(abs({hi} - {lo}) + 1)"));
+                out.push(format!("#for {k} = 0 : abs({hi} - {lo})"));
+                out.push(format!("{iv} = {lo} + {k}*if({hi} ≥ {lo}; 1; -1)"));
+            }
+        }
         out.extend(pre.iter().map(|p| format!("    {p}")));
         out.push(format!("    {tbl}.({k} + 1) = {rhs}"));
         out.push("#loop".to_string());
@@ -2698,6 +2895,7 @@ impl Tr {
         };
         self.prog_n += 1;
         let saved_locals = std::mem::take(&mut self.locals);
+        let saved_partial = std::mem::take(&mut self.partial);
         let mut st = FnBlk {
             total: name_counts(stmts),
             arrays: HashSet::new(),
@@ -2707,6 +2905,11 @@ impl Tr {
             allocs: Vec::new(),
             no_alloc: HashMap::new(),
             writes: Vec::new(),
+            ret: None,
+            flags: Vec::new(),
+            exact: HashSet::new(),
+            grow_starts: Vec::new(),
+            scan: growth::scan_element_writes(stmts),
         };
         let mut items: Vec<String> = Vec::new();
         let r = (|| -> Result<String, String> {
@@ -2725,6 +2928,15 @@ impl Tr {
                 items.push(format!("{m} = {c}*1"));
                 st.arrays.insert(c);
             }
+            // A `return` before the end sets a result and a done flag (zero until set: a value
+            // that is not a number cannot be held in a loop, and the result is read only once the
+            // flag is set).
+            if exits::exits_of(body).ret {
+                let (res, done) = (format!("ret_p{}", self.prog_n), format!("done_p{}", self.prog_n));
+                st.starts.push(format!("{res} = 0"));
+                st.starts.push(format!("{done} = 0"));
+                st.ret = Some(exits::RetFlags { res, done });
+            }
             // Arrays the body fills by element without having made them are allocated, at the size
             // their writes need, just before the statement that writes them.
             let mut whole = HashSet::new();
@@ -2736,21 +2948,32 @@ impl Tr {
                 st.writes.extend(w);
                 st.no_alloc.extend(bad);
             }
-            let mut bases: Vec<String> = st.writes.iter().map(|w| w.base.clone()).collect();
+            let mut bases: Vec<String> = st.scan.keys().cloned().collect();
             bases.sort();
-            bases.dedup();
             for b in bases {
-                if self.params.contains(&b) || st.arrays.contains(&b) || whole.contains(&b) {
+                if self.params.contains(&b) || st.arrays.contains(&b) {
                     continue;
                 }
-                let mut places: Vec<usize> = st.writes.iter().filter(|w| w.base == b).map(|w| w.at).collect();
-                places.dedup();
-                match places.as_slice() {
-                    [k] => st.allocs.push((*k, b)),
-                    _ => {
-                        st.no_alloc.insert(b, "it is written in several places".into());
-                    }
+                // Also assigned whole somewhere: the array may exist already when it is first written
+                // (checked as the statements are lowered), so it is made lazily and grows.
+                if whole.contains(&b) {
+                    st.grow_from(&b);
+                    continue;
                 }
+                let mine: Vec<&ElemWrite> = st.writes.iter().filter(|w| w.base == b).collect();
+                let mut places: Vec<usize> = mine.iter().map(|w| w.at).collect();
+                places.sort();
+                places.dedup();
+                let literal_only = mine.iter().all(|w| w.needs.iter().all(|n| matches!(n, Need::Lit(_))));
+                // Sized ahead when its writes are in one statement, or all at numbers (the size does
+                // not depend on what runs between them).
+                let slices = st.scan.get(&b).is_some_and(|i| i.has_slice);
+                if !slices && !st.no_alloc.contains_key(&b) && !places.is_empty() && (places.len() == 1 || literal_only)
+                {
+                    st.allocs.push((places[0], b));
+                    continue;
+                }
+                st.grow_from(&b);
             }
             for (k, stmt) in body.iter().enumerate() {
                 let names: Vec<String> = st
@@ -2761,14 +2984,34 @@ impl Tr {
                     .collect();
                 for b in names {
                     if let Err(why) = self.alloc_array(&b, stmt, &mut st, &mut items) {
-                        st.no_alloc.insert(b, why);
+                        st.no_alloc.insert(b.clone(), why);
+                        st.grow_from(&b);
                     }
+                }
+                // Arrays that start with one zero and grow, made before the statement that first writes them.
+                let due: Vec<(String, usize)> = st
+                    .grow_starts
+                    .iter()
+                    .filter(|(at, b, _)| *at <= k && !st.arrays.contains(b))
+                    .map(|(_, b, r)| (b.clone(), *r))
+                    .collect();
+                for (b, rank) in due {
+                    let mapped = self.local_name(&b);
+                    items.push(if rank == 1 {
+                        format!("{mapped} = vector(1)")
+                    } else {
+                        format!("{mapped} = matrix(1; 1)")
+                    });
+                    st.arrays.insert(b);
                 }
                 self.lower_fn_stmts(std::slice::from_ref(stmt), None, 0, &mut st, &mut items)?;
             }
             let at = items.len().min(copies_len);
             items.splice(at..at, st.starts.drain(..));
-            let value = self.expr(tail).s;
+            let mut value = self.expr(tail).s;
+            if let Some(r) = &st.ret {
+                value = format!("if({}; {}; {})", r.done, r.res, value);
+            }
             Ok(if items.is_empty() {
                 value
             } else {
@@ -2776,6 +3019,7 @@ impl Tr {
             })
         })();
         self.locals = saved_locals;
+        self.partial = saved_partial;
         r
     }
 
@@ -2872,6 +3116,7 @@ impl Tr {
             format!("{mapped} = matrix({}; {})", dims[0], dims[1])
         });
         st.arrays.insert(name.to_string());
+        st.exact.insert(name.to_string());
         Ok(())
     }
 
@@ -2886,7 +3131,11 @@ impl Tr {
         if loops > 6 {
             return Err("loops nested too deeply".into());
         }
+        // The guard changes along the list: after a statement that can end the pass, the loop or the
+        // function, the statements that follow run only while no flag is set.
+        let mut guard: Option<String> = guard.map(str::to_string);
         for stmt in stmts {
+            let g = guard.as_deref();
             match stmt {
                 PStmt::Local(PTarget::Var(n), e) => {
                     let flat = tables::normalise_name(&n.flat());
@@ -2897,20 +3146,32 @@ impl Tr {
                     let mapped = match self.locals.get(&flat) {
                         Some(m) => m.clone(),
                         None => {
-                            if let Some(why) = st.first_set_problem(&flat, guard, loops) {
+                            if let Some(why) = st.first_set_problem(&flat, g, loops) {
                                 // The program's own result variable may be unset on a path (the source
                                 // then has no value): it starts as not a number, which the engine shows
                                 // as undefined. Outside a loop only: a not-a-number inside a loop body
                                 // is an engine error even on the iterations that do not use it.
-                                if flat != RESULT_LOCAL || loops > 0 {
+                                if flat == RESULT_LOCAL && loops == 0 {
+                                    let mapped = self.local_name(&flat);
+                                    st.starts.push(format!("{mapped} = sqrt(-1)"));
+                                    mapped
+                                } else if self.yields_array(e) || matches!(e, Expr::Matrix { .. }) {
                                     return Err(why);
+                                } else {
+                                    // Any other local that may have no value where it is read keeps a
+                                    // flag that says whether it was set; it starts at zero (a number
+                                    // can be held in a loop) and a read of it is not a number while
+                                    // the flag is clear.
+                                    let mapped = self.local_name(&flat);
+                                    let flag = format!("{mapped}_set");
+                                    st.starts.push(format!("{mapped} = 0"));
+                                    st.starts.push(format!("{flag} = 0"));
+                                    self.partial.insert(mapped.clone(), flag);
+                                    mapped
                                 }
-                                let mapped = self.local_name(&flat);
-                                st.starts.push(format!("{mapped} = sqrt(-1)"));
-                                mapped
                             } else {
                                 let mapped = self.local_name(&flat);
-                                if guard.is_some() {
+                                if g.is_some() {
                                     // Set in every arm of an `if`: the first write reads the name's
                                     // earlier value, which only has to exist for the engine.
                                     st.starts.push(format!("{mapped} = sqrt(-1)"));
@@ -2919,17 +3180,40 @@ impl Tr {
                             }
                         }
                     };
-                    let is_array = matches!(e, Expr::Matrix { .. })
-                        || matches!(e, Expr::Call(f, _) if matches!(f.base.as_str(), "identity" | "matrix" | "augment" | "stack" | "lsolve" | "submatrix"));
+                    let is_array = self.fn_gives_array(e, &st.arrays);
                     if is_array {
                         st.arrays.insert(flat);
                     } else {
                         st.arrays.remove(&flat);
                     }
-                    items.push(match guard {
+                    items.push(match g {
                         None => format!("{mapped} = {rhs}"),
                         Some(g) => format!("{mapped} = if({g}; {rhs}; {mapped})"),
                     });
+                    if let Some(flag) = self.partial.get(&mapped) {
+                        items.push(match g {
+                            None => format!("{flag} = 1"),
+                            Some(g) => format!("{flag} = if({g}; 1; {flag})"),
+                        });
+                    }
+                }
+                PStmt::Local(PTarget::Slice { base, index, row }, e) => {
+                    let flat = tables::normalise_name(&base.flat());
+                    let (Some(mapped), true) = (self.locals.get(&flat).cloned(), st.arrays.contains(&flat)) else {
+                        return Err(format!(
+                            "assignment to a column of {flat}, an array the function neither received nor created"
+                        ));
+                    };
+                    let idx = self.index_expr(index);
+                    let rhs = self.expr(e).s;
+                    self.prog_n += 1;
+                    let uid = self.prog_n;
+                    let t = format!("sl_t{uid}");
+                    items.push(match g {
+                        None => format!("{t} = {rhs}"),
+                        Some(g) => format!("{t} = if({g}; {rhs}; vector(1))"),
+                    });
+                    items.extend(self.slice_write(&mapped, &idx, *row, &t, uid, g));
                 }
                 PStmt::Local(PTarget::Element { base, index }, e) => {
                     let flat = tables::normalise_name(&base.flat());
@@ -2948,11 +3232,15 @@ impl Tr {
                     }
                     let parts: Vec<String> = index.iter().map(|i| self.index_expr(i)).collect();
                     let rhs = self.expr(e).s;
-                    let at = format!("{mapped}.({})", parts.join("; "));
-                    items.push(match guard {
-                        None => format!("{at} = {rhs}"),
-                        Some(g) => format!("{at} = if({g}; {rhs}; {at})"),
-                    });
+                    if st.exact.contains(&flat) {
+                        let at = format!("{mapped}.({})", parts.join("; "));
+                        items.push(match g {
+                            None => format!("{at} = {rhs}"),
+                            Some(g) => format!("{at} = if({g}; {rhs}; {at})"),
+                        });
+                    } else {
+                        items.extend(self.growing_write(&mapped, &parts, &rhs, g));
+                    }
                 }
                 PStmt::For { var, range, body } => {
                     let Expr::Range {
@@ -2963,9 +3251,6 @@ impl Tr {
                     else {
                         return Err("a loop over something other than a plain range a .. b".into());
                     };
-                    if body.iter().any(has_break) {
-                        return Err("break or continue in a loop".into());
-                    }
                     let v = tables::normalise_name(&var.flat());
                     if !valid_ident(&v) {
                         return Err(format!("loop variable {v} that Calcpad cannot spell"));
@@ -2989,10 +3274,14 @@ impl Tr {
                             format!("{k} = 0 : abs({hi} - {lo})")
                         }
                     };
+                    let (loop_guard, ex) = self.enter_loop(body, g, st, items, &mut inner);
                     let prev = self.locals.insert(v.clone(), mapped);
                     let outer = st.inside.replace(name_counts(body));
-                    let r = self.lower_fn_stmts(body, guard, loops + 1, st, &mut inner);
+                    let r = self.lower_fn_stmts(body, loop_guard.as_deref(), loops + 1, st, &mut inner);
                     st.inside = outer;
+                    if ex.brk || ex.cont {
+                        st.flags.pop();
+                    }
                     match prev {
                         Some(p) => self.locals.insert(v, p),
                         None => self.locals.remove(&v),
@@ -3004,18 +3293,33 @@ impl Tr {
                     items.push(format!("$Repeat{{{} @ {header}}}", inner.join("; ")));
                 }
                 PStmt::While { cond, body } => {
-                    if body.iter().any(has_break) {
-                        return Err("break or continue in a loop".into());
-                    }
                     let c = self.expr(cond).s;
-                    let c = match guard {
-                        None => c,
-                        Some(g) => format!("if({g}; {c}; 0)"),
+                    // The test runs only while the loop is live: not after a `break`, nor a `return`.
+                    let mut inner: Vec<String> = Vec::new();
+                    let (loop_guard, ex) = self.enter_loop(body, g, st, items, &mut inner);
+                    let stop = {
+                        let mut flags = Vec::new();
+                        if let Some(r) = &st.ret {
+                            flags.push(r.done.clone());
+                        }
+                        if ex.brk {
+                            if let Some(b) = st.flags.last().and_then(|f| f.brk.clone()) {
+                                flags.push(b);
+                            }
+                        }
+                        flags
                     };
-                    let mut inner: Vec<String> = vec![c];
+                    let c = match exits::and_live(g, &stop) {
+                        None => c,
+                        Some(live) => format!("if({live}; {c}; 0)"),
+                    };
                     let outer = st.inside.replace(name_counts(body));
-                    let r = self.lower_fn_stmts(body, None, loops + 1, st, &mut inner);
+                    inner.insert(0, c);
+                    let r = self.lower_fn_stmts(body, loop_guard.as_deref(), loops + 1, st, &mut inner);
                     st.inside = outer;
+                    if ex.brk || ex.cont {
+                        st.flags.pop();
+                    }
                     r?;
                     if inner.len() < 2 {
                         return Err("an empty loop".into());
@@ -3025,7 +3329,7 @@ impl Tr {
                 PStmt::If { branches, otherwise } => {
                     self.prog_n += 1;
                     let n = self.prog_n;
-                    if let (None, 0, Some(other)) = (guard, loops, otherwise) {
+                    if let (None, 0, Some(other)) = (g, loops, otherwise) {
                         // A name every arm assigns at its top level has a value after the `if`.
                         let sets = |b: &[PStmt]| -> HashSet<String> {
                             b.iter()
@@ -3056,7 +3360,7 @@ impl Tr {
                         } else {
                             format!("if({}; 0; {test})", taken.join(" + "))
                         };
-                        let test = match guard {
+                        let test = match g {
                             None => test,
                             Some(g) => format!("if({g}; {test}; 0)"),
                         };
@@ -3067,7 +3371,7 @@ impl Tr {
                     }
                     if let Some(b) = otherwise {
                         let test = format!("if({}; 0; 1)", taken.join(" + "));
-                        let test = match guard {
+                        let test = match g {
                             None => test,
                             Some(g) => format!("if({g}; {test}; 0)"),
                         };
@@ -3079,13 +3383,116 @@ impl Tr {
                         self.lower_fn_stmts(b, Some(&a), loops, st, items)?;
                     }
                 }
-                PStmt::Break | PStmt::Continue => return Err("break or continue".into()),
-                PStmt::Return(_) => return Err("a return before the end of the program (an early exit)".into()),
+                PStmt::Break | PStmt::Continue => {
+                    let is_break = matches!(stmt, PStmt::Break);
+                    let flag = st
+                        .flags
+                        .last()
+                        .and_then(|f| if is_break { f.brk.clone() } else { f.cont.clone() });
+                    let Some(flag) = flag else {
+                        return Err("break or continue outside a loop".into());
+                    };
+                    items.push(match g {
+                        None => format!("{flag} = 1"),
+                        Some(g) => format!("{flag} = if({g}; 1; {flag})"),
+                    });
+                }
+                PStmt::Return(e) => {
+                    let Some(r) = st.ret.clone() else {
+                        return Err("a return before the end of the program (an early exit)".into());
+                    };
+                    if self.yields_array(e) {
+                        return Err("an early return of an array".into());
+                    }
+                    let rhs = self.expr(e).s;
+                    match g {
+                        None => {
+                            items.push(format!("{} = {rhs}", r.res));
+                            items.push(format!("{} = 1", r.done));
+                        }
+                        Some(g) => {
+                            items.push(format!("{} = if({g}; {rhs}; {})", r.res, r.res));
+                            items.push(format!("{} = if({g}; 1; {})", r.done, r.done));
+                        }
+                    }
+                }
                 PStmt::Expr(_) => return Err("an expression statement before the end of the program".into()),
                 PStmt::Unsupported(w) => return Err(format!("{w} is not read")),
             }
+            // What the statement can end (the pass, the loop, the function) stops the rest of this list.
+            let ex = exits::exits_of(std::slice::from_ref(stmt));
+            if ex.any() {
+                let mut flags = Vec::new();
+                if ex.ret {
+                    if let Some(r) = &st.ret {
+                        flags.push(r.done.clone());
+                    }
+                }
+                if let Some(f) = st.flags.last() {
+                    if ex.brk {
+                        flags.extend(f.brk.clone());
+                    }
+                    if ex.cont {
+                        flags.extend(f.cont.clone());
+                    }
+                }
+                if let Some(live) = exits::and_live(guard.as_deref(), &flags) {
+                    self.prog_n += 1;
+                    let name = format!("go_p{}", self.prog_n);
+                    items.push(format!("{name} = {live}"));
+                    guard = Some(name);
+                }
+            }
         }
         Ok(())
+    }
+
+    /// Sets up the flags of a loop about to be lowered: a `break` flag and a `continue` flag when its
+    /// body has them (cleared before the loop, and the `continue` one at the start of every pass), and
+    /// the guard of the body, which holds while the pass is live. Returns that guard and what the
+    /// body can exit; when it has a `break` or `continue`, the flags are pushed (the caller pops them).
+    fn enter_loop(
+        &mut self,
+        body: &[PStmt],
+        outer: Option<&str>,
+        st: &mut FnBlk,
+        items: &mut Vec<String>,
+        inner: &mut Vec<String>,
+    ) -> (Option<String>, exits::Exits) {
+        let ex = exits::exits_of(body);
+        let mut flags = Vec::new();
+        if ex.ret {
+            if let Some(r) = &st.ret {
+                flags.push(r.done.clone());
+            }
+        }
+        if ex.brk || ex.cont {
+            self.prog_n += 1;
+            let n = self.prog_n;
+            let mut lf = exits::LoopFlags::default();
+            if ex.brk {
+                let b = format!("brk_p{n}");
+                items.push(format!("{b} = 0"));
+                flags.push(b.clone());
+                lf.brk = Some(b);
+            }
+            if ex.cont {
+                let c = format!("cont_p{n}");
+                inner.push(format!("{c} = 0"));
+                lf.cont = Some(c);
+            }
+            st.flags.push(lf);
+        }
+        let guard = match exits::and_live(outer, &flags) {
+            Some(live) if !flags.is_empty() => {
+                self.prog_n += 1;
+                let name = format!("go_p{}", self.prog_n);
+                inner.push(format!("{name} = {live}"));
+                Some(name)
+            }
+            other => other,
+        };
+        (guard, ex)
     }
 
     /// The value of `e`; an array that is just another array's name is copied (`*1`), because the
@@ -3162,6 +3569,9 @@ impl Tr {
                         self.local_arrays.remove(&mapped);
                     }
                     out.push(format!("{pad}{mapped} = {rhs}"));
+                }
+                PStmt::Local(PTarget::Slice { .. }, _) => {
+                    return Err("assignment to a whole column of an array in a worksheet-level program".into());
                 }
                 PStmt::Local(PTarget::Element { base, index }, e) => {
                     let flat = tables::normalise_name(&base.flat());
@@ -3407,17 +3817,14 @@ impl Tr {
     /// ahead (a counter as the index, a write under a condition): the array is started with one
     /// zero at the top of the program and grown by `resize` before a write past its end, so it ends
     /// as large as the largest index written, as in the source. Only for a name the worksheet has
-    /// no value for (a name it does have is a different array in the source's rules, not read).
+    /// no value of its own (a worksheet name of the same name is not where it starts).
     fn growing_local(&mut self, flat: &str, rank: usize) -> Option<String> {
         if rank == 0 || rank > 2 || !valid_ident(flat) {
             return None;
         }
-        if self.defined.contains(flat)
-            || self.arrays.contains(flat)
-            || self.funcs.contains_key(flat)
-            || self.gap_names.contains_key(flat)
-            || self.params.iter().any(|p| p == flat)
-        {
+        // A program's own array: a worksheet name of the same name is not its starting value (a stored
+        // 2 x 19 result of a program that writes rows 1 and 2 of such a name shows it starts empty).
+        if self.params.iter().any(|p| p == flat) {
             return None;
         }
         let mapped = self.local_name(flat);
@@ -3562,6 +3969,18 @@ impl Tr {
 
     fn name_ref_engine(&mut self, n: &Name) -> R {
         let flat = tables::normalise_name(&n.flat());
+        if self.str_mixed.contains(&flat)
+            && !self.str_allow
+            && !self.readable
+            && !self.display
+            && !self.params.contains(&flat)
+            && !self.locals.contains_key(&flat)
+        {
+            // A value that is a number on some paths and a text on others: where it holds a text,
+            // the source stops at an arithmetic use of it, so that use is undefined here.
+            let test: Vec<String> = self.str_vars[&flat].iter().map(|c| format!("{flat} ≡ {c}")).collect();
+            return atom(format!("if({}; sqrt(-1); {flat})", test.join(" ∨ ")));
+        }
         if self.str_vars.contains_key(&flat)
             && !self.str_allow
             && !self.readable
@@ -3580,6 +3999,9 @@ impl Tr {
             }
         }
         if let Some(m) = self.locals.get(&flat) {
+            if let Some(flag) = self.partial.get(m) {
+                return atom(format!("if({flag}; {m}; sqrt(-1))"));
+            }
             return atom(m.clone());
         }
         if self.ranges.contains_key(&flat) && !self.params.contains(&flat) {
@@ -3691,6 +4113,28 @@ impl Tr {
             self.io_args = false;
             r
         };
+        // `stack` and `augment` take a number as a one-element array in the source; the engine wants arrays.
+        if matches!(flat.as_str(), "stack" | "augment") && n.sub.is_none() && !self.funcs.contains_key(&flat) {
+            for (a, r) in args.iter().zip(rendered.iter_mut()) {
+                let scalar = match a {
+                    Expr::Num(_) => true,
+                    Expr::Name(m) => {
+                        let f = tables::normalise_name(&m.flat());
+                        self.defined.contains(&f)
+                            && !self.arrays.contains(&f)
+                            && !self.local_arrays.contains(&f)
+                            && !self.str_mats.contains(&f)
+                            && !self.col_vecs.contains(&f)
+                            && !self.params.contains(&f)
+                            && !self.locals.contains_key(&f)
+                    }
+                    _ => false,
+                };
+                if scalar {
+                    *r = format!("[{r}]");
+                }
+            }
+        }
         // In a plot, a bare 0 branch of `if` is a zero of the other branch's dimension (as in the
         // source); the engine wants both branches in the same units.
         // The same for `max` and `min`, and (outside a display) for the branches of `if` everywhere.
@@ -3778,7 +4222,7 @@ impl Tr {
                     self.readable_bad = true;
                 }
             }
-            return atom(format!("{}({})", Self::engine_fn(&flat), rendered.join("; ")));
+            return atom(format!("{}({})", self.fn_name(&flat), rendered.join("; ")));
         }
         if let Some(root) = self.gap_names.get(&flat).copied() {
             self.cur.push(Pending {
@@ -3810,8 +4254,13 @@ impl Tr {
                     return atom(if one_column { format!("col({text}; 1)") } else { text });
                 }
                 // `matcol(M, j)` and `matrow(M, i)` count from the sheet's array origin.
-                if matches!(flat.as_str(), "matcol" | "matrow") {
-                    let engine = if flat == "matcol" { "col" } else { "row" };
+                if matches!(flat.as_str(), "matcol" | "matrow" | "csort" | "rsort") {
+                    let engine = match flat.as_str() {
+                        "matcol" => "col",
+                        "matrow" => "row",
+                        "csort" => "sort_rows",
+                        _ => "sort_cols",
+                    };
                     let at = self.index_expr(&args[1]);
                     return atom(format!("{engine}({}; {at})", rendered[0]));
                 }
@@ -3832,38 +4281,15 @@ impl Tr {
     /// failure that arithmetic has, a division by zero (the engine gives infinity there): the body
     /// when every divisor is not zero, the fallback otherwise. A body that could fail in another way
     /// (a function call, an index, a power) is not converted.
-    fn try_catch(&mut self, body: &Expr, rendered: &[String]) -> R {
-        let mut divisors: Vec<&Expr> = Vec::new();
-        if let Err(why) = only_division_fails(body, &mut divisors) {
-            self.issue(Code::ProgramBlock, Some(format!("tryCatch: {why}")));
-            if self.readable {
-                self.readable_bad = true;
-            }
-            return self.stand_in(&format!("tryCatch({}; {})", rendered[0], rendered[1]), "?try?");
-        }
-        let mut tests: Vec<String> = Vec::new();
-        for d in divisors {
-            if matches!(d, Expr::Num(s) if s.trim().parse::<f64>().is_ok_and(|v| v != 0.0)) {
-                continue;
-            }
-            let t = self.expr(d).s;
-            // A zero keeps its unit when multiplied by 0, so the comparison is between like units.
-            let test = format!("({t})*0 ≠ ({t})");
-            if !tests.contains(&test) {
-                tests.push(test);
-            }
-        }
-        if tests.is_empty() {
-            return R {
-                s: rendered[0].clone(),
-                prec: P_ATOM,
-            };
-        }
-        atom(format!("if({}; {}; {})", tests.join(" ∧ "), rendered[0], rendered[1]))
-    }
-
     /// The engine's spelling of a worksheet function's name: the engine reads a function name
     /// without regard to case, so `Norm` or `Max` would be taken for its own `norm` and `max`.
+    fn fn_name(&self, flat: &str) -> String {
+        self.fn_alias
+            .get(flat)
+            .cloned()
+            .unwrap_or_else(|| Self::engine_fn(flat))
+    }
+
     fn engine_fn(flat: &str) -> String {
         if tables::is_engine_function(flat) {
             format!("{flat}_f")
@@ -3887,6 +4313,15 @@ impl Tr {
                     self.issue(Code::LogBase, None);
                     atom(format!("(ln({})/ln({}))", a[0], a[1]))
                 }
+            }
+            FnRule::Multiple(name) => {
+                // Rounding to a multiple of the second argument (a unit, as a rule): the ratio is a plain
+                // number, and the multiple has the unit of the second argument.
+                self.issue(
+                    Code::RoundDigits,
+                    Some("rounded to a multiple of the second argument".into()),
+                );
+                atom(format!("({name}(({a})/({b}))*({b}))", a = a[0], b = a[1]))
             }
             FnRule::Round => {
                 if a.len() == 1 {
@@ -3940,7 +4375,28 @@ impl Tr {
                 // Plotting over the index: a fractional parameter reads between two elements.
                 let at = self.index_expr(i);
                 let arr = self.operand(base, P_ATOM, true);
-                return atom(format!("line({}; {})", at, arr));
+                // Past the end of the array the plot stays on the last point (the source draws
+                // nothing there), so a shorter array does not leave the plot's units.
+                return atom(format!("line(min({}; len({})); {})", at, arr, arr));
+            }
+        }
+        // An element of an element: row and column of the matrix that holds the array of arrays.
+        if let (Expr::Index(inner, outer), [j], false) = (base, idx, self.display) {
+            if let (Expr::Name(n), [i]) = (&**inner, outer.as_slice()) {
+                if self.nested.contains(&tables::normalise_name(&n.flat())) {
+                    let m = self.operand(inner, P_ATOM, true);
+                    let (a, b) = (self.index_expr(i), self.index_expr(j));
+                    return atom(format!("{m}.({a}; {b})"));
+                }
+            }
+        }
+        if let (Expr::Name(n), [_], false) = (base, idx, self.display) {
+            if self.nested.contains(&tables::normalise_name(&n.flat())) {
+                self.issue(
+                    Code::ElementAssignment,
+                    Some("an element of an array of arrays read as a whole".into()),
+                );
+                return self.stand_in(&n.flat(), "?nested?");
             }
         }
         let b = self.operand(base, P_ATOM, true);
@@ -3948,7 +4404,13 @@ impl Tr {
             self.issue(Code::BadStructure, Some("index list".into()));
             return atom("?index?");
         }
-        let parts: Vec<String> = idx.iter().map(|i| self.index_expr(i)).collect();
+        let mut parts: Vec<String> = idx.iter().map(|i| self.index_expr(i)).collect();
+        if let (Some(pp), Expr::Name(_), 2) = (self.plot_param.clone(), base, idx.len()) {
+            // A plotted row index past the last row stays on the last row, as for a vector.
+            if !self.readable && !self.display && mentions(&idx[0], &pp) {
+                parts[0] = format!("min({}; n_rows({}))", parts[0], b);
+            }
+        }
         // Only a name can be followed by `.(i)`; the element of anything else (the result of a call,
         // a negated or scaled array) is `take(i; array)`, which needs no temporary.
         if !self.readable && !matches!(base, Expr::Name(_)) {
@@ -4247,6 +4709,25 @@ impl Tr {
     }
 
     fn region(&mut self, r: &Region) {
+        if !crate::includes::is_included(&r.id) {
+            return self.region_shown(r);
+        }
+        // A region of an included worksheet: computed, never shown, and only its definitions count.
+        if let RegionKind::Math(m) = &r.kind {
+            if !matches!(m.stmt, Stmt::Define { .. } | Stmt::Unsupported { .. }) {
+                return;
+            }
+        }
+        let before = self.lines.len();
+        self.region_shown(r);
+        let shown = self.lines.split_off(before);
+        self.lines.extend(crate::includes::quiet_lines(&shown));
+    }
+
+    fn region_shown(&mut self, r: &Region) {
+        if self.opts.region_markers {
+            self.lines.push(format!("'@@{}@@", sanitize_id(&r.id)));
+        }
         match &r.kind {
             RegionKind::PageBreak => self.report.page_breaks += 1,
             RegionKind::Text(paras) => {
@@ -4314,6 +4795,7 @@ impl Tr {
             return line;
         }
         if plain_def {
+            let line = self.lazy_if(line);
             if let Stmt::Define { target, value, global } = &m.stmt {
                 if let Some(shown) = self.display_define(target, value) {
                     if let Some(typeset) = self.typeset_define(target, value, *global) {
@@ -4321,6 +4803,12 @@ impl Tr {
                     }
                     let fmt = self.format_line(None).map(|l| format!("{l}\n")).unwrap_or_default();
                     return format!("{fmt}#hide\n{line}\n#end hide\n#noc\n{shown}\n#end noc");
+                }
+                // A program that became one expression: the engine's echo of that expression would
+                // evaluate every branch of its `if`s to show the substituted values (and fail on the
+                // ones that do not apply), so only the value of the name is shown.
+                if let (Target::Var(n), Expr::Program(_), false) = (target, value, line.contains('\n')) {
+                    return format!("#hide\n{line}\n#end hide\n{}", tables::normalise_name(&n.flat()));
                 }
             }
             return line;
@@ -4407,6 +4895,24 @@ impl Tr {
             out.push_str(&line);
         }
         out
+    }
+
+    /// A definition on one line, `name = ... if(...) ...`, whose branches call a function or index an array:
+    /// the engine evaluates both branches of an `if` at the top of a sheet when it can fold the
+    /// condition, and a branch the source never takes can fail. Inside an expression block the `if` is
+    /// evaluated lazily, so the right side goes into one.
+    fn lazy_if(&self, line: String) -> String {
+        if line.contains('\n') || !line.contains("if(") || line.contains("$Block{") {
+            return line;
+        }
+        let Some((name, rhs)) = line.split_once(" = ") else {
+            return line;
+        };
+        let calls_user = self.funcs.keys().any(|f| rhs.contains(&format!("{f}(")));
+        if !(calls_user || rhs.contains(".(")) || !valid_ident(name.trim()) {
+            return line;
+        }
+        format!("{} = $Block{{{}}}", name.trim(), rhs)
     }
 
     /// Whether an identifier is read as a unit label where the equation sits.
@@ -4519,12 +5025,154 @@ impl Tr {
         let mut str_fn_def: Option<(String, Vec<usize>)> = None;
         let mut fn_gives_array = false;
         let mut str_mat_def: Option<String> = None;
+        let mut matrix_def = false;
         let mut str_multi_def: Vec<(String, Option<Vec<usize>>)> = Vec::new();
         // An evaluation of a text: the expression that gives its code and the texts it can be.
-        let mut str_eval: Option<(String, Vec<usize>)> = None;
+        let mut str_eval: Option<(String, Vec<usize>, bool)> = None;
+        // Lines that are printed as they are (a vector of texts).
+        let mut raw_out: Option<String> = None;
         let shape: &str;
 
+        // The solver of a solve block: solved here when the block has the shape that is, otherwise the
+        // unknowns take the values the file saved for the solution (frozen), if it saved them.
+        let solve_try = match (&m.stmt, &m.solve) {
+            (Stmt::Define { target, value, .. }, Some(SolveRole::Solver(_))) => {
+                let mark = self.cur.len();
+                let saved = match &m.solve {
+                    Some(SolveRole::Solver(Some(f))) => Some(&**f),
+                    _ => None,
+                };
+                let out = self.solve_block(target, value, saved);
+                if let (Err(_), Some(SolveRole::Solver(Some(fallback)))) = (&out, &m.solve) {
+                    self.cur.truncate(mark);
+                    let mut frozen = m.clone();
+                    frozen.stmt = (**fallback).clone();
+                    frozen.frozen = true;
+                    frozen.solve = Some(SolveRole::Solution);
+                    return self.math(r, &frozen);
+                }
+                Some(out)
+            }
+            _ => None,
+        };
+
+        // A definition with a complex value is two definitions (the real and the imaginary part).
+        let cx_result = match &m.stmt {
+            Stmt::Define {
+                target: Target::Var(n),
+                value,
+                ..
+            } if self.cx_any => self.complex_define(n, value),
+            _ => None,
+        };
+
         match &m.stmt {
+            // The solver of a solve block: the unknowns become the solution of its equations.
+            Stmt::Define { target, .. } if solve_try.is_some() => {
+                shape = "definition";
+                match solve_try {
+                    Some(Ok((text, names))) => {
+                        let gap = self.cur.iter().any(|p| p.code.severity() == Severity::Gap);
+                        if !gap {
+                            emitted = Some(text);
+                        } else {
+                            attempt = Some(text);
+                        }
+                        if let [one] = names.as_slice() {
+                            plain_def = !gap;
+                            define_name = Some((one.clone(), None, false));
+                        } else {
+                            multi_names = if gap { Vec::new() } else { names.clone() };
+                            poison.extend(names);
+                        }
+                    }
+                    Some(Err(why)) => {
+                        self.issue(Code::SolveBlock, Some(why));
+                        match target {
+                            Target::Var(n) => {
+                                define_name = Some((tables::normalise_name(&n.flat()), None, false));
+                            }
+                            Target::Multi(ns) => {
+                                poison.extend(ns.iter().map(|n| tables::normalise_name(&n.flat())));
+                            }
+                            _ => {}
+                        }
+                    }
+                    None => {}
+                }
+            }
+            // An equation of a solve block: shown as written, collected for the solver that follows. When
+            // the block is not solved here the unknowns hold the values the file saved, and it says so.
+            Stmt::Bare(expr) if matches!(&m.solve, Some(SolveRole::Constraint { .. })) && is_relation(expr) => {
+                shape = "expression";
+                self.solve_cons.push(expr.clone());
+                if matches!(&m.solve, Some(SolveRole::Constraint { live: false })) {
+                    self.issue(Code::SolveConstraint, None);
+                }
+                let saved = std::mem::take(&mut self.cur);
+                self.readable = true;
+                let text = self.expr(expr).s.replace(" ≡ ", " = ");
+                self.readable = false;
+                self.cur = saved;
+                emitted = Some(
+                    self.typeset_gap(&m.stmt)
+                        .unwrap_or_else(|| format!("'<p><i>{}</i></p>", mathml::esc(&text.replace('\'', "\u{2019}")))),
+                );
+            }
+            Stmt::Define {
+                target: Target::Var(n), ..
+            } if cx_result.is_some() => {
+                shape = "definition";
+                let flat = tables::normalise_name(&n.flat());
+                match cx_result {
+                    Some(Ok((text, names))) => {
+                        matrix_def = self.cx_matrix;
+                        if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
+                            emitted = Some(text);
+                            multi_names = names;
+                        } else {
+                            attempt = Some(text);
+                        }
+                    }
+                    Some(Err(why)) => {
+                        self.issue(Code::UnknownElement, Some(format!("complex number: {why}")));
+                        define_name = Some((flat, None, false));
+                    }
+                    None => {}
+                }
+            }
+            Stmt::Define {
+                value: Expr::Call(f, _),
+                ..
+            }
+            | Stmt::Eval {
+                expr: Expr::Call(f, _), ..
+            } if f.sub.is_none() && matches!(f.base.as_str(), "WRITEEXCEL" | "WRITEPRN" | "APPENDPRN" | "WRITEBMP") => {
+                // A write to a file: nothing the sheet computes depends on it, and it cannot be done here.
+                shape = "other";
+                self.issue(Code::FileOutput, Some(f.base.clone()));
+                let saved = std::mem::take(&mut self.cur);
+                self.io_args = true;
+                self.readable = true;
+                let text = match &m.stmt {
+                    Stmt::Define {
+                        target: Target::Var(n),
+                        value,
+                        ..
+                    } => {
+                        format!("{} := {}", n.flat(), self.expr(value).s)
+                    }
+                    Stmt::Eval { expr, .. } => self.expr(expr).s,
+                    _ => String::new(),
+                };
+                self.readable = false;
+                self.io_args = false;
+                self.cur = saved;
+                emitted = Some(
+                    self.typeset_gap(&m.stmt)
+                        .unwrap_or_else(|| format!("'<p><i>{}</i></p>", mathml::esc(&text.replace('\'', "\u{2019}")))),
+                );
+            }
             Stmt::Define { target, value, global } => {
                 shape = if matches!(target, Target::Func(..)) {
                     "function"
@@ -4577,6 +5225,7 @@ impl Tr {
                         }
                         match self.lower_program(statements.unwrap_or_default(), &flat) {
                             Ok((text, is_array)) => {
+                                matrix_def = returns_matrix(statements.unwrap_or_default());
                                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
                                     emitted = Some(text);
                                 } else {
@@ -4605,35 +5254,38 @@ impl Tr {
                                 }
                             }
                         }
-                        if let (
-                            Expr::Range {
-                                first,
-                                second: None,
-                                last,
-                            },
-                            true,
-                        ) = (value, valid_ident(&flat))
-                        {
+                        if let (Expr::Range { first, second, last }, true) = (value, valid_ident(&flat)) {
                             // The bounds are rendered now, as the source reads them now; a range whose
                             // bounds do not convert is a gap like any other region.
                             let mark = self.cur.len();
                             let a = self.expr(first).s;
                             let z = self.expr(last).s;
+                            let step = second.as_ref().map(|b| format!("(({}) - ({a}))", self.expr(b).s));
                             let bad = self.cur[mark..].iter().any(|p| p.code.severity() == Severity::Gap);
                             self.cur.truncate(mark);
-                            if !bad {
-                                let lit = match (&**first, &**last) {
-                                    (Expr::Num(x), Expr::Num(y)) => match (is_int_literal(x), is_int_literal(y)) {
-                                        (Some(x), Some(y)) if x <= y => Some((x, y)),
-                                        _ => None,
-                                    },
+                            // A step of zero never reaches the end: not a range.
+                            let zero_step = match (&**first, second.as_deref()) {
+                                (Expr::Num(a), Some(Expr::Num(b))) => {
+                                    matches!((a.trim().parse::<f64>(), b.trim().parse::<f64>()), (Ok(x), Ok(y)) if x == y)
+                                }
+                                _ => false,
+                            };
+                            if !bad && !zero_step {
+                                let lit = match (&**first, &**last, second) {
+                                    (Expr::Num(x), Expr::Num(y), None) => {
+                                        match (is_int_literal(x), is_int_literal(y)) {
+                                            (Some(x), Some(y)) if x <= y => Some((x, y)),
+                                            _ => None,
+                                        }
+                                    }
                                     _ => None,
                                 };
-                                range_def = Some((flat.clone(), RangeInfo { a, z, lit }));
+                                range_def = Some((flat.clone(), RangeInfo { a, z, lit, step }));
                             }
                         }
                         let text_def = range_def.is_none() && self.is_stringy(value);
                         let text_codes = if text_def { self.str_domain(value) } else { Vec::new() };
+                        self.next_mixed = text_def && self.is_mixed(value);
                         let labels = matches!(value, Expr::Matrix { items, .. } if items.iter().any(|i| matches!(i, Expr::Str(_))));
                         self.str_mat_ok = labels;
                         let rhs = if range_def.is_some() {
@@ -4647,6 +5299,7 @@ impl Tr {
                         }
                         str_var_def = Some((flat.clone(), text_def.then_some(text_codes)));
                         let is_array = self.yields_array(value);
+                        matrix_def = literal_matrix(value);
                         if let Some((_, info)) = &range_def {
                             let (a, z) = (&info.a, &info.z);
                             self.issue(Code::RangeLoop, Some(format!("{flat} = {a} .. {z}")));
@@ -4671,6 +5324,13 @@ impl Tr {
                         if !valid_ident(&flat) {
                             self.issue(Code::InvalidName, Some(flat.clone()));
                         }
+                        if self.funcs.contains_key(&flat) {
+                            // Defined before: this definition is a function of its own for the engine.
+                            self.prog_n += 1;
+                            let k = self.prog_n;
+                            self.fn_alias
+                                .insert(flat.clone(), format!("{}_v{k}", Self::engine_fn(&flat)));
+                        }
                         let mut plist = Vec::new();
                         for p in params {
                             let pf = tables::normalise_name(&p.flat());
@@ -4686,6 +5346,11 @@ impl Tr {
                             let d = self.str_domain(value);
                             str_fn_def = Some((flat.clone(), d));
                         }
+                        if fn_program.is_none() {
+                            self.fn_defs.insert(flat.clone(), (plist.clone(), value.clone()));
+                        } else {
+                            self.fn_defs.remove(&flat);
+                        }
                         let rhs = match fn_program {
                             Some(stmts) => match self.lower_fn_block(stmts) {
                                 Ok(t) => atom(t),
@@ -4697,7 +5362,7 @@ impl Tr {
                             None => self.str_or_expr(value),
                         };
                         self.params.clear();
-                        let head = format!("{}({})", Self::engine_fn(&flat), plist.join("; "));
+                        let head = format!("{}({})", self.fn_name(&flat), plist.join("; "));
                         if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
                             emitted = Some(format!("{} = {}", head, rhs.s));
                             plain_def = true;
@@ -4735,6 +5400,20 @@ impl Tr {
                                     attempt = Some(text);
                                 }
                             }
+                            _ if fn_program.is_some() && distinct && flats.iter().all(|f| valid_ident(f)) => {
+                                match self.multi_from_program(fn_program.unwrap_or_default(), &flats) {
+                                    Ok(parts) => {
+                                        let text = parts.join("\n");
+                                        if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
+                                            emitted = Some(text);
+                                            multi_names = flats.clone();
+                                        } else {
+                                            attempt = Some(text);
+                                        }
+                                    }
+                                    Err(why) => self.issue(Code::ProgramBlock, Some(why)),
+                                }
+                            }
                             _ => self.issue(
                                 Code::BadStructure,
                                 Some("matrix of names as a definition target".into()),
@@ -4746,6 +5425,25 @@ impl Tr {
                                 .map(|b| tables::normalise_name(&b.flat()))
                                 .filter(|f| valid_ident(f)),
                         );
+                    }
+                    Target::Slice { base, index, row } => {
+                        let flat = tables::normalise_name(&base.flat());
+                        if valid_ident(&flat) {
+                            define_name = Some((flat.clone(), None, true));
+                        }
+                        match self.slice_assign(base, index, *row, value) {
+                            Ok((text, labels)) => {
+                                if labels {
+                                    str_mat_def = Some(flat.clone());
+                                }
+                                if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
+                                    emitted = Some(text);
+                                } else {
+                                    attempt = Some(text);
+                                }
+                            }
+                            Err(why) => self.issue(Code::ElementAssignment, Some(why)),
+                        }
                     }
                     Target::Element { base, index } => {
                         let flat = base
@@ -4814,27 +5512,47 @@ impl Tr {
                         // One element of a vector that has a value, at an index that is not a loop: the
                         // vector grows (zeros) when the index is past its end, then the element is set.
                         let grow = match (&flat, &ranges) {
-                            (Some(f), None) if index.len() == 1 && self.arrays.contains(f) => Some(f.clone()),
+                            (Some(f), None)
+                                if (index.len() == 1 || index.len() == 2)
+                                    && self.arrays.contains(f)
+                                    && index.iter().chain(std::iter::once(value)).all(|e| !self.reads_range(e)) =>
+                            {
+                                Some(f.clone())
+                            }
                             _ => None,
                         };
                         if let Some(f) = grow {
-                            let idx = self.index_expr(&index[0]);
+                            let idx: Vec<String> = index.iter().map(|e| self.index_expr(e)).collect();
                             let rhs = self.expr(value);
                             let pre = std::mem::take(&mut self.hoisted);
+                            let at = idx.join("; ");
                             if !pre.is_empty() {
                                 self.issue(
                                     Code::ElementAssignment,
                                     Some("the value indexes the result of a call".to_string()),
                                 );
+                            } else if self.yields_array(value) {
+                                self.issue(
+                                    Code::ElementAssignment,
+                                    Some(
+                                        "the value is an array, which one element of an array cannot hold".to_string(),
+                                    ),
+                                );
                             } else if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
-                                emitted = Some(format!(
-                                    "#hide\n{f} = resize({f}; max(len({f}); {idx}))\n#show\n{f}.({idx}) = {}",
-                                    rhs.s
-                                ));
+                                // The new size is taken from the old one and the index before either changes.
+                                let grown = if idx.len() == 1 {
+                                    format!("{f} = resize({f}; max(len({f}); {}))", idx[0])
+                                } else {
+                                    format!(
+                                        "{f} = mresize({f}; max(n_rows({f}); {}); max(n_cols({f}); {}))",
+                                        idx[0], idx[1]
+                                    )
+                                };
+                                emitted = Some(format!("#hide\n{grown}\n#show\n{f}.({at}) = {}", rhs.s));
                                 elem_def = true;
                                 self.elem_built.remove(&f);
                             } else {
-                                attempt = Some(format!("{f}.({idx}) = {}", rhs.s));
+                                attempt = Some(format!("{f}.({at}) = {}", rhs.s));
                             }
                         } else {
                             let literal = match (&flat, &lits) {
@@ -4898,7 +5616,47 @@ impl Tr {
                                         });
                                     }
                                 }
+                                // An array in each element (`v[k] := f(k)` with a vector value) is a matrix with
+                                // one row per element.
+                                let nested_plan = match &flat {
+                                    Some(f) if index.len() == 1 && self.yields_array(value) => self
+                                        .fill_plan(&flat, index, value, true)
+                                        .filter(|(_, fresh)| *fresh || self.nested.contains(f)),
+                                    _ => None,
+                                };
                                 match (why, flat, ranges) {
+                                    (_, Some(f), _) if nested_plan.is_some() => {
+                                        let (rs, fresh) = nested_plan.unwrap_or_default();
+                                        for (iv, _) in &rs {
+                                            self.params.push(iv.clone());
+                                        }
+                                        let rhs = self.expr(value);
+                                        let idx: Vec<String> = index.iter().map(|e| self.index_expr(e)).collect();
+                                        for _ in &rs {
+                                            self.params.pop();
+                                        }
+                                        let pre = std::mem::take(&mut self.hoisted);
+                                        if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
+                                            match self.nested_fill_loops(&f, &rs, &idx[0], &rhs.s, &pre, fresh) {
+                                                Ok(t) => {
+                                                    self.elem_built.remove(&f);
+                                                    self.nested.insert(f.clone());
+                                                    emitted = Some(t);
+                                                    elem_def = true;
+                                                    self.issue(
+                                                        Code::RangeLoop,
+                                                        Some(format!(
+                                                            "element assignment over {}: each element is an array, kept as a row of a matrix",
+                                                            rs.iter().map(|r| r.0.as_str()).collect::<Vec<_>>().join(", ")
+                                                        )),
+                                                    );
+                                                }
+                                                Err(w) => self.issue(Code::ElementAssignment, Some(w)),
+                                            }
+                                        } else {
+                                            attempt = Some(format!("{f}.({}) = {}", idx.join("; "), rhs.s));
+                                        }
+                                    }
                                     (Some(_), Some(f), _) if plan.is_some() => {
                                         let (rs, fresh) = plan.unwrap_or_default();
                                         for (iv, _) in &rs {
@@ -4996,12 +5754,29 @@ impl Tr {
                     emitted = Some(self.table_loops(&iv, &info, &e.s, &pre, &tail));
                 }
             }
+            Stmt::Eval {
+                expr: Expr::Name(vn),
+                unit: None,
+            } if !self.readable
+                && self.text_vecs.contains_key(&tables::normalise_name(&vn.flat()))
+                && self.defined.contains(&tables::normalise_name(&vn.flat())) =>
+            {
+                // A vector of texts (held as codes): the texts are printed, not the codes.
+                shape = "evaluation";
+                let flat = tables::normalise_name(&vn.flat());
+                let head = self.typeset_eval_head(&Expr::Name(vn.clone()));
+                let domain = self.text_vecs.get(&flat).cloned().unwrap_or_default();
+                let lines = self.text_vec_lines(head.as_deref(), &flat, &vn.flat(), &domain);
+                raw_out = Some(lines);
+                emitted = Some(String::new());
+            }
             Stmt::Eval { expr, unit: None } if self.is_stringy(expr) && !self.readable => {
                 shape = "evaluation";
                 let domain = self.str_domain(expr);
+                let mixed = self.is_mixed(expr);
                 let code = self.str_or_expr(expr).s;
                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
-                    str_eval = Some((code.clone(), domain));
+                    str_eval = Some((code.clone(), domain, mixed));
                     emitted = Some(code);
                 } else {
                     attempt = Some(code);
@@ -5054,7 +5829,12 @@ impl Tr {
                     attempt = Some(text);
                 }
             }
-            Stmt::Bare(Expr::Str(text)) => {
+            Stmt::Bare(Expr::Str(text))
+                if !m
+                    .control
+                    .as_ref()
+                    .is_some_and(|c| matches!(c.kind.as_str(), "button" | "check box")) =>
+            {
                 // A text on its own is a label the author put in a math region.
                 shape = "expression";
                 let t: String = text
@@ -5082,6 +5862,53 @@ impl Tr {
                 self.cur = saved;
                 attempt = Some(text);
             }
+            Stmt::Bare(_)
+                if m.control
+                    .as_ref()
+                    .is_some_and(|c| matches!(c.kind.as_str(), "button" | "check box")) =>
+            {
+                // A button runs a script when it is pressed; here it is the label it carried.
+                shape = "expression";
+                let cap = m.control.as_ref().and_then(|c| c.caption.clone()).unwrap_or_default();
+                emitted = Some(format!("'<p><i>[{}]</i></p>", mathml::esc(&cap)));
+            }
+            Stmt::Bare(expr) if m.saved_result.is_none() && !is_relation(expr) && mentions_a_name(expr) => {
+                shape = "expression";
+                // A name or an expression on its own, with no result saved: the source shows it and
+                // computes nothing (a label, or a quantity written beside an input). It is shown as
+                // written, unless it holds something that is a gap of its own (a solve keyword, an
+                // element the importer does not know).
+                let mark = self.cur.len();
+                let e = self.expr(expr);
+                let only_names = self.cur[mark..].iter().all(|p| {
+                    p.code.severity() != Severity::Gap
+                        || matches!(
+                            p.code,
+                            Code::UndefinedVariable
+                                | Code::DependsOnGap
+                                | Code::AddinFunction
+                                | Code::ReferenceFunction
+                                | Code::RangeVariable
+                                | Code::StringValue
+                        )
+                });
+                if only_names {
+                    self.cur.truncate(mark);
+                    self.issue(Code::InertExpression, None);
+                    let saved = std::mem::take(&mut self.cur);
+                    self.readable = true;
+                    let text = self.expr(expr).s.replace(" ≡ ", " = ");
+                    self.readable = false;
+                    self.cur = saved;
+                    emitted =
+                        Some(self.typeset_gap(&m.stmt).unwrap_or_else(|| {
+                            format!("'<p><i>{}</i></p>", mathml::esc(&text.replace('\'', "\u{2019}")))
+                        }));
+                } else {
+                    self.issue(Code::BareExpression, None);
+                    attempt = Some(e.s);
+                }
+            }
             Stmt::Bare(expr) => {
                 shape = "expression";
                 let e = self.expr(expr);
@@ -5098,10 +5925,12 @@ impl Tr {
             // Data read from the workbook an input component saved.
             self.issue(Code::FrozenValue, None);
             self.report.frozen_values += 1;
-            let note = format!(
-                "'<small><i>R{}: value taken from the saved workbook of an input component (frozen, not live)</i></small>",
-                sanitize_id(&r.id)
-            );
+            let what = if m.solve.is_some() {
+                "solve block: the unknowns take the values the file saved for the solution (frozen, not live)"
+            } else {
+                "value taken from the saved workbook of an input component (frozen, not live)"
+            };
+            let note = format!("'<small><i>R{}: {what}</i></small>", sanitize_id(&r.id));
             emitted = emitted.map(|e| format!("{note}\n{e}"));
             plain_def = false;
         }
@@ -5184,6 +6013,7 @@ impl Tr {
                     str_var_def = None;
                     str_mat_def = None;
                     if matches!(saved, Expr::Str(_)) {
+                        self.next_mixed = false;
                         let d = self.str_domain(saved);
                         str_var_def = Some((flat.clone(), Some(d)));
                     } else if matches!(saved, Expr::Matrix { items, .. } if items.iter().any(|i| matches!(i, Expr::Str(_))))
@@ -5238,12 +6068,23 @@ impl Tr {
                     )
                 });
                 let text = match &str_eval {
-                    Some((code, domain)) => {
+                    _ if raw_out.is_some() => raw_out.take().unwrap_or_default(),
+                    Some((code, domain, mixed)) => {
                         let head = match &m.stmt {
                             Stmt::Eval { expr, .. } => self.typeset_eval_head(expr),
                             _ => None,
                         };
-                        self.str_result_lines(head.as_deref().unwrap_or(""), code, domain)
+                        let texts = self.str_result_lines(head.as_deref().unwrap_or(""), code, domain);
+                        if *mixed {
+                            // A number on the other paths: printed as any number is.
+                            let number = self.present(m, shape, plain_def, elem_def, multi_def, line);
+                            match texts.strip_suffix("#end if") {
+                                Some(t) => format!("{t}#else\n{number}\n#end if"),
+                                None => texts,
+                            }
+                        } else {
+                            texts
+                        }
                     }
                     None => self.present(m, shape, plain_def, elem_def, multi_def, line),
                 };
@@ -5254,6 +6095,11 @@ impl Tr {
                 self.lines.push(text);
             }
             for name in &multi_names {
+                if matrix_def {
+                    self.matrices.insert(name.clone());
+                } else {
+                    self.matrices.remove(name);
+                }
                 self.ranges.remove(name);
                 self.gap_names.remove(name);
                 self.funcs.remove(name);
@@ -5299,6 +6145,11 @@ impl Tr {
                     self.arrays.insert(name.clone());
                 } else {
                     self.arrays.remove(&name);
+                }
+                if matrix_def {
+                    self.matrices.insert(name.clone());
+                } else {
+                    self.matrices.remove(&name);
                 }
                 // Texts: the name holds one now, or no longer does.
                 self.str_vars.remove(&name);
@@ -5863,14 +6714,21 @@ fn rename_unit_clashes(sheet: &mut Sheet) -> HashMap<String, String> {
 pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportReport, Vec<Asset>) {
     let mut renamed = rename_unit_clashes(&mut sheet);
     renamed.extend(crate::names::rename_invalid(&mut sheet));
+    let text_vecs = crate::textvec::rewrite(&mut sheet);
     let rows = reading_rows(std::mem::take(&mut sheet.regions));
     let has_references = rows.iter().flatten().any(|r| matches!(r.kind, RegionKind::Reference));
+    let cx_any = rows.iter().flatten().any(|r| {
+        matches!(r.kind, RegionKind::Math(_) | RegionKind::Plot(_)) && format!("{:?}", r.kind).contains("\"imag\"")
+    });
     let mut tr = Tr {
         origin: sheet.origin,
         defined: HashSet::new(),
         funcs: HashMap::new(),
-        str_table: Vec::new(),
+        str_table: text_vecs.table,
+        text_vecs: text_vecs.names,
         str_vars: HashMap::new(),
+        str_mixed: HashSet::new(),
+        next_mixed: false,
         str_funcs: HashMap::new(),
         array_funcs: HashSet::new(),
         str_mats: HashSet::new(),
@@ -5894,6 +6752,16 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         locals: HashMap::new(),
         local_arrays: HashSet::new(),
         zero_started: HashSet::new(),
+        partial: HashMap::new(),
+        fn_alias: HashMap::new(),
+        nested: HashSet::new(),
+        fn_defs: HashMap::new(),
+        cx_any,
+        cplx: HashSet::new(),
+        cx_locals: HashSet::new(),
+        matrices: HashSet::new(),
+        cx_matrix: false,
+        solve_cons: Vec::new(),
         col_vecs: HashSet::new(),
         growable: HashSet::new(),
         prologue: Vec::new(),

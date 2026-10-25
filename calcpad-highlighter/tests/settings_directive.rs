@@ -82,3 +82,16 @@ fn val_mathml_is_a_known_boolean_setting() {
     let bad = lint("#settings {\"valMathml\": 3}\nx = 1");
     assert!(bad.diagnostics.iter().any(|d| d.code == "CPD-3413"));
 }
+
+/// The civilkit extension key `unitPerElement` is a known boolean setting; a wrong type still warns.
+#[test]
+fn unit_per_element_is_a_known_boolean_setting() {
+    let ok = lint("#settings {\"unitPerElement\": true}\nx = 1");
+    assert!(
+        !ok.diagnostics.iter().any(|d| d.code == "CPD-3413"),
+        "{:?}",
+        ok.diagnostics
+    );
+    let bad = lint("#settings {\"unitPerElement\": 3}\nx = 1");
+    assert!(bad.diagnostics.iter().any(|d| d.code == "CPD-3413"));
+}

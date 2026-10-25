@@ -29,6 +29,7 @@ fn main() -> ExitCode {
     let opts = calcpad_import::ImportOptions {
         // NO_MATHML=1 checks the typeset-Calcpad display instead of the MathML one.
         mathml: std::env::var_os("NO_MATHML").is_none(),
+        region_markers: true,
         ..Default::default()
     };
     let mut pairs = String::new();
@@ -78,7 +79,7 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-use calcpad_import::ir::{BinOp, Expr, Name, Paragraph, Piece, Region, RegionKind, Run, Stmt, Target};
+use calcpad_import::ir::{BinOp, Expr, Name, Region, RegionKind, Stmt, Target};
 
 /// The unit of a saved result (file spelling: `kilogram/(meter^3)`) as an expression over Calcpad names.
 fn unit_expr(u: &str) -> Option<Expr> {
@@ -129,18 +130,6 @@ fn unit_expr(u: &str) -> Option<Expr> {
     }
 }
 
-fn marker(r: &Region, text: String) -> Region {
-    Region {
-        kind: RegionKind::Text(vec![Paragraph {
-            style: "Normal".into(),
-            pieces: vec![Piece::Run(Run { text, ..Run::default() })],
-            ..Paragraph::default()
-        }]),
-        rendering: None,
-        ..r.clone()
-    }
-}
-
 fn with_probes(regions: Vec<Region>, pairs: &mut String) -> Vec<Region> {
     let mut out = Vec::new();
     for r in regions {
@@ -177,7 +166,6 @@ fn with_probes(regions: Vec<Region>, pairs: &mut String) -> Vec<Region> {
                     sr.value,
                     sr.unit.clone().unwrap_or_default()
                 ));
-                out.push(marker(&r, format!("@@{}@@", r.id)));
                 out.push(Region {
                     kind: RegionKind::Math(m2),
                     ..r
@@ -204,11 +192,11 @@ fn with_probes(regions: Vec<Region>, pairs: &mut String) -> Vec<Region> {
                         frozen: false,
                         precision: None,
                         control: None,
+                        solve: None,
                     }),
                     ..r.clone()
                 };
                 out.push(r.clone());
-                out.push(marker(&r, format!("@@{}@@", r.id)));
                 out.push(probe);
             }
             _ => out.push(r),

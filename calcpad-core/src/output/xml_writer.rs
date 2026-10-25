@@ -450,11 +450,17 @@ impl OutputWriter for XmlWriter {
         let nr = matrix.row_count();
         let nc = matrix.col_count();
         let zero_threshold = get_max_visible_matrix_value(matrix, max_count).0 * 1e-14;
-        let hp = matrix.is_hp();
-        let units = if hp {
+        let is_hp = matrix.is_hp();
+        let common = if is_hp {
+            None
+        } else {
+            super::common_matrix_unit(&self.base, matrix)
+        };
+        let hp = is_hp || common.is_some();
+        let units = if is_hp {
             crate::matrix::hp_matrix::units(matrix)
         } else {
-            None
+            common.clone()
         };
         let fs = units.as_ref().and_then(|u| u.format_string());
         let count = if nc > mc { mc + 2 } else { nc };
@@ -485,7 +491,7 @@ impl OutputWriter for XmlWriter {
                 let s = if !hp {
                     self.format_matrix_value(&matrix.get(i, j), zero_threshold)
                 } else {
-                    let d = matrix.get(i, j).d;
+                    let d = super::scaled_d(&common, &matrix.get(i, j));
                     self.format_real(
                         d,
                         fs.as_deref(),
@@ -514,14 +520,20 @@ impl OutputWriter for XmlWriter {
         if zero_threshold > TOL {
             zero_threshold = TOL;
         }
-        let hp = vector.is_hp();
-        let units = if hp { vector.hp_units() } else { None };
+        let is_hp = vector.is_hp();
+        let common = if is_hp {
+            None
+        } else {
+            super::common_vector_unit(&self.base, vector)
+        };
+        let hp = is_hp || common.is_some();
+        let units = if is_hp { vector.hp_units() } else { common.clone() };
         let fs = units.as_ref().and_then(|u| u.format_string());
         let element = |index: usize| {
             if !hp {
                 self.format_matrix_value(&vector.get(index), zero_threshold)
             } else {
-                let d = vector.get(index).d;
+                let d = super::scaled_d(&common, &vector.get(index));
                 self.format_real(
                     d,
                     fs.as_deref(),
