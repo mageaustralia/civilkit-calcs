@@ -98,6 +98,13 @@ with `civilkit-calcs-engine = "0.1"` in `Cargo.toml`. The crates have their own 
   highlights, and goes to definition, finds references and hovers on a sheet's names; errors and lint markers
   are mapped back to sheet lines; the ribbon and Insert tab insert sheet forms. See
   [docs/sheet-syntax.md](docs/sheet-syntax.md).
+* **Symbolic algebra:** `Functions > Symbolic` simplifies, expands, factors, differentiates, integrates (indefinite or
+  between limits), solves an equation or a linear system of up to four unknowns, substitutes and evaluates one expression.
+  It is exact rational algebra from the `caskit` crate (`1/3` stays `1/3`; a result that does not fit 128 bits is an error),
+  with documented limits: no complex numbers, only `sin`, `cos`, `ln`, `exp` and `sqrt`, a small class of integrands, and
+  solving of degree 1 and 2 only. A refusal is shown in words. The result is typeset and can be copied or inserted into a
+  worksheet or a sheet. The module (290 KB, 122 KB gzipped) loads only when the dialog first runs something. See
+  [caskit/README.md](caskit/README.md) and [docs/caskit.md](docs/caskit.md).
 * **Changelog:** a button on the Resources tab and a link in About open
   [CHANGELOG.md](CHANGELOG.md) on GitHub.
 * **Known deviations** from CalcpadCE's behaviour are listed one by one, with the test that pins
@@ -194,6 +201,7 @@ node e2e/browser-check.mjs        # worksheets through the UI, input forms, file
 node e2e/ribbon-check.mjs --url http://127.0.0.1:4173/ --lint
 node e2e/verify-ribbon-snippets.mjs --cli ../target/release/Cli
 node e2e/import-check.mjs         # Import worksheet: a synthetic .xmcd and .mcdx, pictures, toggles, error paths, drop, save, exports
+node e2e/symbolic-check.mjs       # Symbolic dialog: each operation, typeset results, errors, insert into a worksheet and a sheet, themes, phone width
 node ../tools/set_version.mjs --check
 ```
 

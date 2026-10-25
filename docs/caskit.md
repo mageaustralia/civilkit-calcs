@@ -5,8 +5,9 @@
 formulas that must stay exact and in terms of symbols: rearranging a formula, integrating a bending moment
 twice, solving for the constants of integration.
 
-Status: phase 1. The crate is a workspace member and has tests, but it is not released or published, and
-the web app does not load it yet. Nothing in the engine or the other crates depends on it.
+Status: phase 1. The crate is a workspace member and has tests, but it is not released or published. The web
+app uses it through the Symbolic dialog (see "In the app" below). Nothing in the engine or the other crates
+depends on it.
 
 ## Design
 
@@ -50,5 +51,38 @@ class of integrands, and solving of degree 1 and 2 only.
 
 ## Browser build
 
-The crate has no dependencies and no platform calls, and builds for `wasm32-unknown-unknown`. A
-wasm-bindgen module loaded on demand (like the linear algebra module) is a later step.
+The crate has no dependencies and no platform calls, and builds for `wasm32-unknown-unknown`. The web app
+loads it through `calcpad-caskit-wasm`, a thin wasm-bindgen module with one entry point,
+`run(op, expr, args_json) -> json`, built by `tools/build_wasm.sh caskit` at the `wasm-size` profile
+(290 KB raw, 122 KB gzipped). It runs in a worker (`symbolic-worker.ts`) and is requested only when the
+Symbolic dialog first runs something. The module answers `{"ok": true, "ascii", "latex", "items"}` or
+`{"ok": false, "error"}` with the library's own message; a release wasm build aborts on a panic instead of
+unwinding, so the boundary relies on the library returning errors, which it does for every documented limit.
+
+## In the app
+
+**Functions > Symbolic** opens the Symbolic dialog.
+
+1. Type an expression, or an equation with `=`, in the box. Write `*` for every product, `^` for powers; the
+   functions are `sin`, `cos`, `ln`, `exp`, `sqrt` and the constants are `pi` and `e`. Enter runs; Shift+Enter
+   starts a new line.
+2. Choose the operation. **Simplify**, **Expand** and **Factor** need nothing more. **Differentiate** takes the
+   variable and an order. **Integrate** takes the variable and, for a definite integral, both limits (each an
+   expression such as `0` or `L/2`). **Solve for** takes one variable for an equation (a quadratic or a single
+   power gives both roots), or several variables separated by commas for a linear system whose equations are
+   separated by `;` or new lines. **Substitute** takes `x = 2, b = 3*a` and returns the exact result.
+   **Evaluate** takes a number for every variable and returns a decimal number to 12 digits.
+3. The result is shown typeset (KaTeX, loaded with the result; the text form is shown if it cannot load) and
+   as text, with a **Copy** button for the text.
+4. **Insert into worksheet** writes the result at the cursor of the open worksheet.
+   * In a **Calcpad worksheet**: a calculation line `name = expression` (caskit's text is already Calcpad
+     expression syntax; only a negative exponent gets brackets), or a comment line with the result. Two roots of
+     an equation are numbered `L_1`, `L_2`.
+   * In a **sheet**: a display formula block (`$$ ... $$`, typeset in the preview) or a quantity line
+     `name: expression`.
+
+   A calculation or quantity line is calculated by the engine, so every symbol in it needs a value in the
+   worksheet; use the formula block or the comment to keep a result in terms of symbols.
+
+A refusal is shown in words with the library's message (for example "Cannot integrate: power of a non-linear
+base."); nothing is guessed. The limits are those of the library, listed above.
