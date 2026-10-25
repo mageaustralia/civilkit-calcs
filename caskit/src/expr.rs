@@ -132,7 +132,7 @@ fn num_pow(q: Rat, r: Rat) -> CasResult<Expr> {
     Expr::product(items)
 }
 
-fn split_term(t: Expr) -> (Rat, Expr) {
+pub(crate) fn split_term(t: Expr) -> (Rat, Expr) {
     match t {
         Expr::Num(r) => (r, one()),
         Expr::Mul(mut fs) => {
