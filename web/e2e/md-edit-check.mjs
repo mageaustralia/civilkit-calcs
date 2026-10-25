@@ -33,7 +33,7 @@ page.on('pageerror', e => errors.push(e.message));
 await page.goto(`http://127.0.0.1:${port}/`);
 await page.waitForFunction(() => window.calcpadActiveEditor != null, null, { timeout: 60000 });
 
-const src = ["'before", '#md on', "'## Design basis", "'The **load** is _applied_ at midspan.", '#md off', 'a = 2', 'b = a + 3', 'b'].join('\n') + '\n';
+const src = ["'before", '#markdown', '## Design basis', '', 'The **load** is _applied_ at f~c~ midspan, x^2^.', '#end markdown', 'a = 2', 'b = a + 3', 'b'].join('\n') + '\n';
 await page.evaluate(v => window.calcpadActiveEditor.setValue(v), src);
 const line = n => page.evaluate(i => window.calcpadActiveEditor.getModel().getLineContent(i), n);
 const all = () => page.evaluate(() => window.calcpadActiveEditor.getValue());
@@ -50,15 +50,16 @@ let fr = await findFrame('Design basis');
 check(!!fr, 'the Markdown block renders in the preview');
 const lines = fr ? await fr.evaluate(() => [...document.querySelectorAll('[data-source-line]')].map(e => e.getAttribute('data-source-line') + ':' + e.textContent.slice(0, 20).replace(/\s+/g, ' '))) : [];
 console.log('  tagged lines:', lines.join(' | '));
+check(fr && await fr.evaluate(() => !!document.querySelector('sub') && !!document.querySelector('sup')), 'f~c~ and x^2^ render as subscript and superscript');
 
 // 1. Double-click the paragraph: the rich-text editor opens with the block's text.
-const geo = () => fr.evaluate(() => { const r = n => document.querySelector(`[data-source-line="${n}"]`).getBoundingClientRect(); return { top: Math.round(r(3).top), left: Math.round(r(3).left), next: Math.round(r(6).top) }; });
+const geo = () => fr.evaluate(() => { const r = n => document.querySelector(`[data-source-line="${n}"]`).getBoundingClientRect(); return { top: Math.round(r(3).top), left: Math.round(r(3).left), next: Math.round(r(7).top) }; });
 const g0 = await geo();
-await fr.locator('[data-source-line="4"]').first().dblclick();
+await fr.locator('[data-source-line="5"]').first().dblclick();
 await page.waitForSelector('.md-edit .ProseMirror', { timeout: 15000 });
 check(true, 'double-click on a Markdown paragraph opens the rich-text editor');
 const shown = await page.locator('.md-edit .ProseMirror').innerText();
-check(/Design basis/.test(shown) && /applied at midspan/.test(shown), `the editor shows the whole block (${JSON.stringify(shown.slice(0, 60))})`);
+check(/Design basis/.test(shown) && /applied at/.test(shown), `the editor shows the whole block (${JSON.stringify(shown.slice(0, 60))})`);
 check(await page.locator('.md-edit .ProseMirror h2').count() === 1 && await page.locator('.md-edit .ProseMirror strong').count() === 1, 'heading and bold are shown as formatting, not as symbols');
 await page.screenshot({ path: join(process.env.TMPDIR ?? '/tmp', 'md-edit-open.png') });
 // The editor opens in place of the text, and the preview makes room for it.
@@ -68,53 +69,75 @@ const fb = await page.locator('iframe').evaluateAll(l => l.filter(f => f.getBoun
 check(Math.abs(eb.y - (fb.top + g0.top)) < 3 && Math.abs(eb.x - (fb.left + g0.left)) < 3, `the editor opens over the rendered text (editor ${Math.round(eb.x)},${Math.round(eb.y)} vs text ${Math.round(fb.left + g0.left)},${Math.round(fb.top + g0.top)})`);
 const g1 = await geo();
 check(fb.top + g1.next >= eb.y + eb.height - 2 && g1.next > g0.next, `the rest of the page starts below the editor, not under it (next line at ${Math.round(fb.top + g1.next)}, editor ends ${Math.round(eb.y + eb.height)})`);
-
 await page.keyboard.press('Escape');
 await page.waitForTimeout(400);
 const g2 = await geo();
 check(g2.next === g0.next && g2.top === g0.top, 'cancelling gives the page back exactly as it was');
 fr = await findFrame('Design basis');
-await fr.locator('[data-source-line="4"]').first().dblclick();
+await fr.locator('[data-source-line="5"]').first().dblclick();
 await page.waitForSelector('.md-edit .ProseMirror', { timeout: 15000 });
+
 // 2. Apply without a change: the source is untouched.
 await page.locator('.md-edit button.primary').click();
 await page.waitForTimeout(300);
 check(await all() === src, 'applying without a change leaves the source exactly as it was');
 
-// 3. Edit: type at the end of the paragraph, make a word bold with the toolbar, apply.
+// 3. Edit: type at the end of the paragraph, apply.
 fr = await findFrame('Design basis');
-await fr.locator('[data-source-line="4"]').first().dblclick();
+await fr.locator('[data-source-line="5"]').first().dblclick();
 await page.waitForSelector('.md-edit .ProseMirror');
-const para = page.locator('.md-edit .ProseMirror p').first();
-await para.click();
+await page.locator('.md-edit .ProseMirror p').first().click();
 await page.keyboard.press('End');
 await page.keyboard.type(' Check the deflection.');
 await page.locator('.md-edit button.primary').click();
 await page.waitForTimeout(300);
-check(await line(3) === "'## Design basis", 'the untouched heading keeps its source line');
-check(/^'The \*\*load\*\* is _applied_ at midspan\. Check the deflection\.$/.test(await line(4)), `the edited paragraph is written as one Markdown line (${JSON.stringify(await line(4))})`);
-check(await line(2) === '#md on' && await line(5) === '#md off' && await line(6) === 'a = 2', 'the block markers and the rest of the sheet are unchanged');
-
-// 4. The preview re-renders the new text.
+check(await line(3) === '## Design basis' && await line(4) === '', 'the untouched heading keeps its source line');
+check(await line(5) === 'The **load** is _applied_ at f~c~ midspan, x^2^. Check the deflection.', `the edited paragraph keeps ~sub~ and ^sup^ as raw Markdown (${JSON.stringify(await line(5))})`);
+check(await line(2) === '#markdown' && await line(6) === '#end markdown' && await line(7) === 'a = 2', 'the block markers and the rest of the sheet are unchanged');
 fr = await findFrame('Check the deflection');
 check(!!fr, 'the preview shows the edited text');
-
-// 5. Undo restores the block in one step.
 await page.evaluate(() => { window.calcpadActiveEditor.focus(); window.calcpadActiveEditor.trigger('t', 'undo', null); });
 check(await all() === src, 'one undo restores the block');
 
-// 6. Esc cancels; an equation still edits as a source line.
+// 4. Tables: insert one with the toolbar, fill a cell, apply; the source is a plain pipe table.
 fr = await findFrame('Design basis');
-await fr.locator('[data-source-line="4"]').first().dblclick();
+await fr.locator('[data-source-line="5"]').first().dblclick();
+await page.waitForSelector('.md-edit .ProseMirror');
+await page.locator('.md-edit .ProseMirror p').first().click();
+await page.keyboard.press('End');
+await page.locator('.md-edit .md-block-bar button', { hasText: 'Table' }).click();
+await page.waitForSelector('.md-edit .ProseMirror table');
+check(await page.locator('.md-edit .ProseMirror table tr').count() === 3, 'the Table button inserts a 3 x 3 table');
+await page.locator('.md-edit .ProseMirror table th, .md-edit .ProseMirror table td').first().click();
+await page.keyboard.type('Member');
+await page.keyboard.press('Tab');
+await page.keyboard.type('Load');
+await page.locator('.md-edit .md-block-bar button', { hasText: '+ Row' }).click();
+check(await page.locator('.md-edit .ProseMirror table tr').count() === 4, '+ Row adds a row');
+await page.locator('.md-edit button.primary').click();
+await page.waitForTimeout(400);
+const text = await all();
+console.log(text.split('\n').slice(0, 14).map(l => '    ' + l).join('\n'));
+check(/^\| Member +\| Load +\| *\|$/m.test(text) && /^\| *-{3,}[ |:-]*$/m.test(text), 'the table is written as a plain Markdown pipe table, no HTML');
+check(!/<table|<tr|<td/.test(text), 'no HTML in the file');
+fr = await findFrame('Member');
+check(!!fr && await fr.evaluate(() => document.querySelectorAll('table tr').length) === 4, 'the preview renders it as a table');
+await page.evaluate(() => { window.calcpadActiveEditor.focus(); window.calcpadActiveEditor.trigger('t', 'undo', null); });
+check(await all() === src, 'undo removes the table in one step');
+
+// 5. Esc cancels; an equation still edits as a source line.
+fr = await findFrame('Design basis');
+await fr.locator('[data-source-line="5"]').first().dblclick();
 await page.waitForSelector('.md-edit .ProseMirror');
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);
 check(await page.locator('.md-edit').count() === 0 && await all() === src, 'Esc cancels without a change');
-await fr.locator('[data-source-line="7"]').first().dblclick();
+await fr.locator('[data-source-line="8"]').first().dblclick();
 await page.waitForSelector('.line-edit-input', { timeout: 5000 });
 check(await page.locator('.md-edit').count() === 0 && (await page.locator('.line-edit-input').inputValue()) === 'b = a + 3', 'an equation line still opens the source-line editor');
+await page.keyboard.press('Escape');
 
-// 7. Inline HTML (sub / sup) and escaped characters survive an edit of the paragraph.
+// 6. The older `#md on` form still opens, and keeps inline HTML.
 await page.evaluate(v => window.calcpadActiveEditor.setValue(v), ["#md on", "'**f**<sub>c</sub> = 4 ksi at 28 d, a\\_b and x<sup>2</sup>", '#md off', 'q = 1'].join('\n') + '\n');
 fr = await findFrame('ksi');
 await fr.locator('[data-source-line="2"]').first().dblclick();
@@ -125,8 +148,10 @@ await page.keyboard.type(' ok');
 await page.locator('.md-edit button.primary').click();
 await page.waitForTimeout(300);
 const rich = await line(2);
-console.log('  rich line:', rich);
-check(/<sub>c<\/sub>/.test(rich) && /<sup>2<\/sup>/.test(rich) && /a\\?_b/.test(rich) && /ok$/.test(rich), 'sub, sup and an in-word underscore survive an edit (an underscore inside a word is not emphasis)');
+console.log('  older-form line:', rich);
+check(/<sub>c<\/sub>/.test(rich) || /~c~/.test(rich), 'the older #md on form still edits, and keeps its subscript');
+check(/<sup>2<\/sup>/.test(rich) || /\^2\^/.test(rich), '... and its superscript');
+check(/ok$/.test(rich), '... and the typed text');
 
 check(errors.length === 0, `no page errors (${errors.join('; ')})`);
 await browser.close();

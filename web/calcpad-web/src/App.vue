@@ -605,7 +605,7 @@
 const appVersion = import.meta.env.VITE_APP_VERSION as string
 const upstreamVersion = import.meta.env.VITE_UPSTREAM_VERSION as string
 import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
-import { findMdBlock, fromMarkdown, toMarkdown } from './editor/md-block'
+import { findMdBlock, fromMarkdown, toMarkdown, type MdBlock } from './editor/md-block'
 import {
   extractBodyHtml,
   isCompiledPath,
@@ -1013,7 +1013,7 @@ const onLineEditRequest = ref<{
 
 // Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
-interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; on: number; off: number; paragraphs: string[]; markdown: string; error: string }
+interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
 
 // ---- Editing in place: the editor sits where the rendered text was, and the preview makes room ----
@@ -1030,7 +1030,15 @@ function trackEdit(frameId: string, from: number, to: number): void {
   void nextTick(() => {
     const el = document.querySelector<HTMLElement>('.line-edit')
     if (!el || !editHold) return
-    const send = () => sendToFrame(frameId, { type: 'cpdEditHold', from, to, height: el.offsetHeight })
+    const send = () => {
+      sendToFrame(frameId, { type: 'cpdEditHold', from, to, height: el.offsetHeight })
+      // An editor opened low on the page scrolls the preview up so its buttons stay on screen.
+      requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect()
+        const over = r.bottom - (window.innerHeight - 12)
+        if (over > 0 && r.top > 8) sendToFrame(frameId, { type: 'cpdEditScroll', by: Math.min(over, r.top - 8) })
+      })
+    }
     editWatch = new ResizeObserver(send)
     editWatch.observe(el)
     send()
@@ -1063,14 +1071,15 @@ function closeMdEdit(): void {
 function applyMdEdit(baseline: string, edited: string): void {
   const st = mdEdit.value
   if (!st) return
-  const next = fromMarkdown(st.paragraphs, baseline, edited)
+  const next = fromMarkdown(st.block, baseline, edited)
   if (!next) {
-    st.error = 'a code block cannot be written as one line; remove it to apply'
+    st.error = 'this older text block holds one paragraph per line, so it cannot hold a table or code block'
     return
   }
   untrackEdit()
   mdEdit.value = null
-  onLineEditRequest.value?.replace?.(st.groupId, st.on + 1, st.off - 1, next.map(l => "'" + l))
+  const lines = st.block.kind === 'comment' ? next.map(l => "'" + l) : next
+  onLineEditRequest.value?.replace?.(st.groupId, st.block.on + 1, st.block.off - 1, lines)
 }
 
 interface LineEditState { x: number; y: number; w: number; frameId: string; to: number; groupId: string; line: number; text: string; note: string }
@@ -1118,7 +1127,7 @@ function openLineEdit(groupId: string, frameId: string, data: Record<string, unk
   const block = all ? findMdBlock(all, line) : null
   if (block && req.replace) {
     lineEdit.value = null
-    mdEdit.value = { x, y, w, frameId, groupId, on: block.on, off: block.off, paragraphs: block.paragraphs, markdown: toMarkdown(block.paragraphs), error: '' }
+    mdEdit.value = { x, y, w, frameId, groupId, block, markdown: toMarkdown(block), error: '' }
     trackEdit(frameId, block.on + 1, block.off - 1)
     return
   }
@@ -2083,6 +2092,7 @@ function injectLineLinks(
     "    var d = e.data;",
     "    if (!d || typeof d !== 'object') return;",
     "    if (d.type === 'cpdEditRelease') { releaseHold(); return; }",
+    "    if (d.type === 'cpdEditScroll') { if (window.__calcpadReleaseScroll) window.__calcpadReleaseScroll(); window.scrollBy(0, Number(d.by) || 0); return; }",
     "    if (d.type !== 'cpdEditHold') return;",
     "    var keep = held && held[0].from === d.from ? held[0] : null;",
     "    if (!keep) {",
