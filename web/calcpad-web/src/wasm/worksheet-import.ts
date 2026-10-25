@@ -26,6 +26,9 @@ export interface ImportOptionsJson {
     savedResults: boolean;
     assetPrefix: string;
     convertMetafiles?: boolean;
+    tidy?: boolean;
+    markdown?: boolean;
+    mathml?: boolean;
 }
 
 /** Human wording for the gap codes (the report's own reasons are written for developers). */
@@ -105,12 +108,17 @@ export class WorksheetImporter {
         this.worker = null;
     }
 
-    private post(bytes: Uint8Array, options: ImportOptionsJson): Promise<ImportResult> {
+    private post(bytes: Uint8Array, options: ImportOptionsJson, extra: { op?: 'tidy' | 'markdown'; text?: string } = {}): Promise<ImportResult> {
         return new Promise((resolve, reject) => {
             const id = ++this.seq;
             this.pending.set(id, { resolve, reject });
-            this.start().postMessage({ id, base: this.base, bytes, options: JSON.stringify(options) });
+            this.start().postMessage({ id, base: this.base, bytes, options: JSON.stringify(options), ...extra });
         });
+    }
+
+    /** Tidies Calcpad text, or also writes its simple paragraphs as Markdown. */
+    async transform(op: 'tidy' | 'markdown', text: string): Promise<string> {
+        return (await this.post(new Uint8Array(0), {} as ImportOptionsJson, { op, text })).calcpad;
     }
 
     /**
@@ -150,6 +158,9 @@ interface Session {
     tabId: string;
     pictures: boolean;
     savedResults: boolean;
+    tidy: boolean;
+    markdown: boolean;
+    mathml: boolean;
     paths: Set<string>;
 }
 
@@ -207,7 +218,7 @@ export class WorksheetImport {
         this.busy = true;
         try {
             const bytes = new Uint8Array(await file.arrayBuffer());
-            const session: Session = { name, prefix: `imported/${slug(name)}`, bytes, tabId: '', pictures: true, savedResults: false, paths: new Set() };
+            const session: Session = { name, prefix: `imported/${slug(name)}`, bytes, tabId: '', pictures: true, savedResults: false, tidy: false, markdown: false, mathml: true, paths: new Set() };
             const rep = await this.convert(session, true);
             if (rep) this.showResult(session, rep);
         } catch (e) {
@@ -217,11 +228,38 @@ export class WorksheetImport {
         }
     }
 
+    /** The Import group's Tidy / Markdown commands: rewrite the active worksheet's text (one undo step). */
+    async transformActive(op: 'tidy' | 'markdown'): Promise<void> {
+        const ed = (window as unknown as { calcpadActiveEditor?: {
+            getModel(): { getValue(): string; getFullModelRange(): unknown } | null;
+            executeEdits(source: string, edits: { range: unknown; text: string }[]): boolean;
+            pushUndoStop(): void;
+        } }).calcpadActiveEditor;
+        const model = ed?.getModel();
+        if (!ed || !model) return;
+        try {
+            const next = await this.importer.transform(op, model.getValue());
+            if (next === model.getValue()) {
+                this.message(op === 'tidy' ? 'Tidy text' : 'Text to Markdown', 'Nothing to change in this worksheet.');
+                return;
+            }
+            ed.pushUndoStop();
+            ed.executeEdits(op, [{ range: model.getFullModelRange(), text: next }]);
+            ed.pushUndoStop();
+            this.host.log('info', op === 'tidy' ? 'Tidied the worksheet text.' : 'Wrote the worksheet text as Markdown.');
+        } catch (e) {
+            this.message('Import failed', e instanceof Error ? e.message : String(e));
+        }
+    }
+
     /** Runs the importer and applies the result; returns the report, or null if the file was refused. */
     private async convert(s: Session, first: boolean): Promise<ImportReportJson | null> {
         const { result, report, retried } = await this.importer.run(s.bytes, {
             pictures: s.pictures,
             savedResults: s.savedResults,
+            tidy: s.tidy,
+            markdown: s.markdown,
+            mathml: s.mathml,
             assetPrefix: s.prefix,
         });
         if (report.fatal) {
@@ -348,6 +386,11 @@ export class WorksheetImport {
         };
         toggle('Pictures of unconverted regions', s.pictures, 'data-cprs-import-pictures', v => { s.pictures = v; });
         toggle('Show saved results as static values', s.savedResults, 'data-cprs-import-saved', v => { s.savedResults = v; });
+        // Tidy and Markdown are about reading the source, so they also write equations as plain Calcpad
+        // (typeset MathML is dozens of tags per equation); the equations toggle can put MathML back.
+        toggle('Tidy text (plain paragraphs, no imported fonts or colours)', s.tidy || s.markdown, 'data-cprs-import-tidy', v => { s.tidy = v; s.mathml = !v; if (!v) s.markdown = false; });
+        toggle('Text as Markdown (#md blocks; includes tidy)', s.markdown, 'data-cprs-import-markdown', v => { s.markdown = v; s.tidy = v || s.tidy; if (v) s.mathml = false; });
+        toggle('Equations as plain Calcpad (off: typeset MathML)', !s.mathml, 'data-cprs-import-plain-eq', v => { s.mathml = !v; });
         box.append(toggles);
 
         const note = document.createElement('p');

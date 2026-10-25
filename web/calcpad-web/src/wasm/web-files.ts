@@ -47,7 +47,7 @@ export interface WebFilesOptions {
     /** Saves the report as a Word document. */
     exportDocx?: () => void;
     /** Imports foreign worksheets (.xmcd, .mcdx); see worksheet-import.ts. */
-    importer?: { pick(): Promise<void>; importFile(file: File): Promise<void> };
+    importer?: { pick(): Promise<void>; importFile(file: File): Promise<void>; transformActive(op: 'tidy' | 'markdown'): Promise<void> };
 }
 
 const RECENT_KEY = 'calcpad-rs-recent-files';

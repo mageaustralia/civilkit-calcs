@@ -40,6 +40,7 @@ pub mod report;
 mod solve;
 pub mod tables;
 mod textvec;
+pub mod tidy;
 pub mod translate;
 pub mod xls;
 pub mod xmcd;
@@ -91,6 +92,11 @@ pub struct ImportOptions {
     /// Write the line `'@@<region id>@@` before the output of every region, for tools that compare
     /// the engine's numbers with the results a file saved. Off by default.
     pub region_markers: bool,
+    /// Clean up the text afterwards: drop imported fonts, sizes and colours, turn gap markers into
+    /// short visible notes (see [`tidy::tidy`]). Equations, tables and pictures are untouched.
+    pub tidy: bool,
+    /// Write simple paragraphs as Markdown in `#md on` blocks (implies `tidy`; see [`tidy::markdown`]).
+    pub markdown: bool,
 }
 
 impl Default for ImportOptions {
@@ -105,6 +111,8 @@ impl Default for ImportOptions {
             max_total_asset_bytes: 128 * 1024 * 1024,
             mathml: true,
             region_markers: false,
+            tidy: false,
+            markdown: false,
         }
     }
 }
@@ -241,7 +249,12 @@ pub fn import_sheet(sheet: ir::Sheet) -> ImportResult {
 pub fn import_sheet_opts(sheet: ir::Sheet, opts: &ImportOptions) -> ImportResult {
     let mut opts = opts.clone();
     opts.asset_prefix = clean_prefix(&opts.asset_prefix);
-    let (calcpad, report, assets) = translate::translate(sheet, &opts);
+    let (mut calcpad, report, assets) = translate::translate(sheet, &opts);
+    if opts.markdown {
+        calcpad = tidy::markdown(&calcpad);
+    } else if opts.tidy {
+        calcpad = tidy::tidy(&calcpad);
+    }
     ImportResult {
         calcpad,
         report,

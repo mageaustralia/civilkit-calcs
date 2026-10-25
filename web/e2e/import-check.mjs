@@ -278,6 +278,30 @@ check(!lib2.includes('/imported/synth/R4.png'), 'its picture was removed from th
 await page.locator('[data-cprs-import-saved]').check();
 await page.waitForFunction(() => /saved result/.test(window.calcpadActiveEditor.getValue()), null, { timeout: 30000 });
 check(/saved result from the original, not live \(R4\): 42\.5/.test(await editorText()), 'saved results toggle writes a labelled static value');
+const styledText = (t) => t.split('\n').filter(l => /^'<(p|h[1-6])[ >]/.test(l) && /font-(family|size)/.test(l)).length;
+const before = await editorText();
+check(/import-gap/.test(before), 'before tidy: gap markers are in the text');
+await page.locator('[data-cprs-import-tidy]').check();
+await page.waitForFunction(() => !document.querySelector('[data-cprs-import-tidy]')?.disabled && !/import-gap/.test(window.calcpadActiveEditor.getValue()), null, { timeout: 30000 });
+const tidied = await editorText();
+check(styledText(tidied) === 0 && /Imported test sheet/.test(tidied) && !/#md on/.test(tidied) && /<small><i>/.test(tidied), 'tidy toggle turns gap markers into notes, keeps the text');
+check(!/<math/.test(tidied) && /<math/.test(before), 'tidy also writes equations as plain Calcpad, not MathML');
+await page.locator('[data-cprs-import-markdown]').check();
+await page.waitForFunction(() => /#md on/.test(window.calcpadActiveEditor.getValue()), null, { timeout: 30000 });
+check(/^'# Imported test sheet$/m.test(await editorText()), 'markdown toggle writes a heading as Markdown');
+await page.locator('[data-cprs-import-tidy]').uncheck();
+await page.waitForFunction(() => !/#md on/.test(window.calcpadActiveEditor.getValue()), null, { timeout: 30000 });
+check(/import-gap/.test(await editorText()), 'unticking tidy restores the original text');
+await closeDialog();
+// The same clean-up as ribbon commands on a worksheet that is already open (one undo step each).
+await page.getByRole('button', { name: 'Tidy text' }).first().click();
+await page.waitForFunction(() => !/import-gap/.test(window.calcpadActiveEditor.getValue()), null, { timeout: 30000 });
+check(/<small><i>/.test(await editorText()), 'ribbon Tidy text rewrites the open worksheet');
+await page.getByRole('button', { name: 'Text to Markdown' }).first().click();
+await page.waitForFunction(() => /#md on/.test(window.calcpadActiveEditor.getValue()), null, { timeout: 30000 });
+check(/^'# Imported test sheet$/m.test(await editorText()), 'ribbon Text to Markdown writes Markdown');
+await page.evaluate(() => { window.calcpadActiveEditor.focus(); window.calcpadActiveEditor.trigger('t', 'undo', null); });
+check(!/#md on/.test(await editorText()) && !/import-gap/.test(await editorText()), 'one undo returns to the tidied text');
 const tabsNow = await page.evaluate(() => document.querySelectorAll('.tab, [role=tab]').length);
 await closeDialog();
 

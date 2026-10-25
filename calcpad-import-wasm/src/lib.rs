@@ -3,7 +3,7 @@
 //!
 //! `import_worksheet(bytes, options_json)` returns an [`ImportOut`]: the Calcpad text, the report as JSON
 //! and the picture files. Options (all optional): `pictures`, `mathml`, `savedResults`, `assetPrefix`,
-//! `convertMetafiles`. There are no threads in the browser and no unwinding (`panic = "abort"`), so
+//! `convertMetafiles`, `tidy`, `markdown`. There are no threads in the browser and no unwinding (`panic = "abort"`), so
 //! a worker that sees this module trap restarts it and retries with `convertMetafiles: false`.
 use calcpad_import::{import_bytes, Code, ImportOptions, ImportReport, Severity};
 use serde_json::{json, Map, Value};
@@ -43,6 +43,18 @@ impl ImportOut {
     }
 }
 
+/// Tidies Calcpad text (see `calcpad_import::tidy::tidy`); works on any text.
+#[wasm_bindgen]
+pub fn tidy_text(src: &str) -> String {
+    calcpad_import::tidy::tidy(src)
+}
+
+/// Tidies Calcpad text and writes simple paragraphs as Markdown.
+#[wasm_bindgen]
+pub fn markdown_text(src: &str) -> String {
+    calcpad_import::tidy::markdown(src)
+}
+
 /// Imports the bytes of an `.xmcd` file.
 #[wasm_bindgen]
 pub fn import_worksheet(bytes: &[u8], options_json: &str) -> ImportOut {
@@ -65,6 +77,12 @@ pub fn parse_options(json: &str) -> ImportOptions {
     let v: Value = serde_json::from_str(json).unwrap_or(Value::Null);
     if let Some(b) = v.get("mathml").and_then(Value::as_bool) {
         o.mathml = b;
+    }
+    if let Some(b) = v.get("tidy").and_then(Value::as_bool) {
+        o.tidy = b;
+    }
+    if let Some(b) = v.get("markdown").and_then(Value::as_bool) {
+        o.markdown = b;
     }
     if let Some(b) = v.get("pictures").and_then(Value::as_bool) {
         o.pictures = b;
