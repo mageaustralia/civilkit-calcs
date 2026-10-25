@@ -48,7 +48,7 @@ const NO_VALUE: &str = "\u{1}no-value";
 
 /// The result of running a program symbolically: the expression, and whether some path of the
 /// program gave no value (the source stops there) and was given the value of a neighbouring path.
-fn symexec_program(stmts: &[PStmt], unroll: bool) -> Result<(Expr, bool), String> {
+fn symexec_program(stmts: &[PStmt], unroll: bool, known: &HashSet<String>) -> Result<(Expr, bool), String> {
     let mut budget = if unroll { 600usize } else { 600_000 };
     // A local that is only ever given texts (a message set by `if`s) is the empty text where no
     // `if` set it, so a path no condition covers has a value.
@@ -56,9 +56,21 @@ fn symexec_program(stmts: &[PStmt], unroll: bool) -> Result<(Expr, bool), String
     for name in text_locals(stmts) {
         env.insert(name, Expr::Str(String::new()));
     }
+    // A local the sheet has no name for, read on a path where no statement set it, has no value
+    // there (the source stops).
+    let mut assigned: HashSet<String> = HashSet::new();
+    assigned_names(stmts, &mut assigned);
+    for name in assigned {
+        if !known.contains(&name) && !env.contains_key(&name) {
+            env.insert(name, Expr::Name(Name::new(NO_VALUE)));
+        }
+    }
     let e = symexec(stmts, &env, None, &mut budget, unroll)?;
     let mut uncovered = false;
     match strip_no_value(e, &mut uncovered) {
+        Some(e) if mentions(&e, NO_VALUE) => {
+            Err("a local is used on a path where no statement gave it a value (the source would stop there)".into())
+        }
         Some(e) => Ok((e, uncovered)),
         None => Err("the program does not end with a value".into()),
     }
@@ -848,6 +860,12 @@ struct Tr {
     num_texts: HashSet<String>,
     /// Text boxes that hold no text: `str2num` of one is 0 (the source has no number there).
     empty_texts: HashSet<String>,
+    /// The value the file saved for a name where the sheet evaluates it (`name =`): for a name read
+    /// from a data file, whose own definition keeps no result.
+    saved_by_name: HashMap<String, Expr>,
+    /// Set while the arguments of a function that reads or writes a file are translated: a file
+    /// name is not a text value (the function is the gap).
+    io_args: bool,
     /// Set while a text name or a call of a text function is translated as a text (a leaf of
     /// `str_expr`); anywhere else such a name is a gap, because its code is not a number.
     str_allow: bool,
@@ -970,7 +988,7 @@ impl Tr {
             Expr::Num(s) => self.number(s),
             Expr::Str(s) => {
                 // Shown for reading, a text is the text; it is only a gap where it is computed.
-                if !self.readable && !self.display {
+                if !self.readable && !self.display && !self.io_args {
                     self.issue(Code::StringValue, None);
                 }
                 if self.readable || self.display {
@@ -2953,7 +2971,16 @@ impl Tr {
             let b = self.str_or_expr(&args[2]).s;
             vec![c, a, b]
         } else {
-            self.render_args(args)
+            // The names of the files a read or write names are not text values.
+            let io = n.sub.is_none()
+                && matches!(
+                    flat.as_str(),
+                    "READEXCEL" | "WRITEEXCEL" | "READPRN" | "WRITEPRN" | "APPENDPRN"
+                );
+            self.io_args = io;
+            let r = self.render_args(args);
+            self.io_args = false;
+            r
         };
         // In a plot, a bare 0 branch of `if` is a zero of the other branch's dimension (as in the
         // source); the engine wants both branches in the same units.
@@ -3712,7 +3739,14 @@ impl Tr {
                 let mut fn_program: Option<&[PStmt]> = None;
                 let stub: Expr;
                 let value: &Expr = match value {
-                    Expr::Program(stmts) => match symexec_program(stmts, matches!(target, Target::Func(..))) {
+                    Expr::Program(stmts) => match symexec_program(stmts, matches!(target, Target::Func(..)), &{
+                        let mut known = self.defined.clone();
+                        known.extend(self.ranges.keys().cloned());
+                        if let Target::Func(_, ps) = target {
+                            known.extend(ps.iter().map(|p| tables::normalise_name(&p.flat())));
+                        }
+                        known
+                    }) {
                         Ok((e, uncovered)) => {
                             if uncovered {
                                 self.issue(Code::UncoveredPath, None);
@@ -4256,37 +4290,69 @@ impl Tr {
 
         // A definition that only fails because it reads a name an input component defines is given
         // the value the file saved for it, as a literal, and says so.
+        let saved_here: Option<Expr> = match &m.stmt {
+            Stmt::Define {
+                target: Target::Var(n), ..
+            } => m
+                .saved_expr
+                .clone()
+                .or_else(|| self.saved_by_name.get(&tables::normalise_name(&n.flat())).cloned()),
+            _ => None,
+        };
         if let (
             Stmt::Define {
                 target: Target::Var(n), ..
             },
             Some(saved),
-        ) = (&m.stmt, &m.saved_expr)
+        ) = (&m.stmt, &saved_here)
         {
             let flat = tables::normalise_name(&n.flat());
             let blockers: Vec<&Pending> = self.cur.iter().filter(|p| p.code.severity() == Severity::Gap).collect();
+            // A name an input component defines, or a read of a data file the importer cannot see.
             let only_inputs = !blockers.is_empty()
                 && blockers.iter().all(|p| {
-                    p.code == Code::UndefinedVariable
-                        && p.detail.as_ref().is_some_and(|d| self.component_names.contains(d))
+                    (p.code == Code::UndefinedVariable
+                        && p.detail.as_ref().is_some_and(|d| self.component_names.contains(d)))
+                        || (p.code == Code::BuiltinMissing
+                            && p.detail
+                                .as_deref()
+                                .is_some_and(|d| matches!(d, "READEXCEL" | "READPRN" | "vec2str")))
                 });
             if only_inputs && valid_ident(&flat) {
                 let stash = std::mem::take(&mut self.cur);
-                let v = self.expr(saved);
+                let (saved, empty_cells) = zero_empty_cells(saved);
+                let saved = &saved;
+                self.str_mat_ok = true;
+                let v = self.str_or_expr(saved);
+                self.str_mat_ok = false;
                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
                     self.cur.clear();
                     self.issue(Code::FrozenValue, Some(flat.clone()));
                     self.report.frozen_values += 1;
                     let is_array = matches!(saved, Expr::Matrix { .. })
                         || matches!(saved, Expr::Bin(BinOp::Mul, a, _) if matches!(**a, Expr::Matrix { .. }));
+                    let cells = if empty_cells > 0 {
+                        format!("; {empty_cells} empty cells read as 0")
+                    } else {
+                        String::new()
+                    };
                     emitted = Some(format!(
-                        "'<small><i>R{}: value taken from the saved result of an input component (frozen, not live)</i></small>\n{} = {}",
+                        "'<small><i>R{}: value taken from the saved result of an input component or a data file (frozen, not live{cells})</i></small>\n{} = {}",
                         sanitize_id(&r.id),
                         flat,
                         v.s
                     ));
                     attempt = None;
                     plain_def = false;
+                    str_var_def = None;
+                    str_mat_def = None;
+                    if matches!(saved, Expr::Str(_)) {
+                        let d = self.str_domain(saved);
+                        str_var_def = Some((flat.clone(), Some(d)));
+                    } else if matches!(saved, Expr::Matrix { items, .. } if items.iter().any(|i| matches!(i, Expr::Str(_))))
+                    {
+                        str_mat_def = Some(flat.clone());
+                    }
                     define_name = Some((flat, None, is_array));
                 } else {
                     self.cur = stash;
@@ -4453,6 +4519,37 @@ impl Tr {
         self.flush_issues(&r.id, r.line, None);
         Self::bump_p(&mut self.report.kinds, "math", converted, has_notes, pictured);
         Self::bump_p(&mut self.report.math_shapes, shape, converted, has_notes, pictured);
+    }
+}
+
+/// A stored table with its empty cells (stored as NaN) as 0, and how many there were.
+fn zero_empty_cells(e: &Expr) -> (Expr, usize) {
+    match e {
+        Expr::Num(s) if s == "NaN" => (Expr::Num("0".into()), 1),
+        Expr::Matrix { rows, cols, items } => {
+            let mut n = 0;
+            let items = items
+                .iter()
+                .map(|i| {
+                    let (x, k) = zero_empty_cells(i);
+                    n += k;
+                    x
+                })
+                .collect();
+            (
+                Expr::Matrix {
+                    rows: *rows,
+                    cols: *cols,
+                    items,
+                },
+                n,
+            )
+        }
+        Expr::Bin(op, a, b) => {
+            let (a, n) = zero_empty_cells(a);
+            (Expr::Bin(*op, Box::new(a), b.clone()), n)
+        }
+        other => (other.clone(), 0),
     }
 }
 
@@ -4922,6 +5019,8 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         num_texts: HashSet::new(),
         empty_texts: HashSet::new(),
         str_allow: false,
+        io_args: false,
+        saved_by_name: HashMap::new(),
         gap_names: HashMap::new(),
         arrays: HashSet::new(),
         params: Vec::new(),
@@ -4974,6 +5073,17 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
     };
     for r in rows.iter().flatten() {
         if let RegionKind::Math(m) = &r.kind {
+            if let (
+                Stmt::Eval {
+                    expr: Expr::Name(n), ..
+                },
+                Some(v),
+            ) = (&m.stmt, &m.saved_expr)
+            {
+                tr.saved_by_name
+                    .entry(tables::normalise_name(&n.flat()))
+                    .or_insert_with(|| v.clone());
+            }
             if let Stmt::Eval {
                 expr: Expr::Name(n),
                 unit: Some(u),

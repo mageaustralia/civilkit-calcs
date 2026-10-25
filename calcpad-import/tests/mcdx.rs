@@ -931,7 +931,8 @@ fn a_definition_read_from_an_input_component_takes_the_saved_value() {
     assert_eq!(res.report.frozen_values, 2, "{:?}", res.report.issues);
     assert!(res.report.notes().any(|i| i.code == Code::FrozenValue));
     assert!(
-        res.calcpad.contains("input component (frozen, not live)"),
+        res.calcpad
+            .contains("input component or a data file (frozen, not live)"),
         "{}",
         res.calcpad
     );
@@ -1242,4 +1243,44 @@ fn subscript_and_superscript_runs_are_read_as_text() {
     assert!(l.contains("<sub>cr</sub>") && l.contains("<sup>2</sup>"), "{l}");
     assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
     assert!(!res.report.issues.iter().any(|i| i.code == Code::RichTextElement));
+}
+
+#[test]
+fn a_table_read_from_a_data_file_takes_the_value_saved_where_the_sheet_shows_it() {
+    // T := READEXCEL(file; range) has no result of its own; `T =` further down has the table
+    // (a heading, numbers and an empty cell stored as NaN).
+    let regions = [
+        mregion(
+            1,
+            0.0,
+            r#"<ml:define><ml:id>T</ml:id><ml:apply><ml:id>READEXCEL</ml:id><ml:sequence><ml:str>data.xlsx</ml:str><ml:str>A1:B2</ml:str></ml:sequence></ml:apply></ml:define>"#,
+        ),
+        mregion(2, 20.0, r#"<ml:eval><ml:id>T</ml:id></ml:eval>"#),
+        mregion(
+            3,
+            40.0,
+            r#"<ml:define><ml:id>s</ml:id><ml:apply><ml:indexer/><ml:id>T</ml:id><ml:sequence><ml:real>1</ml:real><ml:real>0</ml:real></ml:sequence></ml:apply></ml:define>"#,
+        ),
+    ]
+    .concat();
+    let mut p = Pkg::new(&regions);
+    p.results = [
+        r#"<resultData result-id="1"/>"#,
+        r#"<resultData result-id="2"><ml:result><ml:matrix rows="2" cols="2"><ml:str>Case</ml:str><ml:real>7</ml:real><ml:real>NaN</ml:real><ml:real>9</ml:real></ml:matrix></ml:result></resultData>"#,
+    ]
+    .concat();
+    let res = p.import();
+    assert_eq!(res.report.frozen_values, 1, "{:?}", res.report.issues);
+    assert!(
+        res.calcpad
+            .contains("data file (frozen, not live; 1 empty cells read as 0)"),
+        "{}",
+        res.calcpad
+    );
+    // The heading is a code, the numbers are the file's.
+    assert!(res.calcpad.contains("T = [1; 7|0; 9]"), "{}", res.calcpad);
+    assert!(!res
+        .report
+        .gaps()
+        .any(|i| i.code == Code::StringValue || i.code == Code::BuiltinMissing));
 }

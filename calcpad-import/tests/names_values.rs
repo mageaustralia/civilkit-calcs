@@ -563,3 +563,27 @@ fn a_block_inside_a_block_runs_in_place_and_many_ifs_do_not_multiply() {
     // The last if that runs is n < 80 (k = 8).
     assert!(engine_text(&res).contains("= 8"));
 }
+
+#[test]
+fn a_local_no_statement_set_has_no_value_on_that_path() {
+    // v is set only for n = 1 or n = 2; the program gives v, so n = 3 has no value.
+    let body = prog(&[
+        iff(&app("equal", &[id("n"), real("1")]), &local("v", &real("10"))),
+        iff(&app("equal", &[id("n"), real("2")]), &local("v", &real("20"))),
+        id("v"),
+    ]);
+    let res = import(&[
+        math(1, 0.0, &define(&id("pick"), &format!("<ml:eval>{body}</ml:eval>"))),
+        math(2, 20.0, &eval(&id("pick"))),
+    ]);
+    // `n` is not defined, so the program reads an undefined name; with it defined the chain is a value.
+    assert!(res.report.regions_needing_attention() > 0);
+    let res = import(&[
+        math(0, 0.0, &define(&id("n"), &real("2"))),
+        math(1, 20.0, &define(&id("pick"), &format!("<ml:eval>{body}</ml:eval>"))),
+        math(2, 40.0, &eval(&id("pick"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.report.notes().any(|i| i.code == Code::UncoveredPath));
+    assert!(engine_text(&res).contains("pick = 20"));
+}

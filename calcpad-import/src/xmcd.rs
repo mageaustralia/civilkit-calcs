@@ -566,19 +566,29 @@ pub(crate) fn read_saved_expr(res: Node) -> Option<Expr> {
             return None;
         }
         let t = n.text()?.trim();
-        (!t.is_empty() && t.len() <= 64 && t.parse::<f64>().map(|v| v.is_finite()).unwrap_or(false))
+        // An empty cell of a table read from a file is stored as NaN; the translator reads it as 0.
+        (!t.is_empty() && t.len() <= 64 && (t == "NaN" || t.parse::<f64>().map(|v| v.is_finite()).unwrap_or(false)))
             .then(|| Expr::Num(t.to_string()))
+    }
+    // A text in a stored matrix (the headings of a table read from a file) or alone.
+    fn text(n: Node) -> Option<Expr> {
+        if local(n) != "str" {
+            return None;
+        }
+        let t = n.text().unwrap_or("");
+        (t.len() <= 200).then(|| Expr::Str(t.to_string()))
     }
     fn plain(n: Node) -> Option<Expr> {
         match local(n) {
             "real" => number(n),
+            "str" => text(n),
             "matrix" => {
                 let rows = n.attribute("rows")?.parse::<usize>().ok()?;
                 let cols = n.attribute("cols")?.parse::<usize>().ok()?;
                 let items: Vec<Expr> = n
                     .children()
                     .filter(|c| c.is_element())
-                    .map(number)
+                    .map(|c| number(c).or_else(|| text(c)))
                     .collect::<Option<_>>()?;
                 (rows >= 1 && cols >= 1 && rows.checked_mul(cols)? == items.len() && items.len() <= 4000)
                     .then_some(Expr::Matrix { rows, cols, items })
