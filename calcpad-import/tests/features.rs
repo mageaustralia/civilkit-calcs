@@ -1544,11 +1544,12 @@ fn nth_root_with_an_empty_degree_is_the_square_root() {
     )]);
     assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
     assert_close(last(&res.calcpad), 5.0);
-    // A degree that is given is not read.
+    // A degree that is given comes first: the cube root of 8 is 2.
     let res = convert(&[eval(
         "<ml:apply><ml:nthRoot/><ml:real>3</ml:real><ml:real>8</ml:real></ml:apply>",
     )]);
-    assert!(res.report.gaps().any(|i| i.code == Code::UnknownElement));
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert_close(last(&res.calcpad), 2.0);
 }
 
 #[test]
