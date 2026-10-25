@@ -142,6 +142,10 @@ fn symexec(
         match st {
             PStmt::Local(PTarget::Var(n), e) => {
                 let v = subst(e, &env).ok_or("a local's value would be captured by an integration variable")?;
+                if rest.is_empty() {
+                    // An assignment that ends the program gives the value it assigned.
+                    cur = Some(v.clone());
+                }
                 env.insert(tables::normalise_name(&n.flat()), v);
             }
             PStmt::Local(PTarget::Element { .. }, _) => {
@@ -160,6 +164,30 @@ fn symexec(
             PStmt::Expr(e) | PStmt::Return(e) => {
                 return subst(e, &env)
                     .ok_or_else(|| "a local's value would be captured by an integration variable".to_string());
+            }
+            PStmt::If { branches, otherwise }
+                if branches.iter().all(|(_, b)| matches!(b.as_slice(), [PStmt::Expr(_)]))
+                    && otherwise
+                        .as_ref()
+                        .is_none_or(|o| matches!(o.as_slice(), [PStmt::Expr(_)])) =>
+            {
+                // Every branch only gives a value: the value so far is that of the branch taken,
+                // or what it was. Nothing is copied for the rest of the program.
+                let value_of = |b: &[PStmt]| match b {
+                    [PStmt::Expr(e)] => subst(e, &env),
+                    _ => None,
+                };
+                let mut value = match otherwise {
+                    Some(o) => value_of(o),
+                    None => Some(cur.clone().unwrap_or_else(|| Expr::Name(Name::new(NO_VALUE)))),
+                }
+                .ok_or("a local's value would be captured by an integration variable")?;
+                for (c, b) in branches.iter().rev() {
+                    let cond = subst(c, &env).ok_or("a condition would capture a local")?;
+                    let v = value_of(b).ok_or("a local's value would be captured by an integration variable")?;
+                    value = Expr::Call(Name::new("if"), vec![cond, v, value]);
+                }
+                cur = Some(value);
             }
             PStmt::If { branches, otherwise } => {
                 let mut arms = Vec::new();

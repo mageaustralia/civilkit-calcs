@@ -781,7 +781,8 @@ fn range_variable_is_a_marked_placeholder_with_downstream_counts() {
 
 #[test]
 fn programs_solve_blocks_and_calculus_are_counted_not_translated() {
-    let program = "<ml:program><ml:localDefine><ml:id>a</ml:id><ml:real>1</ml:real></ml:localDefine></ml:program>";
+    // A program with a statement that gives no value and nothing after it.
+    let program = "<ml:program><ml:break/></ml:program>";
     let res = one(&func("f", &["x"], program));
     assert!(res.report.gaps().any(|i| i.code == Code::ProgramBlock));
     let res = one(&eval(&call("Find", &[n("x")])));

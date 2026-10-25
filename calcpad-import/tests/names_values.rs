@@ -520,3 +520,46 @@ fn a_bare_zero_in_a_sum_takes_the_units_of_the_other_term() {
     let t = engine_text(&res);
     assert!(t.contains("a = \u{2212} 6 in") || t.contains("a = - 6 in"), "{t}");
 }
+
+fn local(name: &str, value: &str) -> String {
+    format!("<ml:localDefine>{}{}</ml:localDefine>", id(name), value)
+}
+
+#[test]
+fn a_program_that_ends_with_an_assignment_gives_that_value() {
+    // k := 2; if n > 1 { k := 3 }; k := k * 10
+    let body = prog(&[
+        local("k", &real("2")),
+        iff(&app("greaterThan", &[id("n"), real("1")]), &local("k", &real("3"))),
+        local("k", &app("mult", &[id("k"), real("10")])),
+    ]);
+    let res = import(&[
+        math(1, 0.0, &fun("h", &["n"], &body)),
+        math(2, 20.0, &eval(&call("h", &[real("5")]))),
+        math(3, 40.0, &eval(&call("h", &[real("0")]))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let t = engine_text(&res);
+    assert!(t.contains("= 30") && t.contains("= 20"), "{t}");
+}
+
+#[test]
+fn a_block_inside_a_block_runs_in_place_and_many_ifs_do_not_multiply() {
+    // Eight value-only ifs in a row, inside a nested block: one expression, not 2^8 paths.
+    let mut stmts = Vec::new();
+    for k in 1..=8 {
+        stmts.push(iff(
+            &app("lessThan", &[id("n"), real(&(k * 10).to_string())]),
+            &real(&k.to_string()),
+        ));
+    }
+    let inner = format!("<ml:program>{}</ml:program>", stmts.concat());
+    let body = prog(&[local("m", &real("1")), inner]);
+    let res = import(&[
+        math(1, 0.0, &fun("q", &["n"], &body)),
+        math(2, 20.0, &eval(&call("q", &[real("35")]))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    // The last if that runs is n < 80 (k = 8).
+    assert!(engine_text(&res).contains("= 8"));
+}

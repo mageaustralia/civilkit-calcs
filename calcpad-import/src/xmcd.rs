@@ -1065,10 +1065,17 @@ fn read_program(n: Node, lim: &Limits, depth: usize) -> Vec<PStmt> {
     if depth > lim.max_depth {
         return vec![PStmt::Unsupported("nested too deeply".into())];
     }
-    ml_kids(n)
-        .into_iter()
-        .map(|k| read_pstmt(unwrap_provenance(k), lim, depth))
-        .collect()
+    let mut out = Vec::new();
+    for k in ml_kids(n) {
+        let k = unwrap_provenance(k);
+        if local(k) == "program" {
+            // A block inside a block runs in place.
+            out.extend(read_program(k, lim, depth + 1));
+        } else {
+            out.push(read_pstmt(k, lim, depth));
+        }
+    }
+    out
 }
 
 /// The statements of the `program` inside a `then`, `else` or loop body element.
