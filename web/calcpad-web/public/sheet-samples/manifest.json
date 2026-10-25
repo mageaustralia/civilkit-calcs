@@ -143,6 +143,20 @@
    "scripts": false,
    "read": false,
    "assets": []
+  },
+  {
+   "id": "sheet-laguerre-roots",
+   "title": "Laguerre polynomial roots",
+   "group": "Sheet syntax",
+   "folder": "Sheet syntax",
+   "file": "sheet-samples/Laguerre polynomial roots.sheet",
+   "upstream": "",
+   "description": "Coefficients from a loop, every real root from one polyroots call, a residual check and the curve.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "assets": []
   }
  ]
 }

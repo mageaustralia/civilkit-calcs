@@ -44,7 +44,7 @@ pub const VECTOR_FUNCTIONS3: [&str; 19] = [
     "lookup_ge",
 ];
 pub const VECTOR_MULTI_FUNCTIONS: [&str; 1] = ["join"];
-pub const MATRIX_FUNCTIONS: [&str; 41] = [
+pub const MATRIX_FUNCTIONS: [&str; 42] = [
     "identity",
     "utriang",
     "ltriang",
@@ -86,6 +86,7 @@ pub const MATRIX_FUNCTIONS: [&str; 41] = [
     "fft",
     "ift",
     "lu",
+    "polyroots",
 ];
 pub const MATRIX_FUNCTIONS2: [&str; 36] = [
     "matrix",

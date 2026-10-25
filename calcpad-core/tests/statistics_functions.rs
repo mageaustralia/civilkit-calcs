@@ -1,4 +1,4 @@
-//! median, stdev, stdevp, var, varp, cumsum, convolve, linspace, polyfit, interp.
+//! median, stdev, stdevp, var, varp, cumsum, convolve, linspace, polyfit, interp, polyroots.
 use calcpad_core::base_types::value::Value;
 use calcpad_core::parsers::expression_parser::ExpressionParser;
 
@@ -216,4 +216,12 @@ fn names_stay_usable_as_variables_and_inside_functions() {
     let p = run("var = 3\nmedian = 4\nr = var + median\nf(x) = stdevp(x; 2*x)\ng = f(2)");
     assert_eq!(real(&p, "r"), 7.0);
     assert_eq!(real(&p, "g"), 1.0);
+}
+
+#[test]
+fn polyroots_finds_the_real_roots_in_ascending_order() {
+    let p = run("a = vector(3)\na.1 = 6\na.2 = -5\na.3 = 1\nr = polyroots(a)");
+    close_all(&vec(&p, "r"), &[2.0, 3.0]);
+    let p = run("a = vector(4)\na.1 = 0\na.2 = -1\na.3 = 0\na.4 = 1\nr = polyroots(a)");
+    close_all(&vec(&p, "r"), &[-1.0, 0.0, 1.0]);
 }

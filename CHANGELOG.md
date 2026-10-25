@@ -12,7 +12,12 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ## [Unreleased]
 
 ### Added
+- `polyroots(v)`: the real roots of a polynomial, ascending, from a coefficient vector with the constant term first (`v.1 + v.2*x + ...`). Complex roots are left out, since vectors hold real values. Listed among the editor's function snippets.
+- Sample "Laguerre polynomial roots" (Samples, Sheet syntax): coefficients from a loop, every real root from one `polyroots` call, a residual check and the curve.
 - Sample "Beam deflection derived symbolically" (Samples, Sheet syntax): the midspan deflection of a simply supported beam derived step by step with the Symbolic dialog, typeset as LaTeX, then fed with numbers and checked against the derived curve.
+
+### Changed
+- LaTeX in sheets colours variables like the engine does in an equation (blue in the light theme, light blue in the dark one).
 
 ## [26.10.9] - 2026-10-26
 ### Added

@@ -12,7 +12,7 @@ use crate::matrix::{
 };
 use crate::vector::{cs_int, hp_vector, Relation, Vector};
 
-pub const FUNCTION_NAMES: [(&str, i64); 41] = [
+pub const FUNCTION_NAMES: [(&str, i64); 42] = [
     ("identity", 0),
     ("utriang", 1),
     ("ltriang", 2),
@@ -54,6 +54,7 @@ pub const FUNCTION_NAMES: [(&str, i64); 41] = [
     ("fft", 36),
     ("ift", 37),
     ("lu", 38),
+    ("polyroots", 39),
 ];
 
 pub const FUNCTION2_NAMES: [(&str, i64); 36] = [
@@ -246,6 +247,7 @@ pub fn evaluate_matrix_function(index: i64, a: &Value) -> CResult<Value> {
         35 => clr_units(a)?,
         36 => Value::Matrix(hp_matrix::fft(&a.as_matrix_hp(Items::Argument)?, false)?),
         37 => Value::Matrix(hp_matrix::fft(&a.as_matrix_hp(Items::Argument)?, true)?),
+        39 => poly_roots(&a.as_vector(Items::Argument)?)?,
         _ => return Err(index_out_of_range()),
     })
 }
@@ -818,4 +820,66 @@ pub fn set_element(matrix: &Value, ii: &Value, jj: &Value, value: &Value) -> CRe
     m.set(i as usize - 1, j as usize - 1, real.clone())?;
     m.change();
     Ok(Value::Real(real))
+}
+
+/// `polyroots(v)`: the real roots of `v.1 + v.2*x + v.3*x^2 + ...`, ascending.
+/// Durand-Kerner on all the complex roots, polished with Newton steps; roots
+/// whose imaginary part is negligible are kept (vectors hold real values).
+fn poly_roots(v: &Vector) -> CResult<Value> {
+    let mut c: Vec<f64> = (0..v.len()).map(|i| v.get(i).d).collect();
+    while c.last() == Some(&0.0) {
+        c.pop();
+    }
+    if c.len() < 2 || c.iter().any(|x| !x.is_finite()) {
+        return Err(exceptions::ArgumentOutOfRange("polyroots"));
+    }
+    let n = c.len() - 1;
+    let lead = c[n];
+    let a: Vec<f64> = c.iter().map(|x| x / lead).collect();
+    let eval = |z: (f64, f64)| -> (f64, f64) {
+        let mut r = (0.0, 0.0);
+        for k in (0..=n).rev() {
+            r = (r.0 * z.0 - r.1 * z.1 + a[k], r.0 * z.1 + r.1 * z.0);
+        }
+        r
+    };
+    let div = |p: (f64, f64), q: (f64, f64)| -> (f64, f64) {
+        let d = q.0 * q.0 + q.1 * q.1;
+        ((p.0 * q.0 + p.1 * q.1) / d, (p.1 * q.0 - p.0 * q.1) / d)
+    };
+    let radius = 1.0 + a[..n].iter().fold(0.0_f64, |m, x| m.max(x.abs()));
+    let mut z: Vec<(f64, f64)> = (0..n)
+        .map(|k| {
+            let t = 2.0 * std::f64::consts::PI * (k as f64) / (n as f64) + 0.4;
+            (radius * 0.5 * t.cos(), radius * 0.5 * t.sin())
+        })
+        .collect();
+    for _ in 0..500 {
+        let mut delta = 0.0_f64;
+        for i in 0..n {
+            let mut den = (1.0, 0.0);
+            for j in 0..n {
+                if i != j {
+                    let d = (z[i].0 - z[j].0, z[i].1 - z[j].1);
+                    den = (den.0 * d.0 - den.1 * d.1, den.0 * d.1 + den.1 * d.0);
+                }
+            }
+            if den.0 == 0.0 && den.1 == 0.0 {
+                continue;
+            }
+            let step = div(eval(z[i]), den);
+            z[i] = (z[i].0 - step.0, z[i].1 - step.1);
+            delta = delta.max(step.0.abs() + step.1.abs());
+        }
+        if delta < 1e-15 * radius {
+            break;
+        }
+    }
+    let tol = 1e-7 * radius;
+    let mut roots: Vec<f64> = z.iter().filter(|r| r.1.abs() <= tol).map(|r| r.0).collect();
+    roots.sort_by(|x, y| x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal));
+    if roots.is_empty() {
+        return Err(exceptions::ArgumentOutOfRange("polyroots"));
+    }
+    Ok(Value::Vector(Vector::from_values(roots.into_iter().map(RealValue::num).collect())?))
 }
