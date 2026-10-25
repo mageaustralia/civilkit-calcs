@@ -1024,6 +1024,7 @@ const mdEdit = ref<MdEditState | null>(null)
 
 // ---- Editing in place: the editor sits where the rendered text was, and the preview makes room ----
 let editWatch: ResizeObserver | null = null
+let editResize: (() => void) | null = null
 let editHold: { frameId: string; from: number; to: number } | null = null
 
 function sendToFrame(frameId: string, msg: Record<string, unknown>): void {
@@ -1041,12 +1042,18 @@ function trackEdit(frameId: string, from: number, to: number): void {
       // An editor opened low on the page scrolls the preview up so its buttons stay on screen.
       requestAnimationFrame(() => {
         const r = el.getBoundingClientRect()
-        const over = r.bottom - (window.innerHeight - 12)
+        const room = frontFrame(frameId)?.getBoundingClientRect().bottom ?? window.innerHeight
+        const over = r.bottom - (Math.min(room, window.innerHeight, window.visualViewport?.height ?? Infinity) - 12)
         if (over > 0 && r.top > 8) sendToFrame(frameId, { type: 'cpdEditScroll', by: Math.min(over, r.top - 8) })
       })
     }
     editWatch = new ResizeObserver(send)
     editWatch.observe(el)
+    // An on-screen keyboard shrinks the window after the editor opened: keep its buttons in view.
+    let t = 0
+    editResize = () => { clearTimeout(t); t = window.setTimeout(send, 200) }
+    window.addEventListener('resize', editResize)
+    window.visualViewport?.addEventListener('resize', editResize)
     send()
   })
 }
@@ -1054,6 +1061,11 @@ function trackEdit(frameId: string, from: number, to: number): void {
 function untrackEdit(): void {
   editWatch?.disconnect()
   editWatch = null
+  if (editResize) {
+    window.removeEventListener('resize', editResize)
+    window.visualViewport?.removeEventListener('resize', editResize)
+    editResize = null
+  }
   if (editHold) sendToFrame(editHold.frameId, { type: 'cpdEditRelease' })
   editHold = null
 }

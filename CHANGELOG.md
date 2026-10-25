@@ -13,6 +13,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ### Added
 - Phone layout. At 760 px wide or less the app shows one pane at a time, switched from a bar along the bottom: Edit, Results, Insert (the sidebar). The ribbon starts folded and a tap on its open tab folds it again, the tab, ribbon and bar buttons are finger sized, and the layout follows the dynamic viewport height and the safe areas, so the on-screen keyboard and the home bar do not cover it. Desktop and tablet layouts are unchanged.
 - Touch editing. A long press (half a second) on a rendered line, paragraph or table in the results opens the same in-place editor as a double-click, which a finger cannot do reliably. The keyboard hint is hidden on touch screens.
+- The in-place editor stays on screen when an on-screen keyboard opens: it follows the window as it shrinks and keeps its buttons above the bottom bar.
 - On a phone the results toolbar drops its "Results" label (the bottom bar names the pane) and scrolls sideways instead of wrapping Print PDF, and a plot's hover toolbar, which sat over the plot title, is left out; pinch and drag still work.
 
 ## [26.10.8] - 2026-10-25
