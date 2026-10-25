@@ -29,6 +29,7 @@
 #![forbid(unsafe_code)]
 
 pub(crate) mod controls;
+mod includes;
 pub mod ir;
 pub mod mathml;
 pub mod mcdx;
@@ -36,7 +37,9 @@ pub mod names;
 pub mod picture;
 mod plotread;
 pub mod report;
+mod solve;
 pub mod tables;
+mod textvec;
 pub mod translate;
 pub mod xls;
 pub mod xmcd;
@@ -85,6 +88,9 @@ pub struct ImportOptions {
     /// `:=`), with results written by the engine. Off, equations are shown as typeset Calcpad
     /// (the `#noc` display), which every export handles. The computation is the same either way.
     pub mathml: bool,
+    /// Write the line `'@@<region id>@@` before the output of every region, for tools that compare
+    /// the engine's numbers with the results a file saved. Off by default.
+    pub region_markers: bool,
 }
 
 impl Default for ImportOptions {
@@ -98,6 +104,7 @@ impl Default for ImportOptions {
             svg_limits: picture::SvgLimits::default(),
             max_total_asset_bytes: 128 * 1024 * 1024,
             mathml: true,
+            region_markers: false,
         }
     }
 }

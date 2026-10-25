@@ -61,6 +61,9 @@ pub enum Code {
     StaticPicture,
     SvgFallback,
     PlotStyle,
+    InertExpression,
+    SolveConstraint,
+    FileOutput,
     // ---- whole-file problems ----
     XmlError,
     NotAWorksheet,
@@ -132,6 +135,9 @@ impl Code {
         Code::StaticPicture,
         Code::SvgFallback,
         Code::PlotStyle,
+        Code::InertExpression,
+        Code::SolveConstraint,
+        Code::FileOutput,
         Code::XmlError,
         Code::NotAWorksheet,
         Code::InputTooLarge,
@@ -192,6 +198,9 @@ impl Code {
             StaticPicture => "static-picture",
             SvgFallback => "svg-fallback",
             PlotStyle => "plot-style",
+            InertExpression => "inert-expression",
+            SolveConstraint => "solve-constraint",
+            FileOutput => "file-output",
             XmlError => "xml-error",
             NotAWorksheet => "not-a-worksheet",
             InputTooLarge => "input-too-large",
@@ -204,7 +213,8 @@ impl Code {
         match self {
             GlobalDefinition | RangeLoop | FrozenValue | AngleMode | ArrayOrigin | OriginAssigned | LogBase
             | RoundDigits | AbsOfArray | CallAsMultiplication | UnitOverride | UncoveredPath | ControlInput
-            | SiUnitScale | StaticPicture | SvgFallback | PlotStyle => Severity::Note,
+            | SiUnitScale | StaticPicture | SvgFallback | PlotStyle | InertExpression | SolveConstraint
+            | FileOutput => Severity::Note,
             XmlError | NotAWorksheet | InputTooLarge | UnsupportedContainer => Severity::Fatal,
             _ => Severity::Gap,
         }
@@ -269,6 +279,9 @@ impl Code {
             StaticPicture => "shown as a static picture of the original (not live, not editable)",
             SvgFallback => "metafile could not be converted to SVG (failed or too large): the raster picture is used",
             PlotStyle => "plot converted: the engine draws its own colours, markers, line styles and axis ranges, and the traces keep only their expressions",
+            InertExpression => "an expression on its own, with no result saved for it: the source computes nothing there, and it is shown as written",
+            SolveConstraint => "an equation of a solve block, shown as written and not solved: the unknowns hold the values the file saved for the solution",
+            FileOutput => "the call writes a file, which is not done here: it is shown as written and defines nothing",
             XmlError => "the input is not well-formed XML (or uses a DTD, which is refused)",
             NotAWorksheet => "the XML is not a worksheet document",
             InputTooLarge => "the input exceeds the size limit",

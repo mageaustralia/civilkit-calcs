@@ -1254,14 +1254,43 @@ fn first_accumulated(
     None
 }
 
+/// Whether the expression has a name in it (a quantity, not a bare number sum).
+fn mentions_a_name(e: &Expr) -> bool {
+    if matches!(e, Expr::Matrix { .. }) {
+        // A table written out on its own.
+        return true;
+    }
+    let mut found = false;
+    let mut c = e.clone();
+    c.for_each_name_mut(&mut |_| found = true);
+    found
+}
+
+/// Whether the expression compares or equates (a constraint or a check rather than a quantity).
+fn is_relation(e: &Expr) -> bool {
+    matches!(
+        e,
+        Expr::Bin(
+            BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge,
+            ..
+        )
+    )
+}
+
 struct Tr {
     origin: i64,
     defined: HashSet<String>,
     funcs: HashMap<String, usize>,
     /// The text literals of the sheet; the engine holds a text as its 1-based position here.
     str_table: Vec<String>,
+    /// Names that hold vectors of texts (as codes), found before translating (see `textvec`).
+    text_vecs: HashMap<String, Vec<usize>>,
     /// Names that hold a text now, with the codes they can have.
     str_vars: HashMap<String, Vec<usize>>,
+    /// Names in `str_vars` that hold a number on some path and a text on another (see `strings`).
+    str_mixed: HashSet<String>,
+    /// Whether the definition being translated gives such a value; read by `set_str_var`.
+    next_mixed: bool,
     /// Functions that return a text, with the codes they can return.
     str_funcs: HashMap<String, Vec<usize>>,
     /// Functions whose value is an array (a matrix literal, or an `if` that gives one).
@@ -3940,6 +3969,18 @@ impl Tr {
 
     fn name_ref_engine(&mut self, n: &Name) -> R {
         let flat = tables::normalise_name(&n.flat());
+        if self.str_mixed.contains(&flat)
+            && !self.str_allow
+            && !self.readable
+            && !self.display
+            && !self.params.contains(&flat)
+            && !self.locals.contains_key(&flat)
+        {
+            // A value that is a number on some paths and a text on others: where it holds a text,
+            // the source stops at an arithmetic use of it, so that use is undefined here.
+            let test: Vec<String> = self.str_vars[&flat].iter().map(|c| format!("{flat} ≡ {c}")).collect();
+            return atom(format!("if({}; sqrt(-1); {flat})", test.join(" ∨ ")));
+        }
         if self.str_vars.contains_key(&flat)
             && !self.str_allow
             && !self.readable
@@ -4213,8 +4254,13 @@ impl Tr {
                     return atom(if one_column { format!("col({text}; 1)") } else { text });
                 }
                 // `matcol(M, j)` and `matrow(M, i)` count from the sheet's array origin.
-                if matches!(flat.as_str(), "matcol" | "matrow") {
-                    let engine = if flat == "matcol" { "col" } else { "row" };
+                if matches!(flat.as_str(), "matcol" | "matrow" | "csort" | "rsort") {
+                    let engine = match flat.as_str() {
+                        "matcol" => "col",
+                        "matrow" => "row",
+                        "csort" => "sort_rows",
+                        _ => "sort_cols",
+                    };
                     let at = self.index_expr(&args[1]);
                     return atom(format!("{engine}({}; {at})", rendered[0]));
                 }
@@ -4329,7 +4375,9 @@ impl Tr {
                 // Plotting over the index: a fractional parameter reads between two elements.
                 let at = self.index_expr(i);
                 let arr = self.operand(base, P_ATOM, true);
-                return atom(format!("line({}; {})", at, arr));
+                // Past the end of the array the plot stays on the last point (the source draws
+                // nothing there), so a shorter array does not leave the plot's units.
+                return atom(format!("line(min({}; len({})); {})", at, arr, arr));
             }
         }
         // An element of an element: row and column of the matrix that holds the array of arrays.
@@ -4356,7 +4404,13 @@ impl Tr {
             self.issue(Code::BadStructure, Some("index list".into()));
             return atom("?index?");
         }
-        let parts: Vec<String> = idx.iter().map(|i| self.index_expr(i)).collect();
+        let mut parts: Vec<String> = idx.iter().map(|i| self.index_expr(i)).collect();
+        if let (Some(pp), Expr::Name(_), 2) = (self.plot_param.clone(), base, idx.len()) {
+            // A plotted row index past the last row stays on the last row, as for a vector.
+            if !self.readable && !self.display && mentions(&idx[0], &pp) {
+                parts[0] = format!("min({}; n_rows({}))", parts[0], b);
+            }
+        }
         // Only a name can be followed by `.(i)`; the element of anything else (the result of a call,
         // a negated or scaled array) is `take(i; array)`, which needs no temporary.
         if !self.readable && !matches!(base, Expr::Name(_)) {
@@ -4655,6 +4709,25 @@ impl Tr {
     }
 
     fn region(&mut self, r: &Region) {
+        if !crate::includes::is_included(&r.id) {
+            return self.region_shown(r);
+        }
+        // A region of an included worksheet: computed, never shown, and only its definitions count.
+        if let RegionKind::Math(m) = &r.kind {
+            if !matches!(m.stmt, Stmt::Define { .. } | Stmt::Unsupported { .. }) {
+                return;
+            }
+        }
+        let before = self.lines.len();
+        self.region_shown(r);
+        let shown = self.lines.split_off(before);
+        self.lines.extend(crate::includes::quiet_lines(&shown));
+    }
+
+    fn region_shown(&mut self, r: &Region) {
+        if self.opts.region_markers {
+            self.lines.push(format!("'@@{}@@", sanitize_id(&r.id)));
+        }
         match &r.kind {
             RegionKind::PageBreak => self.report.page_breaks += 1,
             RegionKind::Text(paras) => {
@@ -4955,8 +5028,29 @@ impl Tr {
         let mut matrix_def = false;
         let mut str_multi_def: Vec<(String, Option<Vec<usize>>)> = Vec::new();
         // An evaluation of a text: the expression that gives its code and the texts it can be.
-        let mut str_eval: Option<(String, Vec<usize>)> = None;
+        let mut str_eval: Option<(String, Vec<usize>, bool)> = None;
+        // Lines that are printed as they are (a vector of texts).
+        let mut raw_out: Option<String> = None;
         let shape: &str;
+
+        // The solver of a solve block: solved here when the block has the shape that is, otherwise the
+        // unknowns take the values the file saved for the solution (frozen), if it saved them.
+        let solve_try = match (&m.stmt, &m.solve) {
+            (Stmt::Define { target, value, .. }, Some(SolveRole::Solver(_))) => {
+                let mark = self.cur.len();
+                let out = self.solve_block(target, value);
+                if let (Err(_), Some(SolveRole::Solver(Some(fallback)))) = (&out, &m.solve) {
+                    self.cur.truncate(mark);
+                    let mut frozen = m.clone();
+                    frozen.stmt = (**fallback).clone();
+                    frozen.frozen = true;
+                    frozen.solve = Some(SolveRole::Solution);
+                    return self.math(r, &frozen);
+                }
+                Some(out)
+            }
+            _ => None,
+        };
 
         // A definition with a complex value is two definitions (the real and the imaginary part).
         let cx_result = match &m.stmt {
@@ -4970,10 +5064,10 @@ impl Tr {
 
         match &m.stmt {
             // The solver of a solve block: the unknowns become the solution of its equations.
-            Stmt::Define { target, value, .. } if m.solve.as_deref() == Some("solver") => {
+            Stmt::Define { target, .. } if solve_try.is_some() => {
                 shape = "definition";
-                match self.solve_block(target, value) {
-                    Ok((text, names)) => {
+                match solve_try {
+                    Some(Ok((text, names))) => {
                         let gap = self.cur.iter().any(|p| p.code.severity() == Severity::Gap);
                         if !gap {
                             emitted = Some(text);
@@ -4988,7 +5082,7 @@ impl Tr {
                             poison.extend(names);
                         }
                     }
-                    Err(why) => {
+                    Some(Err(why)) => {
                         self.issue(Code::SolveBlock, Some(why));
                         match target {
                             Target::Var(n) => {
@@ -5000,23 +5094,26 @@ impl Tr {
                             _ => {}
                         }
                     }
+                    None => {}
                 }
             }
-            // An equation of a solve block: shown, collected for the solver that follows.
-            Stmt::Bare(e) if m.solve.as_deref() == Some("constraint") => {
+            // An equation of a solve block: shown as written, collected for the solver that follows. When
+            // the block is not solved here the unknowns hold the values the file saved, and it says so.
+            Stmt::Bare(expr) if matches!(&m.solve, Some(SolveRole::Constraint { .. })) && is_relation(expr) => {
                 shape = "expression";
-                self.solve_cons.push(e.clone());
-                emitted = Some(match self.typeset_gap(&m.stmt) {
-                    Some(t) => t,
-                    None => {
-                        let saved = std::mem::take(&mut self.cur);
-                        self.readable = true;
-                        let text = self.expr(e).s.replace(" ≡ ", " = ");
-                        self.readable = false;
-                        self.cur = saved;
-                        format!("#noc\n{text}\n#end noc")
-                    }
-                });
+                self.solve_cons.push(expr.clone());
+                if matches!(&m.solve, Some(SolveRole::Constraint { live: false })) {
+                    self.issue(Code::SolveConstraint, None);
+                }
+                let saved = std::mem::take(&mut self.cur);
+                self.readable = true;
+                let text = self.expr(expr).s.replace(" ≡ ", " = ");
+                self.readable = false;
+                self.cur = saved;
+                emitted = Some(
+                    self.typeset_gap(&m.stmt)
+                        .unwrap_or_else(|| format!("'<p><i>{}</i></p>", mathml::esc(&text.replace('\'', "\u{2019}")))),
+                );
             }
             Stmt::Define {
                 target: Target::Var(n), ..
@@ -5039,6 +5136,38 @@ impl Tr {
                     }
                     None => {}
                 }
+            }
+            Stmt::Define {
+                value: Expr::Call(f, _),
+                ..
+            }
+            | Stmt::Eval {
+                expr: Expr::Call(f, _), ..
+            } if f.sub.is_none() && matches!(f.base.as_str(), "WRITEEXCEL" | "WRITEPRN" | "APPENDPRN" | "WRITEBMP") => {
+                // A write to a file: nothing the sheet computes depends on it, and it cannot be done here.
+                shape = "other";
+                self.issue(Code::FileOutput, Some(f.base.clone()));
+                let saved = std::mem::take(&mut self.cur);
+                self.io_args = true;
+                self.readable = true;
+                let text = match &m.stmt {
+                    Stmt::Define {
+                        target: Target::Var(n),
+                        value,
+                        ..
+                    } => {
+                        format!("{} := {}", n.flat(), self.expr(value).s)
+                    }
+                    Stmt::Eval { expr, .. } => self.expr(expr).s,
+                    _ => String::new(),
+                };
+                self.readable = false;
+                self.io_args = false;
+                self.cur = saved;
+                emitted = Some(
+                    self.typeset_gap(&m.stmt)
+                        .unwrap_or_else(|| format!("'<p><i>{}</i></p>", mathml::esc(&text.replace('\'', "\u{2019}")))),
+                );
             }
             Stmt::Define { target, value, global } => {
                 shape = if matches!(target, Target::Func(..)) {
@@ -5152,6 +5281,7 @@ impl Tr {
                         }
                         let text_def = range_def.is_none() && self.is_stringy(value);
                         let text_codes = if text_def { self.str_domain(value) } else { Vec::new() };
+                        self.next_mixed = text_def && self.is_mixed(value);
                         let labels = matches!(value, Expr::Matrix { items, .. } if items.iter().any(|i| matches!(i, Expr::Str(_))));
                         self.str_mat_ok = labels;
                         let rhs = if range_def.is_some() {
@@ -5620,12 +5750,29 @@ impl Tr {
                     emitted = Some(self.table_loops(&iv, &info, &e.s, &pre, &tail));
                 }
             }
+            Stmt::Eval {
+                expr: Expr::Name(vn),
+                unit: None,
+            } if !self.readable
+                && self.text_vecs.contains_key(&tables::normalise_name(&vn.flat()))
+                && self.defined.contains(&tables::normalise_name(&vn.flat())) =>
+            {
+                // A vector of texts (held as codes): the texts are printed, not the codes.
+                shape = "evaluation";
+                let flat = tables::normalise_name(&vn.flat());
+                let head = self.typeset_eval_head(&Expr::Name(vn.clone()));
+                let domain = self.text_vecs.get(&flat).cloned().unwrap_or_default();
+                let lines = self.text_vec_lines(head.as_deref(), &flat, &vn.flat(), &domain);
+                raw_out = Some(lines);
+                emitted = Some(String::new());
+            }
             Stmt::Eval { expr, unit: None } if self.is_stringy(expr) && !self.readable => {
                 shape = "evaluation";
                 let domain = self.str_domain(expr);
+                let mixed = self.is_mixed(expr);
                 let code = self.str_or_expr(expr).s;
                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
-                    str_eval = Some((code.clone(), domain));
+                    str_eval = Some((code.clone(), domain, mixed));
                     emitted = Some(code);
                 } else {
                     attempt = Some(code);
@@ -5678,7 +5825,12 @@ impl Tr {
                     attempt = Some(text);
                 }
             }
-            Stmt::Bare(Expr::Str(text)) => {
+            Stmt::Bare(Expr::Str(text))
+                if !m
+                    .control
+                    .as_ref()
+                    .is_some_and(|c| matches!(c.kind.as_str(), "button" | "check box")) =>
+            {
                 // A text on its own is a label the author put in a math region.
                 shape = "expression";
                 let t: String = text
@@ -5706,6 +5858,53 @@ impl Tr {
                 self.cur = saved;
                 attempt = Some(text);
             }
+            Stmt::Bare(_)
+                if m.control
+                    .as_ref()
+                    .is_some_and(|c| matches!(c.kind.as_str(), "button" | "check box")) =>
+            {
+                // A button runs a script when it is pressed; here it is the label it carried.
+                shape = "expression";
+                let cap = m.control.as_ref().and_then(|c| c.caption.clone()).unwrap_or_default();
+                emitted = Some(format!("'<p><i>[{}]</i></p>", mathml::esc(&cap)));
+            }
+            Stmt::Bare(expr) if m.saved_result.is_none() && !is_relation(expr) && mentions_a_name(expr) => {
+                shape = "expression";
+                // A name or an expression on its own, with no result saved: the source shows it and
+                // computes nothing (a label, or a quantity written beside an input). It is shown as
+                // written, unless it holds something that is a gap of its own (a solve keyword, an
+                // element the importer does not know).
+                let mark = self.cur.len();
+                let e = self.expr(expr);
+                let only_names = self.cur[mark..].iter().all(|p| {
+                    p.code.severity() != Severity::Gap
+                        || matches!(
+                            p.code,
+                            Code::UndefinedVariable
+                                | Code::DependsOnGap
+                                | Code::AddinFunction
+                                | Code::ReferenceFunction
+                                | Code::RangeVariable
+                                | Code::StringValue
+                        )
+                });
+                if only_names {
+                    self.cur.truncate(mark);
+                    self.issue(Code::InertExpression, None);
+                    let saved = std::mem::take(&mut self.cur);
+                    self.readable = true;
+                    let text = self.expr(expr).s.replace(" ≡ ", " = ");
+                    self.readable = false;
+                    self.cur = saved;
+                    emitted =
+                        Some(self.typeset_gap(&m.stmt).unwrap_or_else(|| {
+                            format!("'<p><i>{}</i></p>", mathml::esc(&text.replace('\'', "\u{2019}")))
+                        }));
+                } else {
+                    self.issue(Code::BareExpression, None);
+                    attempt = Some(e.s);
+                }
+            }
             Stmt::Bare(expr) => {
                 shape = "expression";
                 let e = self.expr(expr);
@@ -5722,10 +5921,12 @@ impl Tr {
             // Data read from the workbook an input component saved.
             self.issue(Code::FrozenValue, None);
             self.report.frozen_values += 1;
-            let note = format!(
-                "'<small><i>R{}: value taken from the saved workbook of an input component (frozen, not live)</i></small>",
-                sanitize_id(&r.id)
-            );
+            let what = if m.solve.is_some() {
+                "solve block: the unknowns take the values the file saved for the solution (frozen, not live)"
+            } else {
+                "value taken from the saved workbook of an input component (frozen, not live)"
+            };
+            let note = format!("'<small><i>R{}: {what}</i></small>", sanitize_id(&r.id));
             emitted = emitted.map(|e| format!("{note}\n{e}"));
             plain_def = false;
         }
@@ -5808,6 +6009,7 @@ impl Tr {
                     str_var_def = None;
                     str_mat_def = None;
                     if matches!(saved, Expr::Str(_)) {
+                        self.next_mixed = false;
                         let d = self.str_domain(saved);
                         str_var_def = Some((flat.clone(), Some(d)));
                     } else if matches!(saved, Expr::Matrix { items, .. } if items.iter().any(|i| matches!(i, Expr::Str(_))))
@@ -5862,12 +6064,23 @@ impl Tr {
                     )
                 });
                 let text = match &str_eval {
-                    Some((code, domain)) => {
+                    _ if raw_out.is_some() => raw_out.take().unwrap_or_default(),
+                    Some((code, domain, mixed)) => {
                         let head = match &m.stmt {
                             Stmt::Eval { expr, .. } => self.typeset_eval_head(expr),
                             _ => None,
                         };
-                        self.str_result_lines(head.as_deref().unwrap_or(""), code, domain)
+                        let texts = self.str_result_lines(head.as_deref().unwrap_or(""), code, domain);
+                        if *mixed {
+                            // A number on the other paths: printed as any number is.
+                            let number = self.present(m, shape, plain_def, elem_def, multi_def, line);
+                            match texts.strip_suffix("#end if") {
+                                Some(t) => format!("{t}#else\n{number}\n#end if"),
+                                None => texts,
+                            }
+                        } else {
+                            texts
+                        }
                     }
                     None => self.present(m, shape, plain_def, elem_def, multi_def, line),
                 };
@@ -6497,6 +6710,7 @@ fn rename_unit_clashes(sheet: &mut Sheet) -> HashMap<String, String> {
 pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportReport, Vec<Asset>) {
     let mut renamed = rename_unit_clashes(&mut sheet);
     renamed.extend(crate::names::rename_invalid(&mut sheet));
+    let text_vecs = crate::textvec::rewrite(&mut sheet);
     let rows = reading_rows(std::mem::take(&mut sheet.regions));
     let has_references = rows.iter().flatten().any(|r| matches!(r.kind, RegionKind::Reference));
     let cx_any = rows.iter().flatten().any(|r| {
@@ -6506,8 +6720,11 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         origin: sheet.origin,
         defined: HashSet::new(),
         funcs: HashMap::new(),
-        str_table: Vec::new(),
+        str_table: text_vecs.table,
+        text_vecs: text_vecs.names,
         str_vars: HashMap::new(),
+        str_mixed: HashSet::new(),
+        next_mixed: false,
         str_funcs: HashMap::new(),
         array_funcs: HashSet::new(),
         str_mats: HashSet::new(),

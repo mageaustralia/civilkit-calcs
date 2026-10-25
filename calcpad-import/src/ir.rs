@@ -179,8 +179,20 @@ pub struct MathRegion {
     pub precision: Option<i32>,
     /// The input control this definition was set from, when it was one.
     pub control: Option<Control>,
-    /// The part this region plays in a solve block: `guess-value`, `constraint` or `solver`.
-    pub solve: Option<String>,
+    /// The part this region plays in a solve block.
+    pub solve: Option<SolveRole>,
+}
+
+/// The part a region plays in a solve block (guess values are ordinary definitions).
+#[derive(Debug, Clone, PartialEq)]
+pub enum SolveRole {
+    /// An equation the solution satisfies; `live` when the block has the shape that is solved here.
+    Constraint { live: bool },
+    /// The solver region (`x := Find(x)`). The payload is the definition of the unknowns at the values the
+    /// file saved for the solution, used when the block cannot be solved here.
+    Solver(Option<Box<Stmt>>),
+    /// A solver region taken at the values the file saved (frozen), not solved here.
+    Solution,
 }
 
 /// A stored scalar result: the number (or string) as written, and its unit in the source's spelling.
@@ -528,7 +540,7 @@ impl Stmt {
 /// control's stored value where the control stood; this says what it was.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Control {
-    /// `combo box`, `text box` or `list box`.
+    /// `combo box`, `text box`, `list box`, `button` or `check box`.
     pub kind: String,
     /// The stored value, as an expression (a number, a text, or a number times a unit).
     pub value: Expr,
@@ -536,4 +548,6 @@ pub struct Control {
     pub chosen: Option<String>,
     /// How many options the control offered (0 for a text box).
     pub options: usize,
+    /// The label on a button or check box.
+    pub caption: Option<String>,
 }

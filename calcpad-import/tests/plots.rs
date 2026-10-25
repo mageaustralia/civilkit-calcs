@@ -199,7 +199,10 @@ fn a_range_variable_plot_reads_the_array_between_elements() {
         ),
     ];
     let res = convert(0, &regs);
-    assert_eq!(plot_line(&res.calcpad), "$Plot{i|line(i + 1; v) @ i = 0 : 3}");
+    assert_eq!(
+        plot_line(&res.calcpad),
+        "$Plot{i|line(min(i + 1; len(v)); v) @ i = 0 : 3}"
+    );
     let pts = &draw(&res.calcpad)[0].series[0].points;
     // 10 at i = 0, 40 at i = 3, and a straight line between (i = 1.5 is 25).
     assert_eq!(pts.first().copied(), Some((0.0, 10.0)));
@@ -236,7 +239,7 @@ fn a_trace_without_its_own_y_reuses_the_last_one_and_the_axis_has_one_unit() {
     let line = plot_line(&res.calcpad);
     assert_eq!(
         line,
-        "$Plot{i*m/m|line(i; v) & L/m|line(i; v) & L/2/m|line(i; v) @ i = 1 : 2}"
+        "$Plot{i*m/m|line(min(i; len(v)); v) & L/m|line(min(i; len(v)); v) & L/2/m|line(min(i; len(v)); v) @ i = 1 : 2}"
     );
     let charts = draw(&res.calcpad);
     assert_eq!(charts[0].series.len(), 3);
@@ -457,4 +460,46 @@ fn a_unitless_axis_shows_the_quantity_in_base_units_not_in_the_unit_it_is_held_i
         .iter()
         .fold(f64::MIN, |a, p| a.max(p.1));
     assert!((top - 62.0).abs() < 1e-6, "{top}");
+}
+
+#[test]
+fn arrays_of_different_lengths_with_units_stay_on_their_last_point() {
+    // A 2-point trace beside a 4-point one: the short one repeats its last point instead of
+    // reading past its end (which would leave the unit of the plot).
+    let regs = [
+        math(
+            1,
+            0.0,
+            &define("a", &app("mult", &[matrix(4, 1, &["1", "2", "3", "4"]), n("ft")])),
+        ),
+        math(
+            2,
+            20.0,
+            &define("b", &app("mult", &[matrix(4, 1, &["5", "6", "7", "8"]), n("ft")])),
+        ),
+        math(
+            3,
+            40.0,
+            &define("c", &app("mult", &[matrix(2, 1, &["1", "2"]), n("ft")])),
+        ),
+        math(
+            4,
+            60.0,
+            &define("d", &app("mult", &[matrix(2, 1, &["3", "4"]), n("ft")])),
+        ),
+        plot(
+            5,
+            80.0,
+            "",
+            &[trace("lines"), trace("lines")],
+            &axis(&[slot(&n("a"), None), slot(&n("c"), None)]),
+            &axis(&[slot(&n("b"), None), slot(&n("d"), None)]),
+        ),
+    ];
+    let res = convert(1, &regs);
+    let line = plot_line(&res.calcpad);
+    assert!(line.contains("max(len(a); len(c))"), "{line}");
+    assert!(line.contains("line(min(i_plot; len(c)); (c))"), "{line}");
+    let charts = draw(&res.calcpad);
+    assert_eq!(charts[0].series.len(), 2);
 }

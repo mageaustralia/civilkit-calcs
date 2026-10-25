@@ -751,7 +751,7 @@ fn every_mapped_function_runs_in_the_engine() {
             "matrix" => vec!["2", "2"],
             "augment" | "stack" => vec![arg, arg],
             "lsolve" => vec!["[1; 2|3; 4]", "[1; 2]"],
-            "col" | "row" => vec!["[1; 2|3; 4]", "1"],
+            "col" | "row" | "sort_rows" | "sort_cols" => vec!["[1; 2|3; 4]", "1"],
             "submatrix" => vec!["[1; 2|3; 4]", "1", "2", "1", "2"],
             "mod" | "gcd" | "lcm" | "atan2" => vec!["4", "6"],
             "interp" => vec!["1.5", "[1; 2]", "[10; 20]"],

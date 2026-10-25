@@ -208,6 +208,10 @@ pub const FUNCTIONS: &[(&str, FnRule, usize, usize)] = &[
     ("matcol", FnRule::Direct("col"), 2, 2),
     ("matrow", FnRule::Direct("row"), 2, 2),
     ("sort", FnRule::Direct("sort"), 1, 1),
+    // `csort(A, j)` sorts the rows by column j, `rsort(A, i)` the columns by row i; the index counts
+    // from the sheet's array origin.
+    ("csort", FnRule::Direct("sort_rows"), 2, 2),
+    ("rsort", FnRule::Direct("sort_cols"), 2, 2),
     ("reverse", FnRule::Direct("reverse"), 1, 1),
     ("mean", FnRule::Direct("mean"), 1, 64),
     ("norm2", FnRule::Direct("norm_2"), 1, 1),
@@ -458,6 +462,8 @@ pub fn lookup_constant(name: &str) -> Option<Constant> {
         "e" => Some(Constant::Text("e")),
         // The source's built-in gravitational acceleration. Calcpad's `g` is the gram.
         "g" => Some(Constant::Text("(9.80665*m/s^2)")),
+        // Not a number: the engine's undefined value (a square root of a negative number).
+        "NaN" => Some(Constant::Text("sqrt(-1)")),
         "ORIGIN" => Some(Constant::Origin),
         _ => None,
     }
