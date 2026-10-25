@@ -1,7 +1,7 @@
 //! Values that are sometimes a number and sometimes a message, scripted controls and unit parse
 //! cases, on synthetic worksheets written here.
 
-use calcpad_import::{import_xmcd_opts, ImportOptions, ImportResult};
+use calcpad_import::{import_xmcd_opts, Code, ImportOptions, ImportResult};
 
 mod common;
 
@@ -141,4 +141,103 @@ fn a_value_that_is_a_message_is_undefined_in_arithmetic_and_prints_the_message()
     // The message is printed for the value; the quotient that would divide by it is undefined, not 33.
     assert!(t.contains("Testing required"), "{t}");
     assert!(t.contains("h = NaN"), "{t}");
+}
+
+// ---- scripted controls that store a value --------------------------------------------------------
+
+fn b64(s: &str) -> String {
+    const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let b = s.as_bytes();
+    let mut out = String::new();
+    for ch in b.chunks(3) {
+        let n = (ch[0] as u32) << 16 | (*ch.get(1).unwrap_or(&0) as u32) << 8 | *ch.get(2).unwrap_or(&0) as u32;
+        for k in 0..4 {
+            if k <= ch.len() {
+                out.push(T[((n >> (18 - 6 * k)) & 63) as usize] as char);
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
+}
+
+fn button(rl: &str, caption: &str) -> String {
+    format!(
+        r#"<ml:ButtonScriptableControl SelectedIndex="0" RL="{}"><ml:vals><ml:val>{caption}</ml:val></ml:vals></ml:ButtonScriptableControl>"#,
+        b64(rl)
+    )
+}
+
+#[test]
+fn a_button_that_stores_a_counter_defines_it() {
+    let res = import(&[
+        math(
+            1,
+            0.0,
+            &define(&id("Refresh"), &button("(number 3:0x00000003)", "Refresh")),
+        ),
+        math(2, 20.0, &define(&id("n"), &app("plus", &[id("Refresh"), real("1")]))),
+        math(3, 40.0, &eval(&id("n"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.calcpad.contains("Refresh = 3"), "{}", res.calcpad);
+    assert!(res.calcpad.contains("button input"), "{}", res.calcpad);
+    assert!(engine_text(&res).contains("n = 4"));
+}
+
+#[test]
+fn a_button_on_its_own_is_its_label() {
+    let res = import(&[math(1, 0.0, &button("(string \"\":0x00000001)", "Calculate"))]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.calcpad.contains("[Calculate]"), "{}", res.calcpad);
+}
+
+#[test]
+fn a_control_with_several_outputs_defines_each_name() {
+    let names = "<ml:matrix rows=\"2\" cols=\"1\"><ml:id>Flag</ml:id><ml:id>Folder</ml:id></ml:matrix>";
+    let c = button(
+        "(op_matrix:0x5 (unboxed 2) (unboxed 1) (list (number 1:0x5) (string \"a\\\\b\":0x5)))",
+        "Go",
+    );
+    let res = import(&[
+        math(1, 0.0, &define(names, &c)),
+        math(2, 20.0, &define(&id("n"), &app("plus", &[id("Flag"), real("1")]))),
+        math(3, 40.0, &eval(&id("n"))),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(res.calcpad.contains("Flag = 1"), "{}", res.calcpad);
+    assert!(engine_text(&res).contains("n = 2"));
+}
+
+// ---- an expression on its own ---------------------------------------------------------------------
+
+#[test]
+fn a_name_on_its_own_with_no_saved_result_is_shown_as_written() {
+    let res = import(&[
+        math(1, 0.0, &id("Width")),
+        math(2, 20.0, &app("mult", &[real("20"), id("ft")])),
+    ]);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert_eq!(
+        res.report
+            .issues
+            .iter()
+            .filter(|i| i.code == Code::InertExpression)
+            .count(),
+        2,
+        "{:?}",
+        res.report.issues
+    );
+    assert!(res.calcpad.contains("Width"), "{}", res.calcpad);
+    engine_text(&res);
+}
+
+#[test]
+fn a_comparison_on_its_own_stays_a_gap() {
+    let res = import(&[
+        math(1, 0.0, &define(&id("a"), &real("1"))),
+        math(2, 20.0, &app("greaterOrEqual", &[id("a"), real("2")])),
+    ]);
+    assert!(res.report.gaps().any(|i| i.code == Code::BareExpression));
 }

@@ -14,7 +14,11 @@ use roxmltree::Node;
 pub(crate) fn is_control(tag: &str) -> bool {
     matches!(
         tag,
-        "ComboBoxControl" | "TextBoxScriptableControl" | "ListBoxScriptableControl"
+        "ComboBoxControl"
+            | "TextBoxScriptableControl"
+            | "ListBoxScriptableControl"
+            | "ButtonScriptableControl"
+            | "CheckBoxScriptableControl"
     )
 }
 
@@ -79,6 +83,7 @@ pub(crate) fn read_control(n: Node, lim: &Limits, depth: usize) -> Option<Contro
                 value,
                 chosen: names.get(sel).map(|s| label_text(s)).filter(|s| !s.is_empty()),
                 options: values.len(),
+                caption: None,
             })
         }
         "TextBoxScriptableControl" => {
@@ -92,6 +97,7 @@ pub(crate) fn read_control(n: Node, lim: &Limits, depth: usize) -> Option<Contro
                 value,
                 chosen: Some(label_text(&text)).filter(|s| !s.is_empty()),
                 options: 0,
+                caption: None,
             })
         }
         "ListBoxScriptableControl" => {
@@ -105,8 +111,105 @@ pub(crate) fn read_control(n: Node, lim: &Limits, depth: usize) -> Option<Contro
                 value: Expr::Num(sel.to_string()),
                 chosen: Some(label_text(&text)).filter(|s| !s.is_empty()),
                 options: items.len(),
+                caption: None,
+            })
+        }
+        "ButtonScriptableControl" | "CheckBoxScriptableControl" => {
+            let caption = vals(n)
+                .into_iter()
+                .next()
+                .map(|t| label_text(&t))
+                .filter(|t| !t.is_empty());
+            let stored = n.attribute("RL").and_then(stored_value)?;
+            let value = match stored {
+                Stored::One(e) => e,
+                // One value per name the control defines (`[Flag, Folder] := <control>`).
+                Stored::List(items) => Expr::Matrix {
+                    rows: items.len(),
+                    cols: 1,
+                    items,
+                },
+            };
+            Some(Control {
+                kind: if tag == "ButtonScriptableControl" {
+                    "button"
+                } else {
+                    "check box"
+                }
+                .into(),
+                value,
+                chosen: None,
+                options: 0,
+                caption,
             })
         }
         _ => None,
     }
+}
+
+enum Stored {
+    One(Expr),
+    List(Vec<Expr>),
+}
+
+/// The value a scripted control stored (its `RL` attribute: base64 of a short s-expression such as
+/// `(number 1:0x3)`, `(string "text":0x3)` or `(op_matrix:0x9 (unboxed 2) (unboxed 1) (list ...))`).
+/// A list is read only when every item is a number or a text.
+fn stored_value(rl: &str) -> Option<Stored> {
+    let bytes = crate::picture::base64_decode(rl)?;
+    let text = String::from_utf8(bytes).ok()?;
+    let t = text.trim();
+    if let Some(rest) = t.strip_prefix("(op_matrix") {
+        let list = rest.find("(list")?;
+        let mut items = Vec::new();
+        let mut at = list + "(list".len();
+        let body = &rest[..];
+        loop {
+            let tail = body[at..].trim_start();
+            let skipped = body[at..].len() - tail.len();
+            at += skipped;
+            if tail.starts_with(')') || tail.is_empty() {
+                break;
+            }
+            let (item, used) = stored_item(tail)?;
+            items.push(item);
+            at += used;
+        }
+        return (!items.is_empty() && items.len() <= 64).then_some(Stored::List(items));
+    }
+    stored_item(t).map(|(e, _)| Stored::One(e))
+}
+
+/// One `(number N:0x..)` or `(string "...":0x..)`, and how many bytes it takes.
+fn stored_item(t: &str) -> Option<(Expr, usize)> {
+    if let Some(rest) = t.strip_prefix("(number ") {
+        let end = rest.find(':')?;
+        let num = rest[..end].trim();
+        num.parse::<f64>().ok().filter(|v| v.is_finite())?;
+        let close = rest.find(')')?;
+        return Some((Expr::Num(num.to_string()), "(number ".len() + close + 1));
+    }
+    if let Some(rest) = t.strip_prefix("(string \"") {
+        let mut out = String::new();
+        let mut chars = rest.char_indices();
+        let mut end = None;
+        while let Some((i, c)) = chars.next() {
+            match c {
+                '\\' => {
+                    if let Some((_, d)) = chars.next() {
+                        out.push(d);
+                    }
+                }
+                '"' => {
+                    end = Some(i);
+                    break;
+                }
+                _ => out.push(c),
+            }
+        }
+        let end = end?;
+        let close = rest[end..].find(')')? + end;
+        return Some((Expr::Str(out), "(string \"".len() + close + 1));
+    }
+    None
 }

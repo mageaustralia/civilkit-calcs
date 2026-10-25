@@ -1213,6 +1213,29 @@ fn first_accumulated(
     None
 }
 
+/// Whether the expression has a name in it (a quantity, not a bare number sum).
+fn mentions_a_name(e: &Expr) -> bool {
+    if matches!(e, Expr::Matrix { .. }) {
+        // A table written out on its own.
+        return true;
+    }
+    let mut found = false;
+    let mut c = e.clone();
+    c.for_each_name_mut(&mut |_| found = true);
+    found
+}
+
+/// Whether the expression compares or equates (a constraint or a check rather than a quantity).
+fn is_relation(e: &Expr) -> bool {
+    matches!(
+        e,
+        Expr::Bin(
+            BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge,
+            ..
+        )
+    )
+}
+
 struct Tr {
     origin: i64,
     defined: HashSet<String>,
@@ -5083,7 +5106,7 @@ impl Tr {
                     attempt = Some(text);
                 }
             }
-            Stmt::Bare(Expr::Str(text)) => {
+            Stmt::Bare(Expr::Str(text)) if m.control.is_none() => {
                 // A text on its own is a label the author put in a math region.
                 shape = "expression";
                 let t: String = text
@@ -5110,6 +5133,53 @@ impl Tr {
                 self.readable = false;
                 self.cur = saved;
                 attempt = Some(text);
+            }
+            Stmt::Bare(_)
+                if m.control
+                    .as_ref()
+                    .is_some_and(|c| matches!(c.kind.as_str(), "button" | "check box")) =>
+            {
+                // A button runs a script when it is pressed; here it is the label it carried.
+                shape = "expression";
+                let cap = m.control.as_ref().and_then(|c| c.caption.clone()).unwrap_or_default();
+                emitted = Some(format!("'<p><i>[{}]</i></p>", mathml::esc(&cap)));
+            }
+            Stmt::Bare(expr) if m.saved_result.is_none() && !is_relation(expr) && mentions_a_name(expr) => {
+                shape = "expression";
+                // A name or an expression on its own, with no result saved: the source shows it and
+                // computes nothing (a label, or a quantity written beside an input). It is shown as
+                // written, unless it holds something that is a gap of its own (a solve keyword, an
+                // element the importer does not know).
+                let mark = self.cur.len();
+                let e = self.expr(expr);
+                let only_names = self.cur[mark..].iter().all(|p| {
+                    p.code.severity() != Severity::Gap
+                        || matches!(
+                            p.code,
+                            Code::UndefinedVariable
+                                | Code::DependsOnGap
+                                | Code::AddinFunction
+                                | Code::ReferenceFunction
+                                | Code::RangeVariable
+                                | Code::StringValue
+                        )
+                });
+                if only_names {
+                    self.cur.truncate(mark);
+                    self.issue(Code::InertExpression, None);
+                    let saved = std::mem::take(&mut self.cur);
+                    self.readable = true;
+                    let text = self.expr(expr).s.replace(" ≡ ", " = ");
+                    self.readable = false;
+                    self.cur = saved;
+                    emitted =
+                        Some(self.typeset_gap(&m.stmt).unwrap_or_else(|| {
+                            format!("'<p><i>{}</i></p>", mathml::esc(&text.replace('\'', "\u{2019}")))
+                        }));
+                } else {
+                    self.issue(Code::BareExpression, None);
+                    attempt = Some(e.s);
+                }
             }
             Stmt::Bare(expr) => {
                 shape = "expression";

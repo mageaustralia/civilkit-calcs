@@ -505,7 +505,7 @@ impl Stmt {
 /// control's stored value where the control stood; this says what it was.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Control {
-    /// `combo box`, `text box` or `list box`.
+    /// `combo box`, `text box`, `list box`, `button` or `check box`.
     pub kind: String,
     /// The stored value, as an expression (a number, a text, or a number times a unit).
     pub value: Expr,
@@ -513,4 +513,6 @@ pub struct Control {
     pub chosen: Option<String>,
     /// How many options the control offered (0 for a text box).
     pub options: usize,
+    /// The label on a button or check box.
+    pub caption: Option<String>,
 }
