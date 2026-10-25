@@ -2967,6 +2967,21 @@ impl Tr {
                 },
             };
         }
+        // `csort(A, j)` orders the rows by column j and `rsort(A, i)` the columns by row i (indexes counted
+        // from the array origin); `linterp(vx, vy, x)` has the engine's `linterp(x; vx; vy)` argument order.
+        if n.sub.is_none() && !self.funcs.contains_key(&flat) {
+            match (flat.as_str(), args.len()) {
+                ("csort" | "rsort", 2) => {
+                    let at = self.index_expr(&args[1]);
+                    let engine = if flat == "csort" { "sort_rows" } else { "sort_cols" };
+                    return atom(format!("{engine}({}; {at})", rendered[0]));
+                }
+                ("linterp", 3) => {
+                    return atom(format!("linterp({}; {}; {})", rendered[2], rendered[0], rendered[1]));
+                }
+                _ => {}
+            }
+        }
         if let Some(&arity) = self.funcs.get(&flat) {
             if arity != args.len() {
                 self.issue(Code::ArityMismatch, Some(flat.clone()));

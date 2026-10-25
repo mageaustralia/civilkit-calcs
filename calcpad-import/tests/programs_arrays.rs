@@ -424,3 +424,46 @@ fn an_element_of_a_call_result_in_a_function_body_needs_no_temporary() {
     assert!(res.calcpad.contains("take("), "{}", res.calcpad);
     assert_close(*numbers(&res.calcpad).last().unwrap(), 2.0);
 }
+
+// ---- sorting by a column or a row, linear interpolation ---------------------------------------------------
+
+#[test]
+fn csort_orders_the_rows_by_a_column_and_rsort_the_columns_by_a_row() {
+    // M = [3 1; 2 9; 5 4] (items go column by column). csort(M, 1) orders the rows by column 1:
+    // [2 9; 3 1; 5 4]. rsort(M, 1) orders the columns by row 1: [1 3; 9 2; 4 5].
+    let res = convert(&[
+        define("M", &mat(3, 2, &["3", "2", "5", "1", "9", "4"])),
+        define("S", &call("csort", &[n("M"), r("1")])),
+        eval(&index2("S", &r("1"), &r("2"))),
+        eval(&index2("S", &r("2"), &r("2"))),
+        define("T", &call("rsort", &[n("M"), r("1")])),
+        eval(&index2("T", &r("1"), &r("1"))),
+        eval(&index2("T", &r("2"), &r("1"))),
+    ]);
+    clean(&res);
+    assert!(res.calcpad.contains("sort_rows(M; 1)"), "{}", res.calcpad);
+    assert!(res.calcpad.contains("sort_cols(M; 1)"), "{}", res.calcpad);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 4], 9.0);
+    assert_close(nums[nums.len() - 3], 1.0);
+    assert_close(nums[nums.len() - 2], 1.0);
+    assert_close(nums[nums.len() - 1], 9.0);
+}
+
+#[test]
+fn linterp_takes_the_tables_first_and_continues_past_the_ends() {
+    // linterp(vx, vy, x) on (0, 0), (10, 100), (20, 300): x = 15 gives 200, x = 25 gives 400.
+    let res = convert(&[
+        define("vx", &mat(3, 1, &["0", "10", "20"])),
+        define("vy", &mat(3, 1, &["0", "100", "300"])),
+        define("a", &call("linterp", &[n("vx"), n("vy"), r("15")])),
+        eval(&n("a")),
+        define("b", &call("linterp", &[n("vx"), n("vy"), r("25")])),
+        eval(&n("b")),
+    ]);
+    clean(&res);
+    assert!(res.calcpad.contains("linterp(15; vx; vy)"), "{}", res.calcpad);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 3], 200.0);
+    assert_close(nums[nums.len() - 1], 400.0);
+}
