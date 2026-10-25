@@ -453,6 +453,8 @@ pub fn lookup_constant(name: &str) -> Option<Constant> {
         "e" => Some(Constant::Text("e")),
         // The source's built-in gravitational acceleration. Calcpad's `g` is the gram.
         "g" => Some(Constant::Text("(9.80665*m/s^2)")),
+        // Not a number: the engine's undefined value (a square root of a negative number).
+        "NaN" => Some(Constant::Text("sqrt(-1)")),
         "ORIGIN" => Some(Constant::Origin),
         _ => None,
     }
