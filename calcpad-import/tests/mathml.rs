@@ -299,7 +299,7 @@ fn a_constraint_equation_is_typeset_with_its_integrals_and_never_shown_as_code()
     // It stays a not-calculated region with a quiet note.
     assert_eq!(res.report.regions_needing_attention(), 1, "{:?}", res.report.issues);
     assert!(
-        res.calcpad.contains("not calculated: constraint-equation"),
+        res.calcpad.contains("title=\"constraint-equation: ") && res.calcpad.contains(">not calculated</small>"),
         "{}",
         res.calcpad
     );

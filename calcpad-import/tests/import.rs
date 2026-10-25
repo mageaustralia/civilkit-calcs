@@ -91,7 +91,7 @@ fn lines(res: &ImportResult) -> Vec<String> {
         !l.starts_with("'<!-- Imported") && !l.starts_with("'<style>") && !l.starts_with("'<!--{\"LintIgnore")
     }) {
         if let Some(rest) = l.strip_prefix("'<!-- [import-gap") {
-            let head = rest.split(" --><small>").next().unwrap_or(rest);
+            let head = rest.split(" --><small").next().unwrap_or(rest);
             out.push(format!("'[import-gap{}", head.replacen(" -->", "", 1)));
             in_gap = true;
             continue;
@@ -664,6 +664,28 @@ fn unit_override_becomes_a_conversion() {
     let res = import_xmcd(&sheet(&regs));
     assert_eq!(lines(&res)[1], "(p + 50*kPa)|psi");
     assert!(res.report.notes().any(|i| i.code == Code::UnitOverride));
+    assert_engine_clean(&res.calcpad);
+}
+
+#[test]
+fn a_unit_that_cancels_is_not_a_display_unit() {
+    // `x|ft/ft` is refused by the engine ("does not evaluate to units"); the value shows as it is.
+    let regs = [
+        math(1, 0.0, 0.0, &define("r", &app("div", &[r("8"), r("2")]))),
+        math(
+            2,
+            0.0,
+            20.0,
+            &format!(
+                "<ml:eval>{}<ml:unitOverride>{}</ml:unitOverride></ml:eval>",
+                n("r"),
+                app("div", &[n("ft"), n("ft")])
+            ),
+        ),
+    ]
+    .concat();
+    let res = import_xmcd(&sheet(&regs));
+    assert_eq!(lines(&res)[1], "r");
     assert_engine_clean(&res.calcpad);
 }
 

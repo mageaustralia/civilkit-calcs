@@ -492,7 +492,7 @@ struct LoopCtx {
 }
 
 /// Lines before the loops, one header per range, and the size each range reaches.
-type RangeLoops = (Vec<String>, Vec<String>, Vec<String>);
+type RangeLoops = (Vec<String>, Vec<String>, Vec<String>, Vec<String>);
 
 /// State while a function body is lowered to an expression block.
 struct FnBlk {
@@ -1464,31 +1464,37 @@ impl Tr {
         rhs: &str,
         pre: &[String],
     ) -> Result<String, String> {
-        let (head, loops, sizes) = self.range_loops(rs)?;
+        let (head, loops, sizes, steps) = self.range_loops(rs)?;
+        // A hidden statement that fails leaves no trace of its own (in a loop it can leave the zeros
+        // the array started with), so the loop writes a working array and counts the passes whose
+        // value was computed; the real array is defined from it only if every pass was counted,
+        // and otherwise the division fails, so the name is undefined where it is used.
+        let (w, c) = (format!("{f}_w{}", self.prog_n), format!("{f}_c{}", self.prog_n));
         let alloc = if sizes.len() == 1 {
-            format!("{f} = vector({})", sizes[0])
+            format!("{w} = vector({})", sizes[0])
         } else {
-            format!("{f} = matrix({}; {})", sizes[0], sizes[1])
+            format!("{w} = matrix({}; {})", sizes[0], sizes[1])
         };
         let mut out = vec!["#hide".to_string()];
         out.extend(head);
         out.push(alloc);
+        out.push(format!("{c} = 0"));
         for (d, l) in loops.iter().enumerate() {
             for line in l.split('\n') {
                 out.push(format!("{}{}", "    ".repeat(d), line));
             }
         }
+        let ind = "    ".repeat(loops.len());
         for p in pre {
-            out.push(format!("{}{p}", "    ".repeat(loops.len())));
+            out.push(format!("{ind}{p}"));
         }
-        out.push(format!(
-            "{}{f}.({}) = {rhs}",
-            "    ".repeat(loops.len()),
-            idx.join("; ")
-        ));
+        out.push(format!("{ind}{w}.({}) = {rhs}", idx.join("; ")));
+        // Multiplying by sign() keeps the count a plain number and makes it depend on the value written.
+        out.push(format!("{ind}{c} = {c} + 1 + 0*sign({rhs})"));
         for d in (0..loops.len()).rev() {
             out.push(format!("{}#loop", "    ".repeat(d)));
         }
+        out.push(format!("{f} = {w}*(1/({c} ≡ {}))", steps.join("*")));
         out.push("#end hide".to_string());
         Ok(out.join("\n"))
     }
@@ -1502,6 +1508,7 @@ impl Tr {
         let mut head = Vec::new();
         let mut loops = Vec::new();
         let mut sizes = Vec::new();
+        let mut steps = Vec::new();
         self.prog_n += 1;
         for (iv, info) in rs {
             let (a, z) = (&info.a, &info.z);
@@ -1511,6 +1518,7 @@ impl Tr {
                         return Err("the range starts below the array origin".into());
                     }
                     sizes.push((y - o + 1).to_string());
+                    steps.push((y - x + 1).to_string());
                     loops.push(format!("#for {iv} = {x} : {y}"));
                 }
                 None => {
@@ -1527,13 +1535,14 @@ impl Tr {
                         o => format!("max({lo}; {hi}) + {}", 1 - o),
                     };
                     sizes.push(size);
+                    steps.push(format!("(abs({hi} - {lo}) + 1)"));
                     loops.push(format!(
                         "#for {k} = 0 : abs({hi} - {lo})\n{iv} = {lo} + {k}*if({hi} ≥ {lo}; 1; -1)"
                     ));
                 }
             }
         }
-        Ok((head, loops, sizes))
+        Ok((head, loops, sizes, steps))
     }
 
     /// The statements that write one element of an array that grows: before a write past the end,
@@ -1606,7 +1615,7 @@ impl Tr {
         pre: &[String],
         fresh: bool,
     ) -> Result<String, String> {
-        let (head, loops, _) = self.range_loops(rs)?;
+        let (head, loops, _, _) = self.range_loops(rs)?;
         let mut out = vec!["#hide".to_string()];
         out.extend(head);
         if fresh {
@@ -2902,7 +2911,8 @@ impl Tr {
             }
         }
         let mut b = self.operand(base, P_ATOM, true);
-        if !self.readable && matches!(base, Expr::Call(..)) {
+        // The engine cannot index a bracketed expression, so a computed base goes through a temporary.
+        if !self.readable && matches!(base, Expr::Call(..) | Expr::Un(..) | Expr::Bin(..)) {
             self.prog_n += 1;
             let tmp = format!("ix_{}", self.prog_n);
             self.hoisted.push(format!("{tmp} = {b}"));
@@ -3007,16 +3017,19 @@ impl Tr {
             }
         }
         let reason = escape_text(codes[0].reason()).replace("--", "- -");
+        // The codes are for the report and the hover text; the page shows a short, muted note.
         let note = match body {
-            Some(_) => format!("not calculated: {}", names.join(", ")),
+            Some(_) => "not calculated".to_string(),
             None => format!("{} (not converted)", escape_text(codes[0].reason())),
         };
         self.lines.push(format!(
-            "'<!-- {} R{} {}] {} --><small>{}</small>",
+            "'<!-- {} R{} {}] {} --><small class=\"imp-gap\" style=\"font-size:8pt;font-style:italic;opacity:.55\" title=\"{}: {}\">{}</small>",
             GAP_MARKER,
             sanitize_id(id),
             names.join(","),
             reason,
+            names.join(", "),
+            reason.replace('"', "&quot;"),
             note
         ));
         let Some(lines) = body else { return };
@@ -3868,9 +3881,12 @@ impl Tr {
                 let mut text = e.s.clone();
                 if let Some(u) = unit {
                     let ur = self.expr(u);
-                    text = if e.prec >= P_ATOM { e.s } else { format!("({})", e.s) };
-                    text = format!("{}|{}", text, ur.s);
-                    self.issue(Code::UnitOverride, None);
+                    // A unit that cancels (ft/ft) is a plain number: the engine refuses it as a target.
+                    if !unit_cancels(&ur.s) {
+                        text = if e.prec >= P_ATOM { e.s } else { format!("({})", e.s) };
+                        text = format!("{}|{}", text, ur.s);
+                        self.issue(Code::UnitOverride, None);
+                    }
                 }
                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
                     emitted = Some(text);
@@ -4178,6 +4194,16 @@ fn theme_colors(hex: &str) -> Option<(String, String)> {
         hex.to_string()
     };
     Some((light, dark))
+}
+
+/// Whether a unit expression is a ratio of one unit to itself (`ft/ft`), which has no units left.
+fn unit_cancels(u: &str) -> bool {
+    let strip = |x: &str| x.trim().trim_start_matches('(').trim_end_matches(')').trim().to_string();
+    let mut parts = u.split('/');
+    match (parts.next(), parts.next(), parts.next()) {
+        (Some(a), Some(b), None) => !strip(a).is_empty() && strip(a) == strip(b),
+        _ => false,
+    }
 }
 
 /// The class a colour is given; its rules are written once at the top of the output.
