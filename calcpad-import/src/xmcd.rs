@@ -1300,6 +1300,17 @@ fn read_apply(n: Node, lim: &Limits, depth: usize) -> Expr {
         // `nthRoot` with an empty degree slot is the square root; any other degree is not read
         // (its operand order is unverified).
         "nthRoot" if args.len() == 2 && local(args[0]) == "placeholder" => un(UnOp::Sqrt, &args[1..]),
+        // The degree comes first, then the radicand (a cube root is `nthRoot(3, x)`).
+        "nthRoot" if args.len() == 2 => Expr::Call(Name::new("nthRoot"), args.iter().map(&rd).collect()),
+        // `2.5%` is 2.5 of the percent unit.
+        "percent" if args.len() == 1 => Expr::Bin(
+            BinOp::Mul,
+            Box::new(rd(&args[0])),
+            Box::new(Expr::Name(Name {
+                unit: true,
+                ..Name::new("%")
+            })),
+        ),
         "factorial" => un(UnOp::Factorial, &args),
         "transpose" => un(UnOp::Transpose, &args),
         "vectorize" => un(UnOp::Vectorize, &args),

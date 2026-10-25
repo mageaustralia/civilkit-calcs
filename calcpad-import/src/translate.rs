@@ -3011,6 +3011,9 @@ impl Tr {
                     let engine = if flat == "csort" { "sort_rows" } else { "sort_cols" };
                     return atom(format!("{engine}({}; {at})", rendered[0]));
                 }
+                ("nthRoot", 2) => {
+                    return atom(format!("root({}; {})", rendered[1], rendered[0]));
+                }
                 ("linterp", 3) => {
                     return atom(format!("linterp({}; {}; {})", rendered[2], rendered[0], rendered[1]));
                 }

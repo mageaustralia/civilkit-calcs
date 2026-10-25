@@ -554,3 +554,33 @@ fn a_sum_with_limit_elements_converts() {
     clean(&res);
     assert_close(*numbers(&res.calcpad).last().unwrap(), 14.0);
 }
+
+// ---- nth roots, percent ---------------------------------------------------------------------------------
+
+#[test]
+fn nthroot_takes_the_degree_first() {
+    // The cube root of 27 is 3 and of -8 is -2 (a real root of a negative number).
+    let res = convert(&[
+        define("a", &app("nthRoot", &[r("3"), r("27")])),
+        eval(&n("a")),
+        define("b", &app("nthRoot", &[r("3"), r("-8")])),
+        eval(&n("b")),
+    ]);
+    clean(&res);
+    assert!(res.calcpad.contains("root(27; 3)"), "{}", res.calcpad);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[1], 3.0);
+    assert_close(*nums.last().unwrap(), -2.0);
+}
+
+#[test]
+fn a_percent_sign_is_the_percent_unit() {
+    // 0.5 / 2% = 25.
+    let res = convert(&[
+        define("p", &app("percent", &[r("2")])),
+        define("q", &app("div", &[r("0.5"), n("p")])),
+        eval(&n("q")),
+    ]);
+    clean(&res);
+    assert_close(*numbers(&res.calcpad).last().unwrap(), 25.0);
+}
