@@ -371,6 +371,9 @@ fn render_md(p: &Para) -> Option<String> {
     }
 }
 
+/// Stands for a hard line break while a paragraph is built; it is written as a backslash and a newline.
+const BREAK: char = '\u{1}';
+
 #[derive(Clone, Copy, PartialEq)]
 enum Marks {
     Stars,
@@ -456,7 +459,7 @@ fn render_md_with(p: &Para, marks: Marks) -> Option<String> {
                     }
                 }
                 // A hard line break: a backslash at the end of the line.
-                "br" | "br/" | "br /" if p.level.is_none() => out.push_str("\\\n"),
+                "br" | "br/" | "br /" if p.level.is_none() => out.push(BREAK),
                 // Inline HTML that Markdown has no mark for stays as it is.
                 _ => {
                     out.push_str(&p.inline[i..=end]);
@@ -476,6 +479,11 @@ fn render_md_with(p: &Para, marks: Marks) -> Option<String> {
                     chunk.push_str("&#61;");
                     continue;
                 }
+                // `||` is the operator `∨`.
+                if c == '|' && (k > 0 && chars[k - 1] == '|' || chars.get(k + 1) == Some(&'|')) {
+                    chunk.push_str("&#124;");
+                    continue;
+                }
                 if matches!(c, '\\' | '*' | '_' | '[' | ']' | '`' | '~' | '^') {
                     chunk.push('\\');
                 }
@@ -488,17 +496,22 @@ fn render_md_with(p: &Para, marks: Marks) -> Option<String> {
     if !stack.is_empty() {
         return None;
     }
-    let text = out.trim();
+    // A break at either end of a paragraph says nothing (and a trailing backslash would be shown as it is).
+    let text = out
+        .trim_matches(|c: char| c.is_whitespace() || c == BREAK)
+        .replace(BREAK, "\\\n");
+    let text = text.as_str();
     let first = text.chars().next()?;
     let second = text.chars().nth(1);
-    let block_start = matches!(first, '#' | '>')
-        || (matches!(first, '-' | '+') && second.map_or(true, char::is_whitespace))
-        || (first.is_ascii_digit()
-            && text
-                .trim_start_matches(|c: char| c.is_ascii_digit())
-                .starts_with(['.', ')']));
-    let text = if block_start {
+    // A line that would start a block is escaped at the character Markdown can escape: the mark itself
+    // for `#`, `>`, `-` and `+`, and the `.` or `)` after the number of an ordered list (`1\.`; a
+    // backslash before the digit would be shown as it is).
+    let digits = text.len() - text.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+    let text = if matches!(first, '#' | '>') || (matches!(first, '-' | '+') && second.map_or(true, char::is_whitespace))
+    {
         format!("\\{text}")
+    } else if digits > 0 && text[digits..].starts_with(['.', ')']) {
+        format!("{}\\{}", &text[..digits], &text[digits..])
     } else {
         text.to_string()
     };
@@ -573,7 +586,13 @@ mod tests {
             markdown("'Total\n'=========="),
             "#markdown\nTotal\n\n---\n#end markdown"
         );
-        assert_eq!(markdown("'1. first"), "#markdown\n\\1. first\n#end markdown");
+        assert_eq!(
+            markdown("'a || b | c"),
+            "#markdown\na &#124;&#124; b | c\n#end markdown"
+        );
+        assert_eq!(markdown("'1. first"), "#markdown\n1\\. first\n#end markdown");
+        assert_eq!(markdown("'2) second"), "#markdown\n2\\) second\n#end markdown");
+        assert_eq!(markdown("'-5 kN"), "#markdown\n-5 kN\n#end markdown");
     }
 
     #[test]

@@ -456,3 +456,16 @@ restores the unit on every element.
 
 **Why:** the unit once is how engineers write a vector of one quantity, and it is what the worksheet importer
 produces for a result.
+
+## D14. A Markdown pipe table is ruled in Word (modification)
+
+**CalcpadCE:** a table is drawn with borders in Word only when it has the class `bordered`; the HTML a
+Markdown pipe table gives has no class, so it is written without rules.
+
+**Here:** a table that has a `<thead>` (what a Markdown pipe table gives) is written with the bordered table
+style, as it is drawn with rules in the preview. A table without a header section is unchanged.
+
+**Why:** a table without rules is hard to read, and the worksheet importer's Markdown option and the sheet
+syntax both produce pipe tables.
+
+**Tests:** `calcpad-docx/tests/docx.rs` (`a_markdown_table_is_ruled_and_a_plain_table_is_not`).

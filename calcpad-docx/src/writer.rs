@@ -624,7 +624,12 @@ impl<'a> Writer<'a> {
                 if el.has_class("matrix") {
                     return None;
                 }
-                self.table.bordered = el.has_class("bordered");
+                // A Markdown pipe table (the engine writes it with a header section) is ruled like a bordered one.
+                self.table.bordered = el.has_class("bordered")
+                    || el
+                        .children
+                        .iter()
+                        .any(|c| matches!(c, Node::Element(t) if t.name == "thead"));
                 Some(self.table.add_table())
             }
             "tr" => Some(self.table.add_row()),

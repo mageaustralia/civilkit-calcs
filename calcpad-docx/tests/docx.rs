@@ -115,6 +115,17 @@ fn hidden_parts_comments_and_scripts_are_left_out() {
 }
 
 #[test]
+fn a_markdown_table_is_ruled_and_a_plain_table_is_not() {
+    let md = docx(
+        "<body><table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table></body>",
+        &[],
+    );
+    assert!(md.text.contains("<w:tblStyle w:val=\"bcpd\"/>"), "{}", md.text);
+    let plain = docx("<body><table><tr><td>1</td><td>2</td></tr></table></body>", &[]);
+    assert!(!plain.text.contains("w:val=\"bcpd\""));
+}
+
+#[test]
 fn tables_span_columns_and_rows() {
     let d = docx(
         "<body><table class=\"bordered\"><tr><th colspan=\"2\">H</th></tr><tr><td rowspan=\"2\">a</td><td>b</td></tr><tr><td>c</td></tr></table></body>",
