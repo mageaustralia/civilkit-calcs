@@ -710,3 +710,24 @@ fn a_write_under_a_condition_past_the_others_is_a_reported_gap() {
         .unwrap_or_default();
     assert!(why.contains("condition"), "{why}");
 }
+
+// ---- chained comparisons -----------------------------------------------------------------------------------
+
+#[test]
+fn a_chained_comparison_is_a_conjunction() {
+    // f(x) = if(1 < x <= 2; 10; 20): f(1.5) = 10, f(3) = 20, f(0.5) = 20 (a comparison of a truth value
+    // with 2 would always hold).
+    let chain = app("lessOrEqual", &[app("lessThan", &[r("1"), n("x")]), r("2")]);
+    let res = convert(&[
+        func("f", &["x"], &call("if", &[chain, r("10"), r("20")])),
+        eval(&call("f", &[r("1.5")])),
+        eval(&call("f", &[r("3")])),
+        eval(&call("f", &[r("0.5")])),
+    ]);
+    clean(&res);
+    let nums = numbers(&res.calcpad);
+    let k = nums.len();
+    assert_close(nums[k - 3], 10.0);
+    assert_close(nums[k - 2], 20.0);
+    assert_close(nums[k - 1], 20.0);
+}

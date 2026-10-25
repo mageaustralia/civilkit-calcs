@@ -1370,6 +1370,17 @@ impl Tr {
     }
 
     fn binary(&mut self, op: BinOp, a: &Expr, b: &Expr) -> R {
+        // `x < y <= z` is `x < y` and `y <= z`, not a comparison of a truth value.
+        let ordering = |o: BinOp| matches!(o, BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge);
+        if ordering(op) {
+            if let Expr::Bin(op2, x, y) = a {
+                if ordering(*op2) {
+                    let left = Expr::Bin(*op2, x.clone(), y.clone());
+                    let right = Expr::Bin(op, y.clone(), Box::new(b.clone()));
+                    return self.binary(BinOp::And, &left, &right);
+                }
+            }
+        }
         let (sym, lmin, rmin, prec, rneg): (&str, u8, u8, u8, bool) = match op {
             BinOp::Add => (" + ", P_ADD, P_ADD, P_ADD, false),
             BinOp::Sub => (" - ", P_ADD, P_MUL, P_ADD, false),
