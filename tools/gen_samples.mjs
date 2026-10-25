@@ -96,7 +96,7 @@ function plainMath(tex) {
         .replace(/[{}]/g, '');
 }
 
-const GROUP_ORDER = ['Beams', 'Reinforced Concrete', 'Steel', 'Loads', 'Frames', 'Dynamics', 'Nonlinear', 'Soil Mechanics', 'Sections', 'Symbolic', 'Maths & plotting', 'Python'];
+const GROUP_ORDER = ['Beams', 'Reinforced Concrete', 'Steel', 'Loads', 'Frames', 'Dynamics', 'Nonlinear', 'Soil Mechanics', 'Sections', 'Maths & plotting', 'Python'];
 
 const cpdFiles = (dir) => readdirSync(dir).filter((f) => f.endsWith('.cpd')).map((f) => join(dir, f));
 const folders = [
@@ -321,7 +321,6 @@ const OWN_TITLES = {
     'Beam moment diagram with matplotlib': ['Beam Moment Diagram with matplotlib', 'A #python block draws the moment diagram of a simply supported beam with numpy and matplotlib and exports the maximum moment; the Calcpad lines after it check that moment against a capacity.'],
     'Plane truss by the stiffness method': ['Plane Truss by the Stiffness Method', 'A statically determinate plane truss is assembled and solved in a #python block (global stiffness matrix in loops, np.linalg.solve), the member forces and reactions are recovered and drawn with matplotlib, and the Calcpad lines after the block check the governing members.'],
     'Function plot with matplotlib': ['Function Plot with matplotlib', 'A #python block plots a damped oscillation and a bar chart side by side with matplotlib and exports the peak value.'],
-    'Beam deflection derived symbolically': ['Beam Deflection Derived Symbolically', 'The midspan deflection of a simply supported beam derived step by step with the Symbolic dialog (integrate, solve for the constants, substitute), then fed with numbers and checked against a numerical integration of the bending equation.'],
     'Built-up section properties': ['Built-up Section Properties', 'Vectors and hprod give the centroid and second moment of area of a built-up section with units carried through, and a bending stress follows.'],
 };
 if (existsSync(OWN)) {

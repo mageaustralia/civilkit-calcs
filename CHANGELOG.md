@@ -12,7 +12,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ## [Unreleased]
 
 ### Added
-- Sample "Beam Deflection Derived Symbolically" (Samples, Symbolic): the midspan deflection of a simply supported beam derived step by step with the Symbolic dialog, then fed with numbers and checked against a numerical integration.
+- Sample "Beam deflection derived symbolically" (Samples, Sheet syntax): the midspan deflection of a simply supported beam derived step by step with the Symbolic dialog, typeset as LaTeX, then fed with numbers and checked against the derived curve.
 
 ## [26.10.9] - 2026-10-26
 ### Added
