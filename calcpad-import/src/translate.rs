@@ -242,6 +242,38 @@ fn subst(e: &Expr, env: &HashMap<String, Expr>) -> Option<Expr> {
 }
 
 /// True when `name` (already normalised) occurs as a name anywhere in `e`.
+/// Can the expression fail only by dividing by zero? Collects the divisors. Sums, products,
+/// differences, negation, absolute value, integer powers, names and numbers cannot fail; a call, an
+/// index or anything else might, and then the reason says what.
+fn only_division_fails<'a>(e: &'a Expr, divisors: &mut Vec<&'a Expr>) -> Result<(), String> {
+    match e {
+        Expr::Num(_) | Expr::Name(_) => Ok(()),
+        Expr::Un(UnOp::Neg | UnOp::Abs, a) => only_division_fails(a, divisors),
+        Expr::Postfix(_, a) => only_division_fails(a, divisors),
+        Expr::Bin(BinOp::Add | BinOp::Sub | BinOp::Mul, a, b) => {
+            only_division_fails(a, divisors)?;
+            only_division_fails(b, divisors)
+        }
+        Expr::Bin(BinOp::Div, a, b) => {
+            only_division_fails(a, divisors)?;
+            only_division_fails(b, divisors)?;
+            divisors.push(b);
+            Ok(())
+        }
+        Expr::Bin(BinOp::Pow, a, b) if matches!(&**b, Expr::Num(s) if is_int_literal(s).is_some_and(|v| v >= 0)) => {
+            only_division_fails(a, divisors)
+        }
+        Expr::Index(base, idx) if matches!(&**base, Expr::Name(_)) => {
+            for i in idx {
+                only_division_fails(i, divisors)?;
+            }
+            Ok(())
+        }
+        Expr::Call(..) => Err("the body calls a function, which could fail in ways other than a division".into()),
+        _ => Err("the body could fail in ways other than a division".into()),
+    }
+}
+
 /// An expression made of numbers and arithmetic only (no name, so no unit).
 fn numeric_only(e: &Expr) -> bool {
     match e {
@@ -2967,6 +2999,9 @@ impl Tr {
                 },
             };
         }
+        if n.sub.is_none() && flat == "tryCatch" && args.len() == 2 && !self.funcs.contains_key(&flat) {
+            return self.try_catch(&args[0], &rendered);
+        }
         // `csort(A, j)` orders the rows by column j and `rsort(A, i)` the columns by row i (indexes counted
         // from the array origin); `linterp(vx, vy, x)` has the engine's `linterp(x; vx; vy)` argument order.
         if n.sub.is_none() && !self.funcs.contains_key(&flat) {
@@ -3037,6 +3072,40 @@ impl Tr {
             self.issue(Code::AddinFunction, Some(flat));
         }
         self.stand_in(&shown_call, "?call?")
+    }
+
+    /// `try body on error fallback`. The engine has no error trapping, so this is read for the one
+    /// failure that arithmetic has, a division by zero (the engine gives infinity there): the body
+    /// when every divisor is not zero, the fallback otherwise. A body that could fail in another way
+    /// (a function call, an index, a power) is not converted.
+    fn try_catch(&mut self, body: &Expr, rendered: &[String]) -> R {
+        let mut divisors: Vec<&Expr> = Vec::new();
+        if let Err(why) = only_division_fails(body, &mut divisors) {
+            self.issue(Code::ProgramBlock, Some(format!("tryCatch: {why}")));
+            if self.readable {
+                self.readable_bad = true;
+            }
+            return self.stand_in(&format!("tryCatch({}; {})", rendered[0], rendered[1]), "?try?");
+        }
+        let mut tests: Vec<String> = Vec::new();
+        for d in divisors {
+            if matches!(d, Expr::Num(s) if s.trim().parse::<f64>().is_ok_and(|v| v != 0.0)) {
+                continue;
+            }
+            let t = self.expr(d).s;
+            // A zero keeps its unit when multiplied by 0, so the comparison is between like units.
+            let test = format!("({t})*0 ≠ ({t})");
+            if !tests.contains(&test) {
+                tests.push(test);
+            }
+        }
+        if tests.is_empty() {
+            return R {
+                s: rendered[0].clone(),
+                prec: P_ATOM,
+            };
+        }
+        atom(format!("if({}; {}; {})", tests.join(" ∧ "), rendered[0], rendered[1]))
     }
 
     /// The engine's spelling of a worksheet function's name: the engine reads a function name

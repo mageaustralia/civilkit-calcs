@@ -941,6 +941,33 @@ pub(crate) fn read_expr(n: Node, lim: &Limits, depth: usize) -> Expr {
             }
         }
         "program" => Expr::Program(read_program(n, lim, depth + 1)),
+        // `try expr on error fallback`, when each side is a single expression: kept as a call of that
+        // name, which the translator turns into a test of the division that may fail.
+        "tryCatch" => {
+            let sides: Vec<Node> = ml_kids(n)
+                .into_iter()
+                .map(unwrap_provenance)
+                .filter(|k| local(*k) == "program")
+                .collect();
+            fn single_expr<'a, 'i>(p: Node<'a, 'i>) -> Option<Node<'a, 'i>> {
+                let k = ml_kids(p);
+                let statement = matches!(
+                    local(unwrap_provenance(*k.first()?)),
+                    "localDefine" | "for" | "while" | "if" | "return" | "break" | "continue" | "tryCatch" | "program"
+                );
+                (k.len() == 1 && !statement).then(|| k[0])
+            }
+            match sides.as_slice() {
+                [a, b] if ml_kids(n).len() == 2 => match (single_expr(*a), single_expr(*b)) {
+                    (Some(x), Some(y)) => Expr::Call(
+                        Name::new("tryCatch"),
+                        vec![read_expr(x, lim, depth + 1), read_expr(y, lim, depth + 1)],
+                    ),
+                    _ => unsupported(Code::ProgramBlock, "tryCatch with statements"),
+                },
+                _ => unsupported(Code::ProgramBlock, "tryCatch"),
+            }
+        }
         other => match unsupported_code(other) {
             Some(code) => Expr::Unsupported {
                 code,
@@ -1034,6 +1061,20 @@ fn read_series(product: bool, args: &[Node], lim: &Limits, depth: usize) -> Opti
         [_, b] if local(*b) == "bounds" => {
             let ends = ml_kids(*b);
             let [lo, hi] = ends.as_slice() else { return None };
+            if local(*lo) == "placeholder" || local(*hi) == "placeholder" {
+                return None;
+            }
+            Some((
+                Box::new(read_expr(*lo, lim, depth + 1)),
+                Box::new(read_expr(*hi, lim, depth + 1)),
+            ))
+        }
+        // The package format writes the limits as `lowerBound` and `upperBound` elements.
+        [_, lo, hi] if local(*lo) == "lowerBound" && local(*hi) == "upperBound" => {
+            let (lo, hi) = (ml_kids(*lo), ml_kids(*hi));
+            let ([lo], [hi]) = (lo.as_slice(), hi.as_slice()) else {
+                return None;
+            };
             if local(*lo) == "placeholder" || local(*hi) == "placeholder" {
                 return None;
             }

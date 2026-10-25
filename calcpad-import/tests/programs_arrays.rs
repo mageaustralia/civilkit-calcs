@@ -467,3 +467,90 @@ fn linterp_takes_the_tables_first_and_continues_past_the_ends() {
     assert_close(nums[nums.len() - 3], 200.0);
     assert_close(nums[nums.len() - 1], 400.0);
 }
+
+// ---- try / on error, sums with limit elements -------------------------------------------------------------
+
+fn try_catch(body: &str, fallback: &str) -> String {
+    format!("<ml:tryCatch><ml:program>{body}</ml:program><ml:program>{fallback}</ml:program></ml:tryCatch>")
+}
+
+#[test]
+fn try_on_error_over_a_division_tests_the_divisor() {
+    // f(a, b) = try a / b on error -1: f(6, 3) = 2, f(1, 0) = -1.
+    let body = try_catch(&app("div", &[n("a"), n("b")]), &r("-1"));
+    let res = convert(&[
+        func("f", &["a", "b"], &body),
+        eval(&call("f", &[r("6"), r("3")])),
+        eval(&call("f", &[r("1"), r("0")])),
+    ]);
+    clean(&res);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 2], 2.0);
+    assert_close(nums[nums.len() - 1], -1.0);
+}
+
+#[test]
+fn try_on_error_keeps_the_units_of_the_fallback_and_the_body() {
+    // q = try 6 m / d on error 0 m: d = 3 gives 2 m, d = 0 gives 0 m.
+    let res = convert(&[
+        define("d", &r("3")),
+        define(
+            "q",
+            &try_catch(
+                &app("div", &[app("mult", &[r("6"), n("m")]), n("d")]),
+                &app("mult", &[r("0"), n("m")]),
+            ),
+        ),
+        eval_in(&n("q"), "m"),
+        define("d", &r("0")),
+        define(
+            "p",
+            &try_catch(
+                &app("div", &[app("mult", &[r("6"), n("m")]), n("d")]),
+                &app("mult", &[r("0"), n("m")]),
+            ),
+        ),
+        eval_in(&n("p"), "m"),
+    ]);
+    clean(&res);
+    let nums = numbers(&res.calcpad);
+    // Each definition prints its value, then the evaluation: d, q, q in m, d, p, p in m.
+    assert_close(nums[2], 2.0);
+    assert_close(*nums.last().unwrap(), 0.0);
+}
+
+fn eval_in(expr: &str, unit: &str) -> String {
+    format!(
+        "<ml:eval>{expr}<ml:unitOverride>{}</ml:unitOverride></ml:eval>",
+        n(unit)
+    )
+}
+
+#[test]
+fn try_on_error_over_a_function_call_is_a_reported_gap() {
+    // A call could fail in other ways than a division, which the engine cannot trap.
+    let body = try_catch(&call("g", &[n("x")]), &r("0"));
+    let res = convert(&[func("g", &["x"], &n("x")), func("f", &["x"], &body)]);
+    let why = res
+        .report
+        .gaps()
+        .find(|i| i.code == Code::ProgramBlock)
+        .and_then(|i| i.detail.clone())
+        .unwrap_or_default();
+    assert!(why.contains("tryCatch") && why.contains("function"), "{why}");
+}
+
+#[test]
+fn a_sum_with_limit_elements_converts() {
+    // The package format writes the limits as lowerBound and upperBound: the sum of n^2 for n = 0 .. 3 is 14.
+    let sum = format!(
+        "<ml:apply><ml:summation/><ml:lambda><ml:boundVars>{}</ml:boundVars>{}</ml:lambda><ml:lowerBound>{}</ml:lowerBound><ml:upperBound>{}</ml:upperBound></ml:apply>",
+        n("k"),
+        app("pow", &[n("k"), r("2")]),
+        r("0"),
+        r("3")
+    );
+    let res = convert(&[define("s", &sum), eval(&n("s"))]);
+    clean(&res);
+    assert_close(*numbers(&res.calcpad).last().unwrap(), 14.0);
+}
