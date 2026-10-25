@@ -642,3 +642,33 @@ fn an_array_written_only_under_a_condition_is_not_guessed() {
         .unwrap_or_default();
     assert!(why.contains("only under a condition"), "{why}");
 }
+
+// ---- arrays of arrays --------------------------------------------------------------------------------------
+
+#[test]
+fn an_array_whose_elements_are_vectors_is_a_matrix_with_one_row_per_element() {
+    // f(x) = [x; 2 x; 3 x]. V[k] := f(k) for k = 1..3, then V[3][3] = 9, V[1][2] = 2 and V has three elements.
+    let fx = format!(
+        r#"<ml:matrix rows="3" cols="1">{}{}{}</ml:matrix>"#,
+        n("x"),
+        times(&r("2"), &n("x")),
+        times(&r("3"), &n("x"))
+    );
+    let res = convert(&[
+        func("f", &["x"], &fx),
+        define("k", &range("1", "3")),
+        set_element("V", &n("k"), &call("f", &[n("k")])),
+        eval(&index1_of(&index1("V", &r("3")), &r("3"))),
+        eval(&index1_of(&index1("V", &r("1")), &r("2"))),
+        eval(&call("rows", &[n("V")])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 3);
+    assert_close(v[0], 9.0);
+    assert_close(v[1], 2.0);
+    assert_close(v[2], 3.0);
+}
+
+fn index1_of(base_expr: &str, idx: &str) -> String {
+    format!("<ml:apply><ml:indexer/>{base_expr}{idx}</ml:apply>")
+}

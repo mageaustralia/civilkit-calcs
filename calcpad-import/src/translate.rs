@@ -17,6 +17,7 @@ use crate::{Asset, ImportOptions};
 
 mod exits;
 mod growth;
+mod nested;
 mod plot;
 mod strings;
 mod trycatch;
@@ -1271,6 +1272,8 @@ struct Tr {
     /// A function the sheet defines more than once: the engine name of its current definition (the
     /// engine warns when a name is defined again, so each later definition has a name of its own).
     fn_alias: HashMap<String, String>,
+    /// Arrays that hold an array in each element, kept as a matrix with one row per element.
+    nested: HashSet<String>,
     /// The parameters and the value of each worksheet function that is one expression.
     fn_defs: HashMap<String, (Vec<String>, Expr)>,
     /// Output names of local arrays that grow as they are written (their size is not known ahead).
@@ -2183,12 +2186,23 @@ impl Tr {
         index: &[Expr],
         value: &Expr,
     ) -> Option<(Vec<(String, RangeInfo)>, bool)> {
+        self.fill_plan(flat, index, value, false)
+    }
+
+    /// `grow_fill_plan`, or (`nested`) the plan for an array that holds an array in each element.
+    fn fill_plan(
+        &self,
+        flat: &Option<String>,
+        index: &[Expr],
+        value: &Expr,
+        nested: bool,
+    ) -> Option<(Vec<(String, RangeInfo)>, bool)> {
         let f = flat.as_ref()?;
         if index.is_empty() || index.len() > 2 {
             return None;
         }
         // One element of a vector is a number: an array value is a matrix built row by row.
-        if self.yields_array(value) {
+        if self.yields_array(value) != nested {
             return None;
         }
         let known = self.defined.contains(f) || self.funcs.contains_key(f) || self.gap_names.contains_key(f);
@@ -4182,6 +4196,25 @@ impl Tr {
                 return atom(format!("line({}; {})", at, arr));
             }
         }
+        // An element of an element: row and column of the matrix that holds the array of arrays.
+        if let (Expr::Index(inner, outer), [j], false) = (base, idx, self.display) {
+            if let (Expr::Name(n), [i]) = (&**inner, outer.as_slice()) {
+                if self.nested.contains(&tables::normalise_name(&n.flat())) {
+                    let m = self.operand(inner, P_ATOM, true);
+                    let (a, b) = (self.index_expr(i), self.index_expr(j));
+                    return atom(format!("{m}.({a}; {b})"));
+                }
+            }
+        }
+        if let (Expr::Name(n), [_], false) = (base, idx, self.display) {
+            if self.nested.contains(&tables::normalise_name(&n.flat())) {
+                self.issue(
+                    Code::ElementAssignment,
+                    Some("an element of an array of arrays read as a whole".into()),
+                );
+                return self.stand_in(&n.flat(), "?nested?");
+            }
+        }
         let b = self.operand(base, P_ATOM, true);
         if idx.is_empty() || idx.len() > 2 {
             self.issue(Code::BadStructure, Some("index list".into()));
@@ -5164,7 +5197,47 @@ impl Tr {
                                         });
                                     }
                                 }
+                                // An array in each element (`v[k] := f(k)` with a vector value) is a matrix with
+                                // one row per element.
+                                let nested_plan = match &flat {
+                                    Some(f) if index.len() == 1 && self.yields_array(value) => self
+                                        .fill_plan(&flat, index, value, true)
+                                        .filter(|(_, fresh)| *fresh || self.nested.contains(f)),
+                                    _ => None,
+                                };
                                 match (why, flat, ranges) {
+                                    (_, Some(f), _) if nested_plan.is_some() => {
+                                        let (rs, fresh) = nested_plan.unwrap_or_default();
+                                        for (iv, _) in &rs {
+                                            self.params.push(iv.clone());
+                                        }
+                                        let rhs = self.expr(value);
+                                        let idx: Vec<String> = index.iter().map(|e| self.index_expr(e)).collect();
+                                        for _ in &rs {
+                                            self.params.pop();
+                                        }
+                                        let pre = std::mem::take(&mut self.hoisted);
+                                        if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
+                                            match self.nested_fill_loops(&f, &rs, &idx[0], &rhs.s, &pre, fresh) {
+                                                Ok(t) => {
+                                                    self.elem_built.remove(&f);
+                                                    self.nested.insert(f.clone());
+                                                    emitted = Some(t);
+                                                    elem_def = true;
+                                                    self.issue(
+                                                        Code::RangeLoop,
+                                                        Some(format!(
+                                                            "element assignment over {}: each element is an array, kept as a row of a matrix",
+                                                            rs.iter().map(|r| r.0.as_str()).collect::<Vec<_>>().join(", ")
+                                                        )),
+                                                    );
+                                                }
+                                                Err(w) => self.issue(Code::ElementAssignment, Some(w)),
+                                            }
+                                        } else {
+                                            attempt = Some(format!("{f}.({}) = {}", idx.join("; "), rhs.s));
+                                        }
+                                    }
                                     (Some(_), Some(f), _) if plan.is_some() => {
                                         let (rs, fresh) = plan.unwrap_or_default();
                                         for (iv, _) in &rs {
@@ -6162,6 +6235,7 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         zero_started: HashSet::new(),
         partial: HashMap::new(),
         fn_alias: HashMap::new(),
+        nested: HashSet::new(),
         fn_defs: HashMap::new(),
         col_vecs: HashSet::new(),
         growable: HashSet::new(),
