@@ -119,9 +119,14 @@ const PREVIEW_TABLE = '<style>'
     + 'table:not(.imported-grid):not(.matrix):not([border]):has(>thead) th{background:rgba(128,128,128,.18);font-weight:600}'
     + '</style>';
 
+/** A phone-wide pane: room on the right so text does not run under the scrollbar, and long words wrap. */
+const PREVIEW_PHONE = '<style>@media screen and (max-width:760px){'
+    + 'body{padding-right:22px;overflow-wrap:anywhere}'
+    + '}</style>';
+
 function addPreviewDark(html: string): string {
     const i = html.toLowerCase().lastIndexOf('</head>');
-    return i < 0 ? html : html.slice(0, i) + PREVIEW_DARK + PREVIEW_MATRIX + PREVIEW_TABLE + html.slice(i);
+    return i < 0 ? html : html.slice(0, i) + PREVIEW_DARK + PREVIEW_MATRIX + PREVIEW_TABLE + PREVIEW_PHONE + html.slice(i);
 }
 
 /** A file the engine can read (#include, #read): an absolute path and its bytes. */
