@@ -234,8 +234,8 @@ sit on, then by their left edge; position is used only for this and then dropped
   program) keep the position of the area's header, which is not where they are calculated: the file lists regions in
   calculation order. A region with no size takes the largest top seen so far among the regions before it in the
   file, so the order it is listed in is the order it is calculated in; a region that has a size and is listed after
-  a region lower on the page follows that region. Measured on six local worksheets, a name used before the region
-  that defines it is rare in file order (2 to 9 uses in hundreds) and common in page order (34 to 301).
+  a region lower on the page follows that region. On design programs of this kind a name read before the region that
+  defines it is rare in file order and common in page order.
 
 ### Layout
 
