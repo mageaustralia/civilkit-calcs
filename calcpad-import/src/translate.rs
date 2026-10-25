@@ -15,6 +15,7 @@ use crate::report::{Code, ImportReport, Issue, KindStats, Severity};
 use crate::tables::{self, Constant, FnRule};
 use crate::{Asset, ImportOptions};
 
+mod complex;
 mod exits;
 mod growth;
 mod multi;
@@ -1072,6 +1073,38 @@ fn is_col_literal(e: &Expr) -> bool {
     }
 }
 
+/// A matrix literal with several rows and several columns (or the transpose of one).
+fn literal_matrix(e: &Expr) -> bool {
+    match e {
+        Expr::Matrix { rows, cols, .. } => *rows > 1 && *cols > 1,
+        Expr::Un(UnOp::Transpose, a) => literal_matrix(a),
+        _ => false,
+    }
+}
+
+/// A program that returns a local it writes by element with two indexes.
+fn returns_matrix(stmts: &[PStmt]) -> bool {
+    fn writes_two(list: &[PStmt], name: &str) -> bool {
+        list.iter().any(|st| match st {
+            PStmt::Local(PTarget::Element { base, index }, _) => {
+                index.len() == 2 && tables::normalise_name(&base.flat()) == name
+            }
+            PStmt::For { body, .. } | PStmt::While { body, .. } => writes_two(body, name),
+            PStmt::If { branches, otherwise } => {
+                branches.iter().any(|(_, b)| writes_two(b, name))
+                    || otherwise.as_ref().is_some_and(|o| writes_two(o, name))
+            }
+            _ => false,
+        })
+    }
+    match stmts.last() {
+        Some(PStmt::Expr(Expr::Name(n)) | PStmt::Return(Expr::Name(n))) => {
+            writes_two(stmts, &tables::normalise_name(&n.flat()))
+        }
+        _ => false,
+    }
+}
+
 fn may_return(st: &PStmt) -> bool {
     match st {
         PStmt::Return(_) => true,
@@ -1280,6 +1313,15 @@ struct Tr {
     nested: HashSet<String>,
     /// The parameters and the value of each worksheet function that is one expression.
     fn_defs: HashMap<String, (Vec<String>, Expr)>,
+    /// The sheet has complex numbers; the names that hold one (`name` is the real part and
+    /// `name__im` the imaginary part), and the complex locals of the program being split.
+    cx_any: bool,
+    cplx: HashSet<String>,
+    cx_locals: HashSet<String>,
+    /// Arrays known to have several rows and several columns (a plot draws a trace per column).
+    matrices: HashSet<String>,
+    /// The complex program just split returns an array with several rows and columns.
+    cx_matrix: bool,
     /// Output names of local arrays that grow as they are written (their size is not known ahead).
     growable: HashSet<String>,
     /// Lines a program lowered to statements starts with (the allocation of its growing arrays).
@@ -1353,6 +1395,21 @@ impl Tr {
         if self.depth > MAX_RENDER_DEPTH {
             self.issue(Code::TooDeep, None);
             return atom("?too-deep?");
+        }
+        // Complex values are written out as real ones (a pair per value); one left over is a gap.
+        if let Some(r) = self.realified(e) {
+            return match r {
+                Ok(real) => {
+                    self.depth += 1;
+                    let out = self.expr_inner(&real);
+                    self.depth -= 1;
+                    out
+                }
+                Err(why) => {
+                    self.issue(Code::UnknownElement, Some(format!("complex number: {why}")));
+                    atom("?complex?")
+                }
+            };
         }
         self.depth += 1;
         let r = self.expr_inner(e);
@@ -3721,17 +3778,14 @@ impl Tr {
     /// ahead (a counter as the index, a write under a condition): the array is started with one
     /// zero at the top of the program and grown by `resize` before a write past its end, so it ends
     /// as large as the largest index written, as in the source. Only for a name the worksheet has
-    /// no value for (a name it does have is a different array in the source's rules, not read).
+    /// no value of its own (a worksheet name of the same name is not where it starts).
     fn growing_local(&mut self, flat: &str, rank: usize) -> Option<String> {
         if rank == 0 || rank > 2 || !valid_ident(flat) {
             return None;
         }
-        if self.defined.contains(flat)
-            || self.arrays.contains(flat)
-            || self.funcs.contains_key(flat)
-            || self.gap_names.contains_key(flat)
-            || self.params.iter().any(|p| p == flat)
-        {
+        // A program's own array: a worksheet name of the same name is not its starting value (a stored
+        // 2 x 19 result of a program that writes rows 1 and 2 of such a name shows it starts empty).
+        if self.params.iter().any(|p| p == flat) {
             return None;
         }
         let mapped = self.local_name(flat);
@@ -4854,12 +4908,45 @@ impl Tr {
         let mut str_fn_def: Option<(String, Vec<usize>)> = None;
         let mut fn_gives_array = false;
         let mut str_mat_def: Option<String> = None;
+        let mut matrix_def = false;
         let mut str_multi_def: Vec<(String, Option<Vec<usize>>)> = Vec::new();
         // An evaluation of a text: the expression that gives its code and the texts it can be.
         let mut str_eval: Option<(String, Vec<usize>)> = None;
         let shape: &str;
 
+        // A definition with a complex value is two definitions (the real and the imaginary part).
+        let cx_result = match &m.stmt {
+            Stmt::Define {
+                target: Target::Var(n),
+                value,
+                ..
+            } if self.cx_any => self.complex_define(n, value),
+            _ => None,
+        };
+
         match &m.stmt {
+            Stmt::Define {
+                target: Target::Var(n), ..
+            } if cx_result.is_some() => {
+                shape = "definition";
+                let flat = tables::normalise_name(&n.flat());
+                match cx_result {
+                    Some(Ok((text, names))) => {
+                        matrix_def = self.cx_matrix;
+                        if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
+                            emitted = Some(text);
+                            multi_names = names;
+                        } else {
+                            attempt = Some(text);
+                        }
+                    }
+                    Some(Err(why)) => {
+                        self.issue(Code::UnknownElement, Some(format!("complex number: {why}")));
+                        define_name = Some((flat, None, false));
+                    }
+                    None => {}
+                }
+            }
             Stmt::Define { target, value, global } => {
                 shape = if matches!(target, Target::Func(..)) {
                     "function"
@@ -4912,6 +4999,7 @@ impl Tr {
                         }
                         match self.lower_program(statements.unwrap_or_default(), &flat) {
                             Ok((text, is_array)) => {
+                                matrix_def = returns_matrix(statements.unwrap_or_default());
                                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
                                     emitted = Some(text);
                                 } else {
@@ -4984,6 +5072,7 @@ impl Tr {
                         }
                         str_var_def = Some((flat.clone(), text_def.then_some(text_codes)));
                         let is_array = self.yields_array(value);
+                        matrix_def = literal_matrix(value);
                         if let Some((_, info)) = &range_def {
                             let (a, z) = (&info.a, &info.z);
                             self.issue(Code::RangeLoop, Some(format!("{flat} = {a} .. {z}")));
@@ -5696,6 +5785,11 @@ impl Tr {
                 self.lines.push(text);
             }
             for name in &multi_names {
+                if matrix_def {
+                    self.matrices.insert(name.clone());
+                } else {
+                    self.matrices.remove(name);
+                }
                 self.ranges.remove(name);
                 self.gap_names.remove(name);
                 self.funcs.remove(name);
@@ -5741,6 +5835,11 @@ impl Tr {
                     self.arrays.insert(name.clone());
                 } else {
                     self.arrays.remove(&name);
+                }
+                if matrix_def {
+                    self.matrices.insert(name.clone());
+                } else {
+                    self.matrices.remove(&name);
                 }
                 // Texts: the name holds one now, or no longer does.
                 self.str_vars.remove(&name);
@@ -6307,6 +6406,9 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
     renamed.extend(crate::names::rename_invalid(&mut sheet));
     let rows = reading_rows(std::mem::take(&mut sheet.regions));
     let has_references = rows.iter().flatten().any(|r| matches!(r.kind, RegionKind::Reference));
+    let cx_any = rows.iter().flatten().any(|r| {
+        matches!(r.kind, RegionKind::Math(_) | RegionKind::Plot(_)) && format!("{:?}", r.kind).contains("\"imag\"")
+    });
     let mut tr = Tr {
         origin: sheet.origin,
         defined: HashSet::new(),
@@ -6340,6 +6442,11 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         fn_alias: HashMap::new(),
         nested: HashSet::new(),
         fn_defs: HashMap::new(),
+        cx_any,
+        cplx: HashSet::new(),
+        cx_locals: HashSet::new(),
+        matrices: HashSet::new(),
+        cx_matrix: false,
         col_vecs: HashSet::new(),
         growable: HashSet::new(),
         prologue: Vec::new(),

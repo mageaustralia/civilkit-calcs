@@ -1102,9 +1102,10 @@ fn counters_and_conditions_pick_elements_into_a_growing_vector_and_matrix() {
 }
 
 #[test]
-fn an_array_the_sheet_already_has_is_not_replaced_by_a_new_local() {
-    // v has a value on the sheet; a program that writes v[2] is the source's copy-and-modify
-    // question, not read: a reported gap, not a fresh zero array.
+fn a_program_array_written_by_element_is_its_own_not_the_sheets() {
+    // v has a value on the sheet; a program that writes v[2] makes its own v (zeros, then 9 at 2): a stored
+    // 2 x 19 result of a real program that writes rows 1 and 2 of a name the sheet also defines shows
+    // that it does not start from the sheet's array. The sheet's v is unchanged.
     let res = convert(&[
         define("v", &mat(3, 1, &["1", "2", "3"])),
         define(
@@ -1114,9 +1115,17 @@ fn an_array_the_sheet_already_has_is_not_replaced_by_a_new_local() {
                 n("v"),
             ]),
         ),
+        eval(&call("rows", &[n("W")])),
+        eval(&index1("W", &r("2"))),
+        eval(&index1("W", &r("1"))),
+        eval(&index1("v", &r("3"))),
     ]);
-    let g = res.report.gaps().find(|i| i.code == Code::ProgramBlock).expect("gap");
-    assert!(g.detail.as_deref().unwrap_or("").contains("did not create"), "{g:?}");
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    let nums = numbers(&res.calcpad);
+    assert_close(nums[nums.len() - 4], 2.0);
+    assert_close(nums[nums.len() - 3], 9.0);
+    assert_close(nums[nums.len() - 2], 0.0);
+    assert_close(nums[nums.len() - 1], 3.0);
 }
 
 #[test]

@@ -767,3 +767,104 @@ fn a_function_assigns_a_column_of_its_argument() {
     assert_close(v[1], 104.0);
     assert_close(v[2], 4.0);
 }
+
+// ---- complex numbers, as pairs of real ones -------------------------------------------------------------------
+
+const IMAG: &str = "<ml:imag/>";
+
+fn cplx(re: &str, im: &str) -> String {
+    plus(&r(re), &times(&r(im), IMAG))
+}
+
+#[test]
+fn complex_arithmetic_is_written_out_for_the_two_parts() {
+    // z = (1 + 2i)(3 - 1i) = 5 + 5i; w = (1 + 2i) / (3 - 1i) = (1 + 7i) / 10; u = (1 + i)^2 = 2i.
+    let res = convert(&[
+        define("z", &times(&cplx("1", "2"), &cplx("3", "-1"))),
+        define("w", &app("div", &[cplx("1", "2"), cplx("3", "-1")])),
+        define("u", &app("pow", &[cplx("1", "1"), r("2")])),
+        eval(&call("Re", &[n("z")])),
+        eval(&call("Im", &[n("z")])),
+        eval(&call("Re", &[n("w")])),
+        eval(&call("Im", &[n("w")])),
+        eval(&call("Re", &[n("u")])),
+        eval(&call("Im", &[n("u")])),
+        eval(&call("abs", &[n("z")])),
+        eval(&call("Im", &[call("conj", &[n("z")])])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 8);
+    assert_close(v[0], 5.0);
+    assert_close(v[1], 5.0);
+    assert_close(v[2], 0.1);
+    assert_close(v[3], 0.7);
+    assert_close(v[4], 0.0);
+    assert_close(v[5], 2.0);
+    assert_close(v[6], 50f64.sqrt());
+    assert_close(v[7], -5.0);
+}
+
+#[test]
+fn an_array_of_complex_numbers_is_two_arrays_of_real_ones() {
+    // g(): p[i] <- i + (i * i) * 1i for i in 1..3; p. Re(p[3]) = 3 and Im(p[3]) = 9.
+    let body = program(&[
+        for_in(
+            "i",
+            &r("1"),
+            &r("3"),
+            &[local_el(
+                "p",
+                &n("i"),
+                &plus(&n("i"), &times(&times(&n("i"), &n("i")), IMAG)),
+            )],
+        ),
+        n("p"),
+    ]);
+    let res = convert(&[
+        define("P", &body),
+        eval(&call("Re", &[index1("P", &r("3"))])),
+        eval(&call("Im", &[index1("P", &r("3"))])),
+        eval(&call("Im", &[index1("P", &r("2"))])),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 3);
+    assert_close(v[0], 3.0);
+    assert_close(v[1], 9.0);
+    assert_close(v[2], 4.0);
+}
+
+#[test]
+fn a_complex_value_used_as_a_real_number_is_a_gap() {
+    let res = convert(&[
+        define("z", &cplx("1", "2")),
+        define("y", &plus(&n("z"), &r("1"))),
+        eval(&n("y")),
+    ]);
+    // y = z + 1 is complex itself and fine; asking for it as a number (a bare evaluation) is not.
+    assert!(
+        res.report
+            .gaps()
+            .any(|i| i.code == calcpad_import::Code::UnknownElement),
+        "{:?}",
+        res.report.issues
+    );
+}
+
+#[test]
+fn a_program_that_writes_elements_of_a_name_the_sheet_also_defines_starts_empty() {
+    // v = [9; 9; 9; 9] is defined at the sheet; the program writes v[1] <- 5, v[2] <- 6 and returns its own
+    // v: two elements, [5; 6] (the sheet's v is not where it starts), and the sheet's v is unchanged.
+    let body = program(&[local_el("v", &r("1"), &r("5")), local_el("v", &r("2"), &r("6")), n("v")]);
+    let res = convert(&[
+        define("v", &mat(4, 1, &["9", "9", "9", "9"])),
+        define("w", &body),
+        eval(&call("rows", &[n("w")])),
+        eval(&index1("w", &r("2"))),
+        eval(&index1("v", &r("4"))),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 3);
+    assert_close(v[0], 2.0);
+    assert_close(v[1], 6.0);
+    assert_close(v[2], 9.0);
+}

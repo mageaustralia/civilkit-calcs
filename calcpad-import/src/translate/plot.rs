@@ -87,6 +87,15 @@ impl Tr {
             }
         }
         let all: Vec<&Expr> = pairs.iter().flat_map(|(x, y)| [x, y]).collect();
+        // An array of several columns is drawn as one trace per column; the engine plots a vector
+        // against a vector.
+        if let Some(m) = self.matrices.iter().find(|m| all.iter().any(|e| mentions(e, m))) {
+            let m = m.trim_end_matches("__im").trim_end_matches("__re").to_string();
+            return self.plot_gap(
+                r,
+                &format!("{m} is an array with several columns, which the source draws as one trace per column"),
+            );
+        }
 
         // Range variables the expressions use.
         let mut range_vars: Vec<String> = self
