@@ -1,0 +1,3 @@
+(function(){let e=null;function t(t){return e||(e=(async()=>{let e=await import(
+/* @vite-ignore */
+`${t}wasm/calcpad_caskit_wasm.js`);if(await e.default({module_or_path:`${t}wasm/calcpad_caskit_wasm_bg.wasm`}),e.abi()!==`calcpad-caskit-1`)throw Error(`the symbolic algebra module does not match this page; reload the page`);return e})(),e.catch(()=>{e=null})),e}self.onmessage=async e=>{let{id:n,base:r,op:i,expr:a,args:o}=e.data;try{let e=await t(r);self.postMessage({id:n,answer:e.run(i,a,o)})}catch(e){self.postMessage({id:n,error:e instanceof Error?e.message:String(e)})}}})();
