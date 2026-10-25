@@ -16,6 +16,7 @@ use crate::tables::{self, Constant, FnRule};
 use crate::{Asset, ImportOptions};
 
 mod exits;
+mod growth;
 mod plot;
 mod strings;
 mod trycatch;
@@ -748,6 +749,13 @@ struct FnBlk {
     ret: Option<exits::RetFlags>,
     /// The break and continue flags of the loops being lowered, innermost last.
     flags: Vec<exits::LoopFlags>,
+    /// Arrays made at exactly the size their writes need (no write grows them).
+    exact: HashSet<String>,
+    /// Arrays that start with one zero where first written and grow with each write: the statement
+    /// they are made before, the name and the number of indexes.
+    grow_starts: Vec<(usize, String, usize)>,
+    /// What the body does to each array by element.
+    scan: HashMap<String, growth::WriteScan>,
 }
 
 /// What one dimension of an array needs: a literal index, or the end of a loop (plus an offset).
@@ -895,6 +903,24 @@ fn whole_assigned(stmts: &[PStmt], out: &mut HashSet<String>) {
 }
 
 impl FnBlk {
+    /// The array is made with one zero where it is first written and grows with each write, when the
+    /// source's own result does not depend on whether some write happens: one of its writes is not
+    /// under an `if`, and every write has the same number of indexes.
+    fn grow_from(&mut self, name: &str) {
+        let why = match self.scan.get(name) {
+            Some(info) if info.ranks.len() != 1 || !(1..=2).contains(&info.ranks[0]) => {
+                "it is indexed with a different number of indexes"
+            }
+            Some(info) if !info.uncond => "it is written only under a condition",
+            Some(info) => {
+                self.grow_starts.push((info.first, name.to_string(), info.ranks[0]));
+                return;
+            }
+            None => "it is not written",
+        };
+        self.no_alloc.entry(name.to_string()).or_insert_with(|| why.to_string());
+    }
+
     /// A local set for the first time here: it must have a value on every path that reads it. The
     /// reason it does not, if it does not.
     fn first_set_problem(&self, flat: &str, guard: Option<&str>, loops: usize) -> Option<String> {
@@ -2736,6 +2762,9 @@ impl Tr {
             writes: Vec::new(),
             ret: None,
             flags: Vec::new(),
+            exact: HashSet::new(),
+            grow_starts: Vec::new(),
+            scan: growth::scan_element_writes(body),
         };
         let mut items: Vec<String> = Vec::new();
         let r = (|| -> Result<String, String> {
@@ -2774,21 +2803,24 @@ impl Tr {
                 st.writes.extend(w);
                 st.no_alloc.extend(bad);
             }
-            let mut bases: Vec<String> = st.writes.iter().map(|w| w.base.clone()).collect();
+            let mut bases: Vec<String> = st.scan.keys().cloned().collect();
             bases.sort();
-            bases.dedup();
             for b in bases {
                 if self.params.contains(&b) || st.arrays.contains(&b) || whole.contains(&b) {
                     continue;
                 }
-                let mut places: Vec<usize> = st.writes.iter().filter(|w| w.base == b).map(|w| w.at).collect();
+                let mine: Vec<&ElemWrite> = st.writes.iter().filter(|w| w.base == b).collect();
+                let mut places: Vec<usize> = mine.iter().map(|w| w.at).collect();
+                places.sort();
                 places.dedup();
-                match places.as_slice() {
-                    [k] => st.allocs.push((*k, b)),
-                    _ => {
-                        st.no_alloc.insert(b, "it is written in several places".into());
-                    }
+                let literal_only = mine.iter().all(|w| w.needs.iter().all(|n| matches!(n, Need::Lit(_))));
+                // Sized ahead when its writes are in one statement, or all at numbers (the size does
+                // not depend on what runs between them).
+                if !st.no_alloc.contains_key(&b) && !places.is_empty() && (places.len() == 1 || literal_only) {
+                    st.allocs.push((places[0], b));
+                    continue;
                 }
+                st.grow_from(&b);
             }
             for (k, stmt) in body.iter().enumerate() {
                 let names: Vec<String> = st
@@ -2799,8 +2831,25 @@ impl Tr {
                     .collect();
                 for b in names {
                     if let Err(why) = self.alloc_array(&b, stmt, &mut st, &mut items) {
-                        st.no_alloc.insert(b, why);
+                        st.no_alloc.insert(b.clone(), why);
+                        st.grow_from(&b);
                     }
+                }
+                // Arrays that start with one zero and grow, made before the statement that first writes them.
+                let due: Vec<(String, usize)> = st
+                    .grow_starts
+                    .iter()
+                    .filter(|(at, b, _)| *at <= k && !st.arrays.contains(b))
+                    .map(|(_, b, r)| (b.clone(), *r))
+                    .collect();
+                for (b, rank) in due {
+                    let mapped = self.local_name(&b);
+                    items.push(if rank == 1 {
+                        format!("{mapped} = vector(1)")
+                    } else {
+                        format!("{mapped} = matrix(1; 1)")
+                    });
+                    st.arrays.insert(b);
                 }
                 self.lower_fn_stmts(std::slice::from_ref(stmt), None, 0, &mut st, &mut items)?;
             }
@@ -2914,6 +2963,7 @@ impl Tr {
             format!("{mapped} = matrix({}; {})", dims[0], dims[1])
         });
         st.arrays.insert(name.to_string());
+        st.exact.insert(name.to_string());
         Ok(())
     }
 
@@ -3012,11 +3062,15 @@ impl Tr {
                     }
                     let parts: Vec<String> = index.iter().map(|i| self.index_expr(i)).collect();
                     let rhs = self.expr(e).s;
-                    let at = format!("{mapped}.({})", parts.join("; "));
-                    items.push(match g {
-                        None => format!("{at} = {rhs}"),
-                        Some(g) => format!("{at} = if({g}; {rhs}; {at})"),
-                    });
+                    if st.exact.contains(&flat) {
+                        let at = format!("{mapped}.({})", parts.join("; "));
+                        items.push(match g {
+                            None => format!("{at} = {rhs}"),
+                            Some(g) => format!("{at} = if({g}; {rhs}; {at})"),
+                        });
+                    } else {
+                        items.extend(self.growing_write(&mapped, &parts, &rhs, g));
+                    }
                 }
                 PStmt::For { var, range, body } => {
                     let Expr::Range {

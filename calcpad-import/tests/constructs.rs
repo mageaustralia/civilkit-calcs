@@ -522,3 +522,123 @@ fn a_descending_stepped_range_counts_down() {
     let text = engine_lines(&res.calcpad).join(" ").replace('\u{2002}', " ");
     assert!(text.contains("[10 8 6 4]"), "{text}");
 }
+
+// ---- arrays a function body grows by element ------------------------------------------------------------------
+
+fn local_el(base: &str, idx: &str, value: &str) -> String {
+    format!("<ml:localDefine>{}{}</ml:localDefine>", index1(base, idx), value)
+}
+
+#[test]
+fn an_array_written_at_numbers_in_several_statements_is_made_once() {
+    // z[0] <- 5, z[1] <- 6, z[2] <- 7 in three statements, then z: three elements, the last 7.
+    let body = program(&[
+        local_el("z", &r("0"), &r("5")),
+        local_el("z", &r("1"), &r("6")),
+        local_el("z", &r("2"), &r("7")),
+        n("z"),
+    ]);
+    let sheet = sheet_of(
+        &[
+            func("f", &["x"], &body),
+            define("w", &call("f", &[r("0")])),
+            eval(&call("rows", &[n("w")])),
+            eval(&index1("w", &r("2"))),
+        ],
+        0,
+    );
+    let res = import_xmcd(&sheet);
+    clean(&res);
+    let v = last_numbers(&res, 2);
+    assert_close(v[0], 3.0);
+    assert_close(v[1], 7.0);
+}
+
+#[test]
+fn an_array_the_function_received_grows_when_written_past_its_end() {
+    // g(c): c[3] <- 9 on c = [1; 2] gives [1; 2; 9].
+    let body = program(&[local_el("c", &r("3"), &r("9")), n("c")]);
+    let res = convert(&[
+        func("g", &["c"], &body),
+        define("w", &call("g", &[mat(2, 1, &["1", "2"])])),
+        eval(&call("rows", &[n("w")])),
+        eval(&index1("w", &r("3"))),
+        eval(&index1("w", &r("1"))),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 3);
+    assert_close(v[0], 3.0);
+    assert_close(v[1], 9.0);
+    assert_close(v[2], 1.0);
+}
+
+#[test]
+fn an_array_filled_in_a_while_loop_has_the_size_the_loop_reached() {
+    // k(m): i counts up while i < m, z[i] <- i * i. k(4) has four elements, the last 16.
+    let body = program(&[
+        local("i", &r("0")),
+        while_do(
+            &lt(&n("i"), &n("m")),
+            &[
+                local("i", &plus(&n("i"), &r("1"))),
+                local_el("z", &n("i"), &times(&n("i"), &n("i"))),
+            ],
+        ),
+        n("z"),
+    ]);
+    let res = convert(&[
+        func("k", &["m"], &body),
+        define("w", &call("k", &[r("4")])),
+        eval(&call("rows", &[n("w")])),
+        eval(&index1("w", &r("4"))),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 2);
+    assert_close(v[0], 4.0);
+    assert_close(v[1], 16.0);
+}
+
+#[test]
+fn writes_under_a_condition_extend_an_array_a_write_that_always_runs_started() {
+    // h(): w[1] <- 0; for i in 1..6: if i is even, w[i] <- i. w is [0 2 0 4 0 6]: six elements, w[4] = 4.
+    let even = app("equal", &[call("mod", &[n("i"), r("2")]), r("0")]);
+    let body = program(&[
+        local_el("w", &r("1"), &r("0")),
+        for_in(
+            "i",
+            &r("1"),
+            &r("6"),
+            &[if_then(&even, &[local_el("w", &n("i"), &n("i"))])],
+        ),
+        n("w"),
+    ]);
+    let res = convert(&[
+        func("h", &["x"], &body),
+        define("v", &call("h", &[r("0")])),
+        eval(&call("rows", &[n("v")])),
+        eval(&index1("v", &r("4"))),
+        eval(&index1("v", &r("5"))),
+    ]);
+    clean(&res);
+    let v = last_numbers(&res, 3);
+    assert_close(v[0], 6.0);
+    assert_close(v[1], 4.0);
+    assert_close(v[2], 0.0);
+}
+
+#[test]
+fn an_array_written_only_under_a_condition_is_not_guessed() {
+    // p(x): if x > 0, q[1] <- 5. With x <= 0 the source has no q at all, so the function is a gap.
+    let body = program(&[
+        if_then(&gt(&n("x"), &r("0")), &[local_el("q", &r("1"), &r("5"))]),
+        n("q"),
+    ]);
+    let res = convert(&[func("p", &["x"], &body)]);
+    let why = res
+        .report
+        .gaps()
+        .find(|i| i.code == calcpad_import::Code::ProgramBlock)
+        .and_then(|i| i.detail.clone())
+        .unwrap_or_default();
+    assert!(why.contains("only under a condition"), "{why}");
+}
