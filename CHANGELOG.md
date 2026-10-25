@@ -11,6 +11,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- Sample "Beam Deflection Derived Symbolically" (Samples, Symbolic): the midspan deflection of a simply supported beam derived step by step with the Symbolic dialog, then fed with numbers and checked against a numerical integration.
+
 ## [26.10.9] - 2026-10-26
 ### Added
 - A Symbolic dialog (Functions tab) over the new `caskit` crate: simplify, expand, factor, differentiate (any order), integrate (indefinite or between limits), solve an equation or a linear system, substitute and evaluate. The result is typeset with KaTeX and shown as text, can be copied, and can be inserted into a Calcpad worksheet (a calculation line or a comment) or a sheet (a `$$` formula block or a quantity line). A refusal is shown with the library's message. A new `calcpad-caskit-wasm` module (290 KB, 122 KB gzipped) runs in a worker and is downloaded only when the dialog first runs something; `tools/build_wasm.sh caskit` builds it. `web/e2e/symbolic-check.mjs` checks it in the browser.

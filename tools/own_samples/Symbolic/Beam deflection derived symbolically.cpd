@@ -1,0 +1,26 @@
+"Deflection of a simply supported beam, derived with the Symbolic dialog
+'Open <b>Functions</b> then <b>Symbolic</b> to repeat each step. The steps below are exact results from the dialog, kept as notes because a worksheet line needs numbers for every symbol. The last part feeds the closed form with numbers, and the engine checks it against a direct numerical integration.
+"Step 1: bending equation
+'Take <i>y</i> in the direction of the load, so E·I·d²y/dx² = −M(x), with M(x) = w·L·x/2 − w·x²/2. Operation <b>integrate</b> on −(w·L·x/2 − w·x²/2)/(E·I) with respect to x, adding the constants C1 and C2 after each integration, gives
+'y(x) = −L·w·x³/(12·E·I) + w·x⁴/(24·E·I) + C1·x + C2
+"Step 2: boundary conditions
+'y(0) = 0 and y(L) = 0. Operation <b>solve</b> on those two equations for C1 and C2 gives
+'C1 = L³·w/(24·E·I) and C2 = 0
+"Step 3: midspan
+'Operation <b>substitute</b> x = L/2, then <b>simplify</b>, gives
+'y(L/2) = 5·L⁴·w/(384·E·I)
+"Numbers
+w = 12kN/m
+L = 6m
+E = 200GPa
+I_x = 250*10^6*1mm^4
+δ = 5*w*L^4/(384*E*I_x)|mm
+"Check: integrate the bending equation numerically
+n = 600
+dx = L/n
+x_i(i) = (i - 0.5)*dx
+M(x) = w*L*x/2 - w*x^2/2
+k(x) = M(x)/(E*I_x)
+"Unit load at midspan gives m(x) = x/2 on each half, so the midspan deflection is twice the half-span integral of M·m/(E·I)
+δ_num = 2*$Sum{k(x_i(i))*x_i(i)/2*dx @ i = 1 : n/2}|mm
+ratio = δ_num/δ
