@@ -1277,10 +1277,9 @@ fn a_table_read_from_a_data_file_takes_the_value_saved_where_the_sheet_shows_it(
         "{}",
         res.calcpad
     );
-    // The heading is a code, the numbers are the file's.
-    assert!(res.calcpad.contains("T = [1; 7|0; 9]"), "{}", res.calcpad);
-    assert!(!res
-        .report
-        .gaps()
-        .any(|i| i.code == Code::StringValue || i.code == Code::BuiltinMissing));
+    // The heading is a code, the numbers are the file's; the table is stored by columns.
+    assert!(res.calcpad.contains("T = [1; 0|7; 9]"), "{}", res.calcpad);
+    // The read itself no longer blocks; printing a table that holds a heading does.
+    assert!(!res.report.gaps().any(|i| i.code == Code::BuiltinMissing));
+    assert_eq!(res.report.regions_needing_attention(), 1, "{:?}", res.report.issues);
 }
