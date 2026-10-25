@@ -72,6 +72,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797"
 
 [[package]]
+name = "calcpad-caskit-wasm"
+version = "26.10.8"
+dependencies = [
+ "civilkit-calcs-caskit",
+ "serde_json",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "calcpad-cli"
 version = "26.10.8"
 dependencies = [
