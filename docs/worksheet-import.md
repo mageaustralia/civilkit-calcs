@@ -177,11 +177,18 @@ kind of unconverted region and checks that it only ever appears inside a marked 
 | `x ≡ expr` (global) | `x = expr` at its reading-order position, with note `global-definition`. A global whose value is only numbers and units is also defined first, in a `#hide` block at the top, because a global holds wherever it is written (a use above it reads it). Other globals are not hoisted. |
 | `expr =` | the bare expression |
 | `x := expr =` | `x = expr` (a display unit on the result is dropped) |
-| `expr = ` with a display unit | `(expr)\|unit`, note `unit-override` |
+| `expr = ` with a display unit | `((expr)/unit)*unit`, note `unit-override`. The source takes the unit as the part of the result's unit to show first and keeps the rest (`kip` on a moment shows kip times length); the engine's `\|` conversion refuses a unit of another dimension. A temperature unit keeps `\|` because of its offset. |
 | `f(a, b) := expr` | `f(a; b) = expr` |
 | `+ - * /`, powers, unary minus, factorial, comparison, and/or/xor | the same operators, with parentheses added from the tree, never from the source |
 | `sqrt`, `\|x\|` | `sqrt(x)`, `abs(x)` (note `abs-of-array` when the operand is a known matrix or vector) |
 | `x_i`, `ρ_tp` (literal subscripts), Greek names | `x_i`, `ρ_tp` |
+| A name the engine cannot spell (dots, `#`, `/`, `:`, spaces, a leading digit: `SF_crack.step2`, `U/R_twist`, `Rod#_top`) | One engine spelling for the whole sheet, `SF_crack_step2`, `U_R_twist`, `RodNum_top`: every other character becomes an underscore, `#` reads "Num", `%` "pct", a leading digit gets a `v`, and runs of underscores collapse. The spelling is chosen once per distinct original (in order of first appearance) and applied to definitions, uses, function names and parameters, program locals, plot expressions and input components alike (`importer::names`). When it equals a name already in the sheet, or would be read as a unit, a constant or an engine function, `_2`, `_3` (or `_v`) is added. The typeset equations show the original: `SF` with the subscript `crack.step2`. A name that carries a superscript caret (text the reader cannot take for a name) stays an `invalid-name` gap. |
+| Text values (`"OK"`, `"NG"`) | Held as whole numbers, the code of the literal in a table of the sheet: `Check := if(x >= 2; "OK"; "NG")` is `Check = if(x ≥ 2; 1; 2)`; two texts are equal when their codes are; a function that returns one works the same. The page shows the author's equation and, for an evaluation of a text, the text of the current code, chosen by an `#if` chain over the texts that name can hold. Which names hold texts is tracked in reading order, so a name that is a number before and a text after (a selection index replaced by its label) is read at each point as what it is there. A matrix literal that mixes text labels with numbers keeps its numbers and holds the labels as codes (a printed evaluation of such a matrix is the `string-value` gap). A text used as a number, joined, sliced, or given to a function (a file name) is the `string-value` gap. |
+| Input controls: combo box, text box, list box | The control's stored value is the input: `x := <control>` becomes `x = <stored value>`. A combo box gives the value of the selected row (times the control's scale factor, a unit as a rule), a text box its text (a number when the text is one, otherwise a text value as above; `str2num` of a number-text box is the number), a list box the selected item. A note line above the equation says what was taken (`combo box input, stored selection "..." of 3 options`) and the note `control-input` is added; the options, the script behind the control and its links to other names are not carried. A button holds no value and stays an `unknown-element` gap. |
+| `x%` | `x*%` (the percent sign is a unit) |
+| `nthRoot` with a degree (`nthRoot(3; x)`) | `x^(1/3)`; the degree is the first operand, as the empty first slot of the square root shows |
+| `plf`, `pcf`, `klf`, `kcf`, `pli`, `kips` | `(lbf/ft)`, `(lbf/ft^3)`, `(kip/ft)`, `(kip/ft^3)`, `(lbf/in)`, `kip` |
+| A bare `0` against a quantity with units: `if(c; 0; x)`, `max(0; x)`, `x ≡ 0` | `0*getunits(x)`: the source lets a literal zero take the units of the other operand, the engine wants them equal. `getunits` reads the unit without evaluating the value, so a guard such as `if(s = 0; 0; m/s)` stays safe. |
 | Vector, matrix literal | `[a; b; c]`, `[a; b\|c; d]`, a row vector as `transp([a\|b\|c])`. The file stores matrices column by column; the importer reads them that way. The engine keeps vectors and matrices apart (`len`, `max` and one-index access want a vector), so the transpose of a row literal is written as the column vector `[a; b; c]` and a double transpose is the operand. |
 | Product of two column vectors (`u(i) * Θ(i)`, a scalar times either) | `dot(a; b)`: the source multiplies two column vectors as a dot product, the engine's `*` of two vectors is element by element. Applied when both operands are statically column vectors (a column literal, a transposed row literal, or a name or function the importer saw defined as one); two arrays whose shape is not known keep `*`. |
 | `[A, B] := [1, 2]` (a matrix of names) | One definition per name, each from the item in its place; the matrix must be a literal of the same size. |
@@ -365,7 +372,7 @@ summary key on them.
 | `symbolic-evaluation` | Symbolic evaluation |
 | `calculus-operator` | Derivative and integral operators that do not meet the conditions under What converts (the detail names which); other derivative forms |
 | `summation-operator`, `vectorize-operator`, `matrix-operator` | A sum or product that does not meet the conditions under What converts, limits; vectorize over an element-by-element product or quotient of arrays; column/row, dot, cross and magnitude operators |
-| `string-value` | Strings; Calcpad has no string variables |
+| `string-value` | A text the engine cannot hold as a code: used as a number, joined, sliced, given to a function (a file name), or a matrix of texts and numbers that is printed |
 | `bare-expression` | An expression with no definition or evaluation operator (documentation) |
 | `constraint-equation` | An equation on its own (`f_B = c*L + d`): a solve block's equation or a check. Shown with its real names, not solved |
 | `element-assignment`, `disabled-region` | `v[i] := x`; a region switched off in the source |
@@ -380,7 +387,7 @@ summary key on them.
 | `invalid-name`, `bad-number`, `arity-mismatch`, `bad-structure`, `too-deep` | Structure the importer will not guess |
 
 Notes (the region converted, with a caveat): `global-definition`, `angle-mode`, `array-origin`,
-`origin-assigned`, `log-base`, `round-digits`, `abs-of-array`, `call-as-multiplication`, `unit-override`, `si-unit-scale`, `range-loop`.
+`origin-assigned`, `log-base`, `round-digits`, `abs-of-array`, `call-as-multiplication`, `unit-override`, `control-input`, `si-unit-scale`, `range-loop`.
 Whole-file problems: `xml-error`, `not-a-worksheet`, `input-too-large`, `unsupported-container` (a zip that is damaged,
 encrypted or uses a zip feature the reader refuses).
 

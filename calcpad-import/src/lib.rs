@@ -28,9 +28,11 @@
 
 #![forbid(unsafe_code)]
 
+pub(crate) mod controls;
 pub mod ir;
 pub mod mathml;
 pub mod mcdx;
+pub mod names;
 pub mod picture;
 mod plotread;
 pub mod report;

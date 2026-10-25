@@ -83,6 +83,13 @@ pub const RENAMED_UNITS: &[(&str, &str)] = &[
     ("siemens", "S"),
     ("radian", "rad"),
     ("percent", "%"),
+    // Force per length and per volume, as the structural handbooks write them.
+    ("plf", "(lbf/ft)"),
+    ("pli", "(lbf/in)"),
+    ("klf", "(kip/ft)"),
+    ("pcf", "(lbf/ft^3)"),
+    ("kcf", "(kip/ft^3)"),
+    ("kips", "kip"),
 ];
 
 /// Units the source language knows and Calcpad does not: reported as `unmapped-unit`.

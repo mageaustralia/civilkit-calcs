@@ -314,7 +314,7 @@ fn unit_override_with_a_unit_is_a_conversion() {
         r#"<ml:define><ml:id>p</ml:id><ml:apply><ml:mult/><ml:real>100</ml:real><ml:id>kPa</ml:id></ml:apply></ml:define>"#,
         r#"<ml:eval><ml:id>p</ml:id><ml:unitOverride><ml:id>psi</ml:id></ml:unitOverride></ml:eval>"#,
     ]);
-    assert_eq!(lines(&res)[1], "p|psi");
+    assert_eq!(lines(&res)[1], "(p/psi)*psi");
     assert!(res.report.notes().any(|i| i.code == Code::UnitOverride));
 }
 
@@ -861,7 +861,8 @@ fn hostile_text_in_names_and_prose_only_reaches_the_output_escaped() {
         .part(part("ws/xaml/FlowDocument1.XamlPackage", xaml))
         .import();
     assert!(!res.calcpad.contains("<script"), "{}", res.calcpad);
-    assert!(res.report.gaps().any(|i| i.code == Code::InvalidName));
+    // The name is spelled for the engine; the markup in it never reaches the page.
+    assert!(!res.calcpad.contains("evil'<"), "{}", res.calcpad);
 }
 
 #[test]
@@ -1231,4 +1232,14 @@ fn a_range_that_is_not_all_numbers_or_not_in_the_workbook_is_not_read() {
     }
     let res = p.part(part("ws/excel/x.ole", ole)).import();
     assert!(res.calcpad.contains("Inp = [1; 0|3; 0]"), "{}", res.calcpad);
+}
+
+#[test]
+fn subscript_and_superscript_runs_are_read_as_text() {
+    let region = r#"<region region-id="1" top="0" left="0" width="400"><text is-text-block="true"><FlowDocument xmlns="http://example.invalid/presentation"><Paragraph><Run>A</Run><SubscriptRun Typography.Variants="Subscript">cr</SubscriptRun><Run> and B</Run><SuperscriptRun>2</SuperscriptRun></Paragraph></FlowDocument></text></region>"#;
+    let res = Pkg::new(region).import();
+    let l = res.calcpad.lines().find(|x| x.contains("and B")).expect("line");
+    assert!(l.contains("<sub>cr</sub>") && l.contains("<sup>2</sup>"), "{l}");
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    assert!(!res.report.issues.iter().any(|i| i.code == Code::RichTextElement));
 }

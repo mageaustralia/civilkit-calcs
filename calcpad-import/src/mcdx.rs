@@ -483,6 +483,7 @@ impl Ctx<'_, '_> {
                 saved_expr: None,
                 frozen: true,
                 precision: None,
+                control: None,
             }),
         })
     }
@@ -685,8 +686,14 @@ fn inline(n: Node, fmt: &Run, pieces: &mut Vec<Piece>, skipped: &mut Vec<String>
             }
         } else if c.is_element() {
             match c.tag_name().name() {
-                "Run" => {
-                    let rf = format_of(c, fmt);
+                // A subscript or superscript run (the attributes say which, as on a plain run).
+                "Run" | "SubscriptRun" | "SuperscriptRun" => {
+                    let mut rf = format_of(c, fmt);
+                    match c.tag_name().name() {
+                        "SubscriptRun" => rf.sub = true,
+                        "SuperscriptRun" => rf.sup = true,
+                        _ => {}
+                    }
                     inline(c, &rf, pieces, skipped, depth + 1, lim);
                 }
                 "LineBreak" => pieces.push(Piece::Break),

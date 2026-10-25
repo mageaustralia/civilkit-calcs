@@ -542,6 +542,10 @@ pub(crate) fn read_math(m: Node, lim: &Limits) -> MathRegion {
             .children()
             .find(|c| c.is_element() && c.tag_name().name() == "resultFormat")
             .and_then(general_precision),
+        control: m
+            .descendants()
+            .find(|d| is_ml(*d) && crate::controls::is_control(local(*d)))
+            .and_then(|d| crate::controls::read_control(d, lim, 0)),
     }
 }
 
@@ -941,6 +945,10 @@ pub(crate) fn read_expr(n: Node, lim: &Limits, depth: usize) -> Expr {
             }
         }
         "program" => Expr::Program(read_program(n, lim, depth + 1)),
+        other if crate::controls::is_control(other) => match crate::controls::read_control(n, lim, depth) {
+            Some(c) => c.value,
+            None => unsupported(Code::UnknownElement, other),
+        },
         other => match unsupported_code(other) {
             Some(code) => Expr::Unsupported {
                 code,
@@ -1250,6 +1258,23 @@ fn read_apply(n: Node, lim: &Limits, depth: usize) -> Expr {
         // `nthRoot` with an empty degree slot is the square root; any other degree is not read
         // (its operand order is unverified).
         "nthRoot" if args.len() == 2 && local(args[0]) == "placeholder" => un(UnOp::Sqrt, &args[1..]),
+        // The degree comes first and the radicand second (as the empty degree slot of the square
+        // root shows): the root of degree n is the power 1/n.
+        "nthRoot" if args.len() == 2 => Expr::Bin(
+            BinOp::Pow,
+            Box::new(rd(&args[1])),
+            Box::new(Expr::Bin(
+                BinOp::Div,
+                Box::new(Expr::Num("1".into())),
+                Box::new(rd(&args[0])),
+            )),
+        ),
+        // `x%` is x hundredths: the percent sign is a unit.
+        "percent" if args.len() == 1 => {
+            let mut u = Name::new("%");
+            u.unit = true;
+            Expr::Postfix(u, Box::new(rd(&args[0])))
+        }
         "factorial" => un(UnOp::Factorial, &args),
         "transpose" => un(UnOp::Transpose, &args),
         "vectorize" => un(UnOp::Vectorize, &args),
