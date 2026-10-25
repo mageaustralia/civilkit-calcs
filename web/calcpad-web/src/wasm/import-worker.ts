@@ -25,6 +25,8 @@ interface ImportOut {
 interface Importer {
     default: (input?: unknown) => Promise<unknown>;
     import_worksheet: (bytes: Uint8Array, optionsJson: string) => ImportOut;
+    tidy_text: (src: string) => string;
+    markdown_text: (src: string) => string;
 }
 
 let module_: Promise<Importer> | null = null;
@@ -41,10 +43,16 @@ function load(base: string): Promise<Importer> {
     return module_;
 }
 
-self.onmessage = async (e: MessageEvent<{ id: number; base: string; bytes: Uint8Array; options: string }>) => {
-    const { id, base, bytes, options } = e.data;
+self.onmessage = async (e: MessageEvent<{ id: number; base: string; bytes: Uint8Array; options: string; op?: 'tidy' | 'markdown'; text?: string }>) => {
+    const { id, base, bytes, options, op, text } = e.data;
     try {
         const mod = await load(base);
+        if (op) {
+            // Text in, text out: the same clean-up the import options apply, for a worksheet already open.
+            const out = op === 'markdown' ? mod.markdown_text(text ?? '') : mod.tidy_text(text ?? '');
+            self.postMessage({ id, result: { calcpad: out, report: '{}', assets: [] } });
+            return;
+        }
         const out = mod.import_worksheet(bytes, options);
         const assets: ImportAsset[] = [];
         for (let i = 0, n = out.asset_count(); i < n; i++) {

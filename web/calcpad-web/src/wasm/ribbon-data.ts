@@ -533,6 +533,8 @@ export const RIBBON: RibbonTab[] = [
             ] },
             { name: 'Import', buttons: [
                 action('d-import', 'Import worksheet', 'open', 'Bring in a worksheet from another calculation tool (.xmcd or .mcdx); it opens as a new worksheet', 'importWorksheet'),
+                action('d-tidy', 'Tidy text', 'text', 'Remove imported fonts, sizes and colours from paragraphs and turn import markers into short notes; equations are left alone', 'tidyText'),
+                action('d-markdown', 'Text to Markdown', 'comment', 'Tidy, then write simple paragraphs as Markdown (#md on blocks)', 'markdownText'),
             ] },
             { name: 'Page', buttons: [
                 action('d-saveas', 'Save As', 'saveas', 'Save As', 'saveas'),
