@@ -759,9 +759,10 @@ fn every_mapped_function_runs_in_the_engine() {
 
 // ---- gaps: ranges, programs, solve blocks, symbolic, plots, images ----------------------------------------
 
-/// A range with a step (`1, 2 .. last`): not read, so it is the standing example of a gap.
+/// A range with a step of zero (`1, 1 .. last`): it never reaches its end, so it is not read and is the
+/// standing example of a gap.
 fn range(first: &str, last: &str) -> String {
-    format!("<ml:range><ml:sequence>{first}<ml:real>2</ml:real></ml:sequence>{last}</ml:range>")
+    format!("<ml:range><ml:sequence>{first}{first}</ml:sequence>{last}</ml:range>")
 }
 
 #[test]

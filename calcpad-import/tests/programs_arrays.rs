@@ -358,9 +358,9 @@ fn a_program_that_ends_in_a_loop_is_not_guessed() {
 }
 
 #[test]
-fn a_user_local_first_set_under_a_condition_is_a_reported_gap() {
-    // g(n) = (for i in 1..n: if i > 1: a = i); a * 2. Where the loop never sets `a` the source has no
-    // value, and a not-a-number inside a loop is an engine error, so the function is not converted.
+fn a_user_local_first_set_under_a_condition_has_no_value_where_nothing_set_it() {
+    // g(n) = (for i in 1..n: if i > 1: a = i); a * 2. g(3) = 6. Where the loop never sets `a` (n = 1)
+    // the source has no value, and neither has the engine: the result is undefined, never a zero.
     let body = program(&[
         for_in(
             "i",
@@ -370,14 +370,17 @@ fn a_user_local_first_set_under_a_condition_is_a_reported_gap() {
         ),
         times(&n("a"), &r("2")),
     ]);
-    let res = convert(&[func("g", &["n"], &body)]);
-    let why = res
-        .report
-        .gaps()
-        .find(|i| i.code == Code::ProgramBlock)
-        .and_then(|i| i.detail.clone())
-        .unwrap_or_default();
-    assert!(why.contains("no value"), "{why}");
+    let res = convert(&[
+        func("g", &["n"], &body),
+        eval(&call("g", &[r("3")])),
+        eval(&call("g", &[r("1")])),
+    ]);
+    clean(&res);
+    let mut parser = calcpad_core::parsers::expression_parser::ExpressionParser::new();
+    parser.parse(&format!("#round 10\n{}", legacy(&res.calcpad)), true);
+    let html = parser.html_result;
+    assert!(html.contains("= 6"), "{html}");
+    assert!(html.contains("Undefined"), "{html}");
 }
 
 #[test]
@@ -529,8 +532,8 @@ fn eval_in(expr: &str, unit: &str) -> String {
 #[test]
 fn try_on_error_over_a_function_call_is_a_reported_gap() {
     // A call could fail in other ways than a division, which the engine cannot trap.
-    let body = try_catch(&call("g", &[n("x")]), &r("0"));
-    let res = convert(&[func("g", &["x"], &n("x")), func("f", &["x"], &body)]);
+    let body = try_catch(&call("ln", &[n("x")]), &r("0"));
+    let res = convert(&[func("f", &["x"], &body)]);
     let why = res
         .report
         .gaps()
@@ -684,8 +687,8 @@ fn array_allocation_follows_the_array_origin() {
 }
 
 #[test]
-fn a_write_under_a_condition_past_the_others_is_a_reported_gap() {
-    // w[i] always, w[i + 1] when i > 1: the source's array is longer on some paths, so it is not allocated.
+fn a_write_under_a_condition_past_the_others_grows_the_array_when_it_runs() {
+    // w[i] always, w[i + 1] when i > 1: for n = 3 the array is [2 2 2 1] (the last write reaches index 4).
     let body = program(&[
         for_in(
             "i",
@@ -701,14 +704,9 @@ fn a_write_under_a_condition_past_the_others_is_a_reported_gap() {
         ),
         call("vectorSum", &[n("w")]),
     ]);
-    let res = convert(&[func("f", &["n"], &body)]);
-    let why = res
-        .report
-        .gaps()
-        .find(|i| i.code == Code::ProgramBlock)
-        .and_then(|i| i.detail.clone())
-        .unwrap_or_default();
-    assert!(why.contains("condition"), "{why}");
+    let res = convert(&[func("f", &["n"], &body), eval(&call("f", &[r("3")]))]);
+    clean(&res);
+    assert_close(*numbers(&res.calcpad).last().unwrap(), 7.0);
 }
 
 // ---- chained comparisons -----------------------------------------------------------------------------------

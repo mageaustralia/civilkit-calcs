@@ -4886,7 +4886,14 @@ impl Tr {
                             let step = second.as_ref().map(|b| format!("(({}) - ({a}))", self.expr(b).s));
                             let bad = self.cur[mark..].iter().any(|p| p.code.severity() == Severity::Gap);
                             self.cur.truncate(mark);
-                            if !bad {
+                            // A step of zero never reaches the end: not a range.
+                            let zero_step = match (&**first, second.as_deref()) {
+                                (Expr::Num(a), Some(Expr::Num(b))) => {
+                                    matches!((a.trim().parse::<f64>(), b.trim().parse::<f64>()), (Ok(x), Ok(y)) if x == y)
+                                }
+                                _ => false,
+                            };
+                            if !bad && !zero_step {
                                 let lit = match (&**first, &**last, second) {
                                     (Expr::Num(x), Expr::Num(y), None) => {
                                         match (is_int_literal(x), is_int_literal(y)) {
