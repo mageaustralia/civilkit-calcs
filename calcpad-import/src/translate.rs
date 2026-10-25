@@ -1820,6 +1820,92 @@ impl Tr {
             block.push("'</div>".to_string());
             done[ri][ci].lines = block;
         }
+        // The axis titles of a plot are text regions beside it in the source (the y title to its left,
+        // the x title just under it). Gathered with the plot they stay its labels, not loose lines.
+        for (ri, row) in rows.iter().enumerate() {
+            for (ci, p) in row.iter().enumerate() {
+                if !matches!(p.kind, RegionKind::Plot(_)) || p.width <= 0.0 || p.height <= 0.0 || taken.contains(&(ri, ci)) {
+                    continue;
+                }
+                let bottom = p.top + p.height;
+                let (mut ylab, mut xlab) = (Vec::new(), Vec::new());
+                for (rj, other) in rows.iter().enumerate().skip(ri) {
+                    for (cj, q) in other.iter().enumerate() {
+                        if (rj, cj) == (ri, ci) || !matches!(q.kind, RegionKind::Text(_)) || taken.contains(&(rj, cj)) {
+                            continue;
+                        }
+                        let right = q.left + q.width;
+                        if right <= p.left + 1.0 && q.left >= p.left - 70.0 && q.top >= p.top - 6.0 && q.top + q.height <= bottom + 6.0 {
+                            ylab.push((rj, cj));
+                        } else if q.top >= bottom - 6.0 && q.top <= bottom + 24.0 && q.left >= p.left - 6.0 && right <= p.left + p.width + 6.0 {
+                            xlab.push((rj, cj));
+                        }
+                    }
+                }
+                if ylab.is_empty() && xlab.is_empty() {
+                    continue;
+                }
+                taken.extend(ylab.iter().chain(xlab.iter()).copied());
+                let mut block = vec![
+                    "'<div class=\"imported-plot\" style=\"display:inline-grid;grid-template-columns:auto auto;gap:.2em .6em;align-items:center\">".to_string(),
+                    "'<div>".to_string(),
+                ];
+                for &(rj, cj) in &ylab {
+                    block.extend(std::mem::take(&mut done[rj][cj].lines));
+                }
+                block.push("'</div>".to_string());
+                block.push("'<div>".to_string());
+                block.extend(std::mem::take(&mut done[ri][ci].lines));
+                block.push("'</div>".to_string());
+                block.push("'<div></div>".to_string());
+                block.push("'<div style=\"text-align:center\">".to_string());
+                for &(rj, cj) in &xlab {
+                    block.extend(std::mem::take(&mut done[rj][cj].lines));
+                }
+                block.push("'</div>".to_string());
+                block.push("'</div>".to_string());
+                done[ri][ci].lines = block;
+            }
+        }
+        // A row of equations (a table's columns) with a caption over each: the captions go with their
+        // equations, so they stay column headings instead of lines above the whole row.
+        for (ri, row) in rows.iter().enumerate() {
+            let mut caps: Vec<(usize, (usize, usize))> = Vec::new();
+            for (ci, m) in row.iter().enumerate() {
+                if !matches!(m.kind, RegionKind::Math(_)) || m.width <= 0.0 {
+                    continue;
+                }
+                let mut best: Option<(f64, (usize, usize))> = None;
+                for (rj, other) in rows.iter().enumerate().take(ri).skip(ri.saturating_sub(8)) {
+                    for (cj, q) in other.iter().enumerate() {
+                        let gap = m.top - (q.top + q.height);
+                        if matches!(q.kind, RegionKind::Text(_))
+                            && !taken.contains(&(rj, cj))
+                            && (-3.0..=40.0).contains(&gap)
+                            && q.left < m.left + m.width
+                            && q.left + q.width > m.left - 20.0
+                            && best.map_or(true, |(g, _)| gap < g)
+                        {
+                            best = Some((gap, (rj, cj)));
+                        }
+                    }
+                }
+                if let Some((_, at)) = best {
+                    if !caps.iter().any(|(_, t)| *t == at) {
+                        caps.push((ci, at));
+                    }
+                }
+            }
+            if caps.len() < 2 {
+                continue;
+            }
+            for (ci, (rj, cj)) in caps {
+                taken.insert((rj, cj));
+                let mut lines = std::mem::take(&mut done[rj][cj].lines);
+                lines.extend(std::mem::take(&mut done[ri][ci].lines));
+                done[ri][ci].lines = lines;
+            }
+        }
         // Side by side only when the regions of the row do not overlap across (a region nested in a
         // text region sits inside it, not beside it).
         let apart: Vec<bool> = rows
@@ -3258,6 +3344,16 @@ impl Tr {
         multi_def: bool,
         line: String,
     ) -> String {
+        // A range definition is only the loop of the element assignments that follow; the source
+        // shows it as an equation, so it is typeset here.
+        if line.starts_with("'<!-- range ") {
+            if let Stmt::Define { target, value, global } = &m.stmt {
+                if let Some(typeset) = self.typeset_define(target, value, *global) {
+                    return format!("{line}\n{typeset}");
+                }
+            }
+            return line;
+        }
         if multi_def {
             if let Stmt::Define { target, value, global } = &m.stmt {
                 if let Some(typeset) = self.typeset_define(target, value, *global) {
@@ -4005,6 +4101,12 @@ impl Tr {
                 self.issue(Code::OriginAssigned, None);
                 self.lines
                     .push(format!("'<!-- ORIGIN assigned {} in the source -->", v));
+                // The source shows the definition; the engine has no ORIGIN, so it is a typeset line only.
+                if let Stmt::Define { target, value, global } = &m.stmt {
+                    if let Some(typeset) = self.typeset_define(target, value, *global) {
+                        self.lines.push(typeset);
+                    }
+                }
             } else if let Some(line) = emitted.take() {
                 self.maths_shown = true;
                 let multi_def = !multi_names.is_empty();

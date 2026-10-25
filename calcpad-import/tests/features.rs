@@ -841,6 +841,8 @@ fn ranges_with_run_time_bounds_and_two_dimensions_preallocate() {
         eval(&index1("x", &r("4"))),
     ]);
     assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+    // The range definition is shown as an equation, as in the source.
+    assert!(res.calcpad.contains("<mo>..</mo>"), "{}", res.calcpad);
     assert!(res.calcpad.contains("x_w1 = vector(max("), "{}", res.calcpad);
     // The array is defined from the working one only if every pass was counted.
     assert!(res.calcpad.contains("x = x_w1*(1/(x_c1 ≡ "), "{}", res.calcpad);
