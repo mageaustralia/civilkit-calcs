@@ -164,10 +164,12 @@ fn with_probes(regions: Vec<Region>, pairs: &mut String) -> Vec<Region> {
         };
         let mut m2 = m.clone();
         match &m.stmt {
-            Stmt::Eval { expr, .. } => {
+            Stmt::Eval { expr, unit: own } => {
+                // A saved result with no unit of its own keeps the display unit the region names (a
+                // `deg` override shows the angle in degrees, as the saved number is).
                 m2.stmt = Stmt::Eval {
                     expr: expr.clone(),
-                    unit: unit.clone(),
+                    unit: unit.clone().or_else(|| own.clone()),
                 };
                 pairs.push_str(&format!(
                     "{}\t{}\t{}\teval\n",

@@ -752,3 +752,37 @@ fn sequential_ifs_that_set_locals_keep_the_value_of_the_one_that_ran() {
     assert_close(nums[m - 2], 20.0);
     assert_close(nums[m - 1], 30.0);
 }
+
+// ---- angles ------------------------------------------------------------------------------------------------
+
+#[test]
+fn an_angle_in_degrees_is_a_plain_number_and_is_shown_in_degrees_on_request() {
+    // a = 0.01 shown in deg is 0.01 / (pi/180) = 0.5730; b = 30 deg is 0.5236 (radians, unitless), it adds to
+    // and compares with a unitless number, and min(5 deg, 0.2) = 0.0873.
+    let deg_override = |e: &str| format!("<ml:eval>{e}<ml:unitOverride>{}</ml:unitOverride></ml:eval>", n("deg"));
+    let res = convert(&[
+        define("a", &r("0.01")),
+        deg_override(&n("a")),
+        define("b", &app("mult", &[r("30"), n("deg")])),
+        define("c", &plus(&n("b"), &r("1"))),
+        define("m", &call("min", &[app("mult", &[r("5"), n("deg")]), r("0.2")])),
+        eval(&n("m")),
+    ]);
+    clean(&res);
+    let nums = numbers(&res.calcpad);
+    // a (define), a in degrees, b, c, m, m
+    assert_close(nums[0], 0.01);
+    assert!((nums[1] - 0.5729577951).abs() < 1e-6, "{nums:?}");
+    assert!((nums[2] - 0.5235987756).abs() < 1e-6, "{nums:?}");
+    assert!((nums[3] - 1.5235987756).abs() < 1e-6, "{nums:?}");
+    assert!((nums[5] - 0.0872664626).abs() < 1e-6, "{nums:?}");
+    let html = {
+        let mut p = calcpad_core::parsers::expression_parser::ExpressionParser::new();
+        p.parse(&format!("#round 10\n{}", legacy(&res.calcpad)), true);
+        p.html_result
+    };
+    assert!(
+        html.contains("°") || html.contains("deg"),
+        "the degree unit is shown: {html}"
+    );
+}

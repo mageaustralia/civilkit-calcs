@@ -464,6 +464,11 @@ fn only_division_fails<'a>(e: &'a Expr, divisors: &mut Vec<&'a Expr>) -> Result<
     }
 }
 
+/// The unit `deg` (or `°`): a display unit for an angle, which the source holds in radians.
+fn is_degree(e: &Expr) -> bool {
+    matches!(e, Expr::Name(n) if n.sub.is_none() && matches!(n.base.as_str(), "deg" | "°" | "degree"))
+}
+
 /// An expression made of numbers and arithmetic only (no name, so no unit).
 fn numeric_only(e: &Expr) -> bool {
     match e {
@@ -1784,7 +1789,9 @@ impl Tr {
             if let Some(u) = unit {
                 let inner = if e.prec >= P_ATOM { e.s } else { format!("({})", e.s) };
                 let us = t.expr(u).s;
-                s = if numeric_only(u) {
+                s = if is_degree(u) {
+                    format!("({inner}/(π/180))*deg")
+                } else if numeric_only(u) {
                     format!("{inner}/({us})")
                 } else {
                     format!("{inner}|{us}")
@@ -1861,7 +1868,9 @@ impl Tr {
                 let mut t = self.expr(expr).s;
                 if let Some(u) = unit {
                     let us = self.expr(u).s;
-                    t = if numeric_only(u) {
+                    t = if is_degree(u) {
+                        format!("(({t})/(π/180))*deg")
+                    } else if numeric_only(u) {
                         format!("({t})/({us})")
                     } else {
                         format!("{t}|{us}")
@@ -4884,7 +4893,11 @@ impl Tr {
                     let ur = self.expr(u);
                     text = if e.prec >= P_ATOM { e.s } else { format!("({})", e.s) };
                     // A "unit" that is only a number (a power of ten) shows the value in multiples of it.
-                    text = if numeric_only(u) {
+                    // An angle is a plain number (radians) in the source; shown in degrees it is that
+                    // number over pi/180, and the unit it carries is the engine's degree.
+                    text = if is_degree(u) {
+                        format!("({}/(π/180))*deg", text)
+                    } else if numeric_only(u) {
                         format!("{}/({})", text, ur.s)
                     } else if matches!(ur.s.as_str(), "°C" | "°F") {
                         format!("{}|{}", text, ur.s)

@@ -24,7 +24,7 @@ pub const SAME_UNITS: &[&str] = &[
     "J", "kJ", "MJ", "GJ", "mJ", "cal", "kcal", "BTU", "erg", "eV", "Wh", "kWh", "MWh", "W", "kW", "MW", "GW", "mW",
     "hp", // volume and area
     "L", "mL", "μL", "ha", // angle
-    "rad", "deg", "°", "grad", "rev", "%", // speed
+    "grad", "rev", "%", // speed
     "mph", "knot",
 ];
 
@@ -81,7 +81,13 @@ pub const RENAMED_UNITS: &[(&str, &str)] = &[
     ("tesla", "T"),
     ("weber", "Wb"),
     ("siemens", "S"),
-    ("radian", "rad"),
+    // An angle is a plain number in the source (a degree is pi/180, a radian is 1), so it adds to,
+    // compares with and multiplies unitless numbers; the engine's angle units would not.
+    ("radian", "1"),
+    ("rad", "1"),
+    ("deg", "(π/180)"),
+    ("degree", "(π/180)"),
+    ("°", "(π/180)"),
     ("percent", "%"),
     // Force per length and per volume, as the structural handbooks write them.
     ("plf", "(lbf/ft)"),

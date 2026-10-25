@@ -689,7 +689,7 @@ fn every_mapped_unit_exists_in_the_engine() {
         // A composite spelling (`(lbf/ft)`) is checked by its parts.
         for part in u
             .split(['(', ')', '*', '/', '^'])
-            .filter(|p| !p.is_empty() && p.parse::<f64>().is_err())
+            .filter(|p| !p.is_empty() && p.parse::<f64>().is_err() && *p != "π")
         {
             assert!(Unit::exists(part), "unit {part:?} is not in the engine's table");
         }
