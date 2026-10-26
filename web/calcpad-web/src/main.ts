@@ -95,8 +95,8 @@ function getServerUrl(): string {
  *  the editor buffer is empty. Quick reference for formatting hotkeys. */
 function getEmptyPreviewHtml(theme: 'light' | 'dark'): string {
     const c = theme === 'light'
-        ? { fg: '#6e6e6e', bg: '#ffffff', link: '#0066cc' }
-        : { fg: '#858585', bg: '#1e1e1e', link: '#4FC1FF' };
+        ? { fg: '#1c2129', dim: '#5b6573', bg: '#ffffff', link: '#0a6bcf' }
+        : { fg: '#e7ebf2', dim: '#9aa5b4', bg: '#14171d', link: '#4da3ff' };
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -108,7 +108,7 @@ function getEmptyPreviewHtml(theme: 'light' | 'dark'): string {
         p { text-align: center; }
         table { margin: 1em auto; border-collapse: collapse; text-align: left; font-size: 0.9em; }
         th, td { padding: 4px 12px; }
-        th { text-align: right; font-weight: normal; opacity: 0.7; }
+        th { text-align: right; font-weight: normal; color: ${c.dim}; }
         td { font-family: var(--vscode-editor-font-family, monospace); }
         h4 { text-align: center; margin-top: 1.5em; margin-bottom: 0.3em; }
         a { color: ${c.link}; }

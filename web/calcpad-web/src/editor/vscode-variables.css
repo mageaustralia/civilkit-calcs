@@ -70,7 +70,7 @@
     --vscode-list-activeSelectionForeground: var(--ck-text);
 
     /* Sidebar */
-    --vscode-sideBar-background: var(--ck-panel);
+    --vscode-sideBar-background: var(--ck-raised);
     --vscode-sideBarSectionHeader-foreground: var(--ck-text-2);
 
     /* Tabs */

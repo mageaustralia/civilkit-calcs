@@ -82,8 +82,8 @@ export interface PreviewLimitNotice {
  */
 export function previewLimitNoticeHtml(o: PreviewLimitNotice): string {
     const c = o.theme === 'light'
-        ? { fg: '#3c3c3c', dim: '#6e6e6e', bg: '#ffffff', accent: '#0066cc', border: '#d0d0d0' }
-        : { fg: '#cccccc', dim: '#858585', bg: '#1e1e1e', accent: '#4FC1FF', border: '#3c3c3c' };
+        ? { fg: '#1c2129', dim: '#5b6573', bg: '#ffffff', accent: '#0a6bcf', border: '#d5d9e0' }
+        : { fg: '#e7ebf2', dim: '#9aa5b4', bg: '#14171d', accent: '#4da3ff', border: '#2a3038' };
     return `<!DOCTYPE html>
 <html>
 <head>

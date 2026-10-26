@@ -206,13 +206,15 @@ onBeforeUnmount(() => {
 
 <style>
 .rb{position:relative;flex:none;font-size:12px;user-select:none;
-  background:var(--vscode-sideBar-background,#f3f3f3);color:var(--vscode-foreground,#333);
-  border-bottom:1px solid var(--vscode-panel-border,#ddd)}
+  background:var(--ck-raised);color:var(--vscode-foreground,#333);
+  border-bottom:1px solid var(--ck-line)}
 .rb svg{flex:none}
-.rb{--rb-ic-main:color-mix(in srgb,var(--ck-accent) 78%,var(--ck-text-2));--rb-ic-hi:color-mix(in srgb,var(--ck-accent) 35%,var(--ck-panel));--rb-ic-lo:color-mix(in srgb,var(--ck-accent) 60%,var(--ck-text-2));--rb-ic-line:color-mix(in srgb,var(--ck-accent) 45%,var(--ck-chrome));--rb-ic-ink:var(--ck-panel);--rb-ic-acc:var(--ck-text-2)}
+.rb{--rb-ic-main:transparent;--rb-ic-hi:var(--ck-accent-soft);--rb-ic-lo:transparent;--rb-ic-line:var(--ck-text-2);--rb-ic-ink:var(--ck-text-2);--rb-ic-acc:var(--ck-accent)}
+.rb-big:hover .rb-ic,.rb-big.on .rb-ic,.rb-big:focus-visible .rb-ic{--rb-ic-line:var(--ck-accent);--rb-ic-ink:var(--ck-accent)}
+.rb svg:not(.rb-ic){color:var(--ck-text-2)}.rb-q:hover svg,.rb-small:hover svg,.rb-small.on svg,.rb-q:focus-visible svg{color:var(--ck-accent)}
 .rb-ic .m{fill:var(--rb-ic-main)}.rb-ic .h{fill:var(--rb-ic-hi)}.rb-ic .l{fill:var(--rb-ic-lo)}.rb-ic .a{fill:var(--rb-ic-acc)}.rb-ic .k{fill:var(--rb-ic-ink)}
 .rb-ic .o,.rb-ic .w,.rb-ic .x{fill:none;stroke-linecap:round;stroke-linejoin:round}
-.rb-ic .o{stroke:var(--rb-ic-line);stroke-width:1.2}.rb-ic .w{stroke:var(--rb-ic-ink);stroke-width:2.2}.rb-ic .x{stroke:var(--rb-ic-ink);stroke-width:.9;opacity:.65}
+.rb-ic .o{stroke:var(--rb-ic-line);stroke-width:1.2}.rb-ic .w{stroke:var(--rb-ic-ink);stroke-width:1.7}.rb-ic .x{stroke:var(--rb-ic-ink);stroke-width:.9;opacity:.65}
 .rb-quick{display:flex;align-items:center;gap:2px;height:30px;padding:0 6px;
   background:var(--vscode-titleBar-activeBackground,var(--vscode-sideBar-background,#f3f3f3))}
 .rb-file{display:flex;align-items:center;gap:6px;height:24px;padding:0 12px 0 8px;margin-right:6px;border:1px solid var(--vscode-focusBorder,#0060c0);
@@ -225,7 +227,7 @@ onBeforeUnmount(() => {
 .rb-tab:hover{background:var(--vscode-toolbar-hoverBackground,rgba(0,0,0,.08))}
 .rb-tab.on{border-bottom-color:var(--vscode-focusBorder,#0060c0);font-weight:600}
 .rb-panel{display:flex;align-items:stretch;height:96px;padding:3px 4px 0;overflow-x:auto;overflow-y:hidden;
-  background:var(--vscode-editor-background,#fff);border-top:1px solid var(--vscode-panel-border,#ddd)}
+  background:var(--ck-raised);border-top:1px solid var(--ck-line)}
 .rb-group{flex:none;display:flex;flex-direction:column;padding:0 6px;border-right:1px solid var(--vscode-panel-border,#ddd)}
 .rb-group:last-child{border-right:0}
 .rb-cells{flex:1;display:flex;align-items:flex-start;gap:2px;min-height:0}

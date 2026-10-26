@@ -1117,7 +1117,7 @@ select option {
     opacity: 0.8;
 }
 
-.status-version { margin: 0 10px; font-size: 11px; opacity: .9; white-space: nowrap; }
+.status-version { margin: 0 10px; font-size: 11px; white-space: nowrap; }
 @media (max-width: 700px) { .status-upstream { display: none; } }
 
 /* Double-click line editor over the preview. */
@@ -1237,10 +1237,14 @@ ck-suitebar { flex: none; order: -1; }
 @media print { ck-suitebar { display: none; } }
 
 /* Panes sit on the panel colour, over the --ck-bg surround. */
-.sidebar-pane,
 .editor-pane,
 .preview-pane {
     background: var(--ck-panel);
+}
+/* The left panel sits one step up, like the ribbon: --ck-raised, separated by --ck-line. */
+.sidebar-pane {
+    background: var(--ck-raised);
+    border-right-color: var(--ck-line);
 }
 
 /* Keyboard focus: the shared 2px ring on buttons, links and fields (a 1px border change is not enough). */
