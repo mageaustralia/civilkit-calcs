@@ -114,7 +114,7 @@ export async function formatSheet(src: string): Promise<string> {
 }
 
 /** The look of a quantity's note: a class in the compiled text, styled here instead of inline. */
-export const SHEET_CSS = '<style id="cprs-sheet">.sheet-note{color:#6b7280;font-style:italic;margin-left:.6em}</style>';
+export const SHEET_CSS = '<style id="cprs-sheet">.sheet-note{color:#5f6a77;font-style:italic;margin-left:.6em}@media screen{.dark-theme .sheet-note{color:#7c8896}}</style>';
 
 /** Adds SHEET_CSS to a page's head. */
 export function withSheetCss(html: string): string {

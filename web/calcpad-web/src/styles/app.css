@@ -23,6 +23,7 @@ html[data-theme="light"] {
 
 body {
     font-family: var(--vscode-font-family);
+    background: var(--ck-bg);
 }
 
 /* Style every <select> consistently, not just the output channel one.
@@ -55,7 +56,8 @@ select option {
     display: flex;
     flex: 1;
     min-height: 0;
-    background: var(--vscode-editor-background);
+    /* The workspace surround; the panes below sit on --ck-panel. */
+    background: var(--ck-bg);
     color: var(--vscode-foreground);
 }
 
@@ -134,9 +136,10 @@ select option {
     color: var(--vscode-button-secondaryForeground, #ccc);
     border: none;
     padding: 2px 8px;
+    font-family: var(--ck-font);
     font-size: var(--calcpad-font-size-sm);
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: var(--ck-radius-s);
 }
 
 .toolbar-btn:hover {
@@ -1232,3 +1235,32 @@ select option {
 ck-suitebar { flex: none; order: -1; }
 @media (max-width: 899px) { ck-suitebar { display: none; } }
 @media print { ck-suitebar { display: none; } }
+
+/* Panes sit on the panel colour, over the --ck-bg surround. */
+.sidebar-pane,
+.editor-pane,
+.preview-pane {
+    background: var(--ck-panel);
+}
+
+/* Keyboard focus: the shared 2px ring on buttons, links and fields (a 1px border change is not enough). */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+    outline: var(--ck-focus-ring);
+    outline-offset: 1px;
+}
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus,
+.input:focus,
+.preview-find-input:focus {
+    outline: var(--ck-focus-ring);
+    outline-offset: -1px;
+}
+.monaco-editor .monaco-inputbox.synthetic-focus,
+.monaco-editor .find-widget .monaco-inputbox:focus-within {
+    outline: var(--ck-focus-ring) !important;
+    outline-offset: -1px !important;
+}

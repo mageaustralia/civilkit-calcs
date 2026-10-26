@@ -1,4 +1,4 @@
-/* Vendored from civilkit-site/tokens/civilkit-tokens.css (CivilKit theme v1), copied 2026-10-26. Do not edit here. */
+/* Vendored from civilkit-site/tokens/civilkit-tokens.css (CivilKit theme v1), re-copied 2026-10-27. Do not edit here. */
 /* CivilKit theme v1: one set of design tokens for Calcs, CAD and Studio.
    Dark is the default (Studio's blue-black). Light follows the system setting, or data-theme="light" / "dark" on <html>.
    Semantic names only: an app maps its own variables onto these, it does not use raw colours. Contrast checked (WCAG):
@@ -16,13 +16,14 @@
   /* text */
   --ck-text:#e7ebf2;
   --ck-text-2:#9aa5b4;   /* secondary */
-  --ck-text-3:#74808f;   /* hints, disabled; 4.5:1 on the panel, 3:1 is the floor elsewhere */
+  --ck-text-3:#7c8896;   /* hints and secondary labels; 4.5:1 or better on bg, panel and raised */
   /* accent */
   --ck-accent:#4da3ff;        /* links, focus, selected text and icons */
   --ck-accent-strong:#2563d8; /* filled primary buttons */
   --ck-on-accent:#ffffff;     /* text on --ck-accent-strong */
   --ck-accent-soft:rgba(77,163,255,.16); /* selected row, active tab wash */
   --ck-focus:#4da3ff;
+  --ck-focus-ring:2px solid var(--ck-focus); /* use on :focus-visible for buttons AND inputs; a 1px border change is not enough */
   --ck-selection:rgba(77,163,255,.28);
   /* status */
   --ck-ok:#3fb950; --ck-warn:#d4a72c; --ck-err:#f85149;
@@ -42,7 +43,7 @@
   --ck-sunken:#e6eaf0; --ck-bg:#f0f3f7; --ck-panel:#ffffff; --ck-raised:#f6f8fb;
   --ck-chrome:#0a1017; --ck-chrome-text:#e9ecf1;
   --ck-line:#d5d9e0; --ck-line-soft:#e6e9ee;
-  --ck-text:#1c2129; --ck-text-2:#5b6573; --ck-text-3:#6b7683;
+  --ck-text:#1c2129; --ck-text-2:#5b6573; --ck-text-3:#5f6a77;
   --ck-accent:#0a6bcf; --ck-accent-strong:#0a6bcf; --ck-on-accent:#ffffff;
   --ck-accent-soft:rgba(10,107,207,.10); --ck-focus:#0a6bcf; --ck-selection:rgba(10,107,207,.22);
   --ck-ok:#1a7f37; --ck-warn:#8a5d00; --ck-err:#cf222e;
@@ -55,7 +56,7 @@
     --ck-sunken:#e6eaf0; --ck-bg:#f0f3f7; --ck-panel:#ffffff; --ck-raised:#f6f8fb;
     --ck-chrome:#0a1017; --ck-chrome-text:#e9ecf1;
     --ck-line:#d5d9e0; --ck-line-soft:#e6e9ee;
-    --ck-text:#1c2129; --ck-text-2:#5b6573; --ck-text-3:#6b7683;
+    --ck-text:#1c2129; --ck-text-2:#5b6573; --ck-text-3:#5f6a77;
     --ck-accent:#0a6bcf; --ck-accent-strong:#0a6bcf; --ck-on-accent:#ffffff;
     --ck-accent-soft:rgba(10,107,207,.10); --ck-focus:#0a6bcf; --ck-selection:rgba(10,107,207,.22);
     --ck-ok:#1a7f37; --ck-warn:#8a5d00; --ck-err:#cf222e;

@@ -209,8 +209,7 @@ onBeforeUnmount(() => {
   background:var(--vscode-sideBar-background,#f3f3f3);color:var(--vscode-foreground,#333);
   border-bottom:1px solid var(--vscode-panel-border,#ddd)}
 .rb svg{flex:none}
-.rb{--rb-ic-main:#2f7fd1;--rb-ic-hi:#9cc9f3;--rb-ic-lo:#1b5aa6;--rb-ic-line:#164a85;--rb-ic-ink:#ffffff;--rb-ic-acc:#f0a030}
-:root[data-theme="dark"] .rb{--rb-ic-main:#4b9be6;--rb-ic-hi:#a9d4ff;--rb-ic-lo:#2468b8;--rb-ic-line:#0e2a4a;--rb-ic-ink:#ffffff;--rb-ic-acc:#ffb84d}
+.rb{--rb-ic-main:color-mix(in srgb,var(--ck-accent) 78%,var(--ck-text-2));--rb-ic-hi:color-mix(in srgb,var(--ck-accent) 35%,var(--ck-panel));--rb-ic-lo:color-mix(in srgb,var(--ck-accent) 60%,var(--ck-text-2));--rb-ic-line:color-mix(in srgb,var(--ck-accent) 45%,var(--ck-chrome));--rb-ic-ink:var(--ck-panel);--rb-ic-acc:var(--ck-text-2)}
 .rb-ic .m{fill:var(--rb-ic-main)}.rb-ic .h{fill:var(--rb-ic-hi)}.rb-ic .l{fill:var(--rb-ic-lo)}.rb-ic .a{fill:var(--rb-ic-acc)}.rb-ic .k{fill:var(--rb-ic-ink)}
 .rb-ic .o,.rb-ic .w,.rb-ic .x{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .rb-ic .o{stroke:var(--rb-ic-line);stroke-width:1.2}.rb-ic .w{stroke:var(--rb-ic-ink);stroke-width:2.2}.rb-ic .x{stroke:var(--rb-ic-ink);stroke-width:.9;opacity:.65}
