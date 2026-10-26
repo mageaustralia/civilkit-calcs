@@ -154,6 +154,7 @@ pub fn report_json(r: &ImportReport) -> Value {
         "mathShapes": kinds(&r.math_shapes),
         "pageBreaks": r.page_breaks,
         "frozenValues": r.frozen_values,
+        "libraryValues": r.library_values,
         "pictures": {
             "svgOk": p.svg_ok, "svgFailed": p.svg_failed, "pngUsed": p.png_used,
             "fallbackShown": p.fallback_shown, "svgBytes": p.svg_bytes, "pngBytes": p.png_bytes,

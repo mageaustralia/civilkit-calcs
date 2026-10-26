@@ -1586,3 +1586,40 @@ fn a_solve_block_with_the_wrong_number_of_equations_is_a_gap_that_says_so() {
         "{g:?}"
     );
 }
+
+#[test]
+fn a_value_from_an_external_library_takes_the_value_saved_and_says_so() {
+    // d := lib_density(300; 101) calls a function the importer does not know, so it cannot run;
+    // `d =` further down has the number the file saved for it. Downstream lines read the name.
+    let regions = [
+        mregion(
+            1,
+            0.0,
+            r#"<ml:define><ml:id>d</ml:id><ml:apply><ml:id>lib_density</ml:id><ml:sequence><ml:real>300</ml:real><ml:real>101</ml:real></ml:sequence></ml:apply></ml:define>"#,
+        ),
+        mregion(2, 20.0, r#"<ml:eval><ml:id>d</ml:id></ml:eval>"#),
+        mregion(
+            3,
+            40.0,
+            r#"<ml:define><ml:id>m</ml:id><ml:apply><ml:plus/><ml:id>d</ml:id><ml:real>2</ml:real></ml:apply></ml:define>"#,
+        ),
+    ]
+    .concat();
+    let mut p = Pkg::new(&regions);
+    p.results = [
+        r#"<resultData result-id="1"/>"#,
+        r#"<resultData result-id="2"><ml:result><ml:real>1.18</ml:real></ml:result></resultData>"#,
+    ]
+    .concat();
+    let res = p.import();
+    assert_eq!(res.report.frozen_values, 1, "{:?}", res.report.issues);
+    assert!(res.calcpad.contains("d = 1.18"), "{}", res.calcpad);
+    assert!(
+        res.calcpad.contains("external library") && res.calcpad.contains("lib_density"),
+        "{}",
+        res.calcpad
+    );
+    // The line that reads the name converts; only the call itself stays a gap-free frozen value.
+    assert!(res.calcpad.contains("m = d + 2"), "{}", res.calcpad);
+    assert_eq!(res.report.regions_needing_attention(), 0, "{:?}", res.report.issues);
+}

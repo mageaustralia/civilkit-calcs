@@ -14,6 +14,8 @@ export interface ImportReportJson {
     regionsNeedingAttention: number;
     /** Definitions whose value was taken from the saved data of an input component (frozen). */
     frozenValues?: number;
+    /** Of those, values saved from calls to an external library the engine cannot run. */
+    libraryValues?: number;
     kinds: Record<string, { total: number; converted: number; withNotes: number; attention: number; pictured: number }>;
     pictures: { svgOk: number; svgFailed: number; pngUsed: number; fallbackShown: number; savedResultAvailable: number; savedResultEmitted: number };
     ranked: { code: string; reason: string; direct: number; downstream: number; blocked: number; topDetails: [string, number][] }[];
@@ -342,6 +344,13 @@ export class WorksheetImport {
             fz.style.margin = '6px 0';
             fz.textContent = `${rep.frozenValues} ${rep.frozenValues === 1 ? 'value' : 'values'} frozen from input components: taken from what the file saved, so they do not follow a change of the input.`;
             box.append(fz);
+        }
+        if ((rep.libraryValues ?? 0) > 0) {
+            const lib = document.createElement('p');
+            lib.setAttribute('data-cprs-import-library', '');
+            lib.style.margin = '6px 0';
+            lib.textContent = `${rep.libraryValues} ${rep.libraryValues === 1 ? 'region calls' : 'regions call'} an external library that is not available here. The values the file saved are shown, marked frozen, and everything downstream uses them. Nothing from the library is recalculated.`;
+            box.append(lib);
         }
 
         const gaps = rep.ranked.filter(r => r.code !== 'depends-on-gap' && r.blocked > 0).slice(0, 5);

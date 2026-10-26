@@ -5984,7 +5984,14 @@ impl Tr {
                                 .as_deref()
                                 .is_some_and(|d| matches!(d, "READEXCEL" | "READPRN" | "vec2str")))
                 });
-            if only_inputs && valid_ident(&flat) {
+            let libraries: Vec<String> = blockers
+                .iter()
+                .filter(|p| p.code == Code::AddinFunction)
+                .filter_map(|p| p.detail.clone())
+                .collect();
+            // A call into an external library freezes only when nothing else blocks the definition.
+            let only_library = !libraries.is_empty() && blockers.iter().all(|p| p.code == Code::AddinFunction);
+            if (only_inputs || only_library) && valid_ident(&flat) {
                 let stash = std::mem::take(&mut self.cur);
                 let (saved, empty_cells) = zero_empty_cells(saved);
                 let saved = &saved;
@@ -5995,6 +6002,9 @@ impl Tr {
                     self.cur.clear();
                     self.issue(Code::FrozenValue, Some(flat.clone()));
                     self.report.frozen_values += 1;
+                    if !libraries.is_empty() {
+                        self.report.library_values += 1;
+                    }
                     let is_array = matches!(saved, Expr::Matrix { .. })
                         || matches!(saved, Expr::Bin(BinOp::Mul, a, _) if matches!(**a, Expr::Matrix { .. }));
                     let cells = if empty_cells > 0 {
@@ -6002,8 +6012,16 @@ impl Tr {
                     } else {
                         String::new()
                     };
+                    let what = if libraries.is_empty() {
+                        format!("value taken from the saved result of an input component or a data file (frozen, not live{cells})")
+                    } else {
+                        format!(
+                            "value saved by the source worksheet; it calls {} from an external library that is not available here, so it is shown, not computed (frozen, not live{cells})",
+                            libraries.join(", ")
+                        )
+                    };
                     emitted = Some(format!(
-                        "'<small><i>R{}: value taken from the saved result of an input component or a data file (frozen, not live{cells})</i></small>\n{} = {}",
+                        "'<small><i>R{}: {what}</i></small>\n{} = {}",
                         sanitize_id(&r.id),
                         flat,
                         v.s
@@ -6209,6 +6227,22 @@ impl Tr {
                 shown = Some(Vec::new());
             }
             pictured = self.show_gap(r, &gap_codes, shown.as_deref(), m.saved_result.as_ref());
+        }
+        if shape == "function" && !converted {
+            let cause = self
+                .cur
+                .iter()
+                .filter(|p| p.code.severity() == Severity::Gap)
+                .map(|p| match (p.code, p.root) {
+                    (Code::DependsOnGap, Some(root)) => format!("{} (upstream)", root.as_str()),
+                    (code, _) => match &p.detail {
+                        Some(d) => format!("{}: {}", code.as_str(), d),
+                        None => code.as_str().to_string(),
+                    },
+                })
+                .next()
+                .unwrap_or_default();
+            *self.report.function_causes.entry(cause).or_default() += 1;
         }
         self.flush_issues(&r.id, r.line, None);
         Self::bump_p(&mut self.report.kinds, "math", converted, has_notes, pictured);

@@ -349,6 +349,11 @@ pub struct ImportReport {
     pub page_breaks: usize,
     /// Definitions whose value is the saved result of an input component (frozen, not live).
     pub frozen_values: usize,
+    /// Of those, the definitions that call a function from an external library the importer cannot run.
+    pub library_values: usize,
+    /// Function definitions that did not convert, by the cause they trace back to (the code, and
+    /// the name when the region holds the cause itself). A diagnostic for the batch summary.
+    pub function_causes: BTreeMap<String, usize>,
     pub pictures: PictureStats,
 }
 

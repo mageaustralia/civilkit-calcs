@@ -210,6 +210,9 @@ fn main() -> ExitCode {
             m.attention += v.attention;
             m.pictured += v.pictured;
         }
+        for (k, v) in &rep.function_causes {
+            *merged.function_causes.entry(k.clone()).or_default() += v;
+        }
         for mut i in rep.issues.clone() {
             i.region_id = i.region_id.map(|id| format!("{}:{}", fi, id));
             merged.issues.push(i);
@@ -276,6 +279,12 @@ fn main() -> ExitCode {
             "  {:<11} total {:>5}  converted {:>5}  attention {:>5}\n",
             k, v.total, v.converted, v.attention
         ));
+    }
+    s.push_str("\nFunction definitions that did not convert, by first cause:\n");
+    let mut fc: Vec<_> = merged.function_causes.iter().collect();
+    fc.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
+    for (k, v) in fc.iter() {
+        s.push_str(&format!("  {:>4}  {}\n", v, k));
     }
     s.push_str("\nMissing features ranked by regions blocked (a region with several causes counts under each):\n");
     for g in merged.ranked_gaps() {
