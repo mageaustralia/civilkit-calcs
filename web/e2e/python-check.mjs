@@ -670,7 +670,7 @@ if (online) {
         check(info.integrity === plotlyLib.files[0].integrity && info.cors === 'anonymous', 'the Plotly script tag carries the library list integrity hash and crossorigin=anonymous');
         check(requests.filter((u) => /plot\.ly/.test(u)).every((u) => u === CDN) && requests.some((u) => u === CDN), 'the only Plotly request is the pinned CDN file');
         check(info.note === 'none' && info.menu === 1 && info.sliders === 1, `the note is hidden once the chart is live, and the native menu and slider are drawn (${info.menu}, ${info.sliders})`);
-        check(info.font === '#222' && info.bg === 'rgba(0, 0, 0, 0)', `light theme: dark text, transparent paper (${info.font}, ${info.bg})`);
+        check(info.font === '#1c2129' && info.bg === 'rgba(0, 0, 0, 0)', `light theme: dark text, transparent paper (${info.font}, ${info.bg})`);
         await page.screenshot({ path: join(out, 'plotly-light.png') });
     }
     check(errors.length === 0, `no page errors while drawing${errors.length ? ': ' + errors[0] : ''}`);
@@ -686,7 +686,7 @@ if (online) {
             const sv = document.querySelector('.cprs-plotly svg.main-svg'), cs = getComputedStyle(sv);
             return { font: document.querySelector('.cprs-plotly')._fullLayout.font.color, bg: cs.backgroundColor, pad: cs.paddingLeft, radius: cs.borderTopLeftRadius, body: getComputedStyle(document.body).backgroundColor };
         });
-        check(info.font === '#e6e6e6' && info.bg === 'rgba(0, 0, 0, 0)' && info.pad === '0px' && info.radius === '0px', `dark theme: light text and no white card behind the chart (${JSON.stringify(info)})`);
+        check(info.font === '#e7ebf2' && info.bg === 'rgba(0, 0, 0, 0)' && info.pad === '0px' && info.radius === '0px', `dark theme: light text and no white card behind the chart (${JSON.stringify(info)})`);
         await dk.page.screenshot({ path: join(out, 'plotly-dark.png') });
     } else check(false, 'the chart is drawn in the dark theme ' + JSON.stringify(sd));
     await dk.ctx.close();

@@ -67,6 +67,7 @@
     --vscode-list-hoverBackground: var(--ck-line-soft);
     --vscode-list-inactiveSelectionBackground: var(--ck-accent-soft);
     --vscode-list-activeSelectionBackground: var(--ck-accent-soft);
+    --vscode-list-activeSelectionForeground: var(--ck-text);
 
     /* Sidebar */
     --vscode-sideBar-background: var(--ck-panel);
