@@ -205,6 +205,17 @@ node e2e/symbolic-check.mjs       # Symbolic dialog: each operation, typeset res
 node ../tools/set_version.mjs --check
 ```
 
+## Checked at 26.10.11
+
+On the release tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded, `--no-fail-fast`) passed 6125 tests with
+no failures. Browser checks on the release build: `browser-check` (123), `pwa-check` (478 of 478 files cached, offline),
+`ribbon-check` (phone checks included) and `mobile-longpress-check`. On the same code before the version bump: `plot3d-check`
+(every 3D sample, light and dark), `symbolic-check`, `sheet-check`, `import-check`, `md-block-check`, `md-edit-check`,
+`update-notice-check`, `c-style-check`, `legacy-input-check` and `select-map-check`. `python-check` passed 171 checks and failed one,
+"a wasm that does not match the glue is refused": it fails the same way without the Python-limit change, because the check's
+replacement module is not served to the worker that loads it, so that guarantee is not verified. Not tested: a real phone with its
+on-screen keyboard, `tsc`, `clippy` on the whole workspace, `cargo fmt --check` (fails on `calcpad-sheet`).
+
 ## Checked at 26.10.10
 
 On the merged tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded, `--no-fail-fast`) passed 6101 tests; the
