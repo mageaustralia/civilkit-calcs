@@ -1293,11 +1293,24 @@ struct Tr {
     next_mixed: bool,
     /// Functions that return a text, with the codes they can return.
     str_funcs: HashMap<String, Vec<usize>>,
+    /// Locals of the program being translated that only ever hold texts, with their codes.
+    str_locs: HashMap<String, Vec<usize>>,
+    /// Arguments of the function being translated that hold texts (compared with texts in its body).
+    text_params: HashSet<String>,
+    /// For each function with text arguments, which of its arguments are texts.
+    text_param_fns: HashMap<String, Vec<bool>>,
+    /// The codes of the text the program just lowered gives, when its value is a text.
+    prog_text: Option<Vec<usize>>,
     /// Functions whose value is an array (a matrix literal, or an `if` that gives one).
     array_funcs: HashSet<String>,
     /// Matrices that hold texts as codes among their numbers (labels of a data table), and whether
     /// the matrix literal being translated may do so.
     str_mats: HashSet<String>,
+    /// For such a matrix whose cells are all known (a literal), what each cell holds: a table that can
+    /// be printed, and whose text cells are not read as numbers.
+    str_mat_cells: HashMap<String, Vec<Vec<strings::Cell>>>,
+    /// Set while a definition is translated: the cells of the matrix it gives.
+    str_mat_cells_def: Option<Vec<Vec<strings::Cell>>>,
     str_mat_ok: bool,
     /// Text boxes whose stored text is a number: `str2num` of such a name is the name.
     num_texts: HashSet<String>,
@@ -1739,6 +1752,7 @@ impl Tr {
             let r = self.expr(b).s;
             return atom(format!("dot({l}; {r})"));
         }
+        let mut quiet_text = false;
         if matches!(op, BinOp::Eq | BinOp::Ne)
             && (self.is_stringy(a) || self.is_stringy(b))
             && !self.readable
@@ -1751,6 +1765,12 @@ impl Tr {
                     prec,
                 };
             }
+            self.issue(
+                Code::StringValue,
+                Some("compared with a text, but the other side is not a text the importer can follow".into()),
+            );
+            quiet_text = true;
+            self.io_args = true;
         }
         let mut l = self.operand(a, lmin, true);
         // A product's right operand that is itself a division keeps its parentheses.
@@ -1760,6 +1780,9 @@ impl Tr {
             rmin
         };
         let mut r = self.operand(b, rmin, false);
+        if quiet_text {
+            self.io_args = false;
+        }
         // A bare 0 added to or taken from a quantity is a zero of its dimension.
         if matches!(op, BinOp::Add | BinOp::Sub) && !self.display && !self.readable {
             let zero = |e: &Expr| matches!(e, Expr::Num(s) if s.trim().parse::<f64>() == Ok(0.0));
@@ -1816,6 +1839,64 @@ impl Tr {
 
     fn render_args(&mut self, args: &[Expr]) -> Vec<String> {
         args.iter().map(|a| self.expr(a).s).collect()
+    }
+
+    /// Whether the value is a matrix literal (possibly transposed) that has a text among its items.
+    fn matrix_has_texts(&self, e: &Expr) -> bool {
+        match e {
+            Expr::Matrix { items, .. } => items
+                .iter()
+                .any(|i| matches!(i, Expr::Str(_)) || (matches!(i, Expr::Name(_)) && self.is_stringy(i))),
+            Expr::Un(UnOp::Transpose, a) => self.matrix_has_texts(a),
+            _ => false,
+        }
+    }
+
+    /// The value assigned to an element: a text (as its code) when the vector holds texts.
+    fn elem_value(&mut self, value: &Expr, text: bool) -> R {
+        if text {
+            self.str_or_expr(value)
+        } else {
+            self.expr(value)
+        }
+    }
+
+    /// The arguments of a call of a function the sheet defines: where the function takes a text
+    /// (it compares that argument with texts) the argument is a text, held as its code; a text given
+    /// where the function takes a number, or a number where it takes a text, is a gap.
+    fn render_user_args(&mut self, flat: &str, args: &[Expr]) -> Vec<String> {
+        let slots = self.text_param_fns.get(flat).cloned().unwrap_or_default();
+        let mut out = Vec::new();
+        for (k, a) in args.iter().enumerate() {
+            if slots.get(k).copied().unwrap_or(false) {
+                if self.is_stringy(a) {
+                    out.push(self.str_or_expr(a).s);
+                } else {
+                    self.issue(
+                        Code::StringValue,
+                        Some(format!(
+                            "argument {} of {flat} is compared with texts there, and is not a text here",
+                            k + 1
+                        )),
+                    );
+                    out.push(self.expr(a).s);
+                }
+            } else if strings::has_text_leaf(a) {
+                self.issue(
+                    Code::StringValue,
+                    Some(format!(
+                        "a text given for argument {} of {flat}, which uses it as a number",
+                        k + 1
+                    )),
+                );
+                self.io_args = true;
+                out.push(self.expr(a).s);
+                self.io_args = false;
+            } else {
+                out.push(self.expr(a).s);
+            }
+        }
+        out
     }
 
     /// The `#format` line that puts the number format in force (`None`: the default), or nothing when it already is.
@@ -2814,6 +2895,8 @@ impl Tr {
         self.growable.clear();
         self.prologue.clear();
         let saved_zero_units = std::mem::take(&mut self.zero_units);
+        let texts = self.scan_text_locals(body, &[]);
+        let saved_str_locs = std::mem::replace(&mut self.str_locs, texts);
         {
             let mut locals = HashSet::new();
             program_locals(body, &mut locals);
@@ -2837,9 +2920,11 @@ impl Tr {
         self.loop_stack.clear();
         self.cond_depth = 0;
         let res = self.lower_stmts(body, 0, false, &mut lines);
+        let mut tail_text = None;
         let out = match res {
             Ok(()) => {
-                let value = self.expr(tail);
+                let value = self.program_value(tail);
+                tail_text = self.prog_text.take();
                 let is_array = !early
                     && matches!(tail, Expr::Name(n)
                         if self.locals.get(&tables::normalise_name(&n.flat())).is_some_and(|m| self.local_arrays.contains(m)));
@@ -2864,6 +2949,8 @@ impl Tr {
         self.local_arrays = saved_arrays;
         self.zero_units = saved_zero_units;
         self.ret = saved_ret;
+        self.str_locs = saved_str_locs;
+        self.prog_text = if out.is_ok() { tail_text } else { None };
         out
     }
 
@@ -2896,6 +2983,9 @@ impl Tr {
         self.prog_n += 1;
         let saved_locals = std::mem::take(&mut self.locals);
         let saved_partial = std::mem::take(&mut self.partial);
+        let texts = self.scan_text_locals(body, &self.params.clone());
+        let saved_str_locs = std::mem::replace(&mut self.str_locs, texts);
+        let mut tail_text = None;
         let mut st = FnBlk {
             total: name_counts(stmts),
             arrays: HashSet::new(),
@@ -3008,7 +3098,8 @@ impl Tr {
             }
             let at = items.len().min(copies_len);
             items.splice(at..at, st.starts.drain(..));
-            let mut value = self.expr(tail).s;
+            let mut value = self.program_value(tail).s;
+            tail_text = self.prog_text.take();
             if let Some(r) = &st.ret {
                 value = format!("if({}; {}; {})", r.done, r.res, value);
             }
@@ -3020,6 +3111,8 @@ impl Tr {
         })();
         self.locals = saved_locals;
         self.partial = saved_partial;
+        self.str_locs = saved_str_locs;
+        self.prog_text = if r.is_ok() { tail_text } else { None };
         r
     }
 
@@ -3142,7 +3235,10 @@ impl Tr {
                     if !valid_ident(&flat) {
                         return Err(format!("local name {flat} that Calcpad cannot spell"));
                     }
-                    let rhs = self.copy_if_array(e);
+                    let rhs = match self.text_rhs(&flat, e) {
+                        Some(r) => r,
+                        None => self.copy_if_array(e),
+                    };
                     let mapped = match self.locals.get(&flat) {
                         Some(m) => m.clone(),
                         None => {
@@ -3231,7 +3327,7 @@ impl Tr {
                         return Err("an element index that is not one or two numbers".into());
                     }
                     let parts: Vec<String> = index.iter().map(|i| self.index_expr(i)).collect();
-                    let rhs = self.expr(e).s;
+                    let rhs = self.element_rhs(&flat, e);
                     if st.exact.contains(&flat) {
                         let at = format!("{mapped}.({})", parts.join("; "));
                         items.push(match g {
@@ -3556,7 +3652,10 @@ impl Tr {
                         return Err(format!("local name {flat} that Calcpad cannot spell"));
                     }
                     // The value is read before the name is a local: `x <- x + 1` starts from the outer x.
-                    let rhs = self.copy_if_array(e);
+                    let rhs = match self.text_rhs(&flat, e) {
+                        Some(r) => r,
+                        None => self.copy_if_array(e),
+                    };
                     let is_array = matches!(e, Expr::Matrix { .. })
                         || matches!(e, Expr::Call(f, _) if matches!(f.base.as_str(), "identity" | "matrix" | "augment" | "stack" | "lsolve" | "submatrix"));
                     let mapped = match self.locals.get(&flat) {
@@ -3628,7 +3727,7 @@ impl Tr {
                     let parts: Vec<String> = index.iter().map(|i| self.index_expr(i)).collect();
                     let rhs = match zero_rhs {
                         Some(z) => z,
-                        None => self.expr(e).s,
+                        None => self.element_rhs(&flat, e),
                     };
                     if self.growable.contains(&mapped) {
                         out.extend(Self::growth_lines(&mapped, &parts, &pad));
@@ -3969,6 +4068,16 @@ impl Tr {
 
     fn name_ref_engine(&mut self, n: &Name) -> R {
         let flat = tables::normalise_name(&n.flat());
+        if self.name_is_text(&flat)
+            && (self.text_params.contains(&flat) || self.locals.contains_key(&flat))
+            && !self.str_allow
+            && !self.readable
+            && !self.display
+        {
+            // A text argument or local held as a code is not a number.
+            self.issue(Code::StringValue, Some(flat.clone()));
+            return self.stand_in(&flat, "?string?");
+        }
         if self.str_mixed.contains(&flat)
             && !self.str_allow
             && !self.readable
@@ -4095,6 +4204,28 @@ impl Tr {
                 }
             }
         }
+        // Functions that build, measure or read the characters of a text: the engine holds a text
+        // only as the code of a whole literal, so what they give cannot be held.
+        if n.sub.is_none()
+            && !self.readable
+            && !self.display
+            && !self.funcs.contains_key(&flat)
+            && matches!(
+                flat.as_str(),
+                "concat" | "num2str" | "str2num" | "strlen" | "substr" | "search"
+            )
+        {
+            self.issue(
+                Code::StringValue,
+                Some(format!(
+                    "{flat} works on the characters of a text, which the engine cannot hold"
+                )),
+            );
+            self.io_args = true;
+            let shown = self.render_args(args);
+            self.io_args = false;
+            return self.stand_in(&format!("{}({})", flat, shown.join("; ")), "?string?");
+        }
         let mut rendered = if flat == "if" && n.sub.is_none() && args.len() == 3 && !self.funcs.contains_key(&flat) {
             // The branches may be texts (held as codes).
             let c = self.expr(&args[0]).s;
@@ -4109,7 +4240,11 @@ impl Tr {
                     "READEXCEL" | "WRITEEXCEL" | "READPRN" | "WRITEPRN" | "APPENDPRN"
                 );
             self.io_args = io;
-            let r = self.render_args(args);
+            let r = if n.sub.is_none() && self.funcs.contains_key(&flat) && !self.readable && !self.display {
+                self.render_user_args(&flat, args)
+            } else {
+                self.render_args(args)
+            };
             self.io_args = false;
             r
         };
@@ -4355,6 +4490,9 @@ impl Tr {
     }
 
     fn index(&mut self, base: &Expr, idx: &[Expr]) -> R {
+        if !self.readable && !self.display {
+            self.check_table_index(base, idx);
+        }
         if self.readable {
             // The engine checks a typeset line against what it knows: indexing a name it holds as
             // a number, or the result of a call, is an error even in a `#noc` block.
@@ -4425,6 +4563,13 @@ impl Tr {
             .iter()
             .map(|i| match i {
                 Expr::Str(s) if self.str_mat_ok && !self.readable && !self.display => self.str_code(s).to_string(),
+                Expr::Name(_) if self.str_mat_ok && !self.readable && !self.display && self.is_stringy(i) => {
+                    // A text of the sheet among the numbers of a table: its code (or the number it holds).
+                    self.str_allow = true;
+                    let r = self.expr(i).s;
+                    self.str_allow = false;
+                    r
+                }
                 _ => self.expr(i).s,
             })
             .collect();
@@ -5025,6 +5170,7 @@ impl Tr {
         let mut str_fn_def: Option<(String, Vec<usize>)> = None;
         let mut fn_gives_array = false;
         let mut str_mat_def: Option<String> = None;
+        self.str_mat_cells_def = None;
         let mut matrix_def = false;
         let mut str_multi_def: Vec<(String, Option<Vec<usize>>)> = Vec::new();
         // An evaluation of a text: the expression that gives its code and the texts it can be.
@@ -5182,6 +5328,15 @@ impl Tr {
                 // A program that is only local definitions and a final value is that value with the
                 // locals substituted. Other programs are statements, possible for a variable only.
                 let inlined: Option<Expr>;
+                let tidied: Expr;
+                // Notes the author left among the statements (a text that is not the value) are not read.
+                let value: &Expr = match value {
+                    Expr::Program(stmts) => {
+                        tidied = Expr::Program(strings::without_note_texts(stmts));
+                        &tidied
+                    }
+                    other => other,
+                };
                 let mut statements: Option<&[PStmt]> = None;
                 let mut fn_program: Option<&[PStmt]> = None;
                 let stub: Expr;
@@ -5225,6 +5380,14 @@ impl Tr {
                         }
                         match self.lower_program(statements.unwrap_or_default(), &flat) {
                             Ok((text, is_array)) => {
+                                if let Some(d) = self.prog_text.take() {
+                                    // The program's value is a text (held as a code).
+                                    if d.contains(&strings::TEXT_ARG) {
+                                        self.issue(Code::StringValue, Some("a text taken from an argument".into()));
+                                    }
+                                    self.next_mixed = false;
+                                    str_var_def = Some((flat.clone(), Some(d)));
+                                }
                                 matrix_def = returns_matrix(statements.unwrap_or_default());
                                 if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
                                     emitted = Some(text);
@@ -5286,7 +5449,7 @@ impl Tr {
                         let text_def = range_def.is_none() && self.is_stringy(value);
                         let text_codes = if text_def { self.str_domain(value) } else { Vec::new() };
                         self.next_mixed = text_def && self.is_mixed(value);
-                        let labels = matches!(value, Expr::Matrix { items, .. } if items.iter().any(|i| matches!(i, Expr::Str(_))));
+                        let labels = self.matrix_has_texts(value);
                         self.str_mat_ok = labels;
                         let rhs = if range_def.is_some() {
                             atom("")
@@ -5294,8 +5457,20 @@ impl Tr {
                             self.str_or_expr(value)
                         };
                         self.str_mat_ok = false;
+                        let alias_of = match value {
+                            Expr::Name(a) => {
+                                Some(tables::normalise_name(&a.flat())).filter(|a| self.str_mats.contains(a))
+                            }
+                            _ => None,
+                        };
+                        self.str_mat_cells_def = None;
                         if labels {
                             str_mat_def = Some(flat.clone());
+                            self.str_mat_cells_def = self.text_cells(value);
+                        } else if let Some(a) = alias_of {
+                            // A copy of a table that mixes texts and numbers is one too.
+                            str_mat_def = Some(flat.clone());
+                            self.str_mat_cells_def = self.str_mat_cells.get(&a).cloned();
                         }
                         str_var_def = Some((flat.clone(), text_def.then_some(text_codes)));
                         let is_array = self.yields_array(value);
@@ -5340,10 +5515,29 @@ impl Tr {
                             plist.push(pf);
                         }
                         self.params = plist.clone();
+                        // Arguments the body compares with texts hold texts (their codes).
+                        let body_expr: Expr = match (&fn_program, &*value) {
+                            (Some(stmts), _) => Expr::Program(stmts.to_vec()),
+                            (None, v) => v.clone(),
+                        };
+                        let tp = strings::params_compared_with_text(&body_expr, &plist);
+                        self.text_params = tp;
+                        if self.text_params.is_empty() {
+                            self.text_param_fns.remove(&flat);
+                        } else {
+                            self.text_param_fns.insert(
+                                flat.clone(),
+                                plist.iter().map(|p| self.text_params.contains(p)).collect(),
+                            );
+                        }
                         fn_gives_array = gives_array(value);
                         let text_fn = fn_program.is_none() && self.is_stringy(value);
                         if text_fn {
-                            let d = self.str_domain(value);
+                            let mut d = self.str_domain(value);
+                            if self.is_mixed(value) {
+                                // A text for some arguments and a number for others.
+                                d.push(strings::MIXED_FN);
+                            }
                             str_fn_def = Some((flat.clone(), d));
                         }
                         if fn_program.is_none() {
@@ -5353,7 +5547,12 @@ impl Tr {
                         }
                         let rhs = match fn_program {
                             Some(stmts) => match self.lower_fn_block(stmts) {
-                                Ok(t) => atom(t),
+                                Ok(t) => {
+                                    if let Some(d) = self.prog_text.take() {
+                                        str_fn_def = Some((flat.clone(), d));
+                                    }
+                                    atom(t)
+                                }
                                 Err(why) => {
                                     self.issue(Code::ProgramBlock, Some(format!("in a function body: {why}")));
                                     atom("0")
@@ -5361,6 +5560,14 @@ impl Tr {
                             },
                             None => self.str_or_expr(value),
                         };
+                        if let Some((_, d)) = &str_fn_def {
+                            if d.contains(&strings::TEXT_ARG) {
+                                // The function gives back the text it was given: its codes are the caller's.
+                                self.issue(Code::StringValue, Some(format!("{flat} gives back a text argument")));
+                                str_fn_def = None;
+                            }
+                        }
+                        self.text_params.clear();
                         self.params.clear();
                         let head = format!("{}({})", self.fn_name(&flat), plist.join("; "));
                         if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
@@ -5450,6 +5657,22 @@ impl Tr {
                             .as_ref()
                             .map(|b| tables::normalise_name(&b.flat()))
                             .filter(|f| valid_ident(f));
+                        // An element of a vector of texts that gets a text of the sheet (a name): its code.
+                        let text_elem = !self.readable
+                            && flat.as_ref().is_some_and(|f| self.text_vecs.contains_key(f))
+                            && matches!(value, Expr::Name(_) | Expr::Call(..))
+                            && self.is_stringy(value);
+                        if text_elem {
+                            let d = self.str_domain(value);
+                            if let Some(f) = &flat {
+                                let have = self.text_vecs.entry(f.clone()).or_default();
+                                for c in d {
+                                    if c != strings::TEXT_ARG && !have.contains(&c) {
+                                        have.push(c);
+                                    }
+                                }
+                            }
+                        }
                         // The array is no longer what an earlier definition said: later uses of its
                         // name must not read the stale value (or, for a name such as `L`, a unit).
                         if let Some(f) = &flat {
@@ -5523,7 +5746,7 @@ impl Tr {
                         };
                         if let Some(f) = grow {
                             let idx: Vec<String> = index.iter().map(|e| self.index_expr(e)).collect();
-                            let rhs = self.expr(value);
+                            let rhs = self.elem_value(value, text_elem);
                             let pre = std::mem::take(&mut self.hoisted);
                             let at = idx.join("; ");
                             if !pre.is_empty() {
@@ -5567,7 +5790,7 @@ impl Tr {
                                 // One element of an array that has no value yet: the array is created
                                 // (zeros) just large enough, without being shown, and the element set.
                                 let idx: Vec<String> = index.iter().map(|e| self.index_expr(e)).collect();
-                                let rhs = self.expr(value);
+                                let rhs = self.elem_value(value, text_elem);
                                 let pre = std::mem::take(&mut self.hoisted);
                                 let ok = idx.iter().all(|s| s.parse::<i64>().is_ok_and(|v| v >= 1));
                                 if !ok || !pre.is_empty() {
@@ -5630,7 +5853,7 @@ impl Tr {
                                         for (iv, _) in &rs {
                                             self.params.push(iv.clone());
                                         }
-                                        let rhs = self.expr(value);
+                                        let rhs = self.elem_value(value, text_elem);
                                         let idx: Vec<String> = index.iter().map(|e| self.index_expr(e)).collect();
                                         for _ in &rs {
                                             self.params.pop();
@@ -5662,7 +5885,7 @@ impl Tr {
                                         for (iv, _) in &rs {
                                             self.params.push(iv.clone());
                                         }
-                                        let rhs = self.expr(value);
+                                        let rhs = self.elem_value(value, text_elem);
                                         let idx: Vec<String> = index.iter().map(|e| self.index_expr(e)).collect();
                                         for _ in &rs {
                                             self.params.pop();
@@ -5692,7 +5915,7 @@ impl Tr {
                                         for (iv, _) in &rs {
                                             self.params.push(iv.clone());
                                         }
-                                        let rhs = self.expr(value);
+                                        let rhs = self.elem_value(value, text_elem);
                                         let idx: Vec<String> = rs
                                             .iter()
                                             .map(|(iv, _)| self.index_expr(&Expr::Name(Name::new(iv))))
@@ -5758,6 +5981,76 @@ impl Tr {
                 expr: Expr::Name(vn),
                 unit: None,
             } if !self.readable
+                && self.str_mat_cells.contains_key(&tables::normalise_name(&vn.flat()))
+                && self.defined.contains(&tables::normalise_name(&vn.flat()))
+                && self.typeset_eval_head(&Expr::Name(vn.clone())).is_some()
+                && !self.str_mat_cells[&tables::normalise_name(&vn.flat())]
+                    .iter()
+                    .flatten()
+                    .any(|c| matches!(c, strings::Cell::Unknown)) =>
+            {
+                // A table of texts and numbers: the texts are printed, and the numbers as numbers.
+                shape = "evaluation";
+                let flat = tables::normalise_name(&vn.flat());
+                let head = self.typeset_eval_head(&Expr::Name(vn.clone())).unwrap_or_default();
+                let cells = self.str_mat_cells.get(&flat).cloned().unwrap_or_default();
+                raw_out = Some(self.mixed_table_lines(&head, &flat, &cells));
+                emitted = Some(String::new());
+            }
+            Stmt::Eval {
+                expr: Expr::Matrix { rows, cols, items },
+                unit: None,
+            } if !self.readable
+                && *rows > 0
+                && *cols > 0
+                && items.len() == rows * cols
+                && self.matrix_has_texts(&Expr::Matrix {
+                    rows: *rows,
+                    cols: *cols,
+                    items: items.clone(),
+                })
+                && self
+                    .typeset_eval_head(&Expr::Matrix {
+                        rows: *rows,
+                        cols: *cols,
+                        items: items.clone(),
+                    })
+                    .is_some() =>
+            {
+                // A matrix written out with texts among its items: the texts are printed, and the numbers.
+                shape = "evaluation";
+                let m = Expr::Matrix {
+                    rows: *rows,
+                    cols: *cols,
+                    items: items.clone(),
+                };
+                let cells = self.text_cells(&m).unwrap_or_default();
+                if cells.iter().flatten().any(|c| matches!(c, strings::Cell::Unknown)) {
+                    self.issue(
+                        Code::StringValue,
+                        Some("a matrix of texts and numbers is not printed (an item may be a text or a number)".into()),
+                    );
+                } else {
+                    // The left side is the matrix as the author wrote it.
+                    let head = self.typeset_eval_head(&m).unwrap_or_default();
+                    let mut ats: Vec<Vec<String>> = Vec::new();
+                    for r in 0..*rows {
+                        let mut line = Vec::new();
+                        for c in 0..*cols {
+                            line.push(self.str_or_expr(&items[c * rows + r]).s);
+                        }
+                        ats.push(line);
+                    }
+                    if self.cur.iter().all(|p| p.code.severity() != Severity::Gap) {
+                        raw_out = Some(self.table_lines(&head, &cells, &ats));
+                        emitted = Some(String::new());
+                    }
+                }
+            }
+            Stmt::Eval {
+                expr: Expr::Name(vn),
+                unit: None,
+            } if !self.readable
                 && self.text_vecs.contains_key(&tables::normalise_name(&vn.flat()))
                 && self.defined.contains(&tables::normalise_name(&vn.flat())) =>
             {
@@ -5789,7 +6082,10 @@ impl Tr {
                     if self.str_mats.contains(&tables::normalise_name(&n.flat())) {
                         self.issue(
                             Code::StringValue,
-                            Some("a matrix of texts and numbers is not printed".into()),
+                            Some(
+                                "a matrix of texts and numbers is not printed (which of its cells hold texts is not known: it is built from other tables, or changed by element or row)"
+                                    .into(),
+                            ),
                         );
                     }
                 }
@@ -6037,6 +6333,7 @@ impl Tr {
                     } else if matches!(saved, Expr::Matrix { items, .. } if items.iter().any(|i| matches!(i, Expr::Str(_))))
                     {
                         str_mat_def = Some(flat.clone());
+                        self.str_mat_cells_def = self.text_cells(saved);
                     }
                     define_name = Some((flat, None, is_array));
                 } else {
@@ -6173,6 +6470,7 @@ impl Tr {
                 self.str_vars.remove(&name);
                 self.str_funcs.remove(&name);
                 self.str_mats.remove(&name);
+                self.str_mat_cells.remove(&name);
                 self.num_texts.remove(&name);
                 self.empty_texts.remove(&name);
                 if let Some(c) = &m.control {
@@ -6183,7 +6481,11 @@ impl Tr {
                         self.num_texts.insert(name.clone());
                     }
                 }
+                let cells = self.str_mat_cells_def.take();
                 if let Some(n) = str_mat_def.take() {
+                    if let Some(c) = cells {
+                        self.str_mat_cells.insert(n.clone(), c);
+                    }
                     self.str_mats.insert(n);
                 }
                 if let Some((n, d)) = str_var_def.take() {
@@ -6764,8 +7066,14 @@ pub fn translate(mut sheet: Sheet, opts: &ImportOptions) -> (String, ImportRepor
         str_mixed: HashSet::new(),
         next_mixed: false,
         str_funcs: HashMap::new(),
+        str_locs: HashMap::new(),
+        text_params: HashSet::new(),
+        text_param_fns: HashMap::new(),
+        prog_text: None,
         array_funcs: HashSet::new(),
         str_mats: HashSet::new(),
+        str_mat_cells: HashMap::new(),
+        str_mat_cells_def: None,
         str_mat_ok: false,
         num_texts: HashSet::new(),
         empty_texts: HashSet::new(),

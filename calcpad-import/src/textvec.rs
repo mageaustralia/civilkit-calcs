@@ -58,8 +58,30 @@ fn textish(e: &Expr) -> bool {
     match e {
         Expr::Str(_) => true,
         Expr::Call(n, args) if is_if(n, args) => textish(&args[1]) || textish(&args[2]),
+        // A program (a chain of `if`s) whose every value is a text.
+        Expr::Program(stmts) => {
+            let mut any = false;
+            program_values_are_texts(stmts, &mut any) && any
+        }
         _ => false,
     }
+}
+
+/// Whether every value a program gives (an expression statement or a `return`) is a text; `any`
+/// says whether it has one.
+fn program_values_are_texts(stmts: &[PStmt], any: &mut bool) -> bool {
+    stmts.iter().all(|st| match st {
+        PStmt::Expr(e) | PStmt::Return(e) => {
+            *any = true;
+            matches!(e, Expr::Str(_))
+        }
+        PStmt::If { branches, otherwise } => {
+            branches.iter().all(|(_, b)| program_values_are_texts(b, any))
+                && otherwise.as_ref().is_none_or(|o| program_values_are_texts(o, any))
+        }
+        PStmt::Local(PTarget::Var(_), _) => true,
+        _ => false,
+    })
 }
 
 /// Whether the statements give a local only texts as elements and end with that local.
@@ -175,7 +197,25 @@ fn codes(e: &mut Expr, tv: &mut TextVecs) {
             codes(&mut a[1], tv);
             codes(&mut b[0], tv);
         }
+        Expr::Program(stmts) => codes_in(stmts, tv),
         _ => {}
+    }
+}
+
+fn codes_in(stmts: &mut [PStmt], tv: &mut TextVecs) {
+    for st in stmts {
+        match st {
+            PStmt::Expr(e) | PStmt::Return(e) => codes(e, tv),
+            PStmt::If { branches, otherwise } => {
+                for (_, b) in branches {
+                    codes_in(b, tv);
+                }
+                if let Some(o) = otherwise {
+                    codes_in(o, tv);
+                }
+            }
+            _ => {}
+        }
     }
 }
 
