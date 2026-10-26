@@ -40,8 +40,9 @@ function merge(a,b){for(var k in b){var v=b[k];if(v&&typeof v==="object"&&!Array
 function theme(d){
 var fg=d?"#e6e6e6":"#222",grid=d?"#444":"#e3e3e3",line=d?"#8a8a8a":"#777",box=d?"#2d2d30":"#fff",none="rgba(0,0,0,0)";
 var ax={gridcolor:grid,zerolinecolor:line,linecolor:line,tickcolor:line};
+var ax3=merge({backgroundcolor:d?"#26262a":"#eef0f3",showbackground:true},ax);
 return {layout:{paper_bgcolor:none,plot_bgcolor:none,font:{color:fg,size:12},xaxis:ax,yaxis:ax,
-scene:{bgcolor:none,xaxis:ax,yaxis:ax,zaxis:ax},legend:{bgcolor:none},hoverlabel:{font:{color:fg},bgcolor:box,bordercolor:line},
+scene:{bgcolor:none,xaxis:ax3,yaxis:ax3,zaxis:ax3},legend:{bgcolor:none},hoverlabel:{font:{color:fg},bgcolor:box,bordercolor:line},
 modebar:{bgcolor:none,color:line,activecolor:d?"#4fc1ff":"#0b6bcb"},
 updatemenudefaults:{bgcolor:box,bordercolor:line,font:{color:fg}},
 sliderdefaults:{bgcolor:grid,bordercolor:line,tickcolor:line,activebgcolor:d?"#4fc1ff":"#0b6bcb",font:{color:fg}}}};}

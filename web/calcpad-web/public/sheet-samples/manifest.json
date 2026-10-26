@@ -1,6 +1,7 @@
 {
  "groups": [
-  "Sheet syntax"
+  "Sheet syntax",
+  "3D plots"
  ],
  "samples": [
   {
@@ -156,6 +157,81 @@
    "ui": false,
    "scripts": false,
    "read": false,
+   "assets": []
+  },
+  {
+   "id": "3d-plate-deflection",
+   "title": "3D plate deflection surface",
+   "group": "3D plots",
+   "folder": "3D plots",
+   "file": "sheet-samples/3D plate deflection surface.sheet",
+   "upstream": "",
+   "description": "A simply supported slab panel by the Navier series, drawn as a rotatable 3D surface with projected contours. The centre deflection is checked against span/250.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "python": true,
+   "assets": []
+  },
+  {
+   "id": "3d-biaxial-column",
+   "title": "3D biaxial column interaction",
+   "group": "3D plots",
+   "folder": "3D plots",
+   "file": "sheet-samples/3D biaxial column interaction.sheet",
+   "upstream": "",
+   "description": "A column's N-Mx-My interaction surface (Bresler load contour) with the design action as a marker, and an inside or outside check.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "python": true,
+   "assets": []
+  },
+  {
+   "id": "3d-space-frame",
+   "title": "3D space frame geometry",
+   "group": "3D plots",
+   "folder": "3D plots",
+   "file": "sheet-samples/3D space frame geometry.sheet",
+   "upstream": "",
+   "description": "A two-bay, three-storey space frame as 3D lines, each member coloured by utilisation, with hover labels.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "python": true,
+   "assets": []
+  },
+  {
+   "id": "3d-mode-shapes",
+   "title": "3D mode shapes explorer",
+   "group": "3D plots",
+   "folder": "3D plots",
+   "file": "sheet-samples/3D mode shapes explorer.sheet",
+   "upstream": "",
+   "description": "The first nine modes of a simply supported plate on a 3D surface, with a dropdown to switch mode and the frequencies computed.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "python": true,
+   "assets": []
+  },
+  {
+   "id": "3d-footing-reactions",
+   "title": "3D footing reactions bar chart",
+   "group": "3D plots",
+   "folder": "3D plots",
+   "file": "sheet-samples/3D footing reactions bar chart.sheet",
+   "upstream": "",
+   "description": "Column reactions on a footing grid as 3D bars (one Mesh3d trace), coloured by load, with a pad area check.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "python": true,
    "assets": []
   }
  ]

@@ -1,0 +1,75 @@
+<!--sheet-->
+# Biaxial column interaction surface
+
+The axial load capacity of a rectangular column plotted against bending about both axes. Each uniaxial interaction curve is the usual parabolic idealisation, and the biaxial surface follows Bresler's load contour, (Mx/Mux)^k + (My/Muy)^k = 1. This is an illustration of the plot, not a design method: replace the curve with your code's M-N diagram.
+
+A design point sits inside the surface when the column is adequate. The red marker is the design action and the tool reports whether it is inside.
+
+## Inputs
+N_o: 4200 kN | squash load
+M_ux0: 380 kN*m | pure bending capacity about x
+M_uy0: 260 kN*m | pure bending capacity about y
+N_star: 1500 kN | design axial load
+Mx_star: 160 kN*m | design moment about x
+My_star: 90 kN*m | design moment about y
+
+## Python: the surface
+
+```python
+import math
+import plotly.graph_objects as go
+
+N0, Mx0, My0 = 4200.0, 380.0, 260.0
+Nd, Mxd, Myd = 1500.0, 160.0, 90.0
+K = 1.5                                           # load contour exponent
+
+
+def mu(M0, n):
+    """Uniaxial moment capacity at axial ratio n = N / N0 (parabola, peak near n = 0.35)."""
+    r = (n - 0.35) / (0.65 if n > 0.35 else 0.35)
+    return M0 * max(0.0, 1 - r * r) * 1.15 if n > 0 else M0 * (1 + n / 0.5)
+
+
+NA, NT = 40, 73
+ns = [0.01 + 0.97 * i / (NA - 1) for i in range(NA)]
+th = [2 * math.pi * j / (NT - 1) for j in range(NT)]
+X, Y, Z = [], [], []
+for n in ns:
+    ax, ay = mu(Mx0, n), mu(My0, n)
+    rx, ry, rz = [], [], []
+    for t in th:
+        c, s = math.cos(t), math.sin(t)
+        # point on the load contour in direction t
+        f = (abs(c) / ax) ** K + (abs(s) / ay) ** K if ax > 0 and ay > 0 else 1.0
+        r = f ** (-1.0 / K)
+        rx.append(r * c)
+        ry.append(r * s)
+        rz.append(n * N0)
+    X.append(rx)
+    Y.append(ry)
+    Z.append(rz)
+
+n_d = Nd / N0
+ax, ay = mu(Mx0, n_d), mu(My0, n_d)
+util = ((Mxd / ax) ** K + (Myd / ay) ** K) ** (1.0 / K)
+
+fig = go.Figure([
+    go.Surface(x=X, y=Y, z=Z, colorscale="Blues", opacity=0.75, showscale=False,
+               hovertemplate="Mx %{x:.0f}<br>My %{y:.0f}<br>N %{z:.0f} kN<extra></extra>"),
+    go.Scatter3d(x=[Mxd], y=[Myd], z=[Nd], mode="markers+text", text=["design action"], textposition="top center",
+                 marker=dict(size=7, color="#d62728"), name="design"),
+])
+fig.update_layout(
+    height=540, margin=dict(l=0, r=0, t=10, b=0), showlegend=False,
+    scene=dict(xaxis=dict(title=dict(text="Mx (kN.m)")), yaxis=dict(title=dict(text="My (kN.m)")),
+               zaxis=dict(title=dict(text="N (kN)")),
+               aspectmode="manual", aspectratio=dict(x=1, y=0.8, z=1),
+               camera=dict(eye=dict(x=1.6, y=-1.5, z=0.7))),
+)
+fig.show()
+export(util=util)
+```
+
+## Check
+ratio: util
+if ratio <= 1: "The design action is inside the interaction surface." else: "The design action is outside the interaction surface."

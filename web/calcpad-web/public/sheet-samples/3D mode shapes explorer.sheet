@@ -1,0 +1,55 @@
+<!--sheet-->
+# Vibration mode shapes of a simply supported plate
+
+The natural frequencies and mode shapes of a thin rectangular plate with simply supported edges: w(x,y) = sin(m pi x / a) sin(n pi y / b), with frequency f = (pi/2) sqrt(D / (rho t)) (m^2/a^2 + n^2/b^2). The menu in the chart switches between the first nine modes. The colours show the sign of the displacement, so nodal lines (white) are easy to see.
+
+## Python: nine modes, one menu
+
+```python
+import math
+import plotly.graph_objects as go
+
+a, b = 4.0, 3.0
+t, E, nu, rho = 0.012, 200e9, 0.3, 7850.0         # steel plate, SI units
+D = E * t ** 3 / (12 * (1 - nu ** 2))
+
+NX, NY = 41, 31
+xs = [a * i / (NX - 1) for i in range(NX)]
+ys = [b * j / (NY - 1) for j in range(NY)]
+
+
+def mode(m, n):
+    return [[math.sin(m * math.pi * x / a) * math.sin(n * math.pi * y / b) for x in xs] for y in ys]
+
+
+def freq(m, n):
+    return (math.pi / 2) * math.sqrt(D / (rho * t)) * (m * m / a ** 2 + n * n / b ** 2)
+
+
+modes = [(m, n) for m in (1, 2, 3) for n in (1, 2, 3)]
+modes.sort(key=lambda mn: freq(*mn))
+f1 = freq(*modes[0])
+
+fig = go.Figure(go.Surface(
+    x=xs, y=ys, z=mode(*modes[0]), cmin=-1, cmax=1, colorscale="RdBu", showscale=False,
+    contours=dict(z=dict(show=True, usecolormap=True, project=dict(z=True))),
+))
+fig.update_layout(
+    height=540, margin=dict(l=0, r=0, t=10, b=0),
+    scene=dict(xaxis=dict(title=dict(text="x (m)")), yaxis=dict(title=dict(text="y (m)")),
+               zaxis=dict(title=dict(text="w"), range=[-1.6, 1.6]),
+               aspectmode="manual", aspectratio=dict(x=1.4, y=1.05, z=0.5),
+               camera=dict(eye=dict(x=1.5, y=-1.6, z=0.9))),
+    updatemenus=[dict(type="dropdown", x=0.0, y=1.0, xanchor="left", yanchor="top",
+                      buttons=[dict(label="mode (%d,%d)  %.1f Hz" % (m, n, freq(m, n)), method="restyle",
+                                    args=[{"z": [mode(m, n)]}]) for (m, n) in modes])],
+)
+fig.show()
+print("First mode (%d,%d) at %.1f Hz" % (modes[0][0], modes[0][1], f1))
+export(f_1=f1)
+```
+
+## Check
+f_n: f_1 * 1 Hz
+f_min: 3 Hz | lowest acceptable frequency
+if f_n >= f_min: "The first mode is above the limit." else: "The first mode is below the limit."

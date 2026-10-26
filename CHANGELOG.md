@@ -11,6 +11,13 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- Five 3D plot samples (group "3D plots"): a plate deflection surface, a biaxial column interaction surface, a space frame in 3D lines, a mode shape explorer with a dropdown, and a 3D bar chart of footing reactions. They use the existing Plotly API in a python fence, so no new engine code is involved.
+- `e2e/plot3d-check.mjs` loads each 3D sample in light and dark and checks the scene draws.
+
+### Changed
+- 3D plots in the results pane: the walls of the 3D axes follow the light or dark theme instead of the default light grey.
+
 ## [26.10.10] - 2026-10-26
 
 ### Added
