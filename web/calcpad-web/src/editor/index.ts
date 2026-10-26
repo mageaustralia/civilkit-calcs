@@ -4,7 +4,7 @@
 // =============================================================================
 
 export { calcpadLanguageConfiguration } from './language';
-export { calcpadDarkTheme } from './theme';
+export { civilkitDarkTheme, civilkitLightTheme } from './theme';
 export {
     registerCalcpadLanguage,
     registerCalcpadTheme,

@@ -1,7 +1,7 @@
 import * as monaco from 'monaco-editor';
 import { calcpadLanguageConfiguration, calcpadMonarchLanguage } from './language';
 import { registerSheetLanguage } from './sheet-language';
-import { calcpadDarkTheme, calcpadLightTheme } from './theme';
+import { civilkitDarkTheme, civilkitLightTheme } from './theme';
 
 /**
  * Register the CalcPad language and theme with Monaco.
@@ -16,8 +16,8 @@ export function registerCalcpadLanguage(): void {
 }
 
 export function registerCalcpadTheme(): void {
-    monaco.editor.defineTheme('calcpad-dark', calcpadDarkTheme);
-    monaco.editor.defineTheme('calcpad-light', calcpadLightTheme);
+    monaco.editor.defineTheme('civilkit-dark', civilkitDarkTheme);
+    monaco.editor.defineTheme('civilkit-light', civilkitLightTheme);
 }
 
 /**
@@ -26,7 +26,7 @@ export function registerCalcpadTheme(): void {
  * choice) changes.
  */
 export function setCalcpadEditorTheme(resolved: 'light' | 'dark'): void {
-    monaco.editor.setTheme(resolved === 'light' ? 'calcpad-light' : 'calcpad-dark');
+    monaco.editor.setTheme(resolved === 'light' ? 'civilkit-light' : 'civilkit-dark');
 }
 
 export interface CalcpadEditorOptions {
