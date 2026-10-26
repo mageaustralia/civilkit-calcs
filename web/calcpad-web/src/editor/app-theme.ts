@@ -18,6 +18,29 @@ function resolve(label: AppThemeLabel): ResolvedTheme {
     return label === 'Light' ? 'light' : 'dark';
 }
 
+/**
+ * `?theme=dark` or `?theme=light` forces the theme for this page load only (for side-by-side
+ * previews and screenshots). Nothing is saved, so the user's own choice is untouched.
+ */
+export function forcedThemeFromUrl(): ResolvedTheme | null {
+    try {
+        const v = new URLSearchParams(window.location.search).get('theme');
+        return v === 'dark' || v === 'light' ? v : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Paints data-theme on <html> as soon as this module loads, before Monaco and the stored
+ * settings are ready, so the CivilKit tokens are never light for a moment on a dark choice.
+ * (The tokens themselves follow prefers-color-scheme when no data-theme is set.)
+ */
+export function applyEarlyTheme(): void {
+    const forced = forcedThemeFromUrl();
+    if (forced) document.documentElement.dataset.theme = forced;
+}
+
 function apply(resolved: ResolvedTheme): void {
     document.documentElement.dataset.theme = resolved;
     setCalcpadEditorTheme(resolved);

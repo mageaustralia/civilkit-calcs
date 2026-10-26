@@ -111,22 +111,22 @@ select option {
 .status-bar .status-server {
     padding: 1px 8px;
     font-size: var(--calcpad-font-size-md);
-    background: rgba(0, 0, 0, 0.35);
+    background: var(--ck-sunken);
     border-radius: 2px;
     -webkit-user-select: none;
     user-select: none;
 }
 
 .status-bar .status-server.connected {
-    color: #6bd66b;
+    color: var(--ck-ok);
 }
 
 .status-bar .status-server.connecting {
-    color: #ffcc66;
+    color: var(--ck-warn);
 }
 
 .status-bar .status-server.disconnected {
-    color: #ffb3b3;
+    color: var(--ck-err);
 }
 
 .toolbar-btn {
@@ -281,25 +281,25 @@ select option {
     align-items: center;
     justify-content: center;
     gap: 14px;
-    background: rgba(255, 255, 255, 0.7);
-    color: #333;
+    background: color-mix(in srgb, var(--ck-panel) 70%, transparent);
+    color: var(--ck-text);
     font-size: var(--calcpad-font-size-lg);
     pointer-events: none;
 }
 .preview-loading-overlay.preview-dark {
-    background: rgba(30, 30, 30, 0.7);
-    color: #d4d4d4;
+    background: color-mix(in srgb, var(--ck-panel) 70%, transparent);
+    color: var(--ck-text);
 }
 .preview-spinner {
     width: 36px;
     height: 36px;
-    border: 3px solid rgba(0, 0, 0, 0.15);
+    border: 3px solid var(--ck-line);
     border-top-color: var(--vscode-progressBar-background, #0078d4);
     border-radius: 50%;
     animation: preview-spin 0.8s linear infinite;
 }
 .preview-loading-overlay.preview-dark .preview-spinner {
-    border-color: rgba(255, 255, 255, 0.18);
+    border-color: var(--ck-line);
     border-top-color: var(--vscode-progressBar-background, #0078d4);
 }
 @keyframes preview-spin {
@@ -826,7 +826,7 @@ select option {
     border: 1px solid var(--vscode-editorWidget-border, #454545);
     border-radius: 4px;
     padding: 16px 18px 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    box-shadow: var(--ck-shadow);
     font-size: var(--calcpad-font-size-lg);
 }
 .modal-title {
@@ -916,18 +916,21 @@ select option {
 }
 
 .problems-badge.error {
-    background: var(--vscode-errorForeground, #f14c4c);
-    color: #fff;
+    background: var(--ck-err-soft);
+    color: var(--ck-err);
+    box-shadow: inset 0 0 0 1px var(--ck-err);
 }
 
 .problems-badge.warning {
-    background: var(--vscode-editorWarning-foreground, #cca700);
-    color: #000;
+    background: var(--ck-warn-soft);
+    color: var(--ck-warn);
+    box-shadow: inset 0 0 0 1px var(--ck-warn);
 }
 
 .problems-badge.info {
-    background: var(--vscode-editorInfo-foreground, #3794ff);
-    color: #fff;
+    background: var(--ck-accent-soft);
+    color: var(--ck-accent);
+    box-shadow: inset 0 0 0 1px var(--ck-accent);
 }
 
 .problems-list {
@@ -1055,17 +1058,15 @@ select option {
     gap: 12px;
     padding: 0 12px;
     height: 22px;
-    background: var(--vscode-statusBar-background, #007acc);
-    color: var(--vscode-statusBar-foreground, #fff);
+    background: var(--vscode-statusBar-background, var(--ck-raised));
+    color: var(--vscode-statusBar-foreground, var(--ck-text-2));
+    border-top: 1px solid var(--ck-line);
     font-size: var(--calcpad-font-size-md);
     cursor: pointer;
     -webkit-user-select: none;
     user-select: none;
 }
 
-.status-bar:hover {
-    background: var(--vscode-statusBar-hoverBackground, #1f8ad2);
-}
 
 .status-problems,
 .status-output {
@@ -1079,7 +1080,14 @@ select option {
 
 .status-problems:hover,
 .status-output:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--ck-line);
+}
+
+/* The item whose panel is open. */
+.status-bar .status-problems.active,
+.status-bar .status-output.active {
+    background: var(--ck-accent-soft);
+    color: var(--ck-accent);
 }
 
 .status-icon {
@@ -1090,15 +1098,15 @@ select option {
 }
 
 .status-icon.lintError {
-    color: #ffc9c9;
+    color: var(--ck-err);
 }
 
 .status-icon.warning {
-    color: #ffd980;
+    color: var(--ck-warn);
 }
 
 .status-icon.info {
-    color: #cfe8ff;
+    color: var(--ck-accent);
 }
 
 .status-text {
@@ -1219,3 +1227,8 @@ select option {
     }
     .line-edit-hint { display: none; }
 }
+
+/* Suite bar (the shared CivilKit app switcher): wide screens only, and never on phones. */
+ck-suitebar { flex: none; order: -1; }
+@media (max-width: 899px) { ck-suitebar { display: none; } }
+@media print { ck-suitebar { display: none; } }

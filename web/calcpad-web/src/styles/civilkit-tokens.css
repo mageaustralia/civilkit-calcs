@@ -1,0 +1,66 @@
+/* Vendored from civilkit-site/tokens/civilkit-tokens.css (CivilKit theme v1), copied 2026-10-26. Do not edit here. */
+/* CivilKit theme v1: one set of design tokens for Calcs, CAD and Studio.
+   Dark is the default (Studio's blue-black). Light follows the system setting, or data-theme="light" / "dark" on <html>.
+   Semantic names only: an app maps its own variables onto these, it does not use raw colours. Contrast checked (WCAG):
+   text 4.5:1 or better on every surface, UI accents 3:1 or better. */
+:root{
+  /* surfaces, darkest to lightest */
+  --ck-sunken:#0c0e12;   /* inputs, canvas edge, wells */
+  --ck-bg:#11141a;       /* workspace, viewport surround */
+  --ck-panel:#14171d;    /* side panels, tree, inspector, editor */
+  --ck-raised:#1b1f27;   /* toolbars, tab bars, status bar, menus */
+  --ck-chrome:#1b1f27;   /* the suite bar */
+  --ck-chrome-text:#e9ecf1;
+  --ck-line:#2a3038;
+  --ck-line-soft:#20252d;
+  /* text */
+  --ck-text:#e7ebf2;
+  --ck-text-2:#9aa5b4;   /* secondary */
+  --ck-text-3:#74808f;   /* hints, disabled; 4.5:1 on the panel, 3:1 is the floor elsewhere */
+  /* accent */
+  --ck-accent:#4da3ff;        /* links, focus, selected text and icons */
+  --ck-accent-strong:#2563d8; /* filled primary buttons */
+  --ck-on-accent:#ffffff;     /* text on --ck-accent-strong */
+  --ck-accent-soft:rgba(77,163,255,.16); /* selected row, active tab wash */
+  --ck-focus:#4da3ff;
+  --ck-selection:rgba(77,163,255,.28);
+  /* status */
+  --ck-ok:#3fb950; --ck-warn:#d4a72c; --ck-err:#f85149;
+  --ck-ok-soft:rgba(63,185,80,.16); --ck-warn-soft:rgba(212,167,44,.16); --ck-err-soft:rgba(248,81,73,.16);
+  /* shape, depth, space, type */
+  --ck-radius-s:4px; --ck-radius:6px; --ck-radius-l:10px;
+  --ck-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  --ck-space-1:4px; --ck-space-2:8px; --ck-space-3:12px; --ck-space-4:16px; --ck-space-5:24px; --ck-space-6:32px;
+  --ck-font:"DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --ck-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --ck-text-xs:11px; --ck-text-s:12px; --ck-text-m:13px; --ck-text-l:15px; --ck-text-xl:18px;
+  --ck-bar-h:36px;       /* the suite bar */
+  --ck-ease:cubic-bezier(.2,.7,.2,1); --ck-fast:120ms;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --ck-sunken:#e6eaf0; --ck-bg:#f0f3f7; --ck-panel:#ffffff; --ck-raised:#f6f8fb;
+  --ck-chrome:#0a1017; --ck-chrome-text:#e9ecf1;
+  --ck-line:#d5d9e0; --ck-line-soft:#e6e9ee;
+  --ck-text:#1c2129; --ck-text-2:#5b6573; --ck-text-3:#6b7683;
+  --ck-accent:#0a6bcf; --ck-accent-strong:#0a6bcf; --ck-on-accent:#ffffff;
+  --ck-accent-soft:rgba(10,107,207,.10); --ck-focus:#0a6bcf; --ck-selection:rgba(10,107,207,.22);
+  --ck-ok:#1a7f37; --ck-warn:#8a5d00; --ck-err:#cf222e;
+  --ck-ok-soft:rgba(26,127,55,.10); --ck-warn-soft:rgba(138,93,0,.12); --ck-err-soft:rgba(207,34,46,.10);
+  --ck-shadow:0 1px 2px rgba(20,24,31,.08),0 8px 24px rgba(20,24,31,.10);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --ck-sunken:#e6eaf0; --ck-bg:#f0f3f7; --ck-panel:#ffffff; --ck-raised:#f6f8fb;
+    --ck-chrome:#0a1017; --ck-chrome-text:#e9ecf1;
+    --ck-line:#d5d9e0; --ck-line-soft:#e6e9ee;
+    --ck-text:#1c2129; --ck-text-2:#5b6573; --ck-text-3:#6b7683;
+    --ck-accent:#0a6bcf; --ck-accent-strong:#0a6bcf; --ck-on-accent:#ffffff;
+    --ck-accent-soft:rgba(10,107,207,.10); --ck-focus:#0a6bcf; --ck-selection:rgba(10,107,207,.22);
+    --ck-ok:#1a7f37; --ck-warn:#8a5d00; --ck-err:#cf222e;
+    --ck-ok-soft:rgba(26,127,55,.10); --ck-warn-soft:rgba(138,93,0,.12); --ck-err-soft:rgba(207,34,46,.10);
+    --ck-shadow:0 1px 2px rgba(20,24,31,.08),0 8px 24px rgba(20,24,31,.10);
+    color-scheme:light;
+  }
+}

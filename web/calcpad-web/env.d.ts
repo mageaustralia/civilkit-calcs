@@ -10,6 +10,8 @@ interface ImportMetaEnv {
     readonly VITE_APP_VERSION: string;
     readonly VITE_PLATFORM: 'web';
     readonly VITE_SERVER_URL?: string;
+    /** '1' in a store build: the suite bar is left out. */
+    readonly VITE_STORE_BUILD?: string;
 }
 
 interface ImportMeta {

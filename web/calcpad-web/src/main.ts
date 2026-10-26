@@ -31,7 +31,7 @@ import {
     type InlineImageBudget,
 } from 'calcpad-frontend';
 import { registerCalcpadLanguage, registerCalcpadTheme, remeasureEditorFontsWhenReady, resolveEditorFontFamily } from './editor/setup';
-import { setAppTheme, coerceAppTheme, getResolvedAppTheme, onAppThemeChanged } from './editor/app-theme';
+import { setAppTheme, coerceAppTheme, getResolvedAppTheme, onAppThemeChanged, forcedThemeFromUrl, applyEarlyTheme } from './editor/app-theme';
 import { registerSemanticTokensProvider } from './editor/semantic-tokens';
 import { setupDiagnostics } from './editor/diagnostics';
 import { registerCompletionProvider } from './editor/completions';
@@ -58,9 +58,13 @@ import { EditorGroup } from './editor/editor-group';
 import type { TabManager } from './tabs/tab-manager';
 import { toDisplayLogLevel } from 'calcpad-frontend';
 import type { UiControl, CalcpadLogLevel, DisplayLogLevel } from 'calcpad-frontend';
+import { mountSuiteBar } from './suitebar';
+import './styles/civilkit-tokens.css';
 import './editor/vscode-variables.css';
 import 'calcpad-frontend/vue/styles/base.css';
 import './styles/app.css';
+applyEarlyTheme();
+mountSuiteBar();
 
 // Monaco worker setup - must run before editor creation
 import './editor/workers';
@@ -311,7 +315,8 @@ async function bootstrap(): Promise<void> {
     // renders with the right theme first paint. The desktop bridge loads its
     // settings asynchronously, so wait for it; the web bridge is synchronous.
     if (tauriBridge) await tauriBridge.ready;
-    setAppTheme(coerceAppTheme(activeBridge.getStoredColorTheme()));
+    const forcedTheme = forcedThemeFromUrl();
+    setAppTheme(forcedTheme ? (forcedTheme === 'light' ? 'Light' : 'Dark') : coerceAppTheme(activeBridge.getStoredColorTheme()));
     // Before the buffered startup lines are flushed into the Output panel below, so they are
     // filtered against the level the user actually chose rather than the default.
     setLogLevel(coerceLogLevel((activeBridge as unknown as EditorBridge).getExtraSetting('logLevel')));
@@ -401,7 +406,7 @@ async function bootstrap(): Promise<void> {
 
     // Also hands the result to App.vue, which themes the loading overlay with it.
     function resolvePreviewTheme(): 'light' | 'dark' {
-        const stored = editorBridge.getExtraSetting('previewTheme') ?? 'system';
+        const stored = forcedThemeFromUrl() ?? editorBridge.getExtraSetting('previewTheme') ?? 'system';
         // "System" follows the app, which itself follows the OS only while its own theme is "System":
         // choosing Light in the ribbon must not leave the preview and report dark.
         const resolved = stored === 'light' || stored === 'dark' ? stored : getResolvedAppTheme();
