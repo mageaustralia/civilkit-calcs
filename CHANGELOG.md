@@ -11,6 +11,13 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- The suite bar: on screens 900 px wide or more in the browser, a slim bar above the ribbon links to the other CivilKit apps. It is left out of an installed window, store builds and phone layouts.
+- `?theme=dark` or `?theme=light` in the address forces the theme for that page load without changing the saved choice.
+
+### Changed
+- The app follows the shared suite theme: ribbon, tabs, side panel, dialogs, menus, inputs, scrollbars, the editor and its find widget, the results pane and the Plotly charts use the shared palette in light and dark. The status bar is a quiet raised strip with an accent on the open item instead of a solid blue block. Printed reports and exported documents keep their own light styling.
+
 ## [26.10.11] - 2026-10-26
 
 ### Added
