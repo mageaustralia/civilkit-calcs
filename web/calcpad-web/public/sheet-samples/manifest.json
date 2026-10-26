@@ -1,7 +1,8 @@
 {
  "groups": [
   "Sheet syntax",
-  "3D plots"
+  "3D plots",
+  "Plots"
  ],
  "samples": [
   {
@@ -227,6 +228,21 @@
    "file": "sheet-samples/3D footing reactions bar chart.sheet",
    "upstream": "",
    "description": "Column reactions on a footing grid as 3D bars (one Mesh3d trace), coloured by load, with a pad area check.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "python": true,
+   "assets": []
+  },
+  {
+   "id": "plot-gallery-implicit",
+   "title": "Plot gallery: implicit curves, functions, polylines",
+   "group": "Plots",
+   "folder": "Plots",
+   "file": "sheet-samples/Plot gallery implicit curves.sheet",
+   "upstream": "",
+   "description": "Four plots on a grid in the style of a plotting demo: implicit curves f(x, y) = 0, functions, parametric and noisy curves, polylines with markers, a legend and a second y axis.",
    "codes": [],
    "ui": false,
    "scripts": false,

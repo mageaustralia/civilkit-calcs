@@ -12,6 +12,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ## [Unreleased]
 
 ### Added
+- A "Plots" sample, a plot gallery: four plots on a grid in the style of a plotting demo, with implicit curves (f(x, y) = 0 drawn as a zero-level contour), functions, a parametric oscillation, noise, polylines with markers, a legend and a second y axis. It uses the existing Plotly API in a python fence.
 - Five 3D plot samples (group "3D plots"): a plate deflection surface, a biaxial column interaction surface, a space frame in 3D lines, a mode shape explorer with a dropdown, and a 3D bar chart of footing reactions. They use the existing Plotly API in a python fence, so no new engine code is involved.
 - `e2e/plot3d-check.mjs` loads each 3D sample in light and dark and checks the scene draws.
 
