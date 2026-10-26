@@ -152,6 +152,10 @@ const SHEET = [
 
     await setText(page, ['"Timeout', 'ok = 1', '#python', 'while True:', '    pass', '#end python', 'after = ok + 1'].join('\n'));
     const t0 = Date.now();
+    // the time limit asks whether to run again with a longer one: answer Not now
+    await page.locator('#cprs-python-longer-no').waitFor({ timeout: 30000 });
+    check(/60 s/.test(await page.locator('#cprs-python-longer-yes').innerText()), 'the timeout offers a run with a 60 s limit');
+    await page.locator('#cprs-python-longer-no').click();
     const tt = await frameText(page, 'was stopped', 30000);
     check(/ran longer than 10 s and was stopped/.test(tt), `an endless loop is killed (${Math.round((Date.now() - t0) / 1000)} s)`);
     check(/after =/.test(tt), 'the worksheet after the timed-out block still calculates');
@@ -760,6 +764,22 @@ if (online) {
     await dk.page.waitForTimeout(800);
     if (fd) await fd.locator('.cprs-plotly-wrap').first().screenshot({ path: join(out, 'beam-explorer-plotly-dark.png') });
     await dk.ctx.close();
+}
+
+// ---- the longer time limit: a block that needs 13 s is stopped at 10 s, then runs when the user takes the 60 s limit --------
+{
+    const lg = await open();
+    const sheet = ['"Slow block', '#python', 'import time', 't = time.ticks_ms()', 'while time.ticks_ms() - t < 13000:', '    pass', 'print("slow done")', '#end python'].join('\n');
+    await setText(lg.page, sheet);
+    await lg.page.locator('#cprs-python-yes').click({ timeout: 30000 });
+    await lg.page.locator('#cprs-python-longer-yes').waitFor({ timeout: 30000 });
+    await lg.page.locator('#cprs-python-longer-yes').click();
+    check((await frameText(lg.page, 'slow done', 60000)).length > 0, 'a 13 s block finishes after "Run again with 60 s"');
+    // the longer limit stays for the tab: no second question for the next slow run
+    await setText(lg.page, sheet.replace('slow done', 'slow again'));
+    const again = await frameText(lg.page, 'slow again', 60000);
+    check(again.length > 0 && (await lg.page.locator('#cprs-python-longer').count()) === 0, 'the longer limit is kept for the tab');
+    await lg.ctx.close();
 }
 
 await browser.close();

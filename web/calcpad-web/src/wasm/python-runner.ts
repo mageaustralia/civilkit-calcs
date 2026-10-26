@@ -7,6 +7,9 @@ import { validName, type BlockResult, type PyBlock } from './python-blocks';
 
 export const BLOCK_MS = 10_000;
 export const TOTAL_MS = 30_000;
+/** The limits after the user answers "Run again with a longer limit" (python-consent.ts), for the rest of the tab. */
+export const LONG_BLOCK_MS = 60_000;
+export const LONG_TOTAL_MS = 180_000;
 
 const fail = (b: PyBlock, type: string, message: string): BlockResult => ({
     parts: [], exports: [], truncated: false, error: { type, message, line: b.start },
@@ -45,9 +48,9 @@ class Session {
 
     start(): Promise<void> { return this.ask('start', { type: 'start', base: this.base }, BLOCK_MS * 3); }
 
-    run(b: PyBlock): Promise<BlockResult> {
+    run(b: PyBlock, ms: number): Promise<BlockResult> {
         const id = ++this.seq;
-        return this.ask(String(id), { type: 'run', id, source: b.code, first: b.first }, BLOCK_MS);
+        return this.ask(String(id), { type: 'run', id, source: b.code, first: b.first }, ms);
     }
 
     kill(reason: Error): void {
@@ -60,12 +63,17 @@ class Session {
 export class PythonRunner {
     private session: Session | null = null;
     private cache = new Map<string, BlockResult[]>();
+    private longer = false;
     private inflight: { key: string; promise: Promise<BlockResult[]>; session: Session } | null = null;
 
     constructor(private readonly base: string) {}
 
     /** True once the worker has been started (the lazy-load check of the e2e reads this). */
     get started(): boolean { return this.session !== null; }
+
+    /** True after the user chose a longer limit for this tab. */
+    get longLimit(): boolean { return this.longer; }
+    useLongLimit(): void { this.longer = true; this.cache.clear(); }
 
     run(blocks: PyBlock[]): Promise<BlockResult[]> {
         const key = JSON.stringify(blocks.map((b) => [b.first, b.code]));
@@ -87,12 +95,14 @@ export class PythonRunner {
     private async runAll(session: Session, blocks: PyBlock[]): Promise<BlockResult[]> {
         const out: BlockResult[] = [];
         const t0 = performance.now();
+        const blockMs = this.longer ? LONG_BLOCK_MS : BLOCK_MS;
+        const totalMs = this.longer ? LONG_TOTAL_MS : TOTAL_MS;
         try {
             await session.start();
             for (const b of blocks) {
                 if (b.end < 0) { out.push(fail(b, 'SyntaxError', 'the block has no "#end python" line')); continue; }
-                if (performance.now() - t0 > TOTAL_MS) { out.push(fail(b, 'TimeoutError', 'skipped: the worksheet has used its Python time budget')); continue; }
-                const r = await session.run(b);
+                if (performance.now() - t0 > totalMs) { out.push(fail(b, 'TimeoutError', 'skipped: the worksheet has used its Python time budget')); continue; }
+                const r = await session.run(b, blockMs);
                 for (const e of r.exports) {
                     if (!validName(e.name)) { r.error = { type: 'ValueError', message: `export: "${e.name}" is not a valid Calcpad name`, line: b.start }; break; }
                 }
@@ -103,7 +113,7 @@ export class PythonRunner {
             if (msg === 'superseded') throw e;
             this.session = null;
             const timeout = /^timeout:/.test(msg);
-            const text = timeout ? `the script ran longer than ${BLOCK_MS / 1000} s and was stopped` : msg;
+            const text = timeout ? `the script ran longer than ${blockMs / 1000} s and was stopped` : msg;
             const done = out.length;
             while (out.length < blocks.length) {
                 const b = blocks[out.length];
