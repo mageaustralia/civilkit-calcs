@@ -1,7 +1,7 @@
 <!--sheet-->
 # Plot gallery: implicit curves, functions and polylines
 
-A worksheet page in the style of a plotting demo: the definitions at the top, then four plots on a grid. Each plot mixes **implicit curves** (f(x, y) = 0, drawn as a contour at level zero), **functions** of x, **parametric** curves and **polylines** with markers. The plots are drawn in a python fence with the Plotly API, so everything can be zoomed and read by hovering. The fourth plot has a second y axis on the right.
+A worksheet page in the style of a plotting demo: the definitions at the top, then four plots. They are stacked one per row so each stays square on a phone; set `LAYOUT = "grid"` in the fence for the 2 x 2 page. Each plot mixes **implicit curves** (f(x, y) = 0, drawn as a contour at level zero), **functions** of x, **parametric** curves and **polylines** with markers. The plots are drawn in a python fence with the Plotly API, so everything can be zoomed and read by hovering. The fourth plot has a second y axis on the right.
 
 ## Definitions
 
@@ -116,21 +116,41 @@ p4 = [
 y2 = go.Scatter(x=[0], y=[0], mode="markers", marker=dict(opacity=0), showlegend=False, hoverinfo="skip",
                 name="y2", xaxis="x4", yaxis="y5")
 
-fig = make_subplots(rows=2, cols=2, subplot_titles=("PLOT", "PLOT1", "Examples", "PLOT1"),
-                    horizontal_spacing=0.09, vertical_spacing=0.1)
-for r, c, tr in ((1, 1, p1), (1, 2, p2), (2, 1, p3), (2, 2, p4)):
-    for t in tr:
-        fig.add_trace(t, row=r, col=c)
-fig.add_trace(y2)
+LAYOUT = "stacked"      # "stacked": one square plot per row, good on a phone; "grid": the four plots as a 2 x 2 page
 
-axis = dict(range=[-R, R], dtick=0.5, showgrid=True, gridcolor="#d9dde3", zeroline=True, zerolinecolor="#111111",
-            showline=True, linecolor="#111111", mirror=True, ticks="outside")
-fig.update_xaxes(axis, title=dict(text="x"))
-fig.update_yaxes(axis, title=dict(text="y"))
-fig.update_layout(
-    height=900, margin=dict(l=60, r=70, t=40, b=50),
-    legend=dict(x=0.99, y=0.99, xanchor="right", yanchor="top", bordercolor="#888", borderwidth=1),
-    yaxis5=dict(overlaying="y4", anchor="x4", side="right", range=[-2, 2], dtick=0.5, showgrid=False, title=dict(text="y2")),
-)
-fig.show()
+TITLES = ("PLOT", "PLOT1", "Examples", "PLOT1")
+PLOTS = (p1, p2, p3, p4)
+AXIS = dict(range=[-R, R], dtick=0.5, showgrid=True, gridcolor="#d9dde3", zeroline=True, zerolinecolor="#111111",
+            showline=True, linecolor="#111111", mirror=True, ticks="outside", constrain="domain")
+LEGEND = dict(x=0.99, y=0.99, xanchor="right", yanchor="top", bordercolor="#888", borderwidth=1, bgcolor="rgba(255,255,255,0.8)")
+
+if LAYOUT == "grid":
+    fig = make_subplots(rows=2, cols=2, subplot_titles=TITLES, horizontal_spacing=0.09, vertical_spacing=0.1)
+    for k, tr in enumerate(PLOTS):
+        for t in tr:
+            fig.add_trace(t, row=k // 2 + 1, col=k % 2 + 1)
+    fig.add_trace(y2)
+    fig.update_xaxes(AXIS, title=dict(text="x"))
+    fig.update_yaxes(AXIS, title=dict(text="y"))
+    for k in range(4):                                  # square plots: one unit of y is as long as one unit of x
+        fig.update_yaxes(scaleanchor="x" if k == 0 else "x%d" % (k + 1), scaleratio=1, row=k // 2 + 1, col=k % 2 + 1)
+    fig.update_layout(height=900, margin=dict(l=60, r=70, t=40, b=50), legend=LEGEND,
+                      yaxis5=dict(overlaying="y4", anchor="x4", side="right", range=[-2, 2], dtick=0.5, showgrid=False,
+                                  title=dict(text="y2")))
+    fig.show()
+else:
+    for k, tr in enumerate(PLOTS):
+        fig = go.Figure(list(tr))
+        layout = dict(title=dict(text=TITLES[k], x=0.5), height=450, margin=dict(l=55, r=55 if k == 3 else 20, t=50, b=50),
+                      xaxis=dict(AXIS, title=dict(text="x")),
+                      yaxis=dict(AXIS, title=dict(text="y"), scaleanchor="x", scaleratio=1),
+                      legend=dict(orientation="h", x=0.5, xanchor="center", y=1.0, yanchor="bottom"),
+                      showlegend=(k == 1))
+        if k == 3:                                      # the right-hand y axis (drawn empty, see above)
+            fig.add_trace(go.Scatter(x=[0], y=[0], mode="markers", marker=dict(opacity=0), showlegend=False, hoverinfo="skip",
+                                     name="y2", yaxis="y2"))
+            layout["yaxis2"] = dict(overlaying="y", anchor="x", side="right", range=[-2, 2], dtick=0.5, showgrid=False,
+                                    title=dict(text="y2"))
+        fig.update_layout(layout)
+        fig.show()
 ```
