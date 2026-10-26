@@ -91,7 +91,7 @@ export async function renderTex(html: string): Promise<string> {
         } catch { /* the font falls back to a system one */ }
     }
     const style = `<style id="cprs-katex">${faces}${css}`
-        + '.sheet-tex[data-display="1"]{margin:.6em 0;text-align:center}.dark-theme .katex{color:#d4d4d4}.sheet-note .katex{color:inherit}'
+        + '.sheet-tex[data-display="1"]{margin:.6em 0;text-align:center}.dark-theme .katex{color:#e7ebf2}.sheet-note .katex{color:inherit}'
         // Variables (KaTeX's italic math letters) in the colour the engine gives a variable in an equation.
         + '.katex .mathnormal{color:#06d}.dark-theme .katex .mathnormal{color:#569cd6}.sheet-note .katex .mathnormal{color:inherit}</style>';
     const i = out.toLowerCase().lastIndexOf('</head>');

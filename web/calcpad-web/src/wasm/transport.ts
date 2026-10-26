@@ -68,17 +68,22 @@ const NEEDS_SERVER: Record<string, string> = {
  *    iframe canvas white cannot show the light grey text on white.
  */
 const PREVIEW_DARK = '<style>@media screen{'
-    + 'html:has(>body.dark-theme){background-color:#1e1e1e}'
+    + 'html:has(>body.dark-theme){background-color:#14171d}'
+    // The CivilKit tokens (dark): the engine's own dark page is #1e1e1e / #d4d4d4, set in its template.
+    + '.dark-theme{background-color:#14171d;color:#e7ebf2;accent-color:#4da3ff}'
+    + '.dark-theme .eq{color:#e7ebf2}'
+    + '.dark-theme a,.dark-theme .lineLink{color:#4da3ff}.dark-theme a:hover{background-color:rgba(77,163,255,.28)}'
+    + '.dark-theme .code{background-color:#0c0e12;border-color:#2a3038}'
     + '.dark-theme svg,.dark-theme img.plot{background:#fff;padding:6pt;border-radius:6px;box-sizing:content-box}'
     // Raster drawings with a transparent background (the flat slab sketch) are black on clear.
     + '.dark-theme img:not(.plot){background:#fff}'
     + '.dark-theme select:not([class*="calcpad-ui"]),.dark-theme textarea:not([class*="calcpad-ui"]),'
     + '.dark-theme input:not([class*="calcpad-ui"]):not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=button]):not([type=submit]):not([type=file]){'
-    + 'color:#e6e6e6!important;background-color:#2d2d30!important;border:1px solid #858585!important;border-radius:3px!important;box-shadow:none!important}'
+    + 'color:#e7ebf2!important;background-color:#0c0e12!important;border:1px solid #74808f!important;border-radius:3px!important;box-shadow:none!important}'
     + '.dark-theme select:not([class*="calcpad-ui"]){appearance:auto!important;-webkit-appearance:menulist!important;padding:1px 4px!important;cursor:pointer;color-scheme:dark}'
-    + '.dark-theme select:not([class*="calcpad-ui"]):hover,.dark-theme textarea:not([class*="calcpad-ui"]):hover,.dark-theme input:not([class*="calcpad-ui"]):not([type=checkbox]):not([type=radio]):hover{border-color:#4fc1ff!important}'
-    + '.dark-theme select:not([class*="calcpad-ui"]):focus,.dark-theme textarea:not([class*="calcpad-ui"]):focus,.dark-theme input:not([class*="calcpad-ui"]):focus{outline:1px solid #4fc1ff;outline-offset:1px}'
-    + '.dark-theme select option{background-color:#2d2d30;color:#e6e6e6}'
+    + '.dark-theme select:not([class*="calcpad-ui"]):hover,.dark-theme textarea:not([class*="calcpad-ui"]):hover,.dark-theme input:not([class*="calcpad-ui"]):not([type=checkbox]):not([type=radio]):hover{border-color:#4da3ff!important}'
+    + '.dark-theme select:not([class*="calcpad-ui"]):focus,.dark-theme textarea:not([class*="calcpad-ui"]):focus,.dark-theme input:not([class*="calcpad-ui"]):focus{outline:1px solid #4da3ff;outline-offset:1px}'
+    + '.dark-theme select option{background-color:#1b1f27;color:#e7ebf2}'
     // A worksheet card with its own light inline background (the catalogue sample's grey panel):
     // the text inside is set as the light theme sets it, or it would be light grey on light.
     + '.dark-theme .cprs-light-card,.dark-theme .cprs-light-card .eq{color:#000}'
