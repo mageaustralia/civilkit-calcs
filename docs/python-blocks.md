@@ -275,7 +275,7 @@ editor -> /api/calcpad/convert (also docx, xlsx)
   included. The Code ("Unwrapped") view lists the substituted text.
 - Results are cached by the text of the blocks (last 8), so typing in Calcpad lines does not rerun Python. Each calculation that
   does run gets a fresh interpreter.
-- Limits: 10 s per block (the worker is killed and restarted), 30 s per calculation, 100 000 characters of print output, 20 figures,
+- Limits: 10 s per block (the worker is killed and restarted), 30 s per calculation (a block that runs out of time asks once per tab whether to run again with 60 s per block and 180 s per calculation, for a slower device such as a phone), 100 000 characters of print output, 20 figures,
   3 MB of SVG, 500 exported names, 32 MB interpreter heap.
 
 ### Lazy loading

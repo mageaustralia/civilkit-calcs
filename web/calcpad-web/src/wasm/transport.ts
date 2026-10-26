@@ -24,8 +24,8 @@ import { compileSheet, isSheetRequest, remapErrors, remapHtml, sheetLine, withSh
 import type { SheetCompiled } from './sheet';
 import { hasTex, renderTex } from './sheet-tex';
 import { findPythonBlocks, hasPythonBlock, pythonErrors, remapErrors as remapPythonErrors, remapPage, resolvePythonLines, substitute, type BlockResult, type EngineError } from './python-blocks';
-import { PythonRunner } from './python-runner';
-import { mayRunPython } from './python-consent';
+import { BLOCK_MS, LONG_BLOCK_MS, PythonRunner } from './python-runner';
+import { askLongerLimit, mayRunPython } from './python-consent';
 import { plotlyForExport, plotlyPage } from './python-plotly';
 
 const API_PREFIX = '/api/calcpad/';
@@ -439,8 +439,15 @@ export function installWasmTransport(): WasmTransport {
         const blocks = findPythonBlocks(content);
         const signature = blocks.map(b => b.code).join('\0');
         let results: BlockResult[];
-        if (await mayRunPython(transport.pythonScope(), signature)) results = await python.run(blocks);
-        else {
+        if (await mayRunPython(transport.pythonScope(), signature)) {
+            results = await python.run(blocks);
+            // A block stopped by the time limit: offer the longer limit once per tab, then run the worksheet again.
+            const timedOut = (r: BlockResult[]) => r.some(x => x.error?.type === 'TimeoutError' && /ran longer than/.test(x.error.message));
+            if (!python.longLimit && timedOut(results) && await askLongerLimit(BLOCK_MS / 1000, LONG_BLOCK_MS / 1000)) {
+                python.useLongLimit();
+                results = await python.run(blocks);
+            }
+        } else {
             results = blocks.map(() => ({ parts: [], exports: [], truncated: false,
                 error: { type: '', message: 'Python was not run: this worksheet asks to run Python and the question was answered Not now. Edit the Python or reopen the tab to be asked again.', line: null } }));
         }
