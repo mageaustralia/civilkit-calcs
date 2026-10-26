@@ -1,0 +1,59 @@
+<!--sheet-->
+# Footing reactions as a 3D bar chart
+
+Column reactions on a grid of pad footings, drawn as 3D bars. Plotly has no bar chart in 3D, so each bar is a box built from eight vertices and twelve triangles, all in one `Mesh3d` trace coloured by height. Hover a bar to read its footing and load.
+
+## Python: reactions and boxes
+
+```python
+import plotly.graph_objects as go
+
+# A to D along x, 1 to 3 along y. Reactions in kN (replace with analysis results).
+grid = [
+    [420, 780, 760, 410],
+    [610, 1180, 1140, 590],
+    [400, 740, 790, 430],
+]
+names = "ABCD"
+
+X, Y, Z, I, J, K, val, txt = [], [], [], [], [], [], [], []
+w = 0.7
+faces = [(0, 1, 2), (0, 2, 3), (4, 5, 6), (4, 6, 7), (0, 1, 5), (0, 5, 4),
+         (1, 2, 6), (1, 6, 5), (2, 3, 7), (2, 7, 6), (3, 0, 4), (3, 4, 7)]
+for r, row in enumerate(grid):
+    for c, p in enumerate(row):
+        x0, y0 = c - w / 2, r - w / 2
+        base = len(X)
+        for z in (0.0, float(p)):
+            for dx, dy in ((0, 0), (w, 0), (w, w), (0, w)):
+                X.append(x0 + dx)
+                Y.append(y0 + dy)
+                Z.append(z)
+                val.append(float(p))
+                txt.append("%s%d: %d kN" % (names[c], r + 1, p))
+        for a, b, d in faces:
+            I.append(base + a)
+            J.append(base + b)
+            K.append(base + d)
+
+fig = go.Figure(go.Mesh3d(x=X, y=Y, z=Z, i=I, j=J, k=K, intensity=val, colorscale="YlOrRd",
+                          colorbar=dict(title=dict(text="kN")), flatshading=True, text=txt, hoverinfo="text",
+                          lighting=dict(ambient=0.6, diffuse=0.8)))
+fig.update_layout(
+    height=540, margin=dict(l=0, r=0, t=10, b=0),
+    scene=dict(xaxis=dict(title=dict(text="gridline"), tickvals=[0, 1, 2, 3], ticktext=list(names)),
+               yaxis=dict(title=dict(text="gridline"), tickvals=[0, 1, 2], ticktext=["1", "2", "3"]),
+               zaxis=dict(title=dict(text="reaction (kN)")),
+               aspectmode="manual", aspectratio=dict(x=1.6, y=1.0, z=0.8),
+               camera=dict(eye=dict(x=1.7, y=-1.7, z=1.0))),
+)
+fig.show()
+total = sum(sum(row) for row in grid)
+export(R_total=float(total), R_max=float(max(max(row) for row in grid)))
+```
+
+## Check
+R_sum: R_total * 1 kN
+R_big: R_max * 1 kN
+q_allow: 200 kPa | allowable bearing pressure
+A_req: R_big / q_allow -> m² | pad area under the heaviest column

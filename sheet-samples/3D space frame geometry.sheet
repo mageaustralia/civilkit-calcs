@@ -1,0 +1,74 @@
+<!--sheet-->
+# Space frame in 3D
+
+Frame geometry as a 3D line plot: two bays by one, three storeys, drawn member by member. Each member is a separate trace coloured from blue (lightly loaded) to red (heavily loaded) by a utilisation figure, and the nodes carry hover labels. The utilisations here are made up to show the colouring; connect your own results in their place.
+
+Rotate with a drag, pan with right drag, double-click to reset the view.
+
+## Python: members, nodes, colours
+
+```python
+import plotly.graph_objects as go
+
+bx, by, storeys, h = [0.0, 6.0, 12.0], [0.0, 5.0], 3, 3.5
+nodes = {}
+for k in range(storeys + 1):
+    for j, y in enumerate(by):
+        for i, x in enumerate(bx):
+            nodes[(i, j, k)] = (x, y, k * h)
+
+members = []
+for (i, j, k), p in nodes.items():
+    if k < storeys:
+        members.append((p, nodes[(i, j, k + 1)], "column"))
+    if k > 0:
+        if i < len(bx) - 1:
+            members.append((p, nodes[(i + 1, j, k)], "beam x"))
+        if j < len(by) - 1:
+            members.append((p, nodes[(i, j + 1, k)], "beam y"))
+
+
+def util(m):
+    """A made-up utilisation: columns grow toward the base, beams toward mid-height (replace with real results)."""
+    (x1, y1, z1), (x2, y2, z2), kind = m
+    zm = (z1 + z2) / 2
+    if kind == "column":
+        return 0.95 - 0.7 * zm / (storeys * h) - (0.2 if x1 in (0.0, 12.0) else 0.0)
+    return 0.35 + 0.4 * (1 - abs(zm - 1.5 * h) / (1.5 * h)) + (0.15 if kind == "beam y" else 0.0)
+
+
+def colour(u):
+    u = max(0.0, min(1.0, u))
+    r, g, b = int(40 + 200 * u), int(110 + 40 * (1 - abs(2 * u - 1))), int(220 - 190 * u)
+    return "rgb(%d,%d,%d)" % (r, g, b)
+
+
+traces = []
+worst = 0.0
+for m in members:
+    u = util(m)
+    worst = max(worst, u)
+    (x1, y1, z1), (x2, y2, z2), kind = m
+    traces.append(go.Scatter3d(x=[x1, x2], y=[y1, y2], z=[z1, z2], mode="lines", showlegend=False,
+                               line=dict(width=7, color=colour(u)),
+                               hovertemplate=kind + ", utilisation %.2f<extra></extra>" % u))
+px = [p[0] for p in nodes.values()]
+py = [p[1] for p in nodes.values()]
+pz = [p[2] for p in nodes.values()]
+traces.append(go.Scatter3d(x=px, y=py, z=pz, mode="markers", showlegend=False,
+                           marker=dict(size=3.5, color="#888"), hoverinfo="skip"))
+fig = go.Figure(traces)
+fig.update_layout(
+    height=540, margin=dict(l=0, r=0, t=10, b=0),
+    scene=dict(xaxis=dict(title=dict(text="x (m)")), yaxis=dict(title=dict(text="y (m)")), zaxis=dict(title=dict(text="z (m)")),
+               aspectmode="data", camera=dict(eye=dict(x=1.7, y=-1.9, z=0.9))),
+)
+fig.show()
+print(len(members), "members,", len(nodes), "nodes")
+export(u_max=worst, n_members=len(members))
+```
+
+## Summary
+n_members: n_members
+u_max: u_max
+if u_max <= 1: "No member is over its capacity." else: "At least one member is over its capacity."

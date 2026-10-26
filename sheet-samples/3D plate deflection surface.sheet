@@ -1,0 +1,66 @@
+<!--sheet-->
+# Plate deflection as a 3D surface
+
+A simply supported rectangular slab panel under uniform load, solved by the Navier double sine series. A **python** fence builds the deflection grid and draws it as a 3D surface with the Plotly API: drag to rotate, scroll to zoom, hover to read a value. The contour lines are projected onto the floor of the plot. The peak deflection comes back into the sheet with `export`, so the quantity lines below can check it against a limit.
+
+## Inputs
+a: 4 m | span in x
+b: 3 m | span in y
+t: 150 mm | thickness
+E_c: 30 GPa | concrete modulus
+nu: 0.2 | Poisson ratio
+q: 10 kPa | uniform pressure
+
+## Python: Navier series and surface
+
+```python
+import math
+import plotly.graph_objects as go
+
+# N, m units
+a_m, b_m, t_m = 4.0, 3.0, 0.150
+E_pa, nu_v, q_pa = 30e9, 0.2, 10e3
+D = E_pa * t_m ** 3 / (12 * (1 - nu_v ** 2))     # plate flexural rigidity, N*m
+
+
+def w_at(x, y, terms=15):
+    s = 0.0
+    for m in range(1, terms, 2):
+        for n in range(1, terms, 2):
+            den = m * n * (m * m / a_m ** 2 + n * n / b_m ** 2) ** 2
+            s += math.sin(m * math.pi * x / a_m) * math.sin(n * math.pi * y / b_m) / den
+    return 16 * q_pa / (math.pi ** 6 * D) * s
+
+
+NX, NY = 41, 31
+xs = [a_m * i / (NX - 1) for i in range(NX)]
+ys = [b_m * j / (NY - 1) for j in range(NY)]
+z = [[w_at(x, y) * 1000 for x in xs] for y in ys]     # mm, rows follow y
+w_c = w_at(a_m / 2, b_m / 2) * 1000
+
+fig = go.Figure(go.Surface(
+    x=xs, y=ys, z=z, colorscale="Viridis",
+    colorbar=dict(title=dict(text="w (mm)")),
+    contours=dict(z=dict(show=True, usecolormap=True, project=dict(z=True))),
+    hovertemplate="x %{x:.2f} m<br>y %{y:.2f} m<br>w %{z:.2f} mm<extra></extra>",
+))
+fig.update_layout(
+    height=520, margin=dict(l=0, r=0, t=10, b=0),
+    scene=dict(
+        xaxis=dict(title=dict(text="x (m)")),
+        yaxis=dict(title=dict(text="y (m)")),
+        zaxis=dict(title=dict(text="w (mm)"), autorange="reversed"),
+        aspectmode="manual", aspectratio=dict(x=1.4, y=1.05, z=0.55),
+        camera=dict(eye=dict(x=1.5, y=-1.6, z=0.9)),
+    ),
+)
+fig.show()
+print("Centre deflection %.2f mm for D = %.0f kN*m" % (w_c, D / 1000))
+export(w_c=w_c)
+```
+
+## Check
+w_max: w_c * 1 mm
+w_lim: b / 250 -> mm | serviceability limit on the short span
+eta: w_max / w_lim
+if eta <= 1: "The centre deflection is within span/250." else: "The centre deflection exceeds span/250."
