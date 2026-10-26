@@ -1,4 +1,4 @@
-//! Batch runner: imports every `.xmcd` under a directory, runs the generated Calcpad text through
+//! Batch runner: imports every `.xmcd` (or, with `BATCH_EXT=mcdx`, every `.mcdx`) under a directory, runs the generated Calcpad text through
 //! the engine command line, and prints a summary table and the ranked list of missing features.
 //!
 //! ```text
@@ -15,9 +15,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode, Stdio};
 use std::time::{Duration, Instant};
 
-use calcpad_import::{import_xmcd_opts, ImportOptions, ImportReport};
+use calcpad_import::{import_mcdx, import_xmcd_opts, ImportOptions, ImportReport};
 
-fn walk(dir: &Path, top: bool, out: &mut Vec<PathBuf>) {
+fn walk(dir: &Path, top: bool, ext: &str, out: &mut Vec<PathBuf>) {
     let Ok(rd) = std::fs::read_dir(dir) else { return };
     let mut entries: Vec<_> = rd.flatten().collect();
     entries.sort_by_key(|e| e.file_name());
@@ -28,8 +28,8 @@ fn walk(dir: &Path, top: bool, out: &mut Vec<PathBuf>) {
             if top && (name.starts_with("build") || name.starts_with("doc") || name.starts_with("includes")) {
                 continue;
             }
-            walk(&p, false, out);
-        } else if name.ends_with(".xmcd") {
+            walk(&p, false, ext, out);
+        } else if name.ends_with(ext) {
             out.push(p);
         }
     }
@@ -100,6 +100,8 @@ fn main() -> ExitCode {
         eprintln!("usage: batch <input dir> <output dir> <Cli binary>");
         return ExitCode::from(2);
     }
+    // BATCH_EXT=mcdx runs the `.mcdx` files instead of the `.xmcd` ones.
+    let ext: &str = if std::env::var("BATCH_EXT").map(|v| v == "mcdx").unwrap_or(false) { ".mcdx" } else { ".xmcd" };
     let no_pictures = std::env::var("IMPORT_PICTURES").map(|v| v == "off").unwrap_or(false);
     let saved_results = std::env::var("IMPORT_SAVED_RESULTS")
         .map(|v| v == "on")
@@ -114,7 +116,7 @@ fn main() -> ExitCode {
         return ExitCode::from(1);
     }
     let mut files = Vec::new();
-    walk(&input, true, &mut files);
+    walk(&input, true, ext, &mut files);
 
     let mut merged = ImportReport::default();
     let mut rows: Vec<String> = Vec::new();
@@ -127,8 +129,8 @@ fn main() -> ExitCode {
     ));
     for (fi, f) in files.iter().enumerate() {
         let rel = f.strip_prefix(&input).unwrap_or(f).to_string_lossy().to_string();
-        let flat = rel.replace(['/', '\\'], "__").trim_end_matches(".xmcd").to_string();
-        let xml = match std::fs::read_to_string(f) {
+        let flat = rel.replace(['/', '\\'], "__").trim_end_matches(ext).to_string();
+        let bytes = match std::fs::read(f) {
             Ok(x) => x,
             Err(e) => {
                 rows.push(format!("{:<44} unreadable: {}", rel, e));
@@ -141,7 +143,11 @@ fn main() -> ExitCode {
             saved_results,
             ..ImportOptions::default()
         };
-        let r = import_xmcd_opts(&xml, &opts);
+        let r = if ext == ".mcdx" {
+            import_mcdx(&bytes, &opts)
+        } else {
+            import_xmcd_opts(&String::from_utf8_lossy(&bytes), &opts)
+        };
         for a in &r.assets {
             let p = outdir.join(&a.path);
             if let Some(d) = p.parent() {
