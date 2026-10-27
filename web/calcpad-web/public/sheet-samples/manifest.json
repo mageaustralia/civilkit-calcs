@@ -233,6 +233,34 @@
    "assets": []
   },
   {
+   "id": "template-retaining-wall-stability",
+   "title": "Template: retaining wall sliding and overturning",
+   "group": "Templates",
+   "folder": "Templates",
+   "file": "sheet-samples/Template retaining wall stability.sheet",
+   "upstream": "",
+   "description": "A cantilever retaining wall on level fill: dimensions, a backfill from radio buttons and a surcharge checkbox as inputs; earth thrust, factors of safety against overturning and sliding, and the bearing pressure under the base.",
+   "codes": [],
+   "ui": true,
+   "scripts": false,
+   "read": false,
+   "assets": []
+  },
+  {
+   "id": "template-pump-operating-point",
+   "title": "Template: pump and pipeline operating point",
+   "group": "Templates",
+   "folder": "Templates",
+   "file": "sheet-samples/Template pump operating point.sheet",
+   "upstream": "",
+   "description": "A pump lifting water through a pipeline: pump size from radio buttons, pipe diameter from a drop-down, length, lift and an aged-pipe checkbox as inputs; the operating point, a table of flow against pump and pipeline head, and both curves plotted.",
+   "codes": [],
+   "ui": true,
+   "scripts": false,
+   "read": false,
+   "assets": []
+  },
+  {
    "id": "3d-plate-deflection",
    "title": "3D plate deflection surface",
    "group": "3D plots",

@@ -2,10 +2,11 @@
 //   node e2e/inputs-check.mjs [--dist DIR] [--port 4182] [--url http://127.0.0.1:4801/] [--shots DIR]
 //   (after tools/build_wasm.sh and npm run build; with --url it uses a server that is already running)
 //
-//   1. the Templates group lists its five samples, each tagged as an input form;
+//   1. the Templates group lists its seven samples, each tagged as an input form;
 //   2. a template opened in Input mode shows the controls (entries, drop-downs, radio buttons, a checkbox);
 //   3. changing an entry, a drop-down, a radio button and the checkbox each re-runs the sheet and the result follows;
 //   4. Save values writes the entered values under the marker line, the file is still a sheet, and Preview shows them;
+//      the saved text reopened in a new tab is still a sheet and its form shows the saved values;
 //   5. Show compiled and Convert to Calcpad give #UI lines, the report and the Word and Excel exports carry the values;
 //   6. Format Document tidies input lines, and typing a bad input line shows an error on its line.
 import { createServer } from 'node:http';
@@ -104,9 +105,9 @@ await page.click('[data-ribbon-tab=resources]');
 await page.click('[data-ribbon-btn=x-samples]');
 await page.waitForSelector('.cprs-s-group');
 const groups = await page.locator('.cprs-s-group').allInnerTexts();
-check(groups.some((g) => /^Templates \(5\)/.test(g.trim())), `the Samples dialog has a Templates group of 5 (${groups.slice(0, 4).join(', ')})`);
+check(groups.some((g) => /^Templates \(7\)/.test(g.trim())), `the Samples dialog has a Templates group of 7 (${groups.slice(0, 4).join(', ')})`);
 await page.locator('.cprs-s-group', { hasText: /^Templates/ }).click();
-check((await page.locator('.cprs-s-item').count()) === TEMPLATES.length && TEMPLATES.length === 5, `the Templates group lists its ${TEMPLATES.length} samples`);
+check((await page.locator('.cprs-s-item').count()) === TEMPLATES.length && TEMPLATES.length === 7, `the Templates group lists its ${TEMPLATES.length} samples`);
 const items = (await page.locator('.cprs-s-item').allInnerTexts()).join(' | ');
 check(/input form/.test(items), 'the templates carry the "input form" tag');
 await page.locator('.cprs-s-item', { hasText: 'simply supported beam' }).dblclick();
@@ -162,6 +163,28 @@ if (await dontSave.waitFor({ timeout: 1500 }).then(() => true, () => false)) awa
 t = await until('Simply supported beam check', /L = 8 m/);
 check(/Mmax .*= 96 kN ?· ?m/.test(t) && /The material is timber\./.test(t), `after leaving the form, the report applies the saved values (L = 8 m, timber, no own weight) (${t.slice(t.indexOf('Inputs'), t.indexOf('Inputs') + 80)})`);
 await mode('Preview');
+// Reopen: the saved text in a fresh tab is still a sheet and shows the same inputs holding the saved values.
+await newTab(src);
+await page.waitForFunction(() => window.calcpadActiveEditor.getValue().startsWith('<!--sheet-->'));
+check((await lang()) === 'calcpad-sheet', 'the saved text reopens as a sheet');
+await mode('Input');
+const reopened = await (async () => {
+    for (let i = 0; i < 40; i++) {
+        const ff = await form();
+        if (ff) {
+            const r = await ff.evaluate(() => ({
+                entries: [...document.querySelectorAll('input.calcpad-ui-input')].map((e) => e.value),
+                selected: [...document.querySelectorAll('select.calcpad-ui-dropdown')].map((x) => x.selectedOptions[0]?.textContent),
+                checks: [...document.querySelectorAll('input.calcpad-ui-checkbox')].map((x) => x.checked),
+            }));
+            if (r.entries[0] === '8') return r;
+        }
+        await page.waitForTimeout(250);
+    }
+    return null;
+})();
+check(reopened != null && reopened.entries[0] === '8' && reopened.selected[1] === 'Timber' && reopened.checks[0] === false, `the reopened sheet shows the saved values (${JSON.stringify(reopened)})`);
+await mode('Preview');
 
 // ---- 5. compiled view, conversion, exports ---------------------------------------------------------------------
 await page.click('[data-ribbon-btn=x-compiled]');
@@ -199,6 +222,38 @@ for (const s of TEMPLATES) {
     const r2 = await until(title, /./, 20);
     check(r2.length > 200 && !/Error in|Sheet syntax:/.test(r2), `template "${s.title}" runs without errors in the preview`);
 }
+// The wall: a radio group of friction angles and a surcharge checkbox change the factors of safety.
+await newTab(readFileSync(join(web, 'calcpad-web', 'public', 'sheet-samples', 'Template retaining wall stability.sheet'), 'utf8'));
+await mode('Input');
+t = await until('Retaining wall: sliding and overturning', /Sliding: OK\./);
+check(/= 4\.95 factor of safety against overturning/.test(t) && /= 1\.56 factor of safety against sliding/.test(t) && /Sliding: OK\./.test(t), `the wall opens on its defaults: medium sand, no surcharge (FS overturning 4.95, sliding 1.56)`);
+{
+    const ff = await form();
+    const r = await ff.evaluate(() => [...document.querySelectorAll('input[type=radio]')].map((x) => [x.checked, x.parentElement?.textContent?.trim()]));
+    check(JSON.stringify(r.map((x) => x[0])) === '[false,true,false]', `the radio group opens on its default, Medium sand (${JSON.stringify(r)})`);
+}
+t = await change('Retaining wall: sliding and overturning', /Sliding: the factor of safety is too low/, async (ff) => { await ff.locator('input.calcpad-ui-checkbox').evaluate((e) => e.click()); });
+check(/Sliding: the factor of safety is too low/.test(t) && /= 1\.3 factor of safety against sliding/.test(t), 'the surcharge checkbox: sliding fails (FS 1.3)');
+t = await change('Retaining wall: sliding and overturning', /= 0\.26 active/, async (ff) => { await ff.locator('input[type=radio]').nth(2).evaluate((e) => e.click()); });
+check(/Sliding: OK\./.test(t) && /= 0\.26 active pressure coefficient/.test(t), 'the radio group: dense sand gives Ka 0.26 and sliding passes again');
+
+// The pump: a drop-down and a checkbox change the operating point; the table and the plot are drawn.
+await newTab(readFileSync(join(web, 'calcpad-web', 'public', 'sheet-samples', 'Template pump operating point.sheet'), 'utf8'));
+await mode('Input');
+t = await until('Pump and pipeline: operating point', /= 40\.9 L/);
+check(/= 40\.9 L ∕ s/.test(t) && /The velocity is within 3 m\/s/.test(t), 'the pump opens on its defaults (operating flow 40.9 L/s)');
+check(/40 39\.29 37\.16/.test(t) || /0 40 15/.test(t), 'the table of flows and heads is shown');
+{
+    let plots = 0;
+    for (const f of page.frames()) if (f !== page.mainFrame()) plots = Math.max(plots, await f.evaluate(() => document.querySelectorAll('svg').length).catch(() => 0));
+    check(plots > 0, `the head curves are drawn (${plots} svg)`);
+}
+t = await change('Pump and pipeline: operating point', /= 35\.21 L/, async (ff) => { await ff.locator('input.calcpad-ui-checkbox').evaluate((e) => e.click()); });
+check(/= 35\.21 L ∕ s/.test(t), 'the aged-pipe checkbox lowers the flow to 35.21 L/s');
+t = await change('Pump and pipeline: operating point', /The pump is the large one\./, async (ff) => { await ff.locator('input[type=radio]').nth(2).evaluate((e) => e.click()); });
+check(/The pump is the large one\./.test(t), 'a radio button picks the large pump');
+await mode('Preview');
+
 await newTab('<!--sheet-->\n## Inputs\nL:?6 m|span\nwidth :  ?  300  mm\nE: ?[ Steel=200 GPa,*Timber =11 GPa ]|material\nM: L * 1\n');
 await page.evaluate(() => window.calcpadActiveEditor.focus());
 await page.evaluate(() => window.calcpadActiveEditor.getAction('editor.action.formatDocument').run());

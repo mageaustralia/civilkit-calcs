@@ -1112,7 +1112,7 @@ fn the_manifest_marks_the_samples_that_have_inputs() {
             assert!(has_inputs, "{file}");
         }
     }
-    assert_eq!(templates, 5);
+    assert_eq!(templates, 7);
 }
 
 #[test]
@@ -1305,4 +1305,75 @@ fn saved_values_round_trip_through_the_sheet() {
     let again = format!("{marker}\n'<!--{}-->\n{rest}", serde_json::json!({ "uiOverrides": { "L:1": "9" } }));
     let c2 = compile(&again);
     assert_eq!(c2.text.lines().filter(|l| l.starts_with("'<!--{")).count(), 1);
+}
+
+#[test]
+fn template_retaining_wall_values_and_inputs() {
+    let name = "Template retaining wall stability";
+    let (errs, t) = with_inputs(name, &[]);
+    assert!(errs.is_empty(), "{errs:?}");
+    // Medium sand, no surcharge: Ka = 0.3073, P = 0.5 Ka 18 3.4^2 = 31.97 kN, Mo = 36.23 kN.m,
+    // W = 28.8 + 23.04 + 75.6 = 127.44 kN, Mr = 179.21 kN.m, mu = tan(21.33) = 0.3906.
+    for want in [
+        "= 0.307 active",
+        "= 31.97 kN",
+        "= 36.23 kN",
+        "= 127.44 kN",
+        "= 179.21 kN",
+        "= 4.95 factor of safety against overturning",
+        "= 0.391 friction",
+        "= 49.77 kN",
+        "= 1.56 factor of safety against sliding",
+        "Overturning: OK.",
+        "Sliding: OK.",
+        "inside the middle third",
+    ] {
+        assert!(t.contains(want), "{want}: {t}");
+    }
+    // The surcharge on: more thrust than the extra weight is worth, and sliding fails.
+    let (errs, t) = with_inputs(name, &[("sur:1", "1")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    for want in ["= 42.41 kN", "= 53.99 kN", "= 141.44 kN", "= 203.01 kN", "= 3.76 factor", "= 1.3 factor", "Sliding: the factor of safety is too low"] {
+        assert!(t.contains(want), "{want}: {t}");
+    }
+    // Dense sand (the radio group) has a smaller thrust and a larger friction.
+    let (errs, t) = with_inputs(name, &[("soil:1", "36\u{b0}")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("= 0.26 active") && t.contains("Sliding: OK."), "{t}");
+    // A narrow base overturns and lifts.
+    let (errs, t) = with_inputs(name, &[("B:1", "1.2"), ("sur:1", "1")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("Overturning: the factor of safety is too low") && t.contains("outside the middle third"), "{t}");
+}
+
+#[test]
+fn template_pump_values_and_inputs() {
+    let name = "Template pump operating point";
+    let (errs, t) = with_inputs(name, &[]);
+    assert!(errs.is_empty(), "{errs:?}");
+    // K = 0.018 * (400 / 0.15) / (2 g A^2) = 7834 s2/m5; Q^2 = 25 / (7834 + 40 / 0.075^2); Q = 40.9 L/s.
+    for want in [
+        "= 7834.25 s",
+        "= 40.9 L",
+        "= 28.1 m head at the operating point",
+        "= 2.31 m",
+        "The velocity is within 3 m/s.",
+        "The pump is the medium one.",
+        "40 39.29 37.16 33.6 28.62 22.22 14.4",
+        "15 15.78 18.13 22.05 27.53 34.59 43.2",
+    ] {
+        assert!(t.contains(want), "{want}: {t}");
+    }
+    // An aged pipe has a larger friction factor: less flow.
+    let (errs, t) = with_inputs(name, &[("aged:1", "1")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("= 0.03 friction factor") && t.contains("= 35.21 L"), "{t}");
+    // The large pump on a 200 mm pipe.
+    let (errs, t) = with_inputs(name, &[("pump:1", "3"), ("D:1", "200mm")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("The pump is the large one.") && t.contains("= 66.01 L"), "{t}");
+    // A small pump cannot lift 35 m.
+    let (errs, t) = with_inputs(name, &[("pump:1", "1"), ("H_st:1", "35")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("cannot lift the water") && t.contains("= 0 L"), "{t}");
 }

@@ -261,9 +261,11 @@ in the report and as editor markers, and say what to write. A line such as `Why:
 
 ### Templates
 
-The Samples dialog has a **Templates** group of five sheets that use inputs: a simply supported beam check, a
-cantilever with a tip load, a rectangular column (slenderness and buckling), a pad footing bearing pressure check and
-pipe flow (Darcy-Weisbach). They use generic textbook formulas and no design standard. Open one, press **Input**,
+The Samples dialog has a **Templates** group of seven sheets that use inputs: a simply supported beam check, a
+cantilever with a tip load, a rectangular column (slenderness and buckling), a pad footing bearing pressure check, pipe flow
+(Darcy-Weisbach), a retaining wall (sliding and overturning, with radio buttons for the backfill and a surcharge checkbox)
+and a pump and pipeline operating point (a drop-down, radio buttons, a checkbox, a table of results and a plot of both
+curves). They use generic textbook formulas and no design standard. Open one, press **Input**,
 change a value. To make your own, write the inputs as above, put the results under them and save the file. Sharing a template is sharing the `.sheet` file (or the text of the sheet); anyone who opens it gets the
 same form, and **Save values** keeps their numbers in their copy. A new input is one more line, a new option one more
 entry in a list.
