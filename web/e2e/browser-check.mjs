@@ -195,7 +195,12 @@ const sample = JSON.parse(readFileSync(join(here, 'sample.json'), 'utf8')).filte
 const DOWNLOADS_PER_PAGE = 8;
 async function openExportTab() {
     await page.waitForFunction(() => (window).calcpadActiveEditor != null, null, { timeout: 30000 });
-    await page.getByText('Export', { exact: true }).first().click();
+    // Export is a dialog opened from the Document ribbon (the sidebar has no Export tab any more).
+    if (await page.locator('.tab-content.as-dialog .export-group').first().isVisible().catch(() => false)) return;
+    const btn = page.locator('[data-ribbon-btn=d-export]').first();
+    if (!(await btn.isVisible())) await page.locator('.ribbon-tab, [role=tab]', { hasText: /^\s*Document\s*$/ }).first().click();
+    await btn.click({ timeout: 10000 });
+    await page.locator('.tab-content.as-dialog .export-group').first().waitFor({ timeout: 10000 });
 }
 await openExportTab();
 const previewGroup = page.locator('.export-group').filter({ has: page.locator('.export-group-title', { hasText: /^Preview$/ }) });
@@ -495,7 +500,13 @@ if (!online) {
 await cdp.send('Network.setCacheDisabled', { cacheDisabled: false });
 
 // Settings > Libraries and Insert > Libraries.
-await page.getByText('Settings', { exact: true }).first().click();
+// Settings is a dialog opened from the Calculation ribbon (the sidebar has no Settings tab any more).
+{
+    const btn = page.locator('[data-ribbon-btn=k-settings]').first();
+    if (!(await btn.isVisible())) await page.locator('.ribbon-tab, [role=tab]', { hasText: /^\s*Calculation\s*$/ }).first().click();
+    await btn.click({ timeout: 10000 });
+    await page.locator('.tab-content.as-dialog .cprs-libraries .section-header').waitFor({ timeout: 10000 });
+}
 await page.locator('.cprs-libraries .section-header').click();
 const entries = await page.locator('.cprs-libraries .cprs-lib').count();
 check(entries === LIBS.length, `Settings > Libraries lists the ${LIBS.length} built-in entries (${entries})`);
@@ -534,7 +545,9 @@ if (online) {
     console.log('     skipped: adding a library needs the network');
 }
 await page.screenshot({ path: join(out, 'browser-libraries.png') });
-await page.getByText('Insert', { exact: true }).first().click();
+await page.keyboard.press('Escape');
+await page.locator('.tab-content.as-dialog').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+await page.locator('.calcpad-vue-ui .tab-container .tab', { hasText: /^Insert$/ }).first().click();
 await setEditor('');
 await page.locator('.cprs-insert-select').selectOption('d3');
 await page.waitForTimeout(300);
@@ -703,6 +716,10 @@ check(maths === 3, `each of the 3 equations is Office Math in the document (${ma
 check(/<m:f>/.test(documentXml) && /<m:rad>/.test(documentXml), 'the division and the square root are OMML fractions and radicals');
 check(/word\/media\/image\d+\.png/.test(listing) && /word\/media\/image\d+\.svg/.test(listing), 'the plot is in the document as a PNG with its SVG beside it');
 check(/asvg:svgBlip/.test(documentXml), 'the picture refers to the SVG for Word versions that show it');
+
+// The Export dialog stays open after a save and its backdrop would catch the next click: close it.
+await page.keyboard.press('Escape');
+await page.locator('.tab-content.as-dialog').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
 
 // ---- Excel export (calcpad-rs's own) ---------------------------------------------------------
 await page.evaluate(() => (window).calcpadActiveEditor.setValue("'<h3>Excel export check</h3>\na = 2\nL = ? {4.5}m\n#UI F = 12.5kN\nM = F*L\nv = [1; 2; 3]*1m\nK = [1; 2|3; 4]\na = a + 1\n'<table><tr><th>Bar</th><th>Area</th></tr><tr><td>1</td><td>2.5</td></tr></table>\n$Plot{x^2 @ x = 0 : 2}"));

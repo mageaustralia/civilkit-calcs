@@ -20,6 +20,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 - `?theme=dark` or `?theme=light` in the address forces the theme for that page load without changing the saved choice.
 
 ### Fixed
+- `e2e/browser-check.mjs` follows the three-tab sidebar: Export and Settings are opened from the Document and Calculation ribbons as dialogs (and closed before the next step), and the Insert tab is picked from the sidebar.
 - Units in sheet expressions and inputs: the dot operators `⋅` and `∙` count as the middle dot, and the micro sign `µ` is read as the engine's Greek mu (`5 µm` failed with `Error parsing "µm" as units`). Input units with raised digits and the middle dot (`m³`, `N/mm²`, `kN·m`) were already translated before the `#UI` line is written; a test now covers them and `°`, `%`, `MPa`, `°C`, `Ω`.
 - A radio group or drop-down whose default has a divided or multiplied unit (`25 kN/m`, `kN*m`, `N/mm^2`, `m^3`) opened with nothing chosen (a drop-down showed its first label but calculated with the default). The form now matches the default to its option by value, with the unit marks made plain, and two options with one value are an error on the input line.
 - A name defined by a raw `>> #UI` line (`>> #UI phi = 0.9`, `Mstar`, `Delta_T`) is now renamed like every other sheet definition, so a later sheet line can use it (it failed with `Undefined φ`).
