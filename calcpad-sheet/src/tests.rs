@@ -1180,3 +1180,54 @@ fn a_raw_ui_name_works_as_an_index_after_a_dot() {
     let t = text(&html);
     assert!(t.contains("v = ⃗ tab 2 = 20") && t.contains("w = ⃗ tab 3 = 30"), "{t}");
 }
+
+/// The values of the options the form shows as chosen, for the first choice in a compiled sheet.
+fn chosen(src: &str) -> Vec<String> {
+    let c = compile(src);
+    let req = serde_json::json!({ "content": c.text, "enableUi": true });
+    let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+    assert!(v["errors"].as_array().unwrap().is_empty(), "{:?}\n{}", v["errors"], c.text);
+    let h = v["html"].as_str().unwrap_or("");
+    h.split('<')
+        .filter(|l| l.len() < 200 && (l.starts_with("option ") || l.starts_with("input type=\"radio\"")))
+        .filter(|l| l.contains(" checked") || l.contains(" selected"))
+        .map(|l| l.split("value=\"").nth(1).unwrap().split('"').next().unwrap().to_string())
+        .collect()
+}
+
+#[test]
+fn a_radio_group_or_drop_down_opens_on_its_default_whatever_the_unit() {
+    for (unit, a, b) in [
+        ("kN/m", "10", "25"),
+        ("kN*m", "10", "25"),
+        ("N/mm^2", "10", "25"),
+        ("m^3", "10", "25"),
+        ("kN/m^2", "10", "25"),
+        ("MPa", "10", "25"),
+        ("\u{b0}", "10", "25"),
+        ("%", "10", "25"),
+        ("", "1.0", "0.90"),
+        ("m", "0.100", "2.50"),
+    ] {
+        for (open, close) in [("(", ")"), ("[", "]")] {
+            // The default is the second option, then the first, then no star.
+            for (star_a, star_b) in [("", "*"), ("*", ""), ("", "")] {
+                let src = format!(
+                    "<!--sheet-->\nw: ? {open}{star_a}Low = {a} {unit}, {star_b}High = {b} {unit}{close}\n"
+                );
+                let want = if star_a == "*" || star_b.is_empty() { a } else { b };
+                let got = chosen(&src);
+                assert_eq!(got.len(), 1, "{src}: {got:?}");
+                let digits: String = got[0].chars().take_while(|c| c.is_ascii_digit() || *c == '.').collect();
+                assert_eq!(digits, want, "{src}: {got:?}");
+            }
+        }
+    }
+}
+
+#[test]
+fn two_options_with_one_value_are_an_error_on_the_input_line() {
+    let c = compile("<!--sheet-->\nk: ? (Low = 1 m, High = 1  m)\n");
+    assert!(c.diagnostics.iter().any(|d| d.message.contains("same value")), "{:?}", c.diagnostics);
+    assert!(c.text.contains("same value"), "{}", c.text);
+}

@@ -209,7 +209,7 @@ first), radio buttons (the same options in round brackets) and a checkbox.
 * **A choice** is a list of `label = value`. The value is a number with an optional unit, as above, and
   it is what the name has when that option is chosen. Without a `*`, the first option is the one selected.
   A label with a comma, an equals sign or brackets is written in double quotes (`"Beam (A), long" = 1`);
-  a label cannot hold `}`. A choice needs two options or more.
+  a label cannot hold `}`. A choice needs two options or more, and no two options may have the same value (an error on the line). The default is always one of the options, and the form opens on it whatever its unit.
 * **A checkbox** is `on` or `off` (`true` and `false` also work) and the name is `1` or `0`: `if ribs == 1:`.
 * **The note** after `|` is shown after a number, as on a quantity line. A drop-down, radio buttons and a checkbox
   show no name, so their note is the label in front of the control (the name is used when there is no note).
