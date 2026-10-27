@@ -35,6 +35,8 @@ import { setAppTheme, coerceAppTheme, getResolvedAppTheme, onAppThemeChanged, fo
 import { registerSemanticTokensProvider } from './editor/semantic-tokens';
 import { setupDiagnostics } from './editor/diagnostics';
 import { registerCompletionProvider } from './editor/completions';
+import { attachEditorNav, gotoSymbolByName, renameSymbolByName } from './editor/nav';
+import { setValuesFetcher } from './editor/nav/values';
 import { registerIncludeCompletionProvider } from './editor/include-completions';
 import { registerHoverProvider } from './editor/hover';
 import { registerLegacyInputFix } from './editor/legacy-input-fix';
@@ -42,7 +44,6 @@ import {
     registerDefinitionProvider,
     registerIncludeLinkProvider,
     registerReferenceProvider,
-    registerRenameProvider,
     type IncludeFileOpener,
     type IncludeUriResolver,
 } from './editor/references';
@@ -64,6 +65,7 @@ import './styles/civilkit-tokens.css';
 import './editor/vscode-variables.css';
 import 'calcpad-frontend/vue/styles/base.css';
 import './styles/app.css';
+import './styles/editor-nav.css';
 applyEarlyTheme();
 mountSuiteBar();
 
@@ -356,6 +358,24 @@ async function bootstrap(): Promise<void> {
     const getFileContext = 'buildFileContext' in activeBridge
         ? (content: string) => (activeBridge as any).buildFileContext(content)
         : undefined;
+    // Rename everywhere (F2), the variable palette (Ctrl+;) and the Variables tab's actions share this.
+    const navCtx = { bridge: editorBridge, getFileContext };
+    // The values the editor shows next to names: one calculation of the active worksheet with its
+    // variables recorded. Only the web transport answers it; where it does not, no values are shown.
+    setValuesFetcher(async (content, sourceFilePath) => {
+        try {
+            const res = await fetch(`${window.location.origin}/api/calcpad/values`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, settings: buildApiSettings(activeBridge.getSettings()), sourceFilePath }),
+            });
+            if (!res.ok) return null;
+            const body = await res.json() as { variables?: { name: string; value: string; unit: string; input: boolean }[] };
+            return body.variables ?? null;
+        } catch {
+            return null;
+        }
+    });
 
     function docKeyFor(group: EditorGroup): string {
         return `tab:${group.tabs.activeId ?? 'none'}`;
@@ -893,6 +913,7 @@ async function bootstrap(): Promise<void> {
             });
         }
 
+        group.disposables.push(...attachEditorNav(ed, navCtx));
         attachQuickTyper(ed, editorBridge);
         attachOperatorReplacer(ed);
         attachAutoIndenter(ed);
@@ -1283,7 +1304,6 @@ async function bootstrap(): Promise<void> {
     registerDefinitionProvider(editorBridge, getFileContext, resolveIncludeUri);
     registerIncludeLinkProvider(resolveIncludeUri);
     registerReferenceProvider(editorBridge, getFileContext, openIncludeFile);
-    registerRenameProvider(editorBridge, getFileContext);
     registerFormatDocumentProvider(editorBridge);
 
     window.addEventListener('message', (e: MessageEvent) => {
@@ -1325,6 +1345,14 @@ async function bootstrap(): Promise<void> {
     }
 
     // Wire the bridge's insertText handler to the active editor.
+    // The Variables tab's context menu: rename a name everywhere, or go to where it is defined.
+    activeBridge.onSymbolAction = (action, name) => {
+        if (action === 'rename') void renameSymbolByName(editor, navCtx, name);
+        else void gotoSymbolByName(editor, navCtx, name).then(found => {
+            if (!found) appInstance.appendOutput('info', `"${name}" is not defined in this document.`);
+        });
+    };
+
     activeBridge.onInsertText = (text: string) => {
         const selection = editor.getSelection();
         if (selection) {
