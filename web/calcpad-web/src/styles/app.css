@@ -1213,23 +1213,28 @@ select option {
 }
 
 /* Touch screens only: a row of keys for the line editor, scrolling sideways. */
-.line-edit-keys { display: none; }
+.line-edit-keys { margin: 6px -8px 0; }
 @media (hover: none) {
-    .line-edit-keys { display: flex; gap: 4px; margin-top: 6px; overflow-x: auto; scrollbar-width: none; }
-    .line-edit-keys button {
-        flex: none;
-        min-width: 38px;
-        height: 36px;
-        padding: 0 8px;
-        border: 1px solid var(--vscode-widget-border, #888);
-        border-radius: 4px;
-        background: var(--vscode-button-secondaryBackground, #3a3d41);
-        color: var(--vscode-button-secondaryForeground, #ddd);
-        font: inherit;
-        font-size: 15px;
-    }
     .line-edit-hint { display: none; }
 }
+
+/* The docked math keyboard and its show button (touch screens; the component only renders there). */
+.dock-keys { flex: none; z-index: 5; padding-bottom: env(safe-area-inset-bottom); }
+.kbd-toggle {
+    position: fixed;
+    right: 12px;
+    bottom: calc(52px + env(safe-area-inset-bottom));
+    z-index: 6;
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--ck-line);
+    border-radius: 50%;
+    background: var(--ck-raised);
+    color: var(--ck-text);
+    font-size: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.kbd-toggle:active { background: var(--ck-accent-soft); }
 
 /* Suite bar (the shared CivilKit app switcher): wide screens only, and never on phones. */
 ck-suitebar { flex: none; order: -1; }

@@ -498,17 +498,23 @@
         ref="lineEditInput"
         v-model="lineEdit.text"
         class="line-edit-input"
+        :inputmode="touchKeys && !editSystemKeys ? 'none' : 'text'"
         spellcheck="false"
         rows="1"
         @input="sizeLineEdit"
         @keydown.enter.exact.prevent="applyLineEdit"
         @keydown.esc.prevent="closeLineEdit"
       ></textarea>
-      <!-- Touch screens: the characters a phone keyboard buries. mousedown is
-           prevented (not touchstart, which would cancel the tap) so the textarea keeps focus and the keyboard stays up. -->
-      <div class="line-edit-keys" @mousedown.prevent>
-        <button v-for="k in EDIT_KEYS" :key="k.label ?? k.text" type="button" @click="insertEditKey(k.text)">{{ k.label ?? k.text }}</button>
-      </div>
+      <!-- Touch screens: an on-screen math keyboard in place of the phone's own. -->
+      <MathKeyboard
+        v-if="touchKeys"
+        class="line-edit-keys"
+        :system="editSystemKeys"
+        @insert="insertEditKey"
+        @backspace="editBackspace"
+        @move="editMove"
+        @system="toggleEditSystemKeys"
+      />
       <div class="line-edit-foot">
         <span class="line-edit-hint">Enter to apply · Esc to cancel</span>
         <button class="modal-btn primary" @click="applyLineEdit">Apply</button>
@@ -588,6 +594,26 @@
       <button v-for="p in MOBILE_PANES" :key="p.id" :class="{ on: mobilePane === p.id }" :aria-pressed="mobilePane === p.id" @click="mobilePane = p.id">{{ p.label }}</button>
     </nav>
   </div>
+  <!-- Touch screens: the math keyboard docked under the sheet, typing into the editor. -->
+  <MathKeyboard
+    v-if="touchKeys && dockKeys"
+    class="dock-keys"
+    collapsible
+    :system="dockSystemKeys"
+    @insert="dockInsert"
+    @backspace="dockBackspace"
+    @move="dockMove"
+    @system="toggleDockSystemKeys"
+    @hide="setDockKeys(false)"
+  />
+  <button
+    v-if="touchKeys && !dockKeys && (!narrow || mobilePane === 'edit')"
+    type="button"
+    class="kbd-toggle"
+    title="Show math keyboard"
+    aria-label="Show math keyboard"
+    @click="setDockKeys(true)"
+  >&#x2328;</button>
   <!-- Status bar -->
   <div v-show="!uiModeFullscreen" class="status-bar" @contextmenu.prevent>
     <span class="status-problems" :class="{ active: bottomPanelOpen && activeBottomTab === 'problems' }" @click="openBottomTab('problems')">
@@ -1023,6 +1049,7 @@ const onLineEditRequest = ref<{
 } | null>(null)
 
 // Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
+import MathKeyboard from './editor/MathKeyboard.vue'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
@@ -1109,13 +1136,61 @@ interface LineEditState { x: number; y: number; w: number; frameId: string; to: 
 const lineEdit = ref<LineEditState | null>(null)
 const lineEditInput = ref<HTMLTextAreaElement | null>(null)
 
-// Keys for the line editor on a touch screen: operators, Greek and the units that come up most.
-const EDIT_KEYS: { text: string; label?: string }[] = [
-  { text: '^' }, { text: '*' }, { text: '/' }, { text: '(' }, { text: ')' }, { text: '=' },
-  { text: '<' }, { text: '>' }, { text: '≤' }, { text: '≥' }, { text: '√(', label: '√' }, { text: 'π' },
-  { text: '°' }, { text: '|' }, { text: '_' }, { text: ',' }, { text: ';' },
-  { text: ' mm' }, { text: ' m' }, { text: ' kN' }, { text: ' MPa' }, { text: ' kN·m', label: 'kN·m' },
-]
+// On a touch screen the line editor gets the on-screen math keyboard, and the phone's own stays down until asked for.
+const touchKeys = typeof window !== 'undefined' && !!window.matchMedia?.('(hover: none), (pointer: coarse)').matches
+const editSystemKeys = ref(false)
+function toggleEditSystemKeys(): void {
+  editSystemKeys.value = !editSystemKeys.value
+  void nextTick(() => { lineEditInput.value?.blur(); lineEditInput.value?.focus() })
+}
+function editBackspace(): void {
+  const t = lineEditInput.value
+  const st = lineEdit.value
+  if (!t || !st) return
+  const a = t.selectionStart, z = t.selectionEnd
+  const from = a === z ? Math.max(0, a - 1) : a
+  st.text = st.text.slice(0, from) + st.text.slice(z)
+  void nextTick(() => { t.focus(); t.setSelectionRange(from, from); sizeLineEdit() })
+}
+function editMove(dir: -1 | 1): void {
+  const t = lineEditInput.value
+  if (!t) return
+  const p = Math.max(0, Math.min(t.value.length, (dir < 0 ? t.selectionStart : t.selectionEnd) + dir))
+  t.focus()
+  t.setSelectionRange(p, p)
+}
+// The same keyboard docked under the sheet for the main editor (phones, tablets, any touch screen).
+const dockKeys = ref(false)
+try { dockKeys.value = localStorage.getItem('civilkit-dock-keys') === '1' } catch { /* storage blocked */ }
+const dockSystemKeys = ref(false)
+function setDockKeys(on: boolean): void {
+  dockKeys.value = on
+  try { localStorage.setItem('civilkit-dock-keys', on ? '1' : '0') } catch { /* storage blocked */ }
+  void nextTick(applyEditorInputMode)
+}
+function toggleDockSystemKeys(): void {
+  dockSystemKeys.value = !dockSystemKeys.value
+  applyEditorInputMode()
+  const ta = activeEditorInput()
+  if (ta) { ta.blur(); ta.focus() }
+}
+type EditorLike = { focus(): void; trigger(src: string, id: string, arg: unknown): void; executeEdits(src: string, edits: unknown[]): void; getSelection(): unknown; getDomNode?(): HTMLElement | null }
+const activeEditor = (): EditorLike | undefined => (window as unknown as { calcpadActiveEditor?: EditorLike }).calcpadActiveEditor
+const activeEditorInput = (): HTMLTextAreaElement | null => activeEditor()?.getDomNode?.()?.querySelector('textarea') ?? null
+// With the on-screen keyboard docked, Monaco's hidden input must not raise the phone's own keyboard.
+function applyEditorInputMode(): void {
+  const ta = activeEditorInput()
+  if (ta) ta.setAttribute('inputmode', touchKeys && dockKeys.value && !dockSystemKeys.value ? 'none' : 'text')
+}
+function dockInsert(text: string): void {
+  const e = activeEditor()
+  if (!e) return
+  e.focus()
+  e.executeEdits('math-keyboard', [{ range: e.getSelection(), text, forceMoveMarkers: true }])
+}
+function dockBackspace(): void { const e = activeEditor(); e?.focus(); e?.trigger('math-keyboard', 'deleteLeft', null) }
+function dockMove(dir: -1 | 1): void { const e = activeEditor(); e?.focus(); e?.trigger('math-keyboard', dir < 0 ? 'cursorLeft' : 'cursorRight', null) }
+
 function insertEditKey(text: string): void {
   const t = lineEditInput.value
   const st = lineEdit.value
@@ -2513,6 +2588,7 @@ function setProblems(groupId: string, markers: ProblemItem[]): void {
 }
 
 onMounted(async () => {
+  document.addEventListener('focusin', applyEditorInputMode)
   document.addEventListener('mousedown', onDocumentInteractionForTabMenu)
   document.addEventListener('keydown', onDocumentInteractionForTabMenu)
   window.addEventListener('message', onPreviewWindowMessage)
@@ -2527,6 +2603,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('focusin', applyEditorInputMode)
   document.removeEventListener('mousedown', onDocumentInteractionForTabMenu)
   document.removeEventListener('keydown', onDocumentInteractionForTabMenu)
   window.removeEventListener('message', onPreviewWindowMessage)
