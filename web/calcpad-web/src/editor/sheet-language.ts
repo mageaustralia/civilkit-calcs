@@ -1,11 +1,10 @@
 import * as monaco from 'monaco-editor';
 import { compileSheetNow, formatSheet, isSheetText, loadSheet } from '../wasm/sheet';
 import type { SheetCompiled } from '../wasm/sheet';
+import { occAt, scanSheet } from './nav/doc-index';
 
 /** Monaco language id of a sheet (docs/sheet-syntax.md). Calcpad's own providers do not apply to it. */
 export const SHEET_LANGUAGE = 'calcpad-sheet';
-
-const GREEK = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta', 'iota', 'kappa', 'lambda', 'mu', 'nu', 'xi', 'pi', 'rho', 'sigma', 'tau', 'upsilon', 'phi', 'chi', 'psi', 'omega'];
 
 const configuration: monaco.languages.LanguageConfiguration = {
     brackets: [['(', ')'], ['[', ']'], ['{', '}']],
@@ -67,26 +66,9 @@ function definitionAt(model: monaco.editor.ITextModel, position: monaco.Position
     return w && d ? { word: w, def: d } : null;
 }
 
-/** Where the names are used: code lines (not prose), outside a quantity's note. */
-function usages(model: monaco.editor.ITextModel, c: SheetCompiled, name: string): monaco.Range[] {
-    const re = new RegExp(`(?<!${NAME_CHARS})${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!${NAME_CHARS})`, 'gu');
-    const out: monaco.Range[] = [];
-    for (let i = 0; i < model.getLineCount(); i++) {
-        const k = c.kinds[i];
-        if (!k || 'bp'.includes(k)) continue;
-        let text = model.getLineContent(i + 1);
-        const note = k === 'q' ? text.search(/(?<!\|)\|(?!\|)/) : -1;
-        if (note >= 0) text = text.slice(0, note);
-        for (const m of text.matchAll(re)) {
-            out.push(new monaco.Range(i + 1, m.index! + 1, i + 1, m.index! + 1 + name.length));
-        }
-    }
-    return out;
-}
-
 let registered = false;
 
-/** Registers the sheet language, its tokenizer and completions. Call once with the Calcpad language. */
+/** Registers the sheet language and its tokenizer, formatter and navigation. Call once with the Calcpad language. */
 export function registerSheetLanguage(): void {
     if (registered) return;
     registered = true;
@@ -109,10 +91,14 @@ export function registerSheetLanguage(): void {
         },
     });
     monaco.languages.registerReferenceProvider(SHEET_LANGUAGE, {
+        // The same scan rename uses (nav/doc-index.ts): code only, with a parameter's scope.
         provideReferences(model, position) {
             const c = compileSheetNow(model.getValue());
-            const hit = definitionAt(model, position, c);
-            return hit && c ? usages(model, c, hit.def.name).map(range => ({ uri: model.uri, range })) : [];
+            if (!c) return [];
+            const idx = scanSheet(model.getLinesContent(), c);
+            const occ = occAt(idx, position.lineNumber - 1, position.column - 1);
+            const sym = occ && idx.syms.get(occ.sym);
+            return sym ? sym.occs.map(o => ({ uri: model.uri, range: new monaco.Range(o.line + 1, o.start + 1, o.line + 1, o.end + 1) })) : [];
         },
     });
     monaco.languages.registerHoverProvider(SHEET_LANGUAGE, {
@@ -156,31 +142,7 @@ export function registerSheetLanguage(): void {
         },
         releaseDocumentSemanticTokens() {},
     });
-    monaco.languages.registerCompletionItemProvider(SHEET_LANGUAGE, {
-        provideCompletionItems(model, position) {
-            const word = model.getWordUntilPosition(position);
-            const range = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber, startColumn: word.startColumn, endColumn: word.endColumn };
-            const out: monaco.languages.CompletionItem[] = [];
-            const compiled = compileSheetNow(model.getValue());
-            if (!compiled) void loadSheet();
-            for (const d of compiled?.defs ?? []) {
-                out.push({ label: d.name, kind: monaco.languages.CompletionItemKind.Variable, insertText: d.name, range, detail: d.calcpad === d.name ? 'defined in this sheet' : `Calcpad name: ${d.calcpad}` });
-            }
-            for (const g of GREEK) {
-                out.push({ label: g, kind: monaco.languages.CompletionItemKind.Text, insertText: g, range, detail: 'Greek letter' });
-            }
-            const snip = (label: string, text: string, detail: string) => out.push({
-                label, kind: monaco.languages.CompletionItemKind.Snippet, insertText: text, range, detail,
-                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            });
-            snip('if', 'if ${1:condition}:\n\t$0', 'conditional block');
-            snip('else', 'else:\n\t$0', 'else branch');
-            snip('for', 'for ${1:i} in ${2:1}..${3:10}:\n\t$0', 'loop over a range');
-            snip('while', 'while ${1:condition}:\n\t$0', 'while loop');
-            snip('plot', 'plot ${1:f(x)} for ${2:x} in ${3:0}..${4:10}', 'plot');
-            return { suggestions: out };
-        },
-    });
+    // Completion: one provider for both languages, in completions.ts.
 }
 
 /** Sets a model's language from its text: a sheet when the first line is the marker. */
