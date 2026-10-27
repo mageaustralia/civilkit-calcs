@@ -1114,3 +1114,35 @@ fn the_manifest_marks_the_samples_that_have_inputs() {
     }
     assert_eq!(templates, 5);
 }
+
+#[test]
+fn the_documented_input_examples_run() {
+    let doc = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../docs/sheet-syntax.md")).unwrap();
+    let sec = &doc[doc.find("## Inputs and templates").unwrap()..];
+    let sec = &sec[..sec.find("### What the compiler writes").unwrap()];
+    let mut src = String::from("<!--sheet-->\n");
+    let mut n = 0;
+    for (i, part) in sec.split("```\n").enumerate() {
+        if i % 2 == 1 {
+            src.push_str(part);
+            n += 1;
+        }
+    }
+    assert_eq!(n, 2, "two examples before the table");
+    let (c, html, errs) = render(&src);
+    no_errors("docs", &errs, &c);
+    assert_eq!(c.text.matches("#UI ").count(), 5);
+    assert!(text(&html).contains("The material is aluminium.") || !text(&html).contains("Error"));
+    // The table of what is compiled is true as well.
+    let rows = [
+        ("L: ? 6 m | span", "#UI L = 6m '<span class=\"sheet-note\">span</span>"),
+        (
+            "k: ? (Low = 1, High = 2)",
+            "#UI {\"type\":\"radio\",\"keys\":[\"Low\",\"High\"],\"values\":[\"1\",\"2\"]} 'k -'k = 1",
+        ),
+        ("ribs: ? on", "#UI {\"type\":\"checkbox\"} 'ribs -'ribs = 1"),
+    ];
+    for (sheet, want) in rows {
+        assert!(lines_of(sheet)[1] == want, "{sheet}");
+    }
+}

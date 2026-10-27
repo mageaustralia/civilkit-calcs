@@ -12,8 +12,15 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ## [Unreleased]
 
 ### Added
+- Sheet inputs: a line such as `L: ? 6 m | span` is a number input, `E: ? [Steel = 200 GPa, *Timber = 11 GPa]` a drop-down (round brackets give radio buttons) and `ribs: ? on` a checkbox. They compile to the engine's own `#UI` controls, so the input form, the report and the Word and Excel exports work with no engine change; a run of inputs is drawn as one form, the formatter tidies them, and bad lines are errors on their line. See "Inputs and templates" in docs/sheet-syntax.md.
+- A "Templates" group in the Samples dialog with five sheets that use inputs: a simply supported beam check, a cantilever with a tip load, rectangular column slenderness, a pad footing bearing pressure check and Darcy pipe flow. Generic textbook formulas, no design standard.
+- The ribbon's Entry, Dropdown, Radio and Checkbox buttons insert the sheet form in a sheet.
+- `e2e/inputs-check.mjs` opens a template in Input mode, changes each kind of input and checks the result follows, then saves the values, shows the compiled text and exports.
 - The suite bar: on screens 900 px wide or more in the browser, a slim bar above the ribbon links to the other CivilKit apps. It is left out of an installed window, store builds and phone layouts.
 - `?theme=dark` or `?theme=light` in the address forces the theme for that page load without changing the saved choice.
+
+### Fixed
+- Save values in a sheet wrote its comment above the `<!--sheet-->` marker, so the file stopped being a sheet. It now writes it under the marker, and the compiler passes that comment through.
 
 ### Changed
 - The app follows the shared suite theme: ribbon, tabs, side panel, dialogs, menus, inputs, scrollbars, the editor and its find widget, the results pane and the Plotly charts use the shared palette in light and dark. The status bar is a quiet raised strip with an accent on the open item instead of a solid blue block. Printed reports and exported documents keep their own light styling.
