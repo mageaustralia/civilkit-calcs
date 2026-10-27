@@ -46,6 +46,7 @@ scene:{bgcolor:none,xaxis:ax3,yaxis:ax3,zaxis:ax3},legend:{bgcolor:none},hoverla
 modebar:{bgcolor:none,color:line,activecolor:acc},
 updatemenudefaults:{bgcolor:box,bordercolor:line,font:{color:fg}},
 sliderdefaults:{bgcolor:grid,bordercolor:line,tickcolor:line,activebgcolor:acc,font:{color:fg}}}};}
+window.cprsTheme=function(){return theme(dark());};window.cprsMerge=merge;
 function utf8(b){var s=atob(b),a=new Uint8Array(s.length);for(var i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return new TextDecoder().decode(a);}
 function say(note,why){if(!note)return;var t=note.getAttribute("data-title");note.textContent="Interactive chart"+(t?": "+t:"")+". "+why;note.style.display="";}
 function draw(el){

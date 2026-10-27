@@ -17,13 +17,15 @@
 import { renderFigure } from './python-chart';
 import { readTraceback, type BlockResult } from './python-blocks';
 
-type StartMsg = { type: 'start'; token: string; base: string };
+type StartMsg = { type: 'start'; token: string; base: string; seed?: string };
+type PanelMsg = { type: 'panel'; token: string; id: number; payload: string };
 type RunMsg = { type: 'run'; token: string; id: number; source: string; first: number };
 
 const OUTPUT_MAX = 100_000;      // characters of print output kept per worksheet run
 const FIGURES_MAX = 20;          // figures per worksheet run
 const SVG_MAX = 3_000_000;       // characters of SVG per worksheet run
 const PLOTLY_MAX = 4_000_000;    // characters of Plotly figure JSON per worksheet run
+const PANEL_MAX = 2_000_000;     // characters of one panel update (a figure and its data)
 const EXPORTS_MAX = 500;         // exported names per worksheet run
 const HEAP = 32 * 1024 * 1024;   // the interpreter's heap
 
@@ -37,7 +39,7 @@ interface Loaded {
     wasm: Uint8Array;
     wasmUrl: string;
     files: [string, string][];
-    /** Library files fetched only for a block that imports them (py/lib/plotly/), as paths under py/lib. */
+    /** Library files fetched only for a block that imports them (py/lib/plotly/, py/lib/ui.py), as paths under py/lib. */
     lazy: string[];
     lazyText: Promise<[string, string][]> | null;
 }
@@ -76,7 +78,7 @@ async function ensureLinalg(source: string): Promise<void> {
     await linalgLoading;
 }
 
-let session: { mp: any; state: SessionState; plotlyWritten: boolean; made: Set<string> } | null = null;
+let session: { mp: any; state: SessionState; written: Set<string>; made: Set<string> } | null = null;
 
 interface SessionState {
     parts: BlockResult['parts'];
@@ -87,6 +89,8 @@ interface SessionState {
     plotlyChars: number;
     figures: number;
     hostError: string | null;
+    seed: string;
+    panelOut: string | null;
 }
 
 const send = self.postMessage.bind(self);
@@ -101,8 +105,9 @@ function load(base: string): Promise<Loaded> {
                 realFetch(wasmUrl).then((r) => { if (!r.ok) throw new Error(`micropython.wasm: ${r.status}`); return r.arrayBuffer(); }),
                 realFetch(`${base}py/files.json`).then((r) => { if (!r.ok) throw new Error(`files.json: ${r.status}`); return r.json() as Promise<string[]>; }),
             ]);
-            const lazy = list.filter((f) => f.startsWith('plotly/'));
-            const files = await Promise.all(list.filter((f) => !f.startsWith('plotly/')).map(async (f): Promise<[string, string]> => {
+            const isLazy = (f: string) => f.startsWith('plotly/') || f === 'ui.py';
+            const lazy = list.filter(isLazy);
+            const files = await Promise.all(list.filter((f) => !isLazy(f)).map(async (f): Promise<[string, string]> => {
                 const r = await realFetch(`${base}py/lib/${f}`);
                 if (!r.ok) throw new Error(`${f}: ${r.status}`);
                 return [f, await r.text()];
@@ -142,16 +147,18 @@ function lockDown(): void {
 
 /** Fetches the plotly shim (once per page) and writes it into the interpreter, for a block that mentions plotly. */
 async function ensurePlotly(source: string): Promise<void> {
-    if (!session || session.plotlyWritten || !/plotly/.test(source)) return;
+    if (!session || !/plotly|\bui\b/.test(source)) return;
     const l = await load(lastBase);
     l.lazyText ??= Promise.all(l.lazy.map(async (f): Promise<[string, string]> => {
         const r = await l.realFetch(`${l.base}py/lib/${f}`);
         if (!r.ok) throw new Error(`${f}: ${r.status}`);
         return [f, await r.text()];
     }));
-    const files = await l.lazyText;
+    const files = (await l.lazyText).filter(([f]) => (f === 'ui.py' ? /\bui\b/.test(source) : /plotly/.test(source)));
     const { mp, made } = session;
     for (const [path, src] of files) {
+        if (session.written.has(path)) continue;
+        session.written.add(path);
         const full = `/lib/${path}`;
         let p = '';
         for (const part of full.slice(0, full.lastIndexOf('/')).split('/').filter(Boolean)) {
@@ -162,13 +169,12 @@ async function ensurePlotly(source: string): Promise<void> {
         }
         mp.FS.writeFile(full, src);
     }
-    session.plotlyWritten = true;
 }
 
 async function start(msg: StartMsg): Promise<void> {
     lastBase = msg.base;
     const l = await load(msg.base);
-    const state: SessionState = { parts: [], exports: [], truncated: false, chars: 0, svgChars: 0, plotlyChars: 0, figures: 0, hostError: null };
+    const state: SessionState = { parts: [], exports: [], truncated: false, chars: 0, svgChars: 0, plotlyChars: 0, figures: 0, hostError: null, seed: msg.seed || '{}', panelOut: null };
     let pend: number[] = [];
     const dec = new TextDecoder();
     const text = (s: string) => {
@@ -215,6 +221,19 @@ async function start(msg: StartMsg): Promise<void> {
             state.figures++;
             state.parts.push({ plotly: spec, title });
         },
+        panel(t: string) {
+            flush();
+            const spec = String(t);
+            if (state.figures >= FIGURES_MAX || state.plotlyChars + spec.length > PLOTLY_MAX) { state.truncated = true; return; }
+            state.plotlyChars += spec.length;
+            state.figures++;
+            state.parts.push({ panel: spec });
+        },
+        panelOut(t: string) {
+            const out = String(t);
+            state.panelOut = out.length > PANEL_MAX ? JSON.stringify({ error: `the panel's answer is larger than ${PANEL_MAX / 1_000_000} MB` }) : out;
+        },
+        seed(): string { return state.seed; },
         linalg(t: string): string {
             if (linalgCall) {
                 try { return linalgCall(String(t)); } catch (e) { return JSON.stringify({ ok: false, error: `linear algebra failed: ${e instanceof Error ? e.message : String(e)}` }); }
@@ -245,7 +264,7 @@ async function start(msg: StartMsg): Promise<void> {
     }
     mp.runPython('import _cp_raw\nimport calcpad_py\ncalcpad_py.install(_cp_raw)\n_cp_run = calcpad_py.run\ndel _cp_raw\ndel calcpad_py\n');
     (state as SessionState & { flush?: () => void }).flush = flush;
-    session = { mp, state, plotlyWritten: false, made };
+    session = { mp, state, written: new Set<string>(), made };
     lockDown();
 }
 
@@ -269,18 +288,39 @@ function run(msg: RunMsg): BlockResult {
     return { parts: state.parts, exports: state.exports, error, truncated: state.truncated && !before ? true : state.truncated };
 }
 
-self.onmessage = async (e: MessageEvent<StartMsg | RunMsg>) => {
+/** One widget change: runs the panel's function again in the live interpreter and returns its answer as JSON text. */
+function panel(msg: PanelMsg): string {
+    if (!session) return JSON.stringify({ error: 'the Python session is gone' });
+    const { mp, state } = session;
+    state.panelOut = null;
+    state.parts = [];
+    state.exports = [];
+    mp.globals.set('_cp_pev', msg.payload);
+    try {
+        mp.runPython('import ui\nui._event(_cp_pev)');
+    } catch (e) {
+        const t = readTraceback(String((e as Error)?.message ?? e));
+        return JSON.stringify({ error: `${t.type ? `${t.type}: ` : ''}${t.message}` });
+    }
+    (state as SessionState & { flush?: () => void }).flush?.();
+    state.parts = [];   // print() inside a panel function is dropped; only the return value is shown
+    return state.panelOut ?? JSON.stringify({ error: 'the panel gave no answer' });
+}
+
+self.onmessage = async (e: MessageEvent<StartMsg | RunMsg | PanelMsg>) => {
     const m = e.data;
     try {
         if (m.type === 'start') {
             await start(m);
             send({ type: 'ready', token: m.token });
+        } else if (m.type === 'panel') {
+            send({ type: 'result', token: m.token, id: m.id, result: panel(m) });
         } else if (m.type === 'run') {
             await ensureLinalg(m.source);
             await ensurePlotly(m.source);
             send({ type: 'result', token: m.token, id: m.id, result: run(m) });
         }
     } catch (err) {
-        send({ type: 'boot-error', token: m.token, id: (m as RunMsg).id, error: err instanceof Error ? err.message : String(err) });
+        send({ type: 'boot-error', token: m.token, id: (m as RunMsg | PanelMsg).id, error: err instanceof Error ? err.message : String(err) });
     }
 };
