@@ -226,6 +226,11 @@ snippets), and these work on names:
   table) to edit it as formatted text in place; input lines and calculations stay one-line edits.
   See `docs/rich-text-editing.md`.
 
+Under each plot in the preview there is a row of chips. A figure drawn by a Python block gets Log x, Log y, 1:1,
+Copy data, PNG and SVG (the 3D scenes get Copy data and PNG). A `plot` line gets Copy data, PNG and SVG; its data is
+read back from the drawing through the axis labels, so it is the plotted values to about four figures. The chips are
+only in the preview, not in print or export.
+
 ## Ribbon and the Insert tab
 
 Between the rendered blocks in the preview, a small **+** (a tab on the left edge on touch screens) opens a menu to insert a

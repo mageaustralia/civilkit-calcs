@@ -21,12 +21,13 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
     await frame.locator('.ck-ins-btn').first().waitFor({ timeout: 30000 });
     check(await frame.locator('.ck-ins-btn').count() >= 5, `${name}: handles between blocks`);
     const before = await page.evaluate(() => window.calcpadActiveEditor.getValue().split('\n'));
-    const btn = frame.locator('.ck-ins-btn').nth(3);
+    let btn = frame.locator('.ck-ins-btn').nth(3);
     await btn.scrollIntoViewIfNeeded();
     if (phone) {
         check(await frame.locator('.ck-ins.on').count() === 0, `${name}: no handles until a block is tapped`);
         await frame.locator('[data-source-line]').nth(3).tap();
         check(await frame.locator('.ck-ins.on').count() <= 2 && await frame.locator('.ck-ins.on').count() >= 1, `${name}: tapping a block shows only its neighbouring handles`);
+        btn = frame.locator('.ck-ins.on .ck-ins-btn').first();
     }
     if (!phone) {
         const zone = frame.locator('.ck-ins').nth(3);

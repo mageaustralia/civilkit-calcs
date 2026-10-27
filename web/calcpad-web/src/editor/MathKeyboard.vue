@@ -153,7 +153,7 @@ const KEYS: Record<Exclude<TabId, 'num'>, Key[]> = {
     k('$Slope{ f(x) @ x = a }', 'd/dx', 'Slope at a point'),
     k('$Root{ f(x) @ x = a : b }', 'root', 'Root of f in a range'),
     k('$Plot{ f(x) @ x = a : b }', 'plot', 'Plot f over a range'),
-    k('$Plot{ sin(t) | cos(t) @ t = 0 : 2*π }', 'x(t),y(t)', 'Parametric plot'),
+    k('$Plot{ sin(t) | cos(t) @ t = 0 : 2*π }', 'x(t),y(t)', 'Parametric plot (angles are degrees unless the sheet has a #rad line)'),
     k('$Repeat{ x @ i = 1 : n }', 'repeat', 'Loop'),
   ],
   mat: [

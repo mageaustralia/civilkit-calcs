@@ -1066,6 +1066,7 @@ const onLineEditRequest = ref<{
 // Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
 import MathKeyboard from './editor/MathKeyboard.vue'
 import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
+import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
@@ -1698,6 +1699,10 @@ function onPreviewWindowMessage(e: MessageEvent): void {
     openInsertMenu(groupId, frameId, data)
     return
   }
+  if (data.type === 'plotChip') {
+    void plotChipHost(data).catch(() => {})
+    return
+  }
   if (data.type === 'editAnchor') {
     onEditAnchor(frameId, data)
     return
@@ -2241,7 +2246,18 @@ function injectLineLinks(
     "      }",
     "      return out;",
     "    }",
-    "    var gaps = [];",
+    "    var gaps = [], tapY = null;",
+    // On touch only the gaps around the last tap show; a rebuild (resize, late layout) puts them back.
+    "    function mark() {",
+    "      var above = null, below = null;",
+    "      for (var i = 0; i < gaps.length; i++) {",
+    "        gaps[i].classList.remove('on');",
+    "        if (tapY === null) continue;",
+    "        if (gaps[i]._y <= tapY) above = gaps[i]; else if (!below) below = gaps[i];",
+    "      }",
+    "      if (above) above.classList.add('on');",
+    "      if (below) below.classList.add('on');",
+    "    }",
     "    function add(y, line) {",
     "      var g = document.createElement('div'); g.className = 'ck-ins'; g.style.top = Math.max(14, y) + 'px';",
     "      var b = document.createElement('button'); b.type = 'button'; b.className = 'ck-ins-btn'; b.textContent = '+';",
@@ -2268,17 +2284,12 @@ function injectLineLinks(
     "        lastY = y;",
     "        add(y, next ? next.line : 0);",
     "      }",
+    "      mark();",
     "    }",
     "    if (window.matchMedia && matchMedia('(hover:none)').matches) {",
     "      document.addEventListener('click', function(e) {",
     "        if (e.target.closest && e.target.closest('.ck-ins')) return;",
-    "        var y = e.pageY, above = null, below = null;",
-    "        for (var i = 0; i < gaps.length; i++) {",
-    "          gaps[i].classList.remove('on');",
-    "          if (gaps[i]._y <= y) above = gaps[i]; else if (!below) below = gaps[i];",
-    "        }",
-    "        if (above) above.classList.add('on');",
-    "        if (below) below.classList.add('on');",
+    "        tapY = e.pageY; mark();",
     "      });",
     "    }",
     "    var timer = 0;",
@@ -2288,6 +2299,8 @@ function injectLineLinks(
     "    if (window.ResizeObserver) new ResizeObserver(later).observe(document.body);",
     "  })();",
     ] : []),
+    // Chips under each plot: log x / y, 1:1, copy data, save PNG / SVG (see plot-chips.ts).
+    ...(lineLinks ? [PLOT_CHIPS_SCRIPT] : []),
     ...(lineLinks ? [
     "  function hideAllLineLinks() {",
     "    document.querySelectorAll('.lineLink').forEach(function(l) { l.style.display = 'none'; });",
