@@ -249,6 +249,21 @@
    "read": false,
    "python": true,
    "assets": []
+  },
+  {
+   "id": "plots-animated-beam",
+   "title": "Animated beam, moving load",
+   "group": "Plots",
+   "folder": "Plots",
+   "file": "sheet-samples/Animated beam moving load.sheet",
+   "upstream": "",
+   "description": "A point load travels along a simply supported beam: Play, Pause and a slider step through precomputed Plotly frames.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "python": true,
+   "assets": []
   }
  ]
 }

@@ -104,11 +104,11 @@ const PREVIEW_DARK = '<style>@media screen{'
     + 'if((0.2126*+m[0]+0.7152*+m[1]+0.0722*+m[2])/255>0.6)el.classList.add("cprs-light-card")})});</script>';
 
 /**
- * A large matrix scrolls in a box of its own instead of running down the page and off its right
- * edge. The engine sets `.matrix` as an inline table, which ignores a maximum height.
+ * A very large matrix scrolls in a box of its own instead of running down the page and off its right
+ * edge; the box is tall enough that a matrix of about 20 rows shows whole. The engine sets `.matrix` as an inline table, which ignores a maximum height.
  */
 const PREVIEW_MATRIX = '<style>@media screen{'
-    + '.matrix{display:inline-block;max-height:16em;max-width:calc(100vw - 4em);overflow:auto;vertical-align:middle}'
+    + '.matrix{display:inline-block;max-height:min(32em,80vh);max-width:calc(100vw - 4em);overflow:auto;vertical-align:middle}'
     + '.matrix::-webkit-scrollbar{width:9px;height:9px}'
     + '.matrix::-webkit-scrollbar-thumb{background:rgba(128,128,128,.55);border-radius:5px}'
     + '}</style>';

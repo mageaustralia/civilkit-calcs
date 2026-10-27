@@ -1,0 +1,70 @@
+<!--sheet-->
+# Animated beam: a moving point load
+
+A 6 m simply supported beam with a 50 kN load that travels from one support to the other. Press Play to watch the deflected shape and the red load arrow move; drag the slider to stop at any position. Each position is a precomputed frame, so it runs in the browser with no further calculation.
+
+L: 6 m | span
+P: 50 kN | moving load
+E: 200 GPa | steel
+I: 2.0e-4 m^4 | second moment of area
+
+## Python: frames
+
+```python
+import plotly.graph_objects as go
+
+L, P, E, I = 6.0, 50e3, 200e9, 2.0e-4
+N = 41
+xs = [L * i / (N - 1) for i in range(N)]
+
+def defl(a):
+    # Simply supported beam, point load P at distance a from the left support (metres, result in mm, down is negative).
+    b = L - a
+    out = []
+    for x in xs:
+        if x <= a:
+            w = P * b * x * (L * L - b * b - x * x) / (6 * E * I * L)
+        else:
+            w = P * a * (L - x) * (L * L - a * a - (L - x) ** 2) / (6 * E * I * L)
+        out.append(-w * 1000)
+    return out
+
+positions = [0.3 + 5.4 * k / 18 for k in range(19)]
+first = defl(positions[0])
+
+def arrow(a):
+    return [dict(type="line", x0=a, x1=a, y0=2.4, y1=0.3, line=dict(color="crimson", width=4))]
+
+frames = [
+    go.Frame(name="%.2f" % a, data=[go.Scatter(x=xs, y=defl(a))], layout=dict(shapes=arrow(a)))
+    for a in positions
+]
+
+fig = go.Figure(
+    data=[go.Scatter(x=xs, y=first, mode="lines", line=dict(width=3), name="deflection")],
+    frames=frames,
+)
+fig.update_layout(
+    title="Deflected shape, load at x",
+    xaxis_title="x (m)",
+    yaxis_title="deflection (mm)",
+    yaxis_range=[-7, 3],
+    shapes=arrow(positions[0]),
+    updatemenus=[dict(
+        type="buttons", showactive=False, x=0.02, y=-0.25, xanchor="left", direction="left",
+        buttons=[
+            dict(label="Play", method="animate", args=[None, dict(frame=dict(duration=250, redraw=True), fromcurrent=True, transition=dict(duration=0))]),
+            dict(label="Pause", method="animate", args=[[None], dict(frame=dict(duration=0, redraw=False), mode="immediate", transition=dict(duration=0))]),
+        ],
+    )],
+    sliders=[dict(
+        x=0.25, len=0.7, y=-0.2, currentvalue=dict(prefix="x = ", suffix=" m"),
+        steps=[dict(label="%.1f" % a, method="animate", args=[["%.2f" % a], dict(mode="immediate", frame=dict(duration=0, redraw=True), transition=dict(duration=0))]) for a in positions],
+    )],
+)
+fig.show()
+export(w_mid=float(max(defl(L / 2), key=abs)))
+```
+
+## Check
+w_max: w_mid * 1 mm | largest deflection, load at mid-span

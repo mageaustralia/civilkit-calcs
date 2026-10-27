@@ -193,7 +193,7 @@ check(errors.length === 0, `no page errors (${errors.slice(0, 2).join(' | ')})`)
     const meta = await page.evaluate(() => document.querySelector('meta[name=version]')?.content);
     check(meta === want, `the page's <meta name="version"> is ${want} (${meta})`);
     const bar = await page.evaluate(() => document.querySelector('[data-testid=status-version]')?.textContent ?? '');
-    check(bar.includes(`CivilKit Calcs ${want}`) && /built on CalcpadCE \S+/.test(bar), `the status bar shows the version and the upstream (${bar})`);
+    check(bar.includes(`CivilKit Calcs ${want}`) && /\(built on CalcpadCE\)/.test(bar), `the status bar shows the version and the upstream (${bar})`);
     const engine = await page.evaluate(async () => { const m = await import(new URL('wasm/calcpad_wasm.js', location.href).href); await m.default({ module_or_path: new URL('wasm/calcpad_wasm_bg.wasm', location.href).href }); return m.version(); });
     check(engine === want, `the engine wasm's version() is ${want} (${engine})`);
     check((await page.title()).includes('CivilKit Calcs'), `the window title names CivilKit Calcs (${await page.title()})`);
