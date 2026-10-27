@@ -185,7 +185,7 @@ the variables defined by sheet lines above it and defines variables that sheet l
 use, and prose, quantities, LaTeX and raw Calcpad can come in any order. To make that work
 without remembering renames, an identifier in a raw line that the sheet defines, or that a raw
 line assigns (`sigma = 3`), is spelled the way the sheet spells it: `phi` in a raw line is
-`φ`. (Text after a `'` or `"` in a raw line is left alone. `Show compiled` shows the result.)
+`φ`. The name a raw `#UI` line assigns (`>> #UI phi = 0.9`, also with options and a label in front of the name) counts as an assignment too. (A dot is the index operator, not part of a name.) (Text after a `'` or `"` in a raw line is left alone. `Show compiled` shows the result.)
 
 A raw block inside a sheet block keeps the block's indentation rules like any other line.
 

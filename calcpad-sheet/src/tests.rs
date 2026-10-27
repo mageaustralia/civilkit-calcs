@@ -1146,3 +1146,37 @@ fn the_documented_input_examples_run() {
         assert!(lines_of(sheet)[1] == want, "{sheet}");
     }
 }
+
+#[test]
+fn raw_ui_names_are_renamed_like_every_other_definition() {
+    let src = "<!--sheet-->\n>> #UI phi = 0.9\n>> #UI 'Moment -'Mstar = 120 'moment\n>> #UI {\"type\":\"dropdown\",\"keys\":[\"a\",\"b\"],\"values\":[\"1\",\"2\"]} 'Rise -'Delta_T = 2\nx: phi * 2\ny: Mstar * 2\nz: Delta_T * 3\n";
+    let (c, html, errs) = render(src);
+    no_errors("raw ui names", &errs, &c);
+    assert!(c.text.contains("#UI φ = 0.9"), "{}", c.text);
+    assert!(c.text.contains("'Moment -'M_star = 120 'moment"), "{}", c.text);
+    assert!(c.text.contains("'Rise -'Δ_T = 2"), "{}", c.text);
+    let t = text(&html);
+    assert!(t.contains("x = φ · 2 = 0.9 · 2 = 1.8"), "{t}");
+    assert!(t.contains("y = M star · 2 = 120 · 2 = 240"), "{t}");
+    assert!(t.contains("z = Δ T · 3 = 2 · 3 = 6"), "{t}");
+}
+
+#[test]
+fn input_form_names_with_greek_subscripts_and_digits_run() {
+    let src = "<!--sheet-->\nsigma_c: ? 25 MPa\nlambda_1: ? 0.5\nx: sigma_c * lambda_1\n";
+    let (c, html, errs) = render(src);
+    no_errors("input names", &errs, &c);
+    assert!(c.text.contains("σ_c = 25MPa"), "{}", c.text);
+    assert!(text(&html).contains("x = σ c · λ 1 = 25 MPa · 0.5 = 12.5 MPa"), "{}", text(&html));
+}
+
+#[test]
+fn a_raw_ui_name_works_as_an_index_after_a_dot() {
+    // A dot is the engine's index operator, never part of a name; a name from a raw #UI line is
+    // still the name before or after it (`tab.mat`).
+    let src = "<!--sheet-->\n>> #UI mat = 2\ntab: [10, 20, 30]\nv: tab.mat\n>> #UI Delta_T = 3\nw: tab.Delta_T\n";
+    let (c, html, errs) = render(src);
+    no_errors("dot index", &errs, &c);
+    let t = text(&html);
+    assert!(t.contains("v = ⃗ tab 2 = 20") && t.contains("w = ⃗ tab 3 = 30"), "{t}");
+}

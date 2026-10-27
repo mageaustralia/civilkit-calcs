@@ -31,6 +31,66 @@ pub enum Severity {
     Warning,
 }
 
+/// For a raw `#UI` line: the length of what comes before the assigned name (the directive, its
+/// `{json}` options and its `'label -'`), and the byte range of the name.
+fn ui_head(line: &str) -> Option<(usize, usize, usize)> {
+    let t = line.trim_start();
+    let rest = t.strip_prefix("#UI")?;
+    if !rest.starts_with(|c: char| c.is_whitespace() || c == '{' || c == '\'') {
+        return None;
+    }
+    let base = line.len() - rest.len();
+    let mut i = 0;
+    let skip = |i: &mut usize| {
+        while rest[*i..].starts_with(char::is_whitespace) {
+            *i += rest[*i..].chars().next().unwrap().len_utf8();
+        }
+    };
+    skip(&mut i);
+    if rest[i..].starts_with('{') {
+        // To the matching brace, skipping strings.
+        let (mut depth, mut instr, mut esc) = (0i32, false, false);
+        let mut end = None;
+        for (k, c) in rest[i..].char_indices() {
+            if instr {
+                if esc {
+                    esc = false;
+                } else if c == '\\' {
+                    esc = true;
+                } else if c == '"' {
+                    instr = false;
+                }
+            } else if c == '"' {
+                instr = true;
+            } else if c == '{' {
+                depth += 1;
+            } else if c == '}' {
+                depth -= 1;
+                if depth == 0 {
+                    end = Some(i + k + 1);
+                    break;
+                }
+            }
+        }
+        i = end?;
+        skip(&mut i);
+    }
+    if rest[i..].starts_with('\'') {
+        let close = rest[i + 1..].find('\'')?;
+        i += close + 2;
+        skip(&mut i);
+    }
+    let n = rest[i..].find(|c: char| !names::is_name_char(c)).unwrap_or(rest.len() - i);
+    if n == 0 || !names::is_name_start(rest[i..].chars().next()?) {
+        return None;
+    }
+    let tail = rest[i + n..].trim_start();
+    if !tail.starts_with('=') || tail.starts_with("==") {
+        return None;
+    }
+    Some((base + i, base + i, base + i + n))
+}
+
 /// A problem found by the compiler, on a sheet line (0 based).
 #[derive(Clone, Debug)]
 pub struct Diagnostic {
@@ -380,6 +440,10 @@ impl<'a> Comp<'a> {
 
     /// The Calcpad spelling of the sheet names a raw Calcpad line uses.
     fn raw(&self, line: &str) -> String {
+        if let Some((head, _, _)) = ui_head(line) {
+            // `#UI {json} 'label -'name = value`: the options and the label are text, the rest is a definition.
+            return format!("{}{}", &line[..head], self.raw(&line[head..]));
+        }
         let cs: Vec<char> = line.chars().collect();
         let mut out = String::new();
         let mut i = 0;
@@ -411,6 +475,10 @@ impl<'a> Comp<'a> {
 
     /// Notes the name a raw Calcpad line assigns, so the sheet can use its spelling.
     fn raw_defs(&mut self, line: &str) {
+        if let Some((_, a, b)) = ui_head(line) {
+            self.found.insert(line[a..b].to_string());
+            return;
+        }
         let t = line.trim_start();
         let n = t.find(|c: char| !names::is_name_char(c)).unwrap_or(t.len());
         if n == 0 || !names::is_name_start(t.chars().next().unwrap()) {

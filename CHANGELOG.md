@@ -20,6 +20,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 - `?theme=dark` or `?theme=light` in the address forces the theme for that page load without changing the saved choice.
 
 ### Fixed
+- A name defined by a raw `>> #UI` line (`>> #UI phi = 0.9`, `Mstar`, `Delta_T`) is now renamed like every other sheet definition, so a later sheet line can use it (it failed with `Undefined φ`).
 - Save values in a sheet wrote its comment above the `<!--sheet-->` marker, so the file stopped being a sheet. It now writes it under the marker, and the compiler passes that comment through.
 
 ### Changed
