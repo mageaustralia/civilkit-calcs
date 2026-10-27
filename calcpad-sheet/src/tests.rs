@@ -1112,7 +1112,7 @@ fn the_manifest_marks_the_samples_that_have_inputs() {
             assert!(has_inputs, "{file}");
         }
     }
-    assert_eq!(templates, 5);
+    assert_eq!(templates, 7);
 }
 
 #[test]
@@ -1145,4 +1145,235 @@ fn the_documented_input_examples_run() {
     for (sheet, want) in rows {
         assert!(lines_of(sheet)[1] == want, "{sheet}");
     }
+}
+
+#[test]
+fn raw_ui_names_are_renamed_like_every_other_definition() {
+    let src = "<!--sheet-->\n>> #UI phi = 0.9\n>> #UI 'Moment -'Mstar = 120 'moment\n>> #UI {\"type\":\"dropdown\",\"keys\":[\"a\",\"b\"],\"values\":[\"1\",\"2\"]} 'Rise -'Delta_T = 2\nx: phi * 2\ny: Mstar * 2\nz: Delta_T * 3\n";
+    let (c, html, errs) = render(src);
+    no_errors("raw ui names", &errs, &c);
+    assert!(c.text.contains("#UI φ = 0.9"), "{}", c.text);
+    assert!(c.text.contains("'Moment -'M_star = 120 'moment"), "{}", c.text);
+    assert!(c.text.contains("'Rise -'Δ_T = 2"), "{}", c.text);
+    let t = text(&html);
+    assert!(t.contains("x = φ · 2 = 0.9 · 2 = 1.8"), "{t}");
+    assert!(t.contains("y = M star · 2 = 120 · 2 = 240"), "{t}");
+    assert!(t.contains("z = Δ T · 3 = 2 · 3 = 6"), "{t}");
+}
+
+#[test]
+fn input_form_names_with_greek_subscripts_and_digits_run() {
+    let src = "<!--sheet-->\nsigma_c: ? 25 MPa\nlambda_1: ? 0.5\nx: sigma_c * lambda_1\n";
+    let (c, html, errs) = render(src);
+    no_errors("input names", &errs, &c);
+    assert!(c.text.contains("σ_c = 25MPa"), "{}", c.text);
+    assert!(text(&html).contains("x = σ c · λ 1 = 25 MPa · 0.5 = 12.5 MPa"), "{}", text(&html));
+}
+
+#[test]
+fn a_raw_ui_name_works_as_an_index_after_a_dot() {
+    // A dot is the engine's index operator, never part of a name; a name from a raw #UI line is
+    // still the name before or after it (`tab.mat`).
+    let src = "<!--sheet-->\n>> #UI mat = 2\ntab: [10, 20, 30]\nv: tab.mat\n>> #UI Delta_T = 3\nw: tab.Delta_T\n";
+    let (c, html, errs) = render(src);
+    no_errors("dot index", &errs, &c);
+    let t = text(&html);
+    assert!(t.contains("v = ⃗ tab 2 = 20") && t.contains("w = ⃗ tab 3 = 30"), "{t}");
+}
+
+/// The values of the options the form shows as chosen, for the first choice in a compiled sheet.
+fn chosen(src: &str) -> Vec<String> {
+    let c = compile(src);
+    let req = serde_json::json!({ "content": c.text, "enableUi": true });
+    let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+    assert!(v["errors"].as_array().unwrap().is_empty(), "{:?}\n{}", v["errors"], c.text);
+    let h = v["html"].as_str().unwrap_or("");
+    h.split('<')
+        .filter(|l| l.len() < 200 && (l.starts_with("option ") || l.starts_with("input type=\"radio\"")))
+        .filter(|l| l.contains(" checked") || l.contains(" selected"))
+        .map(|l| l.split("value=\"").nth(1).unwrap().split('"').next().unwrap().to_string())
+        .collect()
+}
+
+#[test]
+fn a_radio_group_or_drop_down_opens_on_its_default_whatever_the_unit() {
+    for (unit, a, b) in [
+        ("kN/m", "10", "25"),
+        ("kN*m", "10", "25"),
+        ("N/mm^2", "10", "25"),
+        ("m^3", "10", "25"),
+        ("kN/m^2", "10", "25"),
+        ("MPa", "10", "25"),
+        ("\u{b0}", "10", "25"),
+        ("%", "10", "25"),
+        ("", "1.0", "0.90"),
+        ("m", "0.100", "2.50"),
+    ] {
+        for (open, close) in [("(", ")"), ("[", "]")] {
+            // The default is the second option, then the first, then no star.
+            for (star_a, star_b) in [("", "*"), ("*", ""), ("", "")] {
+                let src = format!(
+                    "<!--sheet-->\nw: ? {open}{star_a}Low = {a} {unit}, {star_b}High = {b} {unit}{close}\n"
+                );
+                let want = if star_a == "*" || star_b.is_empty() { a } else { b };
+                let got = chosen(&src);
+                assert_eq!(got.len(), 1, "{src}: {got:?}");
+                let digits: String = got[0].chars().take_while(|c| c.is_ascii_digit() || *c == '.').collect();
+                assert_eq!(digits, want, "{src}: {got:?}");
+            }
+        }
+    }
+}
+
+#[test]
+fn two_options_with_one_value_are_an_error_on_the_input_line() {
+    let c = compile("<!--sheet-->\nk: ? (Low = 1 m, High = 1  m)\n");
+    assert!(c.diagnostics.iter().any(|d| d.message.contains("same value")), "{:?}", c.diagnostics);
+    assert!(c.text.contains("same value"), "{}", c.text);
+}
+
+#[test]
+fn units_in_inputs_take_the_usual_unicode_spellings() {
+    for (written, emitted) in [
+        ("5 m\u{b3}", "5m^3"),
+        ("5 m^3", "5m^3"),
+        ("5 kN\u{b7}m", "5kN*m"),
+        ("5 kN\u{22c5}m", "5kN*m"),
+        ("5 N/mm\u{b2}", "5N/mm^2"),
+        ("5 kg/m\u{b3}", "5kg/m^3"),
+        ("5 mm\u{2074}", "5mm^4"),
+        ("5 m\u{b7}s\u{207b}\u{b9}", "5m*s^-1"),
+        ("5 MPa", "5MPa"),
+        ("5 \u{b0}", "5\u{b0}"),
+        ("5 \u{b0}C", "5\u{b0}C"),
+        ("5%", "5%"),
+        ("5 \u{b5}m", "5\u{3bc}m"),
+        ("5 \u{3a9}", "5\u{3a9}"),
+    ] {
+        let src = format!("<!--sheet-->\nv: ? {written}\nw: v * 1\n");
+        let (c, html, errs) = render(&src);
+        no_errors(written, &errs, &c);
+        let ui = c.text.lines().find(|l| l.starts_with("#UI")).unwrap();
+        assert_eq!(ui, format!("#UI v = {emitted}"), "{written}");
+        assert!(text(&html).contains("w = v"), "{written}: {}", text(&html));
+        // The same units in a choice, with the default chosen.
+        let src = format!("<!--sheet-->\nv: ? (Low = 3 {u}, *High = {written})\n", u = written.trim_start_matches('5').trim());
+        let got = chosen(&src);
+        assert_eq!(got.len(), 1, "{written}: {got:?}");
+        assert!(got[0].starts_with('5'), "{written}: {got:?}");
+    }
+}
+
+#[test]
+fn saved_values_round_trip_through_the_sheet() {
+    // What Save values writes: the comment directly under the marker. Reopening reads it back.
+    let original = sample("Template simply supported beam");
+    let saved = serde_json::json!({ "uiOverrides": { "L:1": "8", "mat:1": "3", "sw:1": "0" } });
+    let comment = format!("'<!--{saved}-->");
+    let (marker, rest) = original.split_once('\n').unwrap();
+    assert_eq!(marker.trim(), "<!--sheet-->");
+    let reopened = format!("{marker}\n{comment}\n{rest}");
+
+    assert!(is_sheet(&reopened));
+    let before = compile(&original);
+    let c = compile(&reopened);
+    assert!(c.diagnostics.iter().all(|d| d.severity != Severity::Error), "{:?}", c.diagnostics);
+    assert_eq!(c.text.lines().next(), Some(comment.as_str()));
+    // Every input is still an input, in the same place after the comment line.
+    let ui = |t: &str| t.lines().filter(|l| l.starts_with("#UI")).map(String::from).collect::<Vec<_>>();
+    assert_eq!(ui(&c.text), ui(&before.text));
+    assert_eq!(c.text.lines().skip(1).collect::<Vec<_>>(), before.text.lines().collect::<Vec<_>>());
+
+    // The page reads the overrides from the comment and sends them with the request.
+    let line = c.text.lines().next().unwrap();
+    let json = line.trim_start_matches("'<!--").trim_end_matches("-->");
+    let read: Value = serde_json::from_str(json).unwrap();
+    assert_eq!(read, saved);
+    let req = serde_json::json!({ "content": c.text, "enableUi": true, "uiOverrides": read["uiOverrides"] });
+    let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+    assert!(v["errors"].as_array().unwrap().is_empty(), "{:?}", v["errors"]);
+    let html = v["html"].as_str().unwrap();
+    // The form shows the saved values: the entry holds 8, Timber is chosen, own weight is unchecked.
+    assert!(html.contains("value=\"8\""), "entry shows 8");
+    assert!(html.contains("<option value=\"3\" selected>Timber"), "Timber is chosen");
+    let boxes: Vec<&str> = html.split('<').filter(|l| l.starts_with("input") && l.contains("type=\"checkbox\"")).collect();
+    assert_eq!(boxes.len(), 1, "{boxes:?}");
+    assert!(!boxes[0].contains(" checked"), "own weight is off: {boxes:?}");
+    let t = text(html);
+    assert!(t.contains("The material is timber."), "{t}");
+    // Saving again replaces the comment, it does not stack a second one.
+    let again = format!("{marker}\n'<!--{}-->\n{rest}", serde_json::json!({ "uiOverrides": { "L:1": "9" } }));
+    let c2 = compile(&again);
+    assert_eq!(c2.text.lines().filter(|l| l.starts_with("'<!--{")).count(), 1);
+}
+
+#[test]
+fn template_retaining_wall_values_and_inputs() {
+    let name = "Template retaining wall stability";
+    let (errs, t) = with_inputs(name, &[]);
+    assert!(errs.is_empty(), "{errs:?}");
+    // Medium sand, no surcharge: Ka = 0.3073, P = 0.5 Ka 18 3.4^2 = 31.97 kN, Mo = 36.23 kN.m,
+    // W = 28.8 + 23.04 + 75.6 = 127.44 kN, Mr = 179.21 kN.m, mu = tan(21.33) = 0.3906.
+    for want in [
+        "= 0.307 active",
+        "= 31.97 kN",
+        "= 36.23 kN",
+        "= 127.44 kN",
+        "= 179.21 kN",
+        "= 4.95 factor of safety against overturning",
+        "= 0.391 friction",
+        "= 49.77 kN",
+        "= 1.56 factor of safety against sliding",
+        "Overturning: OK.",
+        "Sliding: OK.",
+        "inside the middle third",
+    ] {
+        assert!(t.contains(want), "{want}: {t}");
+    }
+    // The surcharge on: more thrust than the extra weight is worth, and sliding fails.
+    let (errs, t) = with_inputs(name, &[("sur:1", "1")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    for want in ["= 42.41 kN", "= 53.99 kN", "= 141.44 kN", "= 203.01 kN", "= 3.76 factor", "= 1.3 factor", "Sliding: the factor of safety is too low"] {
+        assert!(t.contains(want), "{want}: {t}");
+    }
+    // Dense sand (the radio group) has a smaller thrust and a larger friction.
+    let (errs, t) = with_inputs(name, &[("soil:1", "36\u{b0}")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("= 0.26 active") && t.contains("Sliding: OK."), "{t}");
+    // A narrow base overturns and lifts.
+    let (errs, t) = with_inputs(name, &[("B:1", "1.2"), ("sur:1", "1")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("Overturning: the factor of safety is too low") && t.contains("outside the middle third"), "{t}");
+}
+
+#[test]
+fn template_pump_values_and_inputs() {
+    let name = "Template pump operating point";
+    let (errs, t) = with_inputs(name, &[]);
+    assert!(errs.is_empty(), "{errs:?}");
+    // K = 0.018 * (400 / 0.15) / (2 g A^2) = 7834 s2/m5; Q^2 = 25 / (7834 + 40 / 0.075^2); Q = 40.9 L/s.
+    for want in [
+        "= 7834.25 s",
+        "= 40.9 L",
+        "= 28.1 m head at the operating point",
+        "= 2.31 m",
+        "The velocity is within 3 m/s.",
+        "The pump is the medium one.",
+        "40 39.29 37.16 33.6 28.62 22.22 14.4",
+        "15 15.78 18.13 22.05 27.53 34.59 43.2",
+    ] {
+        assert!(t.contains(want), "{want}: {t}");
+    }
+    // An aged pipe has a larger friction factor: less flow.
+    let (errs, t) = with_inputs(name, &[("aged:1", "1")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("= 0.03 friction factor") && t.contains("= 35.21 L"), "{t}");
+    // The large pump on a 200 mm pipe.
+    let (errs, t) = with_inputs(name, &[("pump:1", "3"), ("D:1", "200mm")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("The pump is the large one.") && t.contains("= 66.01 L"), "{t}");
+    // A small pump cannot lift 35 m.
+    let (errs, t) = with_inputs(name, &[("pump:1", "1"), ("H_st:1", "35")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("cannot lift the water") && t.contains("= 0 L"), "{t}");
 }

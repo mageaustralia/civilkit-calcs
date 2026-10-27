@@ -219,7 +219,7 @@ fn ui_value(translated: &str) -> Option<String> {
         return Some(s);
     }
     let ok =
-        unit[0].is_alphabetic() || matches!(unit[0], '°' | '%' | '‰' | '′' | '″') || unit[0] == 'µ' || unit[0] == 'Ω';
+        unit[0].is_alphabetic() || matches!(unit[0], '°' | '%' | '‰' | '′' | '″') || matches!(unit[0], '\u{b5}' | '\u{3bc}') || unit[0] == 'Ω';
     let rest_ok = unit.iter().all(|c| {
         c.is_alphanumeric()
             || matches!(
@@ -271,9 +271,19 @@ pub fn directive(i: &Input) -> Result<(Option<String>, String), String> {
         Kind::Choice { radio, options } => {
             let mut keys = Vec::new();
             let mut vals = Vec::new();
+            let mut seen: Vec<(String, &str)> = Vec::new();
             for o in options {
                 keys.push(q(&o.label));
-                vals.push(q(&value(&o.value, &format!("the value of '{}'", o.label))?));
+                let v = value(&o.value, &format!("the value of '{}'", o.label))?;
+                // Two options with one value cannot both be the one the form shows as chosen.
+                if let Some((_, other)) = seen.iter().find(|(x, _)| *x == v) {
+                    return Err(format!(
+                        "the options '{other}' and '{}' have the same value; each option needs its own",
+                        o.label
+                    ));
+                }
+                seen.push((v.clone(), &o.label));
+                vals.push(q(&v));
             }
             let at = options.iter().position(|o| o.default).unwrap_or(0);
             let def = value(&options[at].value, "the default")?;

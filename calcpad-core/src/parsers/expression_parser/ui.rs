@@ -320,6 +320,72 @@ fn is_numeric_char(c: char) -> bool {
     c.is_ascii_digit() || matches!(c, '.' | '-' | '+' | 'e' | 'E')
 }
 
+/// The unit text with the marks the report draws for it made plain: the report shows `kN/m` as
+/// `kN∕m`, `kN*m` as `kN·m` and `m^3` as `m` with a raised 3.
+fn plain_unit(u: &str) -> String {
+    u.chars()
+        .filter(|&c| c != '^' && !c.is_whitespace())
+        .map(|c| match c {
+            '\u{2215}' | '\u{2044}' => '/',
+            '\u{00B7}' | '\u{22C5}' | '\u{2219}' => '*',
+            '\u{00B2}' => '2',
+            '\u{00B3}' => '3',
+            '\u{00B9}' => '1',
+            '\u{2212}' => '-',
+            c => c,
+        })
+        .collect()
+}
+
+/// A leading number (sign, digits, point; no exponent) and the rest, with the digits after the point.
+fn split_number(s: &str) -> Option<(f64, usize, &str)> {
+    let b = s.as_bytes();
+    let mut i = 0;
+    if i < b.len() && (b[i] == b'+' || b[i] == b'-') {
+        i += 1;
+    }
+    let d0 = i;
+    while i < b.len() && b[i].is_ascii_digit() {
+        i += 1;
+    }
+    let mut decimals = 0;
+    if i < b.len() && b[i] == b'.' {
+        i += 1;
+        let f0 = i;
+        while i < b.len() && b[i].is_ascii_digit() {
+            i += 1;
+        }
+        decimals = i - f0;
+    }
+    if i == d0 || (i == d0 + 1 && b[d0] == b'.') {
+        return None;
+    }
+    // An exponent (`1e3`) is not read here; the texts must then match exactly.
+    if i < b.len() && (b[i] == b'e' || b[i] == b'E') && b.get(i + 1).is_some_and(|c| c.is_ascii_digit() || *c == b'-' || *c == b'+') {
+        return None;
+    }
+    Some((s[..i].parse().ok()?, decimals, &s[i..]))
+}
+
+/// True if an option's value is what the report shows for the variable: the same unit, and the
+/// same number to the digits shown (`25 kN/m` is shown as `25kN∕m`, `1.0` as `1`, `0.9` as `0.90`).
+fn ui_value_matches(option: &str, shown: &str) -> bool {
+    let (o, s) = (plain_unit(option), plain_unit(shown));
+    if o == s {
+        return true;
+    }
+    match (split_number(&o), split_number(&s)) {
+        (Some((a, da, ua)), Some((b, db, ub))) if ua == ub => {
+            if (a - b).abs() <= 1e-9 * a.abs().max(1.0) {
+                return true;
+            }
+            // A value with more digits than the report shows is shown rounded.
+            db >= 2 && da > db && ((a * 10f64.powi(db as i32)).round() / 10f64.powi(db as i32) - b).abs() < 1e-9
+        }
+        _ => false,
+    }
+}
+
 fn strip_spaces(s: &str) -> String {
     s.replace(' ', "")
 }
@@ -330,13 +396,21 @@ fn result_start(equation_html: &str) -> Option<usize> {
 
 fn selected_value(value: &str, unit_html: &str) -> String {
     let mut sb = strip_spaces(value);
+    let mut tag = String::new();
     let mut in_tag = false;
     for c in unit_html.chars() {
         if c == '<' {
             in_tag = true;
+            tag.clear();
         } else if c == '>' {
             in_tag = false;
-        } else if !in_tag && c != ' ' && c != THIN_SPACE {
+            // The bar of a stacked unit (`kN` over `m`) is an empty element; it stands for the slash.
+            if tag.contains("class=\"dvl\"") {
+                sb.push('/');
+            }
+        } else if in_tag {
+            tag.push(c);
+        } else if c != ' ' && c != THIN_SPACE {
             sb.push(c);
         }
     }
@@ -857,7 +931,7 @@ impl ExpressionParser {
         );
         for k in 0..ui.keys.len() {
             let v = ui.values.get(k).cloned().flatten().unwrap_or_default();
-            let selected = if strip_spaces(&v) == value { " selected" } else { "" };
+            let selected = if ui_value_matches(&v, value) { " selected" } else { "" };
             sb.push_str(&format!("<option value=\"{}\"{}>", html_attribute_encode(&v), selected));
             sb.push_str(&format!(
                 "{}</option>",
@@ -877,7 +951,7 @@ impl ExpressionParser {
         );
         for k in 0..ui.keys.len() {
             let v = ui.values.get(k).cloned().flatten().unwrap_or_default();
-            let checked = if strip_spaces(&v) == value { " checked" } else { "" };
+            let checked = if ui_value_matches(&v, value) { " checked" } else { "" };
             sb.push_str("<label class=\"calcpad-ui-radio-label\">");
             sb.push_str(&format!(
                 "<input type=\"radio\" name=\"{}\" value=\"{}\"{}>",

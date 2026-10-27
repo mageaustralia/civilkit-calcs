@@ -1,0 +1,55 @@
+<!--sheet-->
+# Pump and pipeline: operating point
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. A pump lifts water
+through a pipeline to a higher tank. The pump delivers the head $H_p = H_0 \left(1 - (Q/Q_{max})^2\right)$
+at the flow $Q$ (a shut-off head $H_0$ and a free delivery $Q_{max}$). The pipeline needs the head
+$H_s = H_{st} + f \frac{L}{D}\frac{v^2}{2g}$, the static lift plus the friction loss with a constant friction
+factor $f$. The pump runs where the two curves cross. The table and the plot follow the form.
+
+## Inputs
+pump: ? (Small = 1, *Medium = 2, Large = 3) | pump
+D:    ? [100 mm = 100 mm, *150 mm = 150 mm, 200 mm = 200 mm] | pipe inside diameter
+L_p:  ? 400 m | pipe length
+H_st: ? 15 m | static lift, from the water surface to the tank
+aged: ? off | aged pipe (rougher: the friction factor is 0.030, not 0.018)
+
+## Pump curves
+The input above picks one entry of each list.
+
+H0_tab:   [30 m, 40 m, 50 m] | shut-off head
+Qmax_tab: [60 L/s, 75 L/s, 90 L/s] | free delivery
+H_0:   H0_tab.pump -> m
+Q_max: Qmax_tab.pump -> L/s
+if pump == 1: "The pump is the small one."
+if pump == 2: "The pump is the medium one."
+if pump == 3: "The pump is the large one."
+
+## Pipeline
+g_acc: 9.81 m/s^2 | gravitational acceleration
+f: 0.018 + aged * 0.012 | friction factor
+A: pi * D^2 / 4 -> m^2 | flow area
+K: f * L_p / D / (2 * g_acc * A^2) -> s^2/m^5 | friction head per flow squared
+
+## Operating point
+The two curves cross where $H_0 - H_0 Q^2/Q_{max}^2 = H_{st} + K Q^2$, so
+$Q^2 = (H_0 - H_{st}) / (K + H_0/Q_{max}^2)$.
+
+H_net: H_0 - H_st -> m | head the pump has above the static lift
+if H_net <= 0 m: "The pump cannot lift the water to the tank: choose a larger pump or lower the static lift."
+Q_op: sqrt(max(H_net, 0 m) / (K + H_0 / Q_max^2)) -> L/s | flow at the operating point
+H_op: H_0 * (1 - (Q_op / Q_max)^2) -> m | head at the operating point
+v:    Q_op / A -> m/s | velocity in the pipe
+if v > 3 m/s: "The velocity is above 3 m/s: expect noise and wear, use a larger pipe." else: "The velocity is within 3 m/s."
+
+## Table
+Q_v:  [0, 10, 20, 30, 40, 50, 60] * 1 L/s | flows in the table
+H_pv: H_0 * (1 - (Q_v / Q_max)^2) -> m | pump head
+H_sv: H_st + K * Q_v^2 -> m | head the pipeline needs
+T: augment(Q_v / (1 L/s), H_pv / (1 m), H_sv / (1 m)) | columns: flow in L/s, pump head in m, pipeline head in m
+
+## Curves
+H_p(Q): H_0 * (1 - (Q / Q_max)^2) -> m | pump head at the flow Q
+H_s(Q): H_st + K * Q^2 -> m | pipeline head at the flow Q
+
+plot H_p(x * 1 L/s) / (1 m), H_s(x * 1 L/s) / (1 m) for x in 0..60

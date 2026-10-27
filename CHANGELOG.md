@@ -13,13 +13,17 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ### Added
 - Sheet inputs: a line such as `L: ? 6 m | span` is a number input, `E: ? [Steel = 200 GPa, *Timber = 11 GPa]` a drop-down (round brackets give radio buttons) and `ribs: ? on` a checkbox. They compile to the engine's own `#UI` controls, so the input form, the report and the Word and Excel exports work with no engine change; a run of inputs is drawn as one form, the formatter tidies them, and bad lines are errors on their line. See "Inputs and templates" in docs/sheet-syntax.md.
-- A "Templates" group in the Samples dialog with five sheets that use inputs: a simply supported beam check, a cantilever with a tip load, rectangular column slenderness, a pad footing bearing pressure check and Darcy pipe flow. Generic textbook formulas, no design standard.
+- A "Templates" group in the Samples dialog with seven sheets that use inputs: a simply supported beam check, a cantilever with a tip load, rectangular column slenderness, a pad footing bearing pressure check, Darcy pipe flow, a retaining wall (sliding, overturning and bearing, with a backfill radio group and a surcharge checkbox) and a pump and pipeline operating point (a table of heads and a plot of both curves). Generic textbook formulas, no design standard.
 - The ribbon's Entry, Dropdown, Radio and Checkbox buttons insert the sheet form in a sheet.
-- `e2e/inputs-check.mjs` opens a template in Input mode, changes each kind of input and checks the result follows, then saves the values, shows the compiled text and exports.
+- `e2e/inputs-check.mjs` opens a template in Input mode, changes each kind of input and checks the result follows, then saves the values, reopens the saved text and checks the form shows them, shows the compiled text and exports.
 - The suite bar: on screens 900 px wide or more in the browser, a slim bar above the ribbon links to the other CivilKit apps. It is left out of an installed window, store builds and phone layouts.
 - `?theme=dark` or `?theme=light` in the address forces the theme for that page load without changing the saved choice.
 
 ### Fixed
+- `e2e/browser-check.mjs` follows the three-tab sidebar: Export and Settings are opened from the Document and Calculation ribbons as dialogs (and closed before the next step), and the Insert tab is picked from the sidebar.
+- Units in sheet expressions and inputs: the dot operators `⋅` and `∙` count as the middle dot, and the micro sign `µ` is read as the engine's Greek mu (`5 µm` failed with `Error parsing "µm" as units`). Input units with raised digits and the middle dot (`m³`, `N/mm²`, `kN·m`) were already translated before the `#UI` line is written; a test now covers them and `°`, `%`, `MPa`, `°C`, `Ω`.
+- A radio group or drop-down whose default has a divided or multiplied unit (`25 kN/m`, `kN*m`, `N/mm^2`, `m^3`) opened with nothing chosen (a drop-down showed its first label but calculated with the default). The form now matches the default to its option by value, with the unit marks made plain, and two options with one value are an error on the input line.
+- A name defined by a raw `>> #UI` line (`>> #UI phi = 0.9`, `Mstar`, `Delta_T`) is now renamed like every other sheet definition, so a later sheet line can use it (it failed with `Undefined φ`).
 - Save values in a sheet wrote its comment above the `<!--sheet-->` marker, so the file stopped being a sheet. It now writes it under the marker, and the compiler passes that comment through.
 
 ### Changed

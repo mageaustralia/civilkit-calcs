@@ -185,7 +185,7 @@ the variables defined by sheet lines above it and defines variables that sheet l
 use, and prose, quantities, LaTeX and raw Calcpad can come in any order. To make that work
 without remembering renames, an identifier in a raw line that the sheet defines, or that a raw
 line assigns (`sigma = 3`), is spelled the way the sheet spells it: `phi` in a raw line is
-`φ`. (Text after a `'` or `"` in a raw line is left alone. `Show compiled` shows the result.)
+`φ`. The name a raw `#UI` line assigns (`>> #UI phi = 0.9`, also with options and a label in front of the name) counts as an assignment too. (A dot is the index operator, not part of a name.) (Text after a `'` or `"` in a raw line is left alone. `Show compiled` shows the result.)
 
 A raw block inside a sheet block keeps the block's indentation rules like any other line.
 
@@ -205,11 +205,11 @@ These are, in order, a number with its unit and a note, a drop-down list (the op
 first), radio buttons (the same options in round brackets) and a checkbox.
 
 * **A number** is the default, written as a number with an optional unit (`6 m`, `12 kN/m`, `0.9`).
-  It is not an expression: `2*3 m` is an error on its line. The unit is shown after the box.
+  It is not an expression: `2*3 m` is an error on its line. The unit is shown after the box. Units may use the usual spellings: `m³`, `N/mm²`, `kN·m`, `kg/m³`, `m·s⁻¹`, `°`, `°C`, `%`, `µm` (they are written to the engine as `m^3`, `N/mm^2`, `kN*m` and so on). The engine's own `#UI` line takes only the `^` and `*` spellings, so use those in a `>>` line.
 * **A choice** is a list of `label = value`. The value is a number with an optional unit, as above, and
   it is what the name has when that option is chosen. Without a `*`, the first option is the one selected.
   A label with a comma, an equals sign or brackets is written in double quotes (`"Beam (A), long" = 1`);
-  a label cannot hold `}`. A choice needs two options or more.
+  a label cannot hold `}`. A choice needs two options or more, and no two options may have the same value (an error on the line). The default is always one of the options, and the form opens on it whatever its unit.
 * **A checkbox** is `on` or `off` (`true` and `false` also work) and the name is `1` or `0`: `if ribs == 1:`.
 * **The note** after `|` is shown after a number, as on a quantity line. A drop-down, radio buttons and a checkbox
   show no name, so their note is the label in front of the control (the name is used when there is no note).
@@ -261,9 +261,11 @@ in the report and as editor markers, and say what to write. A line such as `Why:
 
 ### Templates
 
-The Samples dialog has a **Templates** group of five sheets that use inputs: a simply supported beam check, a
-cantilever with a tip load, a rectangular column (slenderness and buckling), a pad footing bearing pressure check and
-pipe flow (Darcy-Weisbach). They use generic textbook formulas and no design standard. Open one, press **Input**,
+The Samples dialog has a **Templates** group of seven sheets that use inputs: a simply supported beam check, a
+cantilever with a tip load, a rectangular column (slenderness and buckling), a pad footing bearing pressure check, pipe flow
+(Darcy-Weisbach), a retaining wall (sliding and overturning, with radio buttons for the backfill and a surcharge checkbox)
+and a pump and pipeline operating point (a drop-down, radio buttons, a checkbox, a table of results and a plot of both
+curves). They use generic textbook formulas and no design standard. Open one, press **Input**,
 change a value. To make your own, write the inputs as above, put the results under them and save the file. Sharing a template is sharing the `.sheet` file (or the text of the sheet); anyone who opens it gets the
 same form, and **Save values** keeps their numbers in their copy. A new input is one more line, a new option one more
 entry in a list.

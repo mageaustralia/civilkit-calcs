@@ -469,3 +469,18 @@ style, as it is drawn with rules in the preview. A table without a header sectio
 syntax both produce pipe tables.
 
 **Tests:** `calcpad-docx/tests/docx.rs` (`a_markdown_table_is_ruled_and_a_plain_table_is_not`).
+
+## D15. A radio group or drop-down finds its default by value, not by text (modification)
+
+**CalcpadCE:** a `#UI` radio group or drop-down marks as chosen the option whose value text equals the text of the
+variable as the report shows it. A default such as `25kN/m` is shown as `25kN∕m` (or a stacked fraction), `kN*m` as
+`kN·m` and `m^3` with a raised 3, so the texts differ and no option is chosen; a drop-down then shows its first label
+while the sheet calculates with the default.
+
+**Here:** the shown text and the option value are compared with the unit marks made plain (the division sign, the
+middle dot, raised digits and `^`), and the stacked-fraction bar counts as a slash. The numbers are compared by value
+(`1.0` is `1`), and a value with more digits than the report shows matches its rounded form.
+
+**Why:** a template whose default has a divided or multiplied unit opened with nothing chosen.
+
+**Tests:** `calcpad-sheet/src/tests.rs` (`a_radio_group_or_drop_down_opens_on_its_default_whatever_the_unit`).
