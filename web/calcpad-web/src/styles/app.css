@@ -1218,7 +1218,7 @@ select option {
     .line-edit-hint { display: none; }
 }
 
-/* The docked math keyboard and its show button (touch screens; the component only renders there). */
+/* The docked math keyboard and its show button. */
 .dock-keys { flex: none; z-index: 5; padding-bottom: env(safe-area-inset-bottom); }
 .kbd-toggle {
     position: fixed;

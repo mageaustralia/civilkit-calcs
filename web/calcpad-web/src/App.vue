@@ -596,7 +596,7 @@
   </div>
   <!-- Touch screens: the math keyboard docked under the sheet, typing into the editor. -->
   <MathKeyboard
-    v-if="touchKeys && dockKeys"
+    v-if="dockKeys"
     class="dock-keys"
     collapsible
     :system="dockSystemKeys"
@@ -607,7 +607,7 @@
     @hide="setDockKeys(false)"
   />
   <button
-    v-if="touchKeys && !dockKeys && (!narrow || mobilePane === 'edit')"
+    v-if="!dockKeys && (!narrow || mobilePane === 'edit')"
     type="button"
     class="kbd-toggle"
     title="Show math keyboard"
@@ -1159,7 +1159,7 @@ function editMove(dir: -1 | 1): void {
   t.focus()
   t.setSelectionRange(p, p)
 }
-// The same keyboard docked under the sheet for the main editor (phones, tablets, any touch screen).
+// The same keyboard docked under the sheet for the main editor: every device, with the phone's own keyboard held back on touch screens.
 const dockKeys = ref(false)
 try { dockKeys.value = localStorage.getItem('civilkit-dock-keys') === '1' } catch { /* storage blocked */ }
 const dockSystemKeys = ref(false)
