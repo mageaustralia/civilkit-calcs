@@ -1,0 +1,10 @@
+/* A light CivilKit touch: the accent colour for links and the active chapter. */
+.light, .rust {
+    --links: #0b6bcb;
+    --sidebar-active: #0b6bcb;
+    --search-mark-bg: #cfe5fb;
+}
+.navy, .coal, .ayu {
+    --links: #5aa9ff;
+    --sidebar-active: #5aa9ff;
+}

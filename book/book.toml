@@ -1,0 +1,21 @@
+[book]
+title = "CivilKit Calcs User Guide"
+authors = ["CivilKit Calcs contributors"]
+description = "How to write, calculate, plot and export engineering calculations in CivilKit Calcs."
+language = "en"
+src = "src"
+
+[build]
+build-dir = "../target/book"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/mageaustralia/civilkit-calcs"
+site-url = "/calcs/guide/"
+additional-css = ["theme/css/civilkit.css"]
+
+[output.html.search]
+enable = true
+limit-results = 30
+use-boolean-and = true
