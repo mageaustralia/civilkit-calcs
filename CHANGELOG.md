@@ -11,6 +11,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- SI prefixes on every SI unit: `3 mN`, `5 µm`, `40 nF`, `1.2 kΩ`, `2 GPa`, `7 fT` and the like all work (yocto `y` to yotta `Y`; micro as `μ`, `µ` or `u`). Before, only the prefixed names the unit list spelled out were units, and `3 mN` failed with `Error parsing "mN" as units`. Non-SI units (`min`, `h`, `d`, `ft`, `in`, `lb`, `psi`, `°C`, `K`) stay unprefixed, every name the list had means what it meant, and one name stays shadowed: `ks` is the metric horsepower, so a kilosecond is `1000 s`. See "Prefixes" in the user guide and D16 in DEVIATIONS.md.
+
 ## [26.10.12] - 2026-10-28
 
 ### Added

@@ -32,7 +32,57 @@ Without `->`, a sum comes out in the first unit it meets. With `-> unit` the res
 to the unit you choose. In the Calcpad language the same conversion is a vertical bar:
 `a = 1.23m + 35cm + 12mm | cm`.
 
-Prefixes work on every unit that takes them: `kN` is 10³ N, `MPa` is 10⁶ Pa, `mm` is 10⁻³ m.
+Prefixes work on every unit that takes them: `kN` is 10³ N, `MPa` is 10⁶ Pa, `mm` is 10⁻³ m. See
+"Prefixes" below for the full list.
+
+## Prefixes
+
+Any SI prefix goes in front of any SI unit that takes one, so `3 mN`, `2 GPa`, `5 µm`, `40 nF` and `1.2 kΩ`
+all work.
+
+| Prefix | Symbol | Factor | | Prefix | Symbol | Factor |
+| --- | --- | --- | --- | --- | --- | --- |
+| yotta | `Y` | 10²⁴ | | deci | `d` | 10⁻¹ |
+| zetta | `Z` | 10²¹ | | centi | `c` | 10⁻² |
+| exa | `E` | 10¹⁸ | | milli | `m` | 10⁻³ |
+| peta | `P` | 10¹⁵ | | micro | `μ`, `µ` or `u` | 10⁻⁶ |
+| tera | `T` | 10¹² | | nano | `n` | 10⁻⁹ |
+| giga | `G` | 10⁹ | | pico | `p` | 10⁻¹² |
+| mega | `M` | 10⁶ | | femto | `f` | 10⁻¹⁵ |
+| kilo | `k` | 10³ | | atto | `a` | 10⁻¹⁸ |
+| hecto | `h` | 10² | | zepto | `z` | 10⁻²¹ |
+| deca | `da` | 10¹ | | yocto | `y` | 10⁻²⁴ |
+
+Micro can be typed as the Greek mu `μ`, the micro sign `µ` (what a keyboard gives) or a plain `u`; the result
+shows `μ`. The units that take a prefix are `g`, `m`, `s`, `A`, `mol`, `cd`, `rad`, `L`, `N`, `Nm`, `Pa`, `bar`,
+`J`, `W`, `Wh`, `VA`, `VAR`, `Hz`, `V`, `C`, `F`, `Ω`, `S`, `Wb`, `T`, `H`, `Bq`, `Gy`, `Sv`, `lm`, `lx`, `kat`,
+`eV`, `Ah` and `Da`. Everything else stays as it was: `min`, `h`, `d`, `ft`, `in`, `lb`, `psi`, `°C` and the
+other non-SI units take no prefix (`kft` and `mmin` are errors), the kilogram is `kg` (`Mg` is a megagram, not
+`kkg`), and kelvin `K` takes none either.
+
+A name the unit list already had keeps its meaning, and the list is read first. So `min` is the minute (not a
+milli-inch), `mm` is the millimetre, `Pa` the pascal, `cd` the candela, `ft` the foot, `h` the hour, `d` the day,
+`T` the tesla and `u` the atomic mass unit; `da` alone is not a unit, and `dam` is the decametre. The prefix
+spellings that read as another unit are told apart by their case: `fT` is a femtotesla and `ft` a foot, `mS` is
+a millisiemens and `ms` a millisecond. One name is shadowed: `ks` has always been the metric horsepower, so a
+kilosecond is written `1000 s`. A variable you define always wins over a unit of the same
+name, so a sheet that has a variable called `mN` still works.
+
+<!-- expect: F_n = 0.003 | E_m = 2000 | t_n = 5000 -->
+```sheet
+F: 3 mN
+F_n: F -> N
+E: 2 GPa
+E_m: E -> MPa
+t: 5 µm
+t_n: t -> nm
+```
+
+```text
+F_n = F -> N = 0.003 N
+E_m = E -> MPa = 2000 MPa
+t_n = t -> nm = 5000 nm
+```
 
 ## Errors you want
 

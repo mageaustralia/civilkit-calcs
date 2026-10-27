@@ -484,3 +484,25 @@ middle dot, raised digits and `^`), and the stacked-fraction bar counts as a sla
 **Why:** a template whose default has a divided or multiplied unit opened with nothing chosen.
 
 **Tests:** `calcpad-sheet/src/tests.rs` (`a_radio_group_or_drop_down_opens_on_its_default_whatever_the_unit`).
+
+## D16. An SI prefix applies to every SI unit (addition)
+
+**CalcpadCE:** the unit list spells out each prefixed unit it has. `kN`, `MN`, `MPa`, `kHz`, `μm` work, but
+`mN` (a millinewton), `μN`, `fN`, `mT`-style combinations it never listed, and the prefixes beyond pico and tera
+do not: `3 mN` fails with `Error parsing "mN" as units`.
+
+**Here:** a name that is not in the list is read as an SI prefix (yocto `y` to yotta `Y`, with micro written `μ`,
+`µ` or `u`) followed by a unit that takes a prefix: `g`, `m`, `s`, `A`, `mol`, `cd`, `rad`, `L`, `N`, `Nm`, `Pa`, `bar`,
+`J`, `W`, `Wh`, `VA`, `VAR`, `Hz`, `V`, `C`, `F`, `Ω`, `S`, `℧`, `Wb`, `T`, `H`, `Bq`, `Gy`, `Sv`, `lm`, `lx`, `kat`,
+`eV`, `Ah`, `Da`. The result is the unit with that scale factor, shown with its prefix (micro always as `μ`).
+Non-SI units (`min`, `h`, `d`, `ft`, `in`, `lb`, `psi`, `°C`, `K`) take no prefix, and `kg` is the kilogram, so the
+prefixes go on `g` (`Mg`). Every name the list has is read first and means what it meant, so `min`, `mm`, `Pa`,
+`cd`, `ft`, `h`, `d`, `T` and `u` are unchanged and `da` alone is not a unit. The one prefixed reading the list
+shadows is `ks`, the metric horsepower, so a kilosecond is `1000 s`. A variable with the same name as a prefixed
+unit still wins over the unit, as it does over any unit.
+
+**Why:** engineers write `mN`, `μm`, `GPa` and `mΩ` without checking which of them the list happens to spell out,
+and a failure at `3 mN` reads as a bug in the sheet.
+
+**Tests:** `calcpad-core/tests/unit_prefixes.rs` (a table of more than 150 prefix and unit pairs checked by value,
+the ambiguous names, the unprefixable units, and every unit of the old table still parsing to the same unit).
