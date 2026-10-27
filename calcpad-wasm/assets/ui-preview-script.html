@@ -97,6 +97,12 @@
         try { target.setSelectionRange(caret[0], caret[1]); } catch (e) { }
     }
 
+    // The host shows the frame only once it has loaded, and a hidden control cannot take the focus; it asks again then.
+    window.addEventListener('message', function (e) {
+        if (e.source !== window.parent || !e.data || e.data.type !== 'cpdUiRestoreFocus') return;
+        restoreState();
+    });
+
     // The re-render lands long after the edit, so the position is rewritten until then.
     function trackPosition() {
         if (armed) saveState();
@@ -278,7 +284,7 @@
         '.calcpad-ui-slider{vertical-align:middle;width:min(14em,40vw);min-width:7em;margin:0 .6em;height:2.2em;cursor:pointer;touch-action:pan-y;accent-color:#2f6fb5}' +
         '.calcpad-ui-range-note{font-size:.85em;opacity:.7;margin-right:.6em;white-space:nowrap}' +
         '.calcpad-ui-input.calcpad-ui-invalid{outline:2px solid #c0392b;outline-offset:1px;background-color:rgba(192,57,43,.12)}' +
-        '.calcpad-ui-error{color:#c0392b;font-size:.9em;margin-left:.5em;white-space:nowrap}' +
+        '.calcpad-ui-error{color:#c0392b;font-size:.9em;margin-left:1em;white-space:nowrap}' +
         'body.dark-theme .calcpad-ui-slider{accent-color:#4da3ff}' +
         'body.dark-theme .calcpad-ui-input.calcpad-ui-invalid{outline-color:#ff6b5b}' +
         'body.dark-theme .calcpad-ui-error{color:#ff8a7c}' +
@@ -310,7 +316,8 @@
         error.className = 'calcpad-ui-error';
         error.setAttribute('role', 'alert');
         error.hidden = true;
-        slider.parentNode.insertBefore(error, slider.nextSibling);
+        // At the end of the line, after the unit and the note, so the unit does not read as part of the message.
+        (input.closest('p') || slider.parentNode).appendChild(error);
 
         function show(message) {
             input.classList.toggle('calcpad-ui-invalid', !!message);

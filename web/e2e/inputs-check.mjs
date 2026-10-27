@@ -167,10 +167,17 @@ t = await change('Simply supported beam check', /Mmax .*= 121\.5 kN/, async (ff)
 });
 check(/= 121\.5 kN ?· ?m/.test(t), `the slider: two key presses move L from 8 m to 9 m and M follows (${t.slice(t.indexOf('Mmax'), t.indexOf('Mmax') + 60)})`);
 {
-    const ff = await form();
-    const v = await ff.evaluate(() => [document.querySelector('input.calcpad-ui-input').value, document.querySelector('input.calcpad-ui-slider').value, document.activeElement?.className]);
-    check(v[0] === '9' && v[1] === '9', `the box follows the slider and the slider keeps its value after the re-run (${JSON.stringify(v)})`);
-    check(/calcpad-ui-slider/.test(v[2]), `the slider keeps the focus through the re-run, so the next key press works (${v[2]})`);
+    // The frame that is shown (the other buffer can still hold an older copy of the form): the one that has the focus.
+    let v = null;
+    for (let i = 0; i < 20 && !v; i++) {
+        for (const fr of page.frames()) {
+            if (fr === page.mainFrame()) continue;
+            const r = await fr.evaluate(() => document.querySelector('input.calcpad-ui-slider') ? [document.querySelector('input.calcpad-ui-input').value, document.querySelector('input.calcpad-ui-slider').value, document.activeElement?.className ?? '', document.hasFocus()] : null).catch(() => null);
+            if (r && r[2] === 'calcpad-ui-slider' && r[3]) v = r;
+        }
+        if (!v) await page.waitForTimeout(250);
+    }
+    check(v != null && v[0] === '9' && v[1] === '9', `the box follows the slider, and the slider keeps its value and the focus through the re-run, so the next key press works (${JSON.stringify(v)})`);
 }
 // A click on the far end of the track: the maximum, 12 m (12 kN/m: 216 kN.m).
 t = await change('Simply supported beam check', /Mmax .*= 216 kN/, async (ff) => {
@@ -187,7 +194,7 @@ check(/= 216 kN ?· ?m/.test(t), `the slider dragged to its end gives L = 12 m a
     await ff.fill('input.calcpad-ui-input >> nth=0', '20');
     await ff.press('input.calcpad-ui-input >> nth=0', 'Enter');
     await page.waitForTimeout(1200);
-    const e = await (await form()).evaluate(() => { const i = document.querySelector('input.calcpad-ui-input'); const m = i.parentElement.querySelector('.calcpad-ui-error'); return { cls: i.className, msg: m && !m.hidden ? m.textContent : '', value: i.value, slider: document.querySelector('input.calcpad-ui-slider').value }; });
+    const e = await (await form()).evaluate(() => { const i = document.querySelector('input.calcpad-ui-input'); const m = (i.closest('p') || i.parentElement).querySelector('.calcpad-ui-error'); return { cls: i.className, msg: m && !m.hidden ? m.textContent : '', value: i.value, slider: document.querySelector('input.calcpad-ui-slider').value }; });
     check(/calcpad-ui-invalid/.test(e.cls) && e.msg === 'must be from 2 to 12' && e.value === '20', `a typed 20 shows "must be from 2 to 12" on the input line (${JSON.stringify(e)})`);
     if (shots) await page.screenshot({ path: join(shots, 'slider-error.png') });
     t = await until('Simply supported beam check', /Mmax/);
@@ -329,11 +336,13 @@ check(m.some((x) => x[0] === 4 && /at least two options/.test(x[2])) && m.some((
 t = await until('Bad input', /Sheet syntax: input/);
 check(/Sheet syntax: input: a choice needs at least two options/.test(t) && /ok = 4 m|ok =/.test(t), 'the report shows each error in place and still runs the lines after it');
 
+const dismiss = async () => { const b = page.locator('.modal-backdrop button', { hasText: /^Don't Save$/ }); if (await b.waitFor({ timeout: 1500 }).then(() => true, () => false)) await b.click(); };
 // ---- 7. sliders in the report, the exports and the editor ----------------------------------------------------------------
 {
     const cant = readFileSync(join(web, 'calcpad-web', 'public', 'sheet-samples', 'Template cantilever tip load.sheet'), 'utf8');
     check(/L: +\? 2\.5 m \[0\.5 \.\. 6 step 0\.1\]/.test(cant) && /P: +\? 8 kN \[1 \.\. 100 step 1\]/.test(cant), 'the cantilever template has sliders for its length and its load');
     await newTab(cant);
+    await dismiss();
     await mode('Input');
     {
         const ff = await form();
@@ -343,15 +352,25 @@ check(/Sheet syntax: input: a choice needs at least two options/.test(t) && /ok 
     t = await change('Cantilever with a load at the tip', /Mmax .*= 254\.8/, async (ff) => { await ff.locator('input.calcpad-ui-slider').nth(1).focus(); await page.keyboard.press('End'); });
     check(/= 254\.8\d kN ?· ?m/.test(t), `the load slider's End key gives P = 100 kN and M = 254.8 kN.m (${t.slice(t.indexOf('Mmax'), t.indexOf('Mmax') + 60)})`);
     await mode('Report');
+    await dismiss();
     t = await until('Cantilever with a load at the tip', /Mmax/);
     check(/Mmax/.test(t), 'the report shows the sheet');
-    let any = false;
-    for (const f of page.frames()) if (f !== page.mainFrame()) any = any || await f.evaluate(() => !!document.querySelector('.calcpad-ui-slider')).catch(() => false);
-    check(!any, 'the report has no slider (it shows the number)');
+    // The report frame that is shown has the sheet and no control at all (the form's frame can still be there, behind it).
+    let shown = null;
+    for (let i = 0; i < 40 && !shown; i++) {
+        for (const f of page.frames()) {
+            if (f === page.mainFrame()) continue;
+            const r = await f.evaluate(() => (document.body?.textContent ?? '').includes('Cantilever with a load') ? [document.querySelectorAll('.calcpad-ui-slider, input.calcpad-ui-input').length, getComputedStyle(document.documentElement).visibility] : null).catch(() => null);
+            if (r && r[0] === 0) shown = r;
+        }
+        if (!shown) await page.waitForTimeout(250);
+    }
+    check(shown != null, 'the report has no slider and no box (it shows the number)');
     await mode('Preview');
     await newTab('<!--sheet-->\nL: ? 6 m [2 .. 12 step 0.5]\nbad: ? 20 m [2 .. 12]\nbad2: ? 6 m [12 .. 2]\nok: L * 2\n');
+    const myMarkers = () => page.evaluate(() => window.monaco.editor.getModelMarkers({ resource: window.calcpadActiveEditor.getModel().uri }).map((m) => [m.startLineNumber, m.severity, m.message]));
     let mk = [];
-    for (let i = 0; i < 30 && mk.filter((x) => x[1] === 8).length < 2; i++) { await page.waitForTimeout(300); mk = await markers(); }
+    for (let i = 0; i < 30 && mk.filter((x) => x[1] === 8).length < 2; i++) { await page.waitForTimeout(300); mk = await myMarkers(); }
     const lines2 = [...new Set(mk.filter((x) => x[1] === 8).map((x) => x[0]))].sort((a, b) => a - b);
     check(JSON.stringify(lines2) === '[3,4]', `a slider default outside its bounds and bounds the wrong way round are errors on their lines (${JSON.stringify(mk.filter((x) => x[1] === 8))})`);
     check(mk.some((x) => x[0] === 3 && /outside the bounds/.test(x[2])) && mk.some((x) => x[0] === 4 && /must be below/.test(x[2])), 'the messages say what is wrong');

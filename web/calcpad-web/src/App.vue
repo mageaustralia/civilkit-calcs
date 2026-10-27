@@ -2099,6 +2099,11 @@ function commitToBuffer(frameId: string, html: string): Promise<void> {
   frame.srcdoc = html
   return ready.then(() => {
     frontBuffer.value = { ...frontBuffer.value, [frameId]: slot }
+    // The back buffer is hidden while it loads and a hidden control cannot take the focus, so the frame is asked again
+    // now that it is shown (the form keeps its slider or box focused through a re-run). Not when the editor has the focus.
+    if (uiPositionSeeded.delete(frameId) && !document.activeElement?.closest('.monaco-editor')) {
+      requestAnimationFrame(() => frame.contentWindow?.postMessage({ type: 'cpdUiRestoreFocus' }, '*'))
+    }
     // The demoted buffer is only overwritten by the next render, so a large one is
     // emptied rather than left holding a second copy.
     if (demoted && demoted !== frame && html.length > BACK_BUFFER_CLEAR_CHARS) demoted.srcdoc = ''
@@ -2504,8 +2509,12 @@ function injectUiPosition(html: string, frameId: string): string {
   uiPositionByFrame.delete(frameId)
   // The state carries a key from the document, so close any tag it could open.
   const json = JSON.stringify(state).replace(/</g, '\\u003c')
+  uiPositionSeeded.add(frameId)
   return insertHeadScript(html, 'window.__calcpadUiPosition = ' + json + ';')
 }
+
+/** The frames whose page was just seeded with a focus position: told to take it once they are the front buffer. */
+const uiPositionSeeded = new Set<string>()
 
 function insertHeadScript(html: string, body: string): string {
   const script = '<' + 'script>' + body + '</' + 'script>'
