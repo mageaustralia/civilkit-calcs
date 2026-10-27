@@ -1263,3 +1263,46 @@ fn units_in_inputs_take_the_usual_unicode_spellings() {
         assert!(got[0].starts_with('5'), "{written}: {got:?}");
     }
 }
+
+#[test]
+fn saved_values_round_trip_through_the_sheet() {
+    // What Save values writes: the comment directly under the marker. Reopening reads it back.
+    let original = sample("Template simply supported beam");
+    let saved = serde_json::json!({ "uiOverrides": { "L:1": "8", "mat:1": "3", "sw:1": "0" } });
+    let comment = format!("'<!--{saved}-->");
+    let (marker, rest) = original.split_once('\n').unwrap();
+    assert_eq!(marker.trim(), "<!--sheet-->");
+    let reopened = format!("{marker}\n{comment}\n{rest}");
+
+    assert!(is_sheet(&reopened));
+    let before = compile(&original);
+    let c = compile(&reopened);
+    assert!(c.diagnostics.iter().all(|d| d.severity != Severity::Error), "{:?}", c.diagnostics);
+    assert_eq!(c.text.lines().next(), Some(comment.as_str()));
+    // Every input is still an input, in the same place after the comment line.
+    let ui = |t: &str| t.lines().filter(|l| l.starts_with("#UI")).map(String::from).collect::<Vec<_>>();
+    assert_eq!(ui(&c.text), ui(&before.text));
+    assert_eq!(c.text.lines().skip(1).collect::<Vec<_>>(), before.text.lines().collect::<Vec<_>>());
+
+    // The page reads the overrides from the comment and sends them with the request.
+    let line = c.text.lines().next().unwrap();
+    let json = line.trim_start_matches("'<!--").trim_end_matches("-->");
+    let read: Value = serde_json::from_str(json).unwrap();
+    assert_eq!(read, saved);
+    let req = serde_json::json!({ "content": c.text, "enableUi": true, "uiOverrides": read["uiOverrides"] });
+    let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+    assert!(v["errors"].as_array().unwrap().is_empty(), "{:?}", v["errors"]);
+    let html = v["html"].as_str().unwrap();
+    // The form shows the saved values: the entry holds 8, Timber is chosen, own weight is unchecked.
+    assert!(html.contains("value=\"8\""), "entry shows 8");
+    assert!(html.contains("<option value=\"3\" selected>Timber"), "Timber is chosen");
+    let boxes: Vec<&str> = html.split('<').filter(|l| l.starts_with("input") && l.contains("type=\"checkbox\"")).collect();
+    assert_eq!(boxes.len(), 1, "{boxes:?}");
+    assert!(!boxes[0].contains(" checked"), "own weight is off: {boxes:?}");
+    let t = text(html);
+    assert!(t.contains("The material is timber."), "{t}");
+    // Saving again replaces the comment, it does not stack a second one.
+    let again = format!("{marker}\n'<!--{}-->\n{rest}", serde_json::json!({ "uiOverrides": { "L:1": "9" } }));
+    let c2 = compile(&again);
+    assert_eq!(c2.text.lines().filter(|l| l.starts_with("'<!--{")).count(), 1);
+}
