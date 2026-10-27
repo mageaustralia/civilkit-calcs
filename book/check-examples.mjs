@@ -36,7 +36,7 @@ function walk(dir) {
         return statSync(p).isDirectory() ? walk(p) : p.endsWith('.md') ? [p] : [];
     });
 }
-const mds = files.length ? files : walk(join(here, 'src')).concat(walk(join(here, 'videos')));
+const mds = files.length ? files.flatMap((f) => (statSync(f).isDirectory() ? walk(f) : [f])) : walk(join(here, 'src')).concat(walk(join(here, 'videos')));
 
 const tmp = mkdtempSync(join(tmpdir(), 'book-check-'));
 // The page draws plots as SVG; the Cli needs to be told to (it has no raster plots).
