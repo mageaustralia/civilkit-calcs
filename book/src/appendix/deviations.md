@@ -14,6 +14,7 @@ page is a summary for users.
 | C-style operators | The desktop app converts `==`, `!=`, `>=`, `<=`, `%%`, `&&`, `\|\|`, `<<`, `<*` when it reads a file. | The browser does the same when it opens a worksheet. |
 | Input fields | Many examples use the old `name = ? {default}` form. | The bundled samples are rewritten with `#UI`, and the editor offers a "Convert to #UI" quick fix. |
 | Select, radio and checkbox | A select or radio that names a text box does nothing in the web front end. | It fills the text boxes it names and recalculates; the choice is carried into the Report, PDF and Word. |
+| Radio and drop-down defaults | A radio group or drop-down marks its default by comparing text, so a default with a divided unit such as `25kN/m` finds no option and opens with nothing chosen (a drop-down shows its first label). | The default is found by value: the division sign, middle dot, raised digits and `^` are compared as plain marks, and `1.0` equals `1`. |
 | Nested blocks | A loop nested in an expression block cannot update the enclosing block's variable. | It can. |
 | Units in arrays | A vector or matrix writes the unit on every element. | It writes the unit once after the bracket (`[16; 12] ft`). `#settings {"unitPerElement": true}` restores the old display. |
 | Markdown tables in Word | A table without the `bordered` class has no rules. | A Markdown pipe table is ruled. |

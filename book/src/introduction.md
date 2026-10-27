@@ -67,7 +67,7 @@ editor support and the sample worksheets all come from that work. See
 
 Every `sheet` and `cpd` example in this guide was run through the real engine when the guide was
 built (`book/check-examples.sh`). The results shown beside them are what the engine printed, with
-the default setting of two decimals. The five template sheets quoted in [Templates with
+the default setting of two decimals. The seven template sheets quoted in [Templates with
 inputs](templates.md) are checked to be identical to the samples the app ships. The Python examples
 and the input forms need the browser: they are run in the built app (`book/check-python.mjs`),
 which also counts the controls each form draws.

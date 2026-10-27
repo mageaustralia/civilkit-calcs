@@ -152,7 +152,7 @@ price = 200 AUD = 130 USD
 ```
 
 Two families of dimensionless custom units in one sheet share a dimension, so do not mix them.
-A built-in unit cannot be redefined: `.kip = 4448 N` is an error because `kip` exists.
+A built-in unit cannot be redefined: `.kip = 4448 N` (in a worksheet, or after `>>` in a sheet) is an error because `kip` exists.
 
 ## Units and names
 

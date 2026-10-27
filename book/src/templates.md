@@ -82,7 +82,7 @@ if mat == 2: "The material is aluminium."
 
 A new material is then one more option and one more entry in each table. The report shows the
 number a choice stands for (`mat = 3`), so a line such as `if mat == 3: "The material is timber."`
-tells the reader what it means. All five sample templates do this.
+tells the reader what it means. Most of the sample templates do this.
 
 ## Grouping the inputs as a form
 
@@ -155,10 +155,10 @@ is not used any more. Delete the comment line to go back to the defaults.
 
 Workarounds for behaviour that is to be fixed. This is the only list of them on this page.
 
-* **A choice whose values have a divided unit** (`kN/m`, `m/s`): the drop-down or the radio buttons
-  can open showing the wrong option, or none, although the calculation uses the option marked `*`
-  (or the first). The numbers are right and the control does not show it. Write the values as plain
-  numbers and look the quantity up in a table, as the templates do.
+* **No two options may have the same value.** `(Low = 1 m, High = 1 m)` is an error on its line,
+  because the form could not tell which option is chosen. Give each option its own value.
+* **A name cannot contain a dot.** A dot is the index operator (`E_tab.mat`), so `a.b: ? 5` is
+  not an input.
 
 ## Worked template 1: a simply supported beam
 
@@ -651,6 +651,226 @@ At the defaults (2.5 m, 8 kN, 100 mm by 200 mm, steel, L/90, own weight on) the 
 fixed end is 24.81 kN·m, the shear 11.85 kN, the bending stress 37.22 MPa (0.226) and the tip
 deflection 3.69 mm against a 27.78 mm limit (0.133). Both checks pass. Choose timber and the stress
 is 30.46 MPa against 12 MPa (2.54) and the tip deflection 57.47 mm (2.07): both fail.
+
+## Worked template 6: a retaining wall
+
+The sixth sample, **Template: retaining wall stability**, checks a cantilever retaining wall (a stem
+on a base slab, one metre of wall) for overturning, sliding and bearing pressure under the base.
+Its inputs are the geometry, a surcharge on the fill, and the backfill:
+
+```sheet
+## Inputs
+H_s:   ? 3 m | height of the stem above the base slab
+B:     ? 2.4 m | width of the base slab
+t_b:   ? 0.4 m | thickness of the base slab
+t_s:   ? 0.4 m | thickness of the stem
+L_t:   ? 0.6 m | length of the toe, in front of the stem
+soil:  ? (Loose sand = 28 °, *Medium sand = 32 °, Dense sand = 36 °) | backfill, friction angle
+q_s:   ? 10 kPa | surcharge on the fill, when it is on
+sur:   ? off | surcharge on the fill
+```
+
+Two things are new here. The radio group `soil` chooses a **friction angle** directly: its values
+are angles (`28 °`), and a later line uses the chosen angle as a quantity (`phi: soil`). The
+values carry the degree sign, which an input accepts like any other unit. The checkbox `sur` is
+used as a multiplier, `q: sur * q_s`: ticked it is 1 and the surcharge counts, unticked it is 0.
+
+<details>
+<summary>The whole sheet</summary>
+
+<!-- sample: Template retaining wall stability.sheet -->
+<!-- expect: FS _o = M _r M _o = 179.21 kN · m 36.23 kN · m = 4.95 | Overturning: OK. | FS _s = R _h P _h = 49.77 kN 31.97 kN = 1.56 | Sliding: OK. | The resultant is inside the middle third -->
+```sheet
+<!--sheet-->
+# Retaining wall: sliding and overturning
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. A cantilever
+retaining wall of concrete (a stem on a base slab) holds back a level fill; the sheet takes a strip of wall one metre long.
+The active earth pressure is $K_a = \tan^2(45^\circ - \phi/2)$, acting on the vertical plane through
+the heel, so the thrust is $P_a = \tfrac12 K_a \gamma H^2$ at $H/3$ above the underside of the base. A
+surcharge $q$ on the fill adds $K_a q H$ at $H/2$ and its weight on the heel. The wall slides on a
+base friction of $\tan(2\phi/3)$, and overturns about the toe. The soil in front of the toe is ignored.
+
+## Inputs
+H_s:   ? 3 m | height of the stem above the base slab
+B:     ? 2.4 m | width of the base slab
+t_b:   ? 0.4 m | thickness of the base slab
+t_s:   ? 0.4 m | thickness of the stem
+L_t:   ? 0.6 m | length of the toe, in front of the stem
+soil:  ? (Loose sand = 28 °, *Medium sand = 32 °, Dense sand = 36 °) | backfill, friction angle
+q_s:   ? 10 kPa | surcharge on the fill, when it is on
+sur:   ? off | surcharge on the fill
+
+## Constants
+gamma_c: 24 kN/m^3 | unit weight of concrete
+gamma_s: 18 kN/m^3 | unit weight of the fill
+b_w:     1 m | length of wall in the strip
+FS_min:  1.5 | required factor of safety, for sliding and for overturning
+
+## Geometry
+phi: soil | friction angle of the fill
+H:   H_s + t_b -> m | height of the thrust plane, above the underside of the base
+L_h: B - L_t - t_s -> m | length of the heel, behind the stem
+q:   sur * q_s -> kPa | surcharge in use
+
+## Earth pressure
+K_a: tan(45 ° - phi / 2)^2 | active pressure coefficient
+P_s: K_a * gamma_s * H^2 / 2 * b_w -> kN | thrust of the fill
+P_q: K_a * q * H * b_w -> kN | thrust of the surcharge
+P_h: P_s + P_q -> kN | total horizontal thrust
+
+## Weights and their lever arms about the toe
+W_stem: gamma_c * t_s * H_s * b_w -> kN | stem
+x_stem: L_t + t_s / 2 -> m | its lever arm
+W_base: gamma_c * B * t_b * b_w -> kN | base slab
+x_base: B / 2 -> m | its lever arm
+W_fill: gamma_s * L_h * H_s * b_w -> kN | fill on the heel
+W_sur:  q * L_h * b_w -> kN | surcharge on the heel
+x_heel: B - L_h / 2 -> m | lever arm of the fill and the surcharge
+W: W_stem + W_base + W_fill + W_sur -> kN | total vertical load
+
+## Overturning
+M_o: P_s * H / 3 + P_q * H / 2 -> kN*m | overturning moment about the toe
+M_r: W_stem * x_stem + W_base * x_base + (W_fill + W_sur) * x_heel -> kN*m | resisting moment about the toe
+FS_o: M_r / M_o | factor of safety against overturning
+if FS_o >= FS_min: "Overturning: OK." else: "Overturning: the factor of safety is too low, widen the base."
+
+## Sliding
+mu:   tan(2 * phi / 3) | friction coefficient of the base on the ground
+R_h:  mu * W -> kN | sliding resistance
+FS_s: R_h / P_h | factor of safety against sliding
+if FS_s >= FS_min: "Sliding: OK." else: "Sliding: the factor of safety is too low, widen the base or make it thicker."
+
+## Bearing pressure under the base
+x_r: (M_r - M_o) / W -> m | where the resultant crosses the base, from the toe
+e:   B / 2 - x_r -> m | eccentricity from the middle of the base
+q_max: W / (B * b_w) * (1 + 6 * e / B) -> kPa | pressure at the toe
+q_min: W / (B * b_w) * (1 - 6 * e / B) -> kPa | pressure at the heel
+if abs(e) <= B / 6: "The resultant is inside the middle third: the whole base is in compression." else: "The resultant is outside the middle third: part of the base lifts off, and the pressures above no longer apply."
+```
+
+</details>
+
+At the defaults (medium sand, no surcharge) the horizontal thrust is 31.97 kN and the vertical
+load 127.44 kN:
+
+| Quantity | Result |
+| --- | --- |
+| Active pressure coefficient `K_a` | 0.307 |
+| Overturning moment, resisting moment | 36.23 kN·m, 179.21 kN·m |
+| Factor of safety against overturning `FS_o` | 4.95: "Overturning: OK." |
+| Sliding resistance, friction coefficient `mu` | 49.77 kN, 0.391 |
+| Factor of safety against sliding `FS_s` | 1.56: "Sliding: OK." |
+| Pressure at the toe, at the heel | 63.46 kPa, 42.74 kPa |
+| Message | The resultant is inside the middle third. |
+
+| Change | Result |
+| --- | --- |
+| Surcharge ticked | `FS_o` 3.76, `FS_s` 1.3: "Sliding: the factor of safety is too low, widen the base or make it thicker." |
+| Loose sand | `FS_o` 4.21, `FS_s` 1.15: sliding fails. |
+| Dense sand | `FS_o` 5.85, `FS_s` 2.1. Both pass. |
+| Base 3 m wide | `FS_o` 7.79, `FS_s` 2.02. Both pass. |
+
+## Worked template 7: a pump and pipeline operating point
+
+The seventh sample, **Template: pump operating point**, finds where a pump works. A pump lifts
+water through a pipeline to a higher tank. The pump gives less head as the flow grows, the
+pipeline needs more, and the pump runs where the two curves cross. The inputs are a choice of
+three pumps (radio buttons), the pipe diameter (a drop-down whose values are lengths), the pipe
+length, the static lift, and a checkbox for an aged, rougher pipe:
+
+```sheet
+## Inputs
+pump: ? (Small = 1, *Medium = 2, Large = 3) | pump
+D:    ? [100 mm = 100 mm, *150 mm = 150 mm, 200 mm = 200 mm] | pipe inside diameter
+L_p:  ? 400 m | pipe length
+H_st: ? 15 m | static lift, from the water surface to the tank
+aged: ? off | aged pipe (rougher: the friction factor is 0.030, not 0.018)
+```
+
+The pump is an index into two tables (`H0_tab`, `Qmax_tab`), as in the first template. What is new
+is the output. The sheet solves the crossing in closed form, tabulates both curves with a vector
+of flows and `augment`, and draws them with `plot`, so the form changes the numbers, the table and
+the chart together.
+
+<details>
+<summary>The whole sheet</summary>
+
+<!-- sample: Template pump operating point.sheet -->
+<!-- expect: The pump is the medium one. | Q _op = &emsp;&thinsp; max ( H _net; 0 m ) K + H _0 Q _max^2 = &emsp;&thinsp; max ( 25 m ; 0 m ) 7834.25 s 2 ∕ m 5 + 40 m ( 75 L ∕ s ) ^2 = 40.9 L ∕ s | H _op = H _0 · ( 1 − ( Q _op Q _max ) 2 ) = 40 m · ( 1 − ( 40.9 L ∕ s 75 L ∕ s ) 2 ) = 28.1 m | The velocity is within 3 m/s. -->
+```sheet
+<!--sheet-->
+# Pump and pipeline: operating point
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. A pump lifts water
+through a pipeline to a higher tank. The pump delivers the head $H_p = H_0 \left(1 - (Q/Q_{max})^2\right)$
+at the flow $Q$ (a shut-off head $H_0$ and a free delivery $Q_{max}$). The pipeline needs the head
+$H_s = H_{st} + f \frac{L}{D}\frac{v^2}{2g}$, the static lift plus the friction loss with a constant friction
+factor $f$. The pump runs where the two curves cross. The table and the plot follow the form.
+
+## Inputs
+pump: ? (Small = 1, *Medium = 2, Large = 3) | pump
+D:    ? [100 mm = 100 mm, *150 mm = 150 mm, 200 mm = 200 mm] | pipe inside diameter
+L_p:  ? 400 m | pipe length
+H_st: ? 15 m | static lift, from the water surface to the tank
+aged: ? off | aged pipe (rougher: the friction factor is 0.030, not 0.018)
+
+## Pump curves
+The input above picks one entry of each list.
+
+H0_tab:   [30 m, 40 m, 50 m] | shut-off head
+Qmax_tab: [60 L/s, 75 L/s, 90 L/s] | free delivery
+H_0:   H0_tab.pump -> m
+Q_max: Qmax_tab.pump -> L/s
+if pump == 1: "The pump is the small one."
+if pump == 2: "The pump is the medium one."
+if pump == 3: "The pump is the large one."
+
+## Pipeline
+g_acc: 9.81 m/s^2 | gravitational acceleration
+f: 0.018 + aged * 0.012 | friction factor
+A: pi * D^2 / 4 -> m^2 | flow area
+K: f * L_p / D / (2 * g_acc * A^2) -> s^2/m^5 | friction head per flow squared
+
+## Operating point
+The two curves cross where $H_0 - H_0 Q^2/Q_{max}^2 = H_{st} + K Q^2$, so
+$Q^2 = (H_0 - H_{st}) / (K + H_0/Q_{max}^2)$.
+
+H_net: H_0 - H_st -> m | head the pump has above the static lift
+if H_net <= 0 m: "The pump cannot lift the water to the tank: choose a larger pump or lower the static lift."
+Q_op: sqrt(max(H_net, 0 m) / (K + H_0 / Q_max^2)) -> L/s | flow at the operating point
+H_op: H_0 * (1 - (Q_op / Q_max)^2) -> m | head at the operating point
+v:    Q_op / A -> m/s | velocity in the pipe
+if v > 3 m/s: "The velocity is above 3 m/s: expect noise and wear, use a larger pipe." else: "The velocity is within 3 m/s."
+
+## Table
+Q_v:  [0, 10, 20, 30, 40, 50, 60] * 1 L/s | flows in the table
+H_pv: H_0 * (1 - (Q_v / Q_max)^2) -> m | pump head
+H_sv: H_st + K * Q_v^2 -> m | head the pipeline needs
+T: augment(Q_v / (1 L/s), H_pv / (1 m), H_sv / (1 m)) | columns: flow in L/s, pump head in m, pipeline head in m
+
+## Curves
+H_p(Q): H_0 * (1 - (Q / Q_max)^2) -> m | pump head at the flow Q
+H_s(Q): H_st + K * Q^2 -> m | pipeline head at the flow Q
+
+plot H_p(x * 1 L/s) / (1 m), H_s(x * 1 L/s) / (1 m) for x in 0..60
+```
+
+</details>
+
+At the defaults (medium pump, 150 mm, 400 m, 15 m lift, new pipe) the pump runs at 40.9 L/s and
+28.1 m of head, with 2.31 m/s in the pipe. The table has seven rows, from 0 to 60 L/s: at 40 L/s
+the pump gives 28.62 m and the pipeline needs 27.53 m, and at 50 L/s the pump gives 22.22 m
+against 34.59 m, so the crossing lies between them.
+
+| Change | Result |
+| --- | --- |
+| Small pump | 30.46 L/s at 22.27 m |
+| Large pump | 49.99 L/s at 34.58 m, 2.83 m/s |
+| Aged pipe | 35.21 L/s at 31.19 m |
+| Diameter 100 mm | 19.37 L/s at 37.33 m, 2.47 m/s |
+| Static lift 35 m | 18.29 L/s at 37.62 m |
+| Small pump and static lift 35 m | "The pump cannot lift the water to the tank: choose a larger pump or lower the static lift." The flow is 0. |
 
 ## Share a template
 

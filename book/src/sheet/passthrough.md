@@ -33,7 +33,7 @@ Sheet lines and raw lines share one worksheet, so they alternate freely: a raw b
 variables defined by sheet lines above it and defines variables that sheet lines below it use.
 Prose, quantities, formulas and raw Calcpad can come in any order. To make that work without
 remembering renames, an identifier in a raw line that the sheet defines is spelled the way the
-sheet spells it (`phi` in a raw line is `φ`). Text after a `'` or `"` in a raw line is left alone.
+sheet spells it (`phi` in a raw line is `φ`). That includes the name that a `>> #UI` line assigns. Text after a `'` or `"` in a raw line is left alone.
 
 A raw block inside a sheet block keeps the block's indentation rules like any other line.
 

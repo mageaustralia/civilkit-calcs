@@ -8,7 +8,7 @@ Click the line number in the report to jump to the source.
 
 | Message | Cause and fix |
 | --- | --- |
-| `Undefined variable or units: "x"` | The name is not defined above this line, or it is misspelled, or a unit is misspelled. Names are case sensitive. A sheet renames some names (`phi` is `φ`); a `>>` line must use the spelling the sheet shows. |
+| `Undefined variable or units: "x"` | The name is not defined above this line, or it is misspelled, or a unit is misspelled. Names are case sensitive. A sheet renames some names (`phi` is `φ`); a `>>` line may use either spelling. |
 | `Inconsistent units: "m + s"` | You added or compared quantities of different dimensions. Fix the formula. |
 | `Invalid units: "maximum"` (or `Invalid symbol: "#"` on a heading) | The text is being read as a Calcpad worksheet, not as a sheet, so `\|` means a unit conversion and `#` a directive. The `<!--sheet-->` marker is missing from the first line. Put it back. |
 | `Cannot rewrite existing units: kip` | A custom unit (`.kip = ...`) has the name of a built-in unit. Choose another name. |
@@ -35,10 +35,10 @@ Click the line number in the report to jump to the source.
   file is not `<!--sheet-->`. Older versions wrote the comment of **Save values** above that line;
   the current one writes it under the marker. Delete the stray first line, or put the marker back
   as the first line. See [Templates](templates.md#saving-the-values).
-* **A radio group or drop-down opens showing the wrong option, or none.** The values of its options
-  have a divided unit (`kN/m`). The calculation still uses the default. Use plain numbers for the
-  values and put the rest of the unit in the sheet line. See the known limits in
-  [Templates](templates.md#known-limits).
+* **A drop-down opens showing the wrong option.** In a raw `>> #UI` line the default matches none of
+  the `values`, so the first label is shown while the calculation uses the default. Make the
+  default one of the values. A `?` line cannot do this. See the known limits in
+  [Input forms with #UI](calcpad/ui-inputs.md#known-limits).
 * **My saved values are not used.** A saved value belongs to the input's name. If the input was
   renamed, the old value is ignored. Preview always shows the defaults; use Input or Report.
 

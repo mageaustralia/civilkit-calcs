@@ -39,8 +39,8 @@ In Preview and in a report this line shows as a plain line (`Span, L = 6 m`). In
 
 ## A sheet with `#UI` lines
 
-The beam check as a sheet whose inputs are `#UI` lines. The names `f_y`, `Z_e` and `cf` need no renaming,
-which matters (see the known limits below).
+The beam check as a sheet whose inputs are `#UI` lines. Names such as `phi` or `Delta_T` work in a `#UI` line as in any other line (the first is shown as
+`φ`). A dotted name does not: a dot is the index operator.
 
 <!-- expect: Span, L = 6 m | M _star = w · L ^2 8 = 12 kN ∕ m · ( 6 m ) ^2 8 = 54 kN · m | = 0.163 | OK: the section passes. -->
 ```sheet
@@ -204,16 +204,13 @@ listing the variables set by input fields.
 
 Workarounds for behaviour that is to be fixed. This is the only list of them on this page.
 
-* **Names in a `>> #UI` line of a sheet are not renamed.** A sheet spells `phi` as `φ` in its own
-  lines, but not inside a `>>` line. If the `#UI` line says `phi` and a sheet line says `phi`, the
-  sheet line asks for `φ` and reports `Undefined variable: φ`. Write the spelled name in the
-  `#UI` line (`φ`, `M_star`, `σ_c`, `Δ_T`), or choose names that need no renaming (`f_y`, `Z_e`,
-  `L`, `cf`). A `?` line has no such problem.
-* **Superscript units and exponent notation in a `#UI` line.** `1230000mm³` is an error there
-  (`Error parsing "cm³" as units`), and so is `1.23e6`. Write `1230000mm^3`.
-* **A choice must match its default.** The default of a drop-down or radio group should be one of
-  its `values`, written the same way. A default that matches none still shows the first label while
-  the calculation keeps using the default, so the control and the numbers disagree. A value with a
-  divided unit such as `25kN/m` is not matched even when it is the same, so a radio group opens with
-  nothing chosen. Keep the values plain numbers (`25`, `200GPa`, `78.5kN`) and put the rest of the
-  unit in the sheet line.
+* **Superscript units and exponent notation in a `#UI` line.** The engine's own `#UI` line takes
+  only the `^` and `*` spellings. `1230000mm³` is an error there (`Error parsing "mm³" as
+  units`), and so is `1.23e6`. Write `1230000mm^3`. A `?` line has no such limit: it takes `mm³`,
+  `kN·m`, `N/mm²`, `°` and `%`, and writes the engine's spelling for you.
+* **A default should be one of the options.** In a raw line the default of a drop-down or radio
+  group should be one of its `values`. A default that matches none still shows the first label
+  while the calculation keeps using the default, so the control and the numbers disagree. (The
+  `?` form cannot do this: its default is always one of the options.) A match is by value, so a
+  default such as `25kN/m` finds the option written `25 kN/m`.
+* **Two options cannot have the same value** in a `?` line. It is an error on that line.

@@ -9,7 +9,7 @@
 
 1. Open the app in a fresh browser profile and close the welcome tab. Keep the sheet empty: the
    template comes from the Samples browser, so there is nothing to paste.
-2. Open File, Samples, and open the **Templates** group once to know where it is. It holds five
+2. Open File, Samples, and open the **Templates** group once to know where it is. It holds seven
    samples, each tagged "input form". The one to use is **Template: simply supported beam check**.
 3. Know the buttons. After **Input** is pressed, the results bar shows Preview, Unwrapped, Input,
    Report, then **Report**, **Print PDF** and **Exit input mode**. **Save values** appears after the
@@ -21,7 +21,7 @@
 
 | Time | On screen | Type or do | Narration |
 | --- | --- | --- | --- |
-| 0:00 to 0:10 | File menu, Samples. The browser lists its groups. Click **Templates**: five samples, each with an "input form" tag. Caption: "A calculation you fill in". | Open Samples, click the Templates group. | S1 |
+| 0:00 to 0:10 | File menu, Samples. The browser lists its groups. Click **Templates**: seven samples, each with an "input form" tag. Caption: "A calculation you fill in". | Open Samples, click the Templates group. | S1 |
 | 0:10 to 0:18 | Double-click **Template: simply supported beam check**. It opens as a finished beam check in Preview, with a moment diagram at the bottom. | Double-click the sample. | S2 |
 | 0:18 to 0:30 | Click **Input** in the results bar. The Inputs block turns into six controls: two yellow boxes with their units, two lists, three radio buttons and a check box. Caption on the bar at the left: "Inputs". | Click Input. | S3 |
 | 0:30 to 0:50 | Click the span box. Type nine, Enter. The moment becomes one hundred and twenty-six kilonewton metres and both messages turn to the failing text. Open the section list and choose the four hundred millimetre section. The utilisations fall to about a half and both messages read OK. | Edit the box, choose from the list. | S4 |
