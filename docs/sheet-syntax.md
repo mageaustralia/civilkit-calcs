@@ -228,6 +228,10 @@ snippets), and these work on names:
 
 ## Ribbon and the Insert tab
 
+Between the rendered blocks in the preview, a small **+** (a tab on the left edge on touch screens) opens a menu to insert a
+block there: Math line, Text, Heading, List, Table, Plot, Condition or Python. The new block goes in front of the
+next block's source line, indented like it, and its first word is left selected in the editor.
+
 In a sheet the ribbon and the sidebar's Insert tab insert the sheet form: Heading is
 `## Heading`, Text is a prose line, Table is a pipe table, Plot is a `plot` line, the
 conditions and loops are the indented blocks, and the Text Formatting tab writes Markdown

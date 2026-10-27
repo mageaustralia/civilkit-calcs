@@ -522,6 +522,15 @@
       </div>
     </div>
 
+    <!-- The "+" between rendered blocks. -->
+    <template v-if="insertMenu">
+      <div class="insert-backdrop" @mousedown="closeInsertMenu" @touchstart.passive="closeInsertMenu"></div>
+      <div class="insert-menu" role="menu" aria-label="Insert a block" :style="{ left: insertMenu.x + 'px', top: insertMenu.y + 'px' }" @keydown="onInsertMenuKey">
+        <button v-for="b in INSERT_BLOCKS" :key="b.id" type="button" role="menuitem" :title="b.title" @click="runInsert(b)">
+          <span class="insert-glyph" aria-hidden="true">{{ b.glyph }}</span>{{ b.label }}
+        </button>
+      </div>
+    </template>
     <!-- Double-click on prose written as Markdown (#md on): rich-text editing of that block. -->
     <div
       v-if="mdEdit"
@@ -1048,10 +1057,15 @@ const onLineEditRequest = ref<{
   block?: (groupId: string, line: number) => Promise<MdBlock | null>
   /** Replaces source lines `from`..`to` (1-based, inclusive) with `text` lines. */
   replace?: (groupId: string, from: number, to: number, text: string[]) => void
+  /** Whether the group's editor holds a sheet (the "+" between blocks only inserts sheet text). */
+  isSheet?: (groupId: string) => boolean
+  /** Inserts a block before source line `before` (0 appends); returns false if it could not. */
+  insertBlock?: (groupId: string, before: number, block: InsertBlock) => boolean
 } | null>(null)
 
 // Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
 import MathKeyboard from './editor/MathKeyboard.vue'
+import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
@@ -1223,6 +1237,38 @@ function applyLineEdit(): void {
   lineEdit.value = null
   // One source line stays one line, so the numbers the preview carries remain right.
   onLineEditRequest.value?.apply(st.groupId, st.line, st.text.replace(/\r?\n/g, ' '))
+}
+
+// The "+" between rendered blocks: a small menu of blocks to insert at that spot.
+interface InsertMenuState { x: number; y: number; groupId: string; before: number }
+const insertMenu = ref<InsertMenuState | null>(null)
+function openInsertMenu(groupId: string, frameId: string, data: Record<string, unknown>): void {
+  const before = Number(data.line)
+  const iframe = frontFrame(frameId)
+  if (!iframe || !Number.isInteger(before) || before < 0) return
+  const r = (data.rect ?? {}) as Record<string, unknown>
+  const box = iframe.getBoundingClientRect()
+  const w = 220, h = INSERT_BLOCKS.length * 40 + 12
+  const x = Math.max(8, Math.min(box.left + (Number(r.left) || 0), window.innerWidth - w - 8))
+  const below = box.top + (Number(r.top) || 0) + (Number(r.height) || 0) + 4
+  const y = below + h > window.innerHeight - 8 ? Math.max(8, box.top + (Number(r.top) || 0) - h - 4) : below
+  closeLineEdit()
+  insertMenu.value = { x, y, groupId, before }
+  void nextTick(() => document.querySelector<HTMLElement>('.insert-menu button')?.focus())
+}
+function closeInsertMenu(): void { insertMenu.value = null }
+function runInsert(block: InsertBlock): void {
+  const m = insertMenu.value
+  insertMenu.value = null
+  if (m) onLineEditRequest.value?.insertBlock?.(m.groupId, m.before, block)
+}
+function onInsertMenuKey(e: KeyboardEvent): void {
+  if (e.key === 'Escape') { e.preventDefault(); closeInsertMenu(); return }
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+  const items = Array.from(document.querySelectorAll<HTMLElement>('.insert-menu button'))
+  const i = items.indexOf(document.activeElement as HTMLElement)
+  e.preventDefault()
+  items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus()
 }
 
 async function openLineEdit(groupId: string, frameId: string, data: Record<string, unknown>): Promise<void> {
@@ -1648,6 +1694,10 @@ function onPreviewWindowMessage(e: MessageEvent): void {
     void openLineEdit(groupId, frameId, data)
     return
   }
+  if (data.type === 'insertAt') {
+    openInsertMenu(groupId, frameId, data)
+    return
+  }
   if (data.type === 'editAnchor') {
     onEditAnchor(frameId, data)
     return
@@ -2033,7 +2083,7 @@ function setPreviewHtml(groupId: string, html: string, scrollToLine?: number, do
   // An explicit line target outranks restoring the old position.
   const seed = scrollToLine === undefined ? scrollByFrameDoc.get(scrollKey(groupId, docKey)) : undefined
   let out = injectPreviewAgent(
-    injectLineLinks(html, scrollToLine, groupId, undefined, !isUi),
+    injectLineLinks(html, scrollToLine, groupId, undefined, !isUi, !isUi && !!onLineEditRequest.value?.isSheet?.(groupId)),
     groupId,
     !!onClipboardReadRequest.value,
     seed,
@@ -2095,6 +2145,7 @@ function injectLineLinks(
   groupId: string,
   frameId: string = groupId,
   lineLinks: boolean = true,
+  insertStrip: boolean = false,
 ): string {
   const scrollTarget = typeof scrollToLine === 'number' ? String(scrollToLine) : 'null'
   const gid = JSON.stringify(groupId)
@@ -2162,6 +2213,67 @@ function injectLineLinks(
     "  }",
     "  document.addEventListener('click', onLinkActivate);",
     "  document.addEventListener('auxclick', onLinkActivate);",
+    ...(insertStrip ? [
+    // A "+" in the margin between rendered blocks, to insert a new block there (the host shows the menu).
+    "  (function() {",
+    "    var css = '.ck-ins-layer{position:absolute;left:0;top:0;width:100%;height:0;z-index:5;pointer-events:none}'",
+    "      + '.ck-ins{position:absolute;left:0;right:0;height:0}'",
+    "      + '.ck-ins-btn{pointer-events:auto;position:absolute;left:1px;top:-10px;width:20px;height:20px;padding:0;border-radius:50%;border:1px solid currentColor;background:Canvas;color:CanvasText;font:600 15px/17px system-ui,sans-serif;cursor:pointer;opacity:.3;transition:opacity .12s}'",
+    "      + '.ck-ins-line{position:absolute;left:28px;right:10px;top:0;border-top:1px dashed currentColor;opacity:0;pointer-events:none;transition:opacity .12s}'",
+    "      + '.ck-ins-btn:hover,.ck-ins-btn:focus-visible{opacity:1;outline:2px solid #3b82f6;outline-offset:1px}'",
+    "      + '.ck-ins-btn:hover+.ck-ins-line,.ck-ins-btn:focus-visible+.ck-ins-line{opacity:.45}'",
+    "      + '@media (hover:none){.ck-ins-btn{opacity:.45;left:0;width:16px;height:26px;top:-13px;border-left:0;border-radius:0 13px 13px 0;font-size:14px;line-height:22px}.ck-ins-btn::before{content:\"\";position:absolute;top:-10px;bottom:-10px;left:0;right:-12px}.ck-ins-line{left:24px}}'",
+    "      + '@media print{.ck-ins-layer{display:none}}';",
+    "    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);",
+    "    var layer = document.createElement('div'); layer.className = 'ck-ins-layer'; document.body.appendChild(layer);",
+    "    function blocks() {",
+    "      var all = document.querySelectorAll('[data-source-line]'), out = [];",
+    "      for (var i = 0; i < all.length; i++) {",
+    "        var el = all[i];",
+    "        if (el.parentElement && el.parentElement.closest('[data-source-line]')) continue;",
+    "        var cs = getComputedStyle(el);",
+    "        if (cs.display === 'inline' || cs.display === 'none') continue;",
+    "        var r = el.getBoundingClientRect();",
+    "        var n = parseInt(el.getAttribute('data-source-line'), 10);",
+    "        if (!r.height || isNaN(n)) continue;",
+    "        out.push({ line: n, top: r.top + window.pageYOffset, bottom: r.bottom + window.pageYOffset });",
+    "      }",
+    "      return out;",
+    "    }",
+    "    function add(y, line) {",
+    "      var g = document.createElement('div'); g.className = 'ck-ins'; g.style.top = Math.max(14, y) + 'px';",
+    "      var b = document.createElement('button'); b.type = 'button'; b.className = 'ck-ins-btn'; b.textContent = '+';",
+    "      b.title = 'Insert a block here'; b.setAttribute('aria-label', 'Insert a block here');",
+    "      b.addEventListener('click', function(e) {",
+    "        e.preventDefault(); e.stopPropagation();",
+    "        var r = b.getBoundingClientRect();",
+    "        try { window.parent.postMessage({ type: 'insertAt', line: line, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, groupId: FRAME_ID }, '*'); } catch (_e) {}",
+    "      });",
+    "      var l = document.createElement('div'); l.className = 'ck-ins-line';",
+    "      g.appendChild(b); g.appendChild(l); layer.appendChild(g);",
+    "    }",
+    "    function build() {",
+    "      layer.textContent = '';",
+    "      var bs = blocks();",
+    "      if (!bs.length) return;",
+    "      var lastY = -100;",
+    "      for (var i = 0; i <= bs.length; i++) {",
+    "        var prev = bs[i - 1], next = bs[i];",
+    "        if (prev && next && next.top < prev.bottom - 2) continue;",
+    "        var y = Math.max(14, prev && next ? (prev.bottom + next.top) / 2 : prev ? prev.bottom + 10 : next.top - 10);",
+    // Blocks with no room between them (an empty line, tight lists) share one handle.
+    "        if (y - lastY < 26) continue;",
+    "        lastY = y;",
+    "        add(y, next ? next.line : 0);",
+    "      }",
+    "    }",
+    "    var timer = 0;",
+    "    function later() { clearTimeout(timer); timer = setTimeout(build, 120); }",
+    "    build(); setTimeout(build, 400); setTimeout(build, 1500);",
+    "    window.addEventListener('resize', later);",
+    "    if (window.ResizeObserver) new ResizeObserver(later).observe(document.body);",
+    "  })();",
+    ] : []),
     ...(lineLinks ? [
     "  function hideAllLineLinks() {",
     "    document.querySelectorAll('.lineLink').forEach(function(l) { l.style.display = 'none'; });",

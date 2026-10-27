@@ -1117,6 +1117,8 @@ select option {
     opacity: 0.8;
 }
 
+.status-kbd { white-space: nowrap; cursor: pointer; }
+@media (max-width: 700px) { .status-kbd { display: none; } }
 .status-version { margin: 0 10px; font-size: 11px; white-space: nowrap; }
 @media (max-width: 700px) { .status-upstream { display: none; } }
 
@@ -1217,6 +1219,42 @@ select option {
 @media (hover: none) {
     .line-edit-hint { display: none; }
 }
+
+/* The menu behind the "+" between rendered blocks. */
+.insert-backdrop { position: fixed; inset: 0; z-index: 40; }
+.insert-menu {
+    position: fixed;
+    z-index: 41;
+    width: 220px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--ck-raised);
+    color: var(--ck-text);
+    border: 1px solid var(--ck-line);
+    border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+.insert-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 38px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+}
+.insert-menu button:hover, .insert-menu button:focus-visible { background: var(--ck-accent-soft); outline: none; }
+.insert-menu button:focus-visible { box-shadow: inset 0 0 0 1px var(--ck-accent); }
+.insert-glyph { flex: none; width: 28px; text-align: center; font-family: var(--vscode-editor-font-family, monospace); color: var(--ck-accent); }
+@media (hover: none) { .insert-menu button { height: 44px; font-size: 16px; } }
 
 /* The docked math keyboard and its show button. */
 .dock-keys { flex: none; z-index: 5; padding-bottom: env(safe-area-inset-bottom); }

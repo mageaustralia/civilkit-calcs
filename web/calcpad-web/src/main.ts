@@ -51,6 +51,7 @@ import { attachOperatorReplacer } from './editor/operator-replacer';
 import { attachAutoIndenter } from './editor/auto-indent';
 import { registerFormattingCommands, getParseMode } from './editor/formatting-commands';
 import { looksLikeLine, sheetInsert } from './wasm/sheet-insert';
+import { insertEdit, type InsertBlock } from './wasm/sheet-blocks';
 import { NEW_SHEET_TEXT, WELCOME_SHEET_TEXT } from './wasm/sheet-ui';
 import { registerFormatDocumentProvider } from './editor/format-document';
 import { setActiveDocumentKeyResolver, getActiveDocumentKey, type EditorBridge } from './editor/bridge';
@@ -1651,6 +1652,26 @@ async function bootstrap(): Promise<void> {
             if (!isSheetText(lines.join('\n'))) return findMdBlock(lines, line);
             const compiled = await compileSheet(lines.join('\n'));
             return findSheetBlock(lines, compiled.kinds, line);
+        },
+        isSheet: (groupId: string) => {
+            const model = groups.get(groupId)?.editor.getModel();
+            return !!model && isSheetText(model.getValue());
+        },
+        insertBlock: (groupId: string, before: number, block: InsertBlock) => {
+            const ed = groups.get(groupId)?.editor;
+            const model = ed?.getModel();
+            if (!ed || !model) return false;
+            const count = model.getLineCount();
+            const indent = before >= 1 && before <= count ? (/^[ \t]*/.exec(model.getLineContent(before))?.[0] ?? '') : '';
+            const e = insertEdit(block, before, count, indent);
+            const range = e.appended
+                ? { startLineNumber: count, startColumn: model.getLineMaxColumn(count), endLineNumber: count, endColumn: model.getLineMaxColumn(count) }
+                : { startLineNumber: before, startColumn: 1, endLineNumber: before, endColumn: 1 };
+            ed.executeEdits('insert-block', [{ range, text: e.text, forceMoveMarkers: true }]);
+            ed.setSelection({ startLineNumber: e.selectLine, startColumn: e.selectFrom + 1, endLineNumber: e.selectLine, endColumn: e.selectTo + 1 });
+            ed.revealLineInCenterIfOutsideViewport(e.selectLine);
+            ed.focus();
+            return true;
         },
         replace: (groupId: string, from: number, to: number, text: string[]) => {
             const ed = groups.get(groupId)?.editor;
