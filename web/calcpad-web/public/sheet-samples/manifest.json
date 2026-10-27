@@ -4,7 +4,8 @@
   "Templates",
   "3D plots",
   "Plots",
-  "Physics"
+  "Physics",
+  "Panels"
  ],
  "samples": [
   {
@@ -373,6 +374,51 @@
    "file": "sheet-samples/Tennis ball flight.sheet",
    "upstream": "",
    "description": "Weight, air drag and the Magnus force from spin on a tennis ball, integrated in a python fence: groundstrokes with different spins landing on the same spot, a map of net clearance against speed and topspin, and flat, slice and kick serves in plan, side and 3D views.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "python": true,
+   "assets": []
+  },
+  {
+   "id": "panels-beam",
+   "title": "Beam deflection explorer (panel)",
+   "group": "Panels",
+   "folder": "Panels",
+   "file": "sheet-samples/Panel beam deflection explorer.sheet",
+   "upstream": "",
+   "description": "Sliders and a drop-down re-run only a Python function and redraw a Plotly chart and a table in place; the sheet is not recalculated.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "python": true,
+   "assets": []
+  },
+  {
+   "id": "panels-pump",
+   "title": "Pump operating point with a player (panel)",
+   "group": "Panels",
+   "folder": "Panels",
+   "file": "sheet-samples/Panel pump operating point player.sheet",
+   "upstream": "",
+   "description": "A player steps the pump speed and the operating point follows along the pump and system curves; each frame is one Python call.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "python": true,
+   "assets": []
+  },
+  {
+   "id": "panels-column",
+   "title": "Column buckling with a player (panel)",
+   "group": "Panels",
+   "folder": "Panels",
+   "file": "sheet-samples/Panel column buckling player.sheet",
+   "upstream": "",
+   "description": "A player raises the load as a fraction of the Euler load and the bowed shape of the column grows; end condition and length are controls.",
    "codes": [],
    "ui": false,
    "scripts": false,
