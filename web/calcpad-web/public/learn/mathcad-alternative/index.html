@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free Mathcad alternative that runs in your browser</title>
+<meta name="description" content="A free, open source engineering calculation sheet for the browser: real units, plots, Word and Excel export, offline use, and a Mathcad worksheet importer.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/mathcad-alternative/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Free Mathcad alternative that runs in your browser">
+<meta property="og:description" content="A free, open source engineering calculation sheet for the browser: real units, plots, Word and Excel export, offline use, and a Mathcad worksheet importer.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/mathcad-alternative/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Free Mathcad alternative that runs in your browser">
+<meta name="twitter:description" content="A free, open source engineering calculation sheet for the browser: real units, plots, Word and Excel export, offline use, and a Mathcad worksheet importer.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit Calcs",
+     "item": "https://civilkit.io/calcs/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Mathcad alternative",
+     "item": "https://civilkit.io/calcs/learn/mathcad-alternative/"
+    }
+   ]
+  },
+  {
+   "@type": "SoftwareApplication",
+   "name": "CivilKit Calcs",
+   "url": "https://civilkit.io/calcs/",
+   "description": "A free, open source engineering calculation sheet that runs in the browser. Real units, plots, input forms, Word, Excel and PDF export, offline use.",
+   "applicationCategory": "BusinessApplication",
+   "applicationSubCategory": "Engineering calculation",
+   "operatingSystem": "Any operating system with a modern web browser",
+   "isAccessibleForFree": true,
+   "license": "https://opensource.org/license/mit",
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   }
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Is CivilKit Calcs really free?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. It is open source under the MIT licence and free to use, with no account. The source is on GitHub."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can it open Mathcad worksheets?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "It can import .xmcd and .mcdx files through File, then Import worksheet. Much converts and the rest is flagged. It is a translator, so check an imported worksheet against the original before relying on it."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Will it give the same numbers as Mathcad?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "For the same formulas and units it should agree to display precision, but that is something to verify on your own worksheets rather than assume. The importer copies every number from the source file and the engine recomputes the results."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it work offline?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. After the first visit the page can be installed and used with no connection. Interactive Plotly charts need their script loaded once while online."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is it affiliated with the makers of Mathcad?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. Mathcad is a product of its owner and is named here only so that people searching for an alternative can find this page."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="/calcs/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="/calcs/">Open the app</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/learn/engineering-calculation-software-free/">All pages</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/calcs/">CivilKit Calcs</a> / <span>Mathcad alternative</span></nav>
+<h1>A free Mathcad alternative that runs in your browser</h1>
+<div class="lead">
+<p>If you search for a Mathcad alternative you probably want four things: formulas that read like maths, real units that are checked, a report you can hand to someone, and no licence to renew. CivilKit Calcs is a calculation sheet that does those four in a browser tab. It is free, open source (MIT) and it keeps working offline once it has loaded.</p>
+<p>It is not a clone. It works differently from Mathcad in a few ways that matter, and this page says which, so you can decide before you spend an afternoon on it.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+<section>
+<h2>What a calculation looks like</h2>
+<p>You write the calculation as plain text. A quantity has a name, a value or formula, an optional unit to show it in, and a note after a bar:</p>
+<pre><code># Beam moment
+
+L: 6 m | span
+w: 12 kN/m | design load
+M: w * L^2 / 8 -&gt; kN*m | maximum moment</code></pre>
+<p>The page shows the formulas typeset as maths, with your numbers substituted and the result in the unit you asked for. Here the moment comes out as <span class="v" data-run="m" data-key="M">54 kN·m</span>, because the engine multiplies and divides the units rather than trusting a label. A length added to a time is refused with a message, not silently summed.</p>
+<p>Text between the calculations is Markdown, and formulas in LaTeX are typeset too. There is a plot command, input forms (a number box, a drop-down, radio buttons, a checkbox), vectors and matrices, a function library for solving, interpolation and integration, small Python blocks, and a symbolic dialog for exact algebra.</p>
+</section>
+<figure class="video">
+<video controls preload="none" width="960" height="540" aria-label="Your first calculation" src="/calcs/guide/videos/01-first-calculation.mp4"></video>
+<figcaption>Video: Your first calculation (about 85 seconds). <a href="/calcs/guide/getting-started/first-sheet.html">Read the chapter</a>.</figcaption>
+</figure>
+<section>
+<h2>What you get that Mathcad users usually ask for</h2>
+<ul>
+<li><strong>Real units.</strong> Entered as <code>12 kN/m</code> or <code>300 MPa</code>, converted and combined by the engine.</li>
+<li><strong>A report.</strong> Print to PDF, or export Word (with real Word equations) or Excel (with the workings and native charts).</li>
+<li><strong>Offline.</strong> The page can be installed as an app and calculates without a connection.</li>
+<li><strong>Privacy.</strong> The engine is compiled to WebAssembly and runs in the page. A calculation is not sent to a server.</li>
+<li><strong>No cost, no account.</strong> The source is public and the licence is MIT.</li>
+</ul>
+</section>
+<section>
+<h2>Where it is different</h2>
+<p>A worksheet here is a document that runs from top to bottom, like a page of text with calculations in it. Mathcad lets you place regions anywhere on a canvas. If you rely on that free layout, expect to re-flow the page. You also write formulas as text lines and see them typeset in the result, rather than building them in an equation editor, although there is an on-screen maths keyboard for touch screens.</p>
+<p>The symbolic side is smaller. The symbolic dialog does exact rational algebra with documented limits: it simplifies, expands, factors, differentiates, integrates a small class of integrands and solves equations of degree 1 and 2, and it has no complex numbers. If your worksheets lean on a full computer algebra system, this is not a replacement for it.</p>
+<p>The product is young. Check anything you will rely on against a hand calculation or a result you already trust, as you would with any new tool.</p>
+</section>
+<section>
+<h2>Bringing your worksheets across</h2>
+<p>The page can read Mathcad worksheet files (<code>.xmcd</code> and <code>.mcdx</code>) and write them out as a new sheet that its own engine then calculates. It translates; it does not evaluate. Text, definitions, evaluations, functions, units, vectors and matrices, sums, integrals, programs made of loops and conditions, simple x-y plots, solve blocks of one or two unknowns and pictures convert. Regions it cannot convert (add-in functions, embedded objects, symbolic evaluation, some plot types) are shown as a picture of the original and counted in a summary, so you see what needs rebuilding.</p>
+<p>Read <a href="/calcs/learn/mathcad-worksheet-converter/">how the converter works and where it stops</a> before you trust a converted file. Plan on checking it against the source, line by line.</p>
+</section>
+<section>
+<h2>When Mathcad is still the better choice</h2>
+<p>Keep it if your worksheets call add-in libraries, embed other objects, depend on symbolic evaluation, or sit in a team library that a whole office edits with the same tool. The importer reports those as gaps, and no import will make them work. A good trial is to import one real worksheet, then compare every result with the original.</p>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>Is CivilKit Calcs really free?</h3>
+<p>Yes. It is open source under the MIT licence and free to use, with no account. The source is on GitHub.</p>
+<h3>Can it open Mathcad worksheets?</h3>
+<p>It can import <code>.xmcd</code> and <code>.mcdx</code> files through File, then Import worksheet. Much converts and the rest is flagged. It is a translator, so check an imported worksheet against the original before relying on it.</p>
+<h3>Will it give the same numbers as Mathcad?</h3>
+<p>For the same formulas and units it should agree to display precision, but that is something to verify on your own worksheets rather than assume. The importer copies every number from the source file and the engine recomputes the results.</p>
+<h3>Does it work offline?</h3>
+<p>Yes. After the first visit the page can be installed and used with no connection. Interactive Plotly charts need their script loaded once while online.</p>
+<h3>Is it affiliated with the makers of Mathcad?</h3>
+<p>No. Mathcad is a product of its owner and is named here only so that people searching for an alternative can find this page.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/mathcad-worksheet-converter/">Mathcad worksheet converter</a></li>
+<li><a href="/calcs/learn/calcpad-online/">Calcpad online</a></li>
+<li><a href="/calcs/learn/excel-alternative-for-engineering-calculations/">Excel alternative</a></li>
+<li><a href="/calcs/learn/engineering-calculation-software-free/">Free calculation software</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+</main>
+<footer class="site">
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. Source: <a href="https://github.com/mageaustralia/civilkit-calcs">github.com/mageaustralia/civilkit-calcs</a>. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

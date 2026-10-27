@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mathcad worksheet converter: import .xmcd and .mcdx</title>
+<meta name="description" content="Import Mathcad .xmcd and .mcdx worksheets into a browser calculation sheet. What converts, what shows as a gap, and why your file is not uploaded.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/mathcad-worksheet-converter/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Mathcad worksheet converter: import .xmcd and .mcdx">
+<meta property="og:description" content="Import Mathcad .xmcd and .mcdx worksheets into a browser calculation sheet. What converts, what shows as a gap, and why your file is not uploaded.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/mathcad-worksheet-converter/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Mathcad worksheet converter: import .xmcd and .mcdx">
+<meta name="twitter:description" content="Import Mathcad .xmcd and .mcdx worksheets into a browser calculation sheet. What converts, what shows as a gap, and why your file is not uploaded.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit Calcs",
+     "item": "https://civilkit.io/calcs/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Mathcad worksheet converter",
+     "item": "https://civilkit.io/calcs/learn/mathcad-worksheet-converter/"
+    }
+   ]
+  },
+  {
+   "@type": "HowTo",
+   "name": "How to import a Mathcad worksheet into CivilKit Calcs",
+   "description": "Import Mathcad .xmcd and .mcdx worksheets into a browser calculation sheet. What converts, what shows as a gap, and why your file is not uploaded.",
+   "step": [
+    {
+     "@type": "HowToStep",
+     "position": 1,
+     "name": "Open the importer",
+     "text": "In CivilKit Calcs choose File, then Import worksheet, or drag the .xmcd or .mcdx file onto the page."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 2,
+     "name": "Read the summary",
+     "text": "The dialog says how many regions converted live, how many are shown as pictures and how many need attention, with the main reasons."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 3,
+     "name": "Check the result",
+     "text": "Compare the converted worksheet with the original line by line before relying on it."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 4,
+     "name": "Tidy and save",
+     "text": "Use Tidy text if you want the imported fonts removed, then save the worksheet."
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Which file types can it import?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The .xmcd and .mcdx worksheet formats. Other file types are rejected with a message."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Will every worksheet convert completely?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. Worksheets that use add-ins, embedded objects, symbolic evaluation or unsupported plots will have gaps, and the importer says where."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it keep my original file?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. It reads the file and does not change it."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is my worksheet sent to a server?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. It is converted in your browser. We checked the import code for network requests that carry the file and found none."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Do the numbers match the original?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Constants are copied from the source file and the engine recomputes the rest. Check on your own files: do not assume they match."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="/calcs/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="/calcs/">Open the app</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/learn/engineering-calculation-software-free/">All pages</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/calcs/">CivilKit Calcs</a> / <span>Mathcad worksheet converter</span></nav>
+<h1>Convert Mathcad worksheets (.xmcd and .mcdx) in your browser</h1>
+<div class="lead">
+<p>CivilKit Calcs can read Mathcad worksheet files (<code>.xmcd</code> and <code>.mcdx</code>) and write them out as a new worksheet that its own engine calculates. The conversion runs in your browser, so the file is not uploaded. This page says what to expect, including what does not convert.</p>
+<p>The importer is a work in progress. It is a translator, not a guarantee. Plan on checking every imported worksheet against the original, line by line.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+<section>
+<h2>How to import a worksheet</h2>
+<ol>
+<li>Open <a href="/calcs/">CivilKit Calcs</a>.</li>
+<li>Choose <strong>File, then Import worksheet</strong>, or the <strong>Import worksheet</strong> button on the Document tab. You can also use File, then Open, or drag the file onto the page.</li>
+<li>The converted worksheet opens in a new unsaved tab named after the file, with the extension <code>.cpd</code>.</li>
+<li>A dialog tells you how the import went, for example "18 of 21 regions converted live, 2 shown as static pictures, 1 need attention", with the reasons in plain words.</li>
+<li>Read the list of gaps first, then compare the results with the original worksheet.</li>
+</ol>
+</section>
+<figure class="video">
+<video controls preload="none" width="960" height="540" aria-label="Import an existing worksheet" src="/calcs/guide/videos/06-import-a-worksheet.mp4"></video>
+<figcaption>Video: Import an existing worksheet (about 85 seconds). <a href="/calcs/guide/importing.html">Read the chapter</a>.</figcaption>
+</figure>
+<section>
+<h2>What converts</h2>
+<table>
+<thead><tr><th>In the source file</th><th>In the result</th></tr></thead>
+<tbody>
+<tr><td>Text, with headings, bold, italic, sub and superscripts</td><td>Text lines. Fonts, sizes and colours can be tidied away afterwards.</td></tr>
+<tr><td>Definitions, evaluations and functions</td><td>Definitions and equation lines with the same names, subscripts and Greek letters.</td></tr>
+<tr><td>Units</td><td>The same units under this engine's names. A unit it does not know is reported.</td></tr>
+<tr><td>Vectors, matrices and indexing</td><td>Vectors and matrices. The array origin is shifted to 1, with a note.</td></tr>
+<tr><td>Sums, products, integrals, derivatives (supported forms)</td><td>The engine's sum, product, area and slope commands.</td></tr>
+<tr><td>Programs of loops, conditions and early exits</td><td>Expression blocks.</td></tr>
+<tr><td>x-y plots</td><td>Plot lines. Colours, markers and axis ranges may not carry over.</td></tr>
+<tr><td>Solve blocks of one or two unknowns</td><td>Solved here by iteration, and kept only if the equations hold at the answer.</td></tr>
+<tr><td>Statistics functions, complex numbers, simple text values</td><td>Converted.</td></tr>
+<tr><td>Referenced worksheets</td><td>Their definitions are read in when the file holds a copy.</td></tr>
+<tr><td>Pictures</td><td>Embedded in the browser library.</td></tr>
+</tbody>
+</table>
+<p>The equations are shown as the author wrote them, with stacked fractions and bounded sums, and computed out of sight. Every number in the output was in the source file; the importer evaluates nothing itself and the engine then runs the result.</p>
+</section>
+<section>
+<h2>What is frozen</h2>
+<p>Some values cannot be computed here, so the importer takes the number the source file saved and shows it as a literal marked frozen. That applies to values from input components such as a list box or text box, calls into add-in functions that are not available when the file saved a value, tables read from data files, and solve blocks whose iteration does not verify. A frozen value does not follow a change of its inputs. The dialog counts them.</p>
+</section>
+<section>
+<h2>What does not convert</h2>
+<ul>
+<li>Range variables outside the supported uses, and programs outside the supported subset.</li>
+<li>Solve blocks of more than two unknowns, other solvers and symbolic evaluation.</li>
+<li>Derivative, integral and summation forms the importer does not map.</li>
+<li>Plots that are not x-y plots.</li>
+<li>Embedded objects, components, worksheet references with no copy, and add-in functions with no saved value.</li>
+<li>Text values that are joined, measured or formatted.</li>
+<li>Regions the source has switched off, and some page headers and footers.</li>
+</ul>
+<p>Each gap is replaced by a placeholder: a typeset, not-calculated equation, or a picture of the original region. A calculation that depends on an unconverted region shows its names as undefined. The dialog ranks the missing features by how many regions each one blocks, so you can see the worst first.</p>
+</section>
+<section>
+<h2>Is the file uploaded?</h2>
+<p>No. The file is read and converted inside the page, by a module that loads on first use and runs in a web worker. We checked the import code: it hands the file's bytes to the worker and gets text and pictures back by message, with no network request carrying the file. The dialog also ends with a line saying the file was read in this page and was not uploaded. Pictures from the file are stored in the browser's library under the name of the file.</p>
+<p>Limits: input over 64 MiB, XML nested deeper than 256 levels, a document type declaration, and pictures over 16 MiB each or 192 MiB in total are refused or skipped. Problems come back as messages, not crashes.</p>
+</section>
+<section>
+<h2>After the import</h2>
+<ul>
+<li><strong>Tidy text</strong> on the Document tab removes imported fonts, sizes and colours from paragraphs. <strong>Text to Markdown</strong> then writes runs of simple paragraphs as Markdown you can edit.</li>
+<li>Save the worksheet. It refers to the pictures by their library path, so export to HTML or Word first if you need a self-contained file.</li>
+<li>Compare the numbers. A good habit is to put the original's results next to the imported ones, and open the dialog's list of gaps beside them.</li>
+</ul>
+<p>If the result is a mess, the original is untouched. Nothing is changed in your file.</p>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>Which file types can it import?</h3>
+<p>The <code>.xmcd</code> and <code>.mcdx</code> worksheet formats. Other file types are rejected with a message.</p>
+<h3>Will every worksheet convert completely?</h3>
+<p>No. Worksheets that use add-ins, embedded objects, symbolic evaluation or unsupported plots will have gaps, and the importer says where.</p>
+<h3>Does it keep my original file?</h3>
+<p>Yes. It reads the file and does not change it.</p>
+<h3>Is my worksheet sent to a server?</h3>
+<p>No. It is converted in your browser. We checked the import code for network requests that carry the file and found none.</p>
+<h3>Do the numbers match the original?</h3>
+<p>Constants are copied from the source file and the engine recomputes the rest. Check on your own files: do not assume they match.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/mathcad-alternative/">Mathcad alternative</a></li>
+<li><a href="/calcs/learn/calcpad-online/">Calcpad online</a></li>
+<li><a href="/calcs/learn/engineering-calculation-software-free/">Free calculation software</a></li>
+<li><a href="/calcs/learn/excel-alternative-for-engineering-calculations/">Excel alternative</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+</main>
+<footer class="site">
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. Source: <a href="https://github.com/mageaustralia/civilkit-calcs">github.com/mageaustralia/civilkit-calcs</a>. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

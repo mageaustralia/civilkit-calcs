@@ -59,7 +59,9 @@ self.addEventListener('fetch', (e) => {
 });
 `;
 
-/** Writes sw.js beside index.html: it precaches the whole build so the app opens offline. */
+/** Writes sw.js beside index.html: it precaches the whole build so the app opens offline.
+ *  The static landing pages (learn/), sitemap.xml and robots.txt are for crawlers and are left out of the precache; the
+ *  worker passes their requests to the network, so a crawler or a first visit always gets the page itself, never the app. */
 export function pwaPlugin(): Plugin {
     let outDir = 'dist';
     return {
@@ -67,7 +69,7 @@ export function pwaPlugin(): Plugin {
         apply: 'build',
         configResolved(c) { outDir = resolve(c.root, c.build.outDir); },
         closeBundle() {
-            const files = walk(outDir, outDir).filter((f) => f !== 'sw.js' && !f.endsWith('.map') && !f.endsWith('.stub'));
+            const files = walk(outDir, outDir).filter((f) => f !== 'sw.js' && !f.startsWith('learn/') && f !== 'sitemap.xml' && f !== 'robots.txt' && !f.endsWith('.map') && !f.endsWith('.stub'));
             // The cache name follows the content, so a rebuild at the same version still refreshes it.
             const hash = createHash('sha1');
             for (const f of files) hash.update(f).update(readFileSync(join(outDir, f)));

@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pump operating point calculator: pump vs system curve</title>
+<meta name="description" content="Free calculator for the operating point of a pump on a pipeline: where the pump curve meets the system curve, with a table of heads and both curves plotted.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/pump-operating-point-calculator/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Pump operating point calculator: pump vs system curve">
+<meta property="og:description" content="Free calculator for the operating point of a pump on a pipeline: where the pump curve meets the system curve, with a table of heads and both curves plotted.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/pump-operating-point-calculator/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Pump operating point calculator: pump vs system curve">
+<meta name="twitter:description" content="Free calculator for the operating point of a pump on a pipeline: where the pump curve meets the system curve, with a table of heads and both curves plotted.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit Calcs",
+     "item": "https://civilkit.io/calcs/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Pump operating point",
+     "item": "https://civilkit.io/calcs/learn/pump-operating-point-calculator/"
+    }
+   ]
+  },
+  {
+   "@type": "HowTo",
+   "name": "How to find the operating point of a pump on a pipeline",
+   "description": "Free calculator for the operating point of a pump on a pipeline: where the pump curve meets the system curve, with a table of heads and both curves plotted.",
+   "step": [
+    {
+     "@type": "HowToStep",
+     "position": 1,
+     "name": "Open the template",
+     "text": "Choose Open this template on this page. The sheet opens in a new tab of CivilKit Calcs, with the inputs set to the values used on this page."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 2,
+     "name": "Switch to Input mode",
+     "text": "In the results bar choose Input. The input lines become boxes, lists, buttons and ticks."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 3,
+     "name": "Enter your values",
+     "text": "Change the inputs to your own. Pump size, pipe diameter, length, static lift and the aged-pipe box are the inputs. Every change recalculates the whole page."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 4,
+     "name": "Read and export the result",
+     "text": "Read the results and the OK or not OK lines under them. Use Report, then Print PDF, Word or Excel, to keep the calculation with its workings."
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "What is the operating point of a pump?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The flow and head at which the pump curve crosses the system curve of the pipeline. The pump cannot run anywhere else on that pipeline."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I use my own pump curve?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The template models the pump with two numbers, a shut-off head and a free delivery. Replace them with values that fit your pump, or replace the pump curve line with your own formula."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Why is the friction factor constant?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "To keep the sheet simple and solvable in closed form. The pipe flow template calculates it from the Reynolds number if you want that."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it give efficiency or power?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. Add a line for power using the flow and head if you know the efficiency."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is it suitable for selecting a pump?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Use it to understand the system. Select a pump from the manufacturer's published curves."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="/calcs/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="/calcs/">Open the app</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/learn/engineering-calculation-software-free/">All pages</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/calcs/">CivilKit Calcs</a> / <span>Pump operating point</span></nav>
+<h1>Pump operating point calculator</h1>
+<div class="lead">
+<p>A pump on a pipeline runs where the head it can deliver equals the head the pipeline demands. This template finds that point for a pump lifting water to a higher tank, tabulates both heads against flow, and plots the two curves so you can see where they cross. Pump size, pipe diameter, length, static lift and pipe condition are inputs.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=template-pump-operating-point">Open this template</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>What it computes</h2>
+<p>The pump is described by a shut-off head and a free delivery, which the sheet turns into a falling parabola of head against flow. The pipeline needs the static lift plus a friction loss that grows with the square of the flow. The operating point is the flow at which the two heads are equal, and the sheet solves that directly. It then reports the flow, the head, the pipe velocity (with a warning above 3 m/s) and a table and plot of both curves.</p>
+</section>
+<figure class="video">
+<video controls preload="none" width="960" height="540" aria-label="Plots in the sheet format" src="/calcs/guide/videos/03-plots-in-sheets.mp4"></video>
+<figcaption>Video: Plots in the sheet format (about 85 seconds). <a href="/calcs/guide/plots.html">Read the chapter</a>.</figcaption>
+</figure>
+<section>
+<h2>The formulas</h2>
+<ul>
+<li>Pump curve: H_p = H_0 (1 - (Q / Q_max)^2), with a shut-off head H_0 and a free delivery Q_max.</li>
+<li>System curve: H_s = H_st + K Q^2, where H_st is the static lift and K = f (L / D) / (2 g A^2), with a constant friction factor f of 0.018, or 0.030 for an aged pipe.</li>
+<li>The curves cross where H_0 - H_0 Q^2 / Q_max^2 = H_st + K Q^2, so Q^2 = (H_0 - H_st) / (K + H_0 / Q_max^2).</li>
+<li>If H_0 is not above the static lift, the pump cannot lift the water and the sheet says so.</li>
+</ul>
+</section>
+<section>
+<h2>Worked example</h2>
+<p>Defaults: the medium pump (40 m shut-off head, 75 L/s free delivery), a 150 mm pipe 400 m long, a static lift of 15 m and a new pipe. Engine results:</p>
+<table>
+<thead><tr><th>Quantity</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Friction head per flow squared K</td><td><span class="v" data-run="base" data-key="K">7834.25 s 2/m⁵</span></td></tr>
+<tr><td>Head above the static lift</td><td><span class="v" data-run="base" data-key="H_net">25 m</span></td></tr>
+<tr><td>Flow at the operating point</td><td><span class="v" data-run="base" data-key="Q_op">40.9 L/s</span></td></tr>
+<tr><td>Head at the operating point</td><td><span class="v" data-run="base" data-key="H_op">28.1 m</span></td></tr>
+<tr><td>Velocity in the pipe</td><td><span class="v" data-run="base" data-key="v">2.31 m/s</span></td></tr>
+</tbody>
+</table>
+<p>The pump settles at <span class="v" data-run="base" data-key="Q_op">40.9 L/s</span> and <span class="v" data-run="base" data-key="H_op">28.1 m</span>. The velocity of <span class="v" data-run="base" data-key="v">2.31 m/s</span> is within 3 m/s.</p>
+</section>
+<section>
+<h2>Move the operating point</h2>
+<p>Marking the pipe as aged raises the friction factor to 0.030, which increases K to <span class="v" data-run="aged" data-key="K">13057.1 s 2/m⁵</span> and moves the operating point to <span class="v" data-run="aged" data-key="Q_op">35.21 L/s</span> at <span class="v" data-run="aged" data-key="H_op">31.19 m</span>. A rougher pipe means less flow from the same pump.</p>
+<p>Raising the static lift to 35 m instead drops the flow to <span class="v" data-run="lift" data-key="Q_op">18.29 L/s</span>, with the pump working harder at <span class="v" data-run="lift" data-key="H_op">37.62 m</span>. The table in the sheet shows the heads at flows from 0 to 60 L/s, and the plot shows the crossing.</p>
+</section>
+<section>
+<h2>What this is, and is not</h2>
+<div class="note">
+<p><strong>This is a generic textbook calculation, not a design-code check.</strong> The pump curves are quadratic models with round example numbers for a small, medium and large pump, not manufacturer data. The friction factor is a constant, not recalculated from the flow, and the pipeline is one diameter with no minor losses. There is no efficiency, power, NPSH or cavitation check, and no speed or parallel pump operation. To use a real pump, replace the shut-off head and free delivery with values that fit its curve. It does not apply load factors, resistance factors or any limit from a design standard. If you need a code check, use the formulas your standard requires, and treat this sheet as a way to see the mechanics and to check hand calculations.</p>
+</div>
+</section>
+<section>
+<h2>The sheet source</h2>
+<pre><code># Pump and pipeline: operating point
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. A pump lifts water
+through a pipeline to a higher tank. The pump delivers the head $H_p = H_0 \left(1 - (Q/Q_{max})^2\right)$
+at the flow $Q$ (a shut-off head $H_0$ and a free delivery $Q_{max}$). The pipeline needs the head
+$H_s = H_{st} + f \frac{L}{D}\frac{v^2}{2g}$, the static lift plus the friction loss with a constant friction
+factor $f$. The pump runs where the two curves cross. The table and the plot follow the form.
+
+## Inputs
+pump: ? (Small = 1, *Medium = 2, Large = 3) | pump
+D:    ? [100 mm = 100 mm, *150 mm = 150 mm, 200 mm = 200 mm] | pipe inside diameter
+L_p:  ? 400 m | pipe length
+H_st: ? 15 m | static lift, from the water surface to the tank
+aged: ? off | aged pipe (rougher: the friction factor is 0.030, not 0.018)
+
+## Pump curves
+The input above picks one entry of each list.
+
+H0_tab:   [30 m, 40 m, 50 m] | shut-off head
+Qmax_tab: [60 L/s, 75 L/s, 90 L/s] | free delivery
+H_0:   H0_tab.pump -&gt; m
+Q_max: Qmax_tab.pump -&gt; L/s
+if pump == 1: &quot;The pump is the small one.&quot;
+if pump == 2: &quot;The pump is the medium one.&quot;
+if pump == 3: &quot;The pump is the large one.&quot;
+
+## Pipeline
+g_acc: 9.81 m/s^2 | gravitational acceleration
+f: 0.018 + aged * 0.012 | friction factor
+A: pi * D^2 / 4 -&gt; m^2 | flow area
+K: f * L_p / D / (2 * g_acc * A^2) -&gt; s^2/m^5 | friction head per flow squared
+
+## Operating point
+The two curves cross where $H_0 - H_0 Q^2/Q_{max}^2 = H_{st} + K Q^2$, so
+$Q^2 = (H_0 - H_{st}) / (K + H_0/Q_{max}^2)$.
+
+H_net: H_0 - H_st -&gt; m | head the pump has above the static lift
+if H_net &lt;= 0 m: &quot;The pump cannot lift the water to the tank: choose a larger pump or lower the static lift.&quot;
+Q_op: sqrt(max(H_net, 0 m) / (K + H_0 / Q_max^2)) -&gt; L/s | flow at the operating point
+H_op: H_0 * (1 - (Q_op / Q_max)^2) -&gt; m | head at the operating point
+v:    Q_op / A -&gt; m/s | velocity in the pipe
+if v &gt; 3 m/s: &quot;The velocity is above 3 m/s: expect noise and wear, use a larger pipe.&quot; else: &quot;The velocity is within 3 m/s.&quot;
+
+## Table
+Q_v:  [0, 10, 20, 30, 40, 50, 60] * 1 L/s | flows in the table
+H_pv: H_0 * (1 - (Q_v / Q_max)^2) -&gt; m | pump head
+H_sv: H_st + K * Q_v^2 -&gt; m | head the pipeline needs
+T: augment(Q_v / (1 L/s), H_pv / (1 m), H_sv / (1 m)) | columns: flow in L/s, pump head in m, pipeline head in m
+
+## Curves
+H_p(Q): H_0 * (1 - (Q / Q_max)^2) -&gt; m | pump head at the flow Q
+H_s(Q): H_st + K * Q^2 -&gt; m | pipeline head at the flow Q
+
+plot H_p(x * 1 L/s) / (1 m), H_s(x * 1 L/s) / (1 m) for x in 0..60</code></pre>
+</section>
+<section>
+<h2>How to use it</h2>
+<ol>
+<li><strong>Open the template.</strong> Choose <strong>Open this template</strong> on this page. The sheet opens in a new tab of CivilKit Calcs, with the inputs set to the values used on this page.</li>
+<li><strong>Switch to Input mode.</strong> In the results bar choose <strong>Input</strong>. The input lines become boxes, lists, buttons and ticks.</li>
+<li><strong>Enter your values.</strong> Change the inputs to your own. Pump size, pipe diameter, length, static lift and the aged-pipe box are the inputs. Every change recalculates the whole page.</li>
+<li><strong>Read and export the result.</strong> Read the results and the OK or not OK lines under them. Use <strong>Report</strong>, then Print PDF, Word or Excel, to keep the calculation with its workings.</li>
+</ol>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>What is the operating point of a pump?</h3>
+<p>The flow and head at which the pump curve crosses the system curve of the pipeline. The pump cannot run anywhere else on that pipeline.</p>
+<h3>Can I use my own pump curve?</h3>
+<p>The template models the pump with two numbers, a shut-off head and a free delivery. Replace them with values that fit your pump, or replace the pump curve line with your own formula.</p>
+<h3>Why is the friction factor constant?</h3>
+<p>To keep the sheet simple and solvable in closed form. The pipe flow template calculates it from the Reynolds number if you want that.</p>
+<h3>Does it give efficiency or power?</h3>
+<p>No. Add a line for power using the flow and head if you know the efficiency.</p>
+<h3>Is it suitable for selecting a pump?</h3>
+<p>Use it to understand the system. Select a pump from the manufacturer's published curves.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/pipe-flow-darcy-weisbach-calculator/">Pipe flow, Darcy-Weisbach</a></li>
+<li><a href="/calcs/learn/retaining-wall-stability-calculator/">Retaining wall stability</a></li>
+<li><a href="/calcs/learn/engineering-calculation-software-free/">Free calculation software</a></li>
+<li><a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=template-pump-operating-point">Open this template</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. Source: <a href="https://github.com/mageaustralia/civilkit-calcs">github.com/mageaustralia/civilkit-calcs</a>. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

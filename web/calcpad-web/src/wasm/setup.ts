@@ -45,6 +45,16 @@ export function installWebFiles(transport: WasmTransport, host: Host): WebFiles 
     installEmptyEditorLink(host.tabs, () => void samples.open());
     transport.onFilesWritten = written => void files.onFilesWritten(written);
     files.install();
+    // A link such as /calcs/?sample=template-simply-supported-beam opens that sample (the landing pages in public/learn use it).
+    const wanted = new URLSearchParams(window.location.search).get('sample');
+    if (wanted) {
+        void samples.openByKey(wanted).then((found) => {
+            if (!found) host.appendOutput('warn', `No sample named "${wanted}".`);
+            const url = new URL(window.location.href);
+            url.searchParams.delete('sample');
+            window.history.replaceState(null, '', url.href);
+        }, (e) => host.appendOutput('error', `The sample could not be opened: ${e instanceof Error ? e.message : String(e)}`));
+    }
     (window as unknown as { calcpadFiles: unknown }).calcpadFiles = { files, library, samples };
     return files;
 }

@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retaining wall stability calculator</title>
+<meta name="description" content="Free retaining wall calculator: active earth thrust, overturning and sliding safety factors and base pressure for a cantilever wall, with units.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/retaining-wall-stability-calculator/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Retaining wall stability calculator">
+<meta property="og:description" content="Free retaining wall calculator: active earth thrust, overturning and sliding safety factors and base pressure for a cantilever wall, with units.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/retaining-wall-stability-calculator/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Retaining wall stability calculator">
+<meta name="twitter:description" content="Free retaining wall calculator: active earth thrust, overturning and sliding safety factors and base pressure for a cantilever wall, with units.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit Calcs",
+     "item": "https://civilkit.io/calcs/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Retaining wall stability",
+     "item": "https://civilkit.io/calcs/learn/retaining-wall-stability-calculator/"
+    }
+   ]
+  },
+  {
+   "@type": "HowTo",
+   "name": "How to check the stability of a cantilever retaining wall",
+   "description": "Free retaining wall calculator: active earth thrust, overturning and sliding safety factors and base pressure for a cantilever wall, with units.",
+   "step": [
+    {
+     "@type": "HowToStep",
+     "position": 1,
+     "name": "Open the template",
+     "text": "Choose Open this template on this page. The sheet opens in a new tab of CivilKit Calcs, with the inputs set to the values used on this page."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 2,
+     "name": "Switch to Input mode",
+     "text": "In the results bar choose Input. The input lines become boxes, lists, buttons and ticks."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 3,
+     "name": "Enter your values",
+     "text": "Change the inputs to your own. The wall dimensions, the backfill and the surcharge are the inputs. Every change recalculates the whole page."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 4,
+     "name": "Read and export the result",
+     "text": "Read the results and the OK or not OK lines under them. Use Report, then Print PDF, Word or Excel, to keep the calculation with its workings."
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Which earth pressure theory does it use?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Rankine active pressure on the vertical plane through the heel, with the coefficient tan^2(45 degrees - phi/2)."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What factor of safety does it require?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The sheet compares overturning and sliding with 1.5, which is a constant at the top of the sheet. Change it to your own value."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it check bearing capacity?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. It gives the pressure under the base and tells you whether the resultant is in the middle third. Compare the pressure with a bearing value you trust."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I model sloping fill or groundwater?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Not as shipped. The sheet is plain text, so you can add the extra forces, but the template assumes level, dry fill."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is it a design-code check?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. It is a textbook stability calculation and it names no standard."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="/calcs/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="/calcs/">Open the app</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/learn/engineering-calculation-software-free/">All pages</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/calcs/">CivilKit Calcs</a> / <span>Retaining wall stability</span></nav>
+<h1>Retaining wall stability calculator</h1>
+<div class="lead">
+<p>This template checks a cantilever retaining wall (a stem on a base slab) that holds back level fill. For a one metre strip of wall it finds the active earth thrust, the factor of safety against overturning about the toe, the factor of safety against sliding, and the soil pressure under the base. The backfill type comes from radio buttons and a checkbox adds a surcharge on the fill.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=template-retaining-wall-stability">Open this template</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>What it computes</h2>
+<p>Inputs are the stem height, base width, base thickness, stem thickness, toe length, the backfill (loose, medium or dense sand, given as a friction angle) and an optional surcharge. The sheet works out the weights of the stem, base and fill on the heel, the thrust of the fill and surcharge, the overturning and resisting moments about the toe, and the pressure under the base. Two sentences under the results say whether overturning and sliding meet the required factor of safety of 1.5, which is a constant in the sheet that you can change.</p>
+</section>
+<figure class="video">
+<video controls preload="none" width="960" height="540" aria-label="Templates with inputs" src="/calcs/guide/videos/05-templates-with-inputs.mp4"></video>
+<figcaption>Video: Templates with inputs (about 85 seconds). <a href="/calcs/guide/templates.html">Read the chapter</a>.</figcaption>
+</figure>
+<section>
+<h2>The formulas</h2>
+<ul>
+<li>Active pressure coefficient K_a = tan^2(45 degrees - phi / 2).</li>
+<li>Thrust of the fill P_s = 1/2 K_a gamma H^2, acting H/3 above the underside of the base. H is the stem height plus the base thickness, because the thrust acts on the vertical plane through the heel.</li>
+<li>Surcharge q adds a thrust P_q = K_a q H at H/2, and its weight on the heel.</li>
+<li>Overturning: M_o = P_s H/3 + P_q H/2 about the toe, resisted by the weights times their lever arms. FS_o = M_r / M_o.</li>
+<li>Sliding: friction coefficient mu = tan(2 phi / 3), resistance mu W, FS_s = mu W / P_h.</li>
+<li>Base pressure: the resultant crosses the base at x_r = (M_r - M_o) / W from the toe, eccentricity e = B/2 - x_r, and q = W/B (1 plus or minus 6e/B).</li>
+</ul>
+</section>
+<section>
+<h2>Worked example</h2>
+<p>Defaults: a 3 m stem on a 2.4 m by 0.4 m base, a 0.4 m stem, a 0.6 m toe, medium sand (32 degrees), no surcharge, concrete at 24 kN/m^3 and fill at 18 kN/m^3. Engine results:</p>
+<table>
+<thead><tr><th>Quantity</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Active coefficient K_a</td><td><span class="v" data-run="base" data-key="K_a">0.307</span></td></tr>
+<tr><td>Thrust of the fill P_s</td><td><span class="v" data-run="base" data-key="P_s">31.97 kN</span></td></tr>
+<tr><td>Total vertical load W</td><td><span class="v" data-run="base" data-key="W">127.44 kN</span></td></tr>
+<tr><td>Overturning moment M_o</td><td><span class="v" data-run="base" data-key="M_o">36.23 kN·m</span></td></tr>
+<tr><td>Resisting moment M_r</td><td><span class="v" data-run="base" data-key="M_r">179.21 kN·m</span></td></tr>
+<tr><td>Factor of safety, overturning</td><td><span class="v" data-run="base" data-key="FS_o">4.95</span></td></tr>
+<tr><td>Friction coefficient</td><td><span class="v" data-run="base" data-key="mu">0.391</span></td></tr>
+<tr><td>Sliding resistance</td><td><span class="v" data-run="base" data-key="R_h">49.77 kN</span></td></tr>
+<tr><td>Factor of safety, sliding</td><td><span class="v" data-run="base" data-key="FS_s">1.56</span></td></tr>
+<tr><td>Eccentricity of the resultant</td><td><span class="v" data-run="base" data-key="e">0.0781 m</span></td></tr>
+<tr><td>Pressure at the toe</td><td><span class="v" data-run="base" data-key="q_max">63.46 kPa</span></td></tr>
+<tr><td>Pressure at the heel</td><td><span class="v" data-run="base" data-key="q_min">42.74 kPa</span></td></tr>
+</tbody>
+</table>
+<p>Overturning is comfortable at <span class="v" data-run="base" data-key="FS_o">4.95</span>. Sliding is closer, at <span class="v" data-run="base" data-key="FS_s">1.56</span> against 1.5 required. The resultant is within the middle third of the base, so the whole base is in compression and the toe and heel pressures above apply.</p>
+</section>
+<section>
+<h2>Turn on the surcharge</h2>
+<p>Ticking the surcharge box (10 kPa on the fill) raises the horizontal thrust to <span class="v" data-run="sur" data-key="P_h">42.41 kN</span>. Overturning drops to <span class="v" data-run="sur" data-key="FS_o">3.76</span>, and sliding to <span class="v" data-run="sur" data-key="FS_s">1.3</span>, which is below 1.5, so the sheet now prints that the factor of safety is too low and suggests widening or thickening the base. The toe pressure rises to <span class="v" data-run="sur" data-key="q_max">80.51 kPa</span>. Sliding governs, and the sheet shows it immediately.</p>
+</section>
+<section>
+<h2>What this is, and is not</h2>
+<div class="note">
+<p><strong>This is a generic textbook calculation, not a design-code check.</strong> The wall is a stem on a base slab, the fill is level, dry and granular, the back of the wall is treated as vertical with no wall friction, and the soil in front of the toe is ignored. There is no water, no seismic load, no passive resistance, no bearing capacity check and no check of the wall as a structure. The factor of safety of 1.5 is a value in the sheet, not a requirement of any standard. It does not apply load factors, resistance factors or any limit from a design standard. If you need a code check, use the formulas your standard requires, and treat this sheet as a way to see the mechanics and to check hand calculations.</p>
+</div>
+</section>
+<section>
+<h2>The sheet source</h2>
+<pre><code># Retaining wall: sliding and overturning
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. A cantilever
+retaining wall of concrete (a stem on a base slab) holds back a level fill; the sheet takes a strip of wall one metre long.
+The active earth pressure is $K_a = \tan^2(45^\circ - \phi/2)$, acting on the vertical plane through
+the heel, so the thrust is $P_a = \tfrac12 K_a \gamma H^2$ at $H/3$ above the underside of the base. A
+surcharge $q$ on the fill adds $K_a q H$ at $H/2$ and its weight on the heel. The wall slides on a
+base friction of $\tan(2\phi/3)$, and overturns about the toe. The soil in front of the toe is ignored.
+
+## Inputs
+H_s:   ? 3 m | height of the stem above the base slab
+B:     ? 2.4 m | width of the base slab
+t_b:   ? 0.4 m | thickness of the base slab
+t_s:   ? 0.4 m | thickness of the stem
+L_t:   ? 0.6 m | length of the toe, in front of the stem
+soil:  ? (Loose sand = 28 °, *Medium sand = 32 °, Dense sand = 36 °) | backfill, friction angle
+q_s:   ? 10 kPa | surcharge on the fill, when it is on
+sur:   ? off | surcharge on the fill
+
+## Constants
+gamma_c: 24 kN/m^3 | unit weight of concrete
+gamma_s: 18 kN/m^3 | unit weight of the fill
+b_w:     1 m | length of wall in the strip
+FS_min:  1.5 | required factor of safety, for sliding and for overturning
+
+## Geometry
+phi: soil | friction angle of the fill
+H:   H_s + t_b -&gt; m | height of the thrust plane, above the underside of the base
+L_h: B - L_t - t_s -&gt; m | length of the heel, behind the stem
+q:   sur * q_s -&gt; kPa | surcharge in use
+
+## Earth pressure
+K_a: tan(45 ° - phi / 2)^2 | active pressure coefficient
+P_s: K_a * gamma_s * H^2 / 2 * b_w -&gt; kN | thrust of the fill
+P_q: K_a * q * H * b_w -&gt; kN | thrust of the surcharge
+P_h: P_s + P_q -&gt; kN | total horizontal thrust
+
+## Weights and their lever arms about the toe
+W_stem: gamma_c * t_s * H_s * b_w -&gt; kN | stem
+x_stem: L_t + t_s / 2 -&gt; m | its lever arm
+W_base: gamma_c * B * t_b * b_w -&gt; kN | base slab
+x_base: B / 2 -&gt; m | its lever arm
+W_fill: gamma_s * L_h * H_s * b_w -&gt; kN | fill on the heel
+W_sur:  q * L_h * b_w -&gt; kN | surcharge on the heel
+x_heel: B - L_h / 2 -&gt; m | lever arm of the fill and the surcharge
+W: W_stem + W_base + W_fill + W_sur -&gt; kN | total vertical load
+
+## Overturning
+M_o: P_s * H / 3 + P_q * H / 2 -&gt; kN*m | overturning moment about the toe
+M_r: W_stem * x_stem + W_base * x_base + (W_fill + W_sur) * x_heel -&gt; kN*m | resisting moment about the toe
+FS_o: M_r / M_o | factor of safety against overturning
+if FS_o &gt;= FS_min: &quot;Overturning: OK.&quot; else: &quot;Overturning: the factor of safety is too low, widen the base.&quot;
+
+## Sliding
+mu:   tan(2 * phi / 3) | friction coefficient of the base on the ground
+R_h:  mu * W -&gt; kN | sliding resistance
+FS_s: R_h / P_h | factor of safety against sliding
+if FS_s &gt;= FS_min: &quot;Sliding: OK.&quot; else: &quot;Sliding: the factor of safety is too low, widen the base or make it thicker.&quot;
+
+## Bearing pressure under the base
+x_r: (M_r - M_o) / W -&gt; m | where the resultant crosses the base, from the toe
+e:   B / 2 - x_r -&gt; m | eccentricity from the middle of the base
+q_max: W / (B * b_w) * (1 + 6 * e / B) -&gt; kPa | pressure at the toe
+q_min: W / (B * b_w) * (1 - 6 * e / B) -&gt; kPa | pressure at the heel
+if abs(e) &lt;= B / 6: &quot;The resultant is inside the middle third: the whole base is in compression.&quot; else: &quot;The resultant is outside the middle third: part of the base lifts off, and the pressures above no longer apply.&quot;</code></pre>
+</section>
+<section>
+<h2>How to use it</h2>
+<ol>
+<li><strong>Open the template.</strong> Choose <strong>Open this template</strong> on this page. The sheet opens in a new tab of CivilKit Calcs, with the inputs set to the values used on this page.</li>
+<li><strong>Switch to Input mode.</strong> In the results bar choose <strong>Input</strong>. The input lines become boxes, lists, buttons and ticks.</li>
+<li><strong>Enter your values.</strong> Change the inputs to your own. The wall dimensions, the backfill and the surcharge are the inputs. Every change recalculates the whole page.</li>
+<li><strong>Read and export the result.</strong> Read the results and the OK or not OK lines under them. Use <strong>Report</strong>, then Print PDF, Word or Excel, to keep the calculation with its workings.</li>
+</ol>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>Which earth pressure theory does it use?</h3>
+<p>Rankine active pressure on the vertical plane through the heel, with the coefficient tan^2(45 degrees - phi/2).</p>
+<h3>What factor of safety does it require?</h3>
+<p>The sheet compares overturning and sliding with 1.5, which is a constant at the top of the sheet. Change it to your own value.</p>
+<h3>Does it check bearing capacity?</h3>
+<p>No. It gives the pressure under the base and tells you whether the resultant is in the middle third. Compare the pressure with a bearing value you trust.</p>
+<h3>Can I model sloping fill or groundwater?</h3>
+<p>Not as shipped. The sheet is plain text, so you can add the extra forces, but the template assumes level, dry fill.</p>
+<h3>Is it a design-code check?</h3>
+<p>No. It is a textbook stability calculation and it names no standard.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/pad-footing-bearing-pressure-calculator/">Pad footing bearing pressure</a></li>
+<li><a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a></li>
+<li><a href="/calcs/learn/engineering-calculation-software-free/">Free calculation software</a></li>
+<li><a href="/calcs/learn/pump-operating-point-calculator/">Pump operating point</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=template-retaining-wall-stability">Open this template</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. Source: <a href="https://github.com/mageaustralia/civilkit-calcs">github.com/mageaustralia/civilkit-calcs</a>. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>
