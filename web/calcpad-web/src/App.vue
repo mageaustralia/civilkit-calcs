@@ -598,6 +598,7 @@
   <MathKeyboard
     v-if="dockKeys"
     class="dock-keys"
+    :floating="!touchKeys"
     collapsible
     :system="dockSystemKeys"
     @insert="dockInsert"

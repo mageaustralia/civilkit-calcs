@@ -1,7 +1,18 @@
 <template>
   <!-- mousedown is prevented (not touchstart, which would cancel the tap) so the field keeps focus. -->
-  <div class="mk" role="group" aria-label="Math keyboard" @mousedown.prevent>
+  <div ref="root" class="mk" :class="{ floating }" :style="floating ? offsetStyle : undefined" role="group" aria-label="Math keyboard" @mousedown.prevent>
     <div class="mk-tabs" role="tablist">
+      <span
+        v-if="floating"
+        class="mk-grip"
+        title="Drag to move (double-click to centre)"
+        aria-hidden="true"
+        @pointerdown="dragStart"
+        @pointermove="dragMove"
+        @pointerup="dragEnd"
+        @pointercancel="dragEnd"
+        @dblclick="offset = { x: 0, y: 0 }; saveOffset()"
+      >&#x2807;</span>
       <button
         v-for="t in TABS"
         :key="t.id"
@@ -43,12 +54,55 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 // One key: `text` is what goes into the field, `label` what the key shows when they differ.
 interface Key { text: string; label?: string; title?: string; op?: boolean }
 
-withDefaults(defineProps<{ collapsible?: boolean; system?: boolean }>(), { collapsible: false, system: false })
+withDefaults(defineProps<{ collapsible?: boolean; system?: boolean; floating?: boolean }>(), { collapsible: false, system: false, floating: false })
+
+// Floating (mouse devices): the grip drags the panel; its offset from the default spot is remembered.
+const root = ref<HTMLElement | null>(null)
+const offset = ref({ x: 0, y: 0 })
+const offsetStyle = computed(() => ({ transform: `translate(calc(-50% + ${offset.value.x}px), ${offset.value.y}px)` }))
+const OFFSET_KEY = 'civilkit-keyboard-offset'
+function saveOffset(): void { try { localStorage.setItem(OFFSET_KEY, JSON.stringify(offset.value)) } catch { /* storage blocked */ } }
+onMounted(() => {
+  try {
+    const o = JSON.parse(localStorage.getItem(OFFSET_KEY) ?? 'null')
+    if (o && Number.isFinite(o.x) && Number.isFinite(o.y)) offset.value = { x: o.x, y: o.y }
+  } catch { /* storage blocked or bad value */ }
+  clampIntoView()
+})
+let drag: { px: number; py: number; ox: number; oy: number } | null = null
+function dragStart(e: PointerEvent): void {
+  drag = { px: e.clientX, py: e.clientY, ox: offset.value.x, oy: offset.value.y }
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+}
+function dragMove(e: PointerEvent): void {
+  if (drag) place(drag.ox + e.clientX - drag.px, drag.oy + e.clientY - drag.py)
+}
+function dragEnd(): void {
+  if (!drag) return
+  drag = null
+  saveOffset()
+}
+// Set the offset, nudged so the panel stays on screen: the rectangle is read at the current offset and moved by the difference.
+function place(x: number, y: number): void {
+  const el = root.value
+  if (el) {
+    const r = el.getBoundingClientRect()
+    const dx = x - offset.value.x, dy = y - offset.value.y
+    const left = r.left + dx, right = r.right + dx, top = r.top + dy, bottom = r.bottom + dy
+    if (left < 0) x -= left
+    if (right > window.innerWidth) x -= right - window.innerWidth
+    if (top < 0) y -= top
+    if (bottom > window.innerHeight) y -= bottom - window.innerHeight
+  }
+  offset.value = { x, y }
+}
+function clampIntoView(): void { place(offset.value.x, offset.value.y) }
+
 const emit = defineEmits<{
   (e: 'insert', text: string): void
   (e: 'backspace'): void
@@ -123,6 +177,8 @@ const WIDE = new Set<TabId>(['fn', 'calc', 'mat', 'un'])
 .mk-tabs { display: flex; gap: 2px; padding: 6px 6px 0; overflow-x: auto; scrollbar-width: none; }
 .mk-tabs button { flex: none; height: 36px; padding: 0 12px; border: 1px solid transparent; border-bottom: 0; border-radius: 6px 6px 0 0; background: transparent; color: var(--ck-text-2); font: inherit; font-size: 15px; cursor: pointer; }
 .mk-tabs button.on { background: var(--ck-panel); color: var(--ck-text); border-color: var(--ck-line); }
+.mk-grip { flex: none; align-self: center; width: 22px; text-align: center; color: var(--ck-text-3); cursor: grab; touch-action: none; font-size: 18px; line-height: 28px; }
+.mk-grip:active { cursor: grabbing; }
 .mk-tabs .mk-sys { margin-left: auto; font-size: 20px; }
 .mk-tabs .mk-sys.on { color: var(--ck-accent); }
 .mk-tabs .mk-hide { font-size: 20px; }
