@@ -287,3 +287,22 @@ fn content_of_unknown_containers_is_kept() {
     assert!(d.text.contains(">quoted <") && d.text.contains(">abbr<"), "{}", d.text);
     assert!(!d.text.contains(">no<") && !d.text.contains(">b<"));
 }
+
+/// A sheet's folding section is a `<details>` with the heading in its `<summary>`, and a key line ends in a star: the
+/// Word file has the heading, the section's lines and the star, as if the section were open.
+#[test]
+fn a_folding_section_and_a_key_star_are_written_in_full() {
+    let d = docx(
+        "<html><body><details class=\"sheet-collapse\"><summary><h2>Workings</h2></summary>\
+         <p>Some prose.</p><p><span class=\"sheet-note\">moment</span> <span class=\"sheet-key\" title=\"key result\">\u{2605}</span></p>\
+         </details><h2>Results</h2><div class=\"sheet-key-results\"><p>y</p></div></body></html>",
+        &[],
+    );
+    for want in ["Workings", "Some prose.", "moment", "\u{2605}", "Results"] {
+        assert!(d.text.contains(want), "{want} in the document: {}", d.text);
+    }
+    // The heading inside the summary is a heading, in order with the text of the section.
+    let at = |s: &str| d.text.find(s).unwrap();
+    assert!(at("Workings") < at("Some prose.") && at("Some prose.") < at("\u{2605}") && at("\u{2605}") < at("Results"));
+    assert_eq!(d.text.matches("<w:pStyle w:val=\"h2\"/>").count(), 2, "the summary's heading and the next one are both headings: {}", d.text);
+}

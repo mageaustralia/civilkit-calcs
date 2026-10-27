@@ -31,7 +31,9 @@ page is a summary for users.
 * The **Symbolic** dialog.
 * The **worksheet importer**.
 * **Rich-text editing** of Markdown prose in the results.
-* **Sheet inputs**: `L: ? 6 m` and its drop-down, radio and checkbox forms, which compile to `#UI`.
+* **Sheet inputs**: `L: ? 6 m` and its drop-down, radio and checkbox forms, which compile to `#UI`, and sliders with bounds (`L: ? 6 m [2 .. 12 step 0.5]`), for which `#UI` takes `min`, `max` and `step`.
+* **SI prefixes on every SI unit** (`3 mN`, `5 µm`, `40 nF`): CalcpadCE lists the prefixed units one by one and lacks many.
+* **Folding sections and key results** in the sheet format (`## Workings {collapse}`, `{key}`, `{key results}`).
 * **Model bindings**: a comment that ties an input to a quantity of a structural model, with a marker
   in the report. No model is connected yet.
 * A **ribbon** interface, a phone layout and an installable, offline app.

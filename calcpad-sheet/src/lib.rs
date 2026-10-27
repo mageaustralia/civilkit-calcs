@@ -229,6 +229,20 @@ struct Comp<'a> {
     seq: usize,
     /// A `sheet-form` wrapper is open around a run of input lines (the page styles it).
     form_open: bool,
+    /// The statement being read ends with `{key}`.
+    key_pending: bool,
+    /// The key quantities written so far at the top level, for a `{key results}` line.
+    keys: Vec<KeyItem>,
+    /// The levels of the collapsible sections that are open (`## Workings {collapse}`).
+    collapses: Vec<usize>,
+}
+
+/// A quantity or input marked `{key}`.
+struct KeyItem {
+    /// The name as the engine spells it.
+    name: String,
+    unit: Option<String>,
+    note: Option<String>,
 }
 
 /// Leading whitespace: (width with a tab as 4, mixed tabs and spaces, byte length).
@@ -268,6 +282,9 @@ impl<'a> Comp<'a> {
             stack: Vec::new(),
             seq: 0,
             form_open: false,
+            key_pending: false,
+            keys: Vec::new(),
+            collapses: Vec::new(),
         }
     }
 
@@ -721,8 +738,23 @@ impl<'a> Comp<'a> {
                 self.display(&content[2..content.len() - 2], idx);
                 continue;
             }
-            if can_stmt && self.statement(&content, idx, indent) {
+            if let Some((level, htext)) = heading(&content) {
+                if (indent <= 3 || !self.stack.is_empty()) && self.collapse_heading(level, htext, idx, self.stack.is_empty()) {
+                    continue;
+                }
+            }
+            if content.trim() == KEY_RESULTS && can_stmt {
+                self.key_results(idx);
                 continue;
+            }
+            if can_stmt {
+                let (stripped, key) = split_key(&content);
+                self.key_pending = key;
+                let done = self.statement(stripped, idx, indent);
+                self.key_pending = false;
+                if done {
+                    continue;
+                }
             }
             let escaped = content
                 .strip_prefix('\\')
@@ -762,6 +794,100 @@ impl<'a> Comp<'a> {
         }
         self.flush_prose();
         self.close_form(lines.len().saturating_sub(1));
+        let last = lines.len().saturating_sub(1);
+        while self.collapses.pop().is_some() {
+            self.emit("'</details>", last);
+        }
+    }
+
+    /// A heading marked `{collapse}` opens a section that the page can fold; any heading closes the
+    /// open sections of its own level or deeper. True if the heading was written here.
+    fn collapse_heading(&mut self, level: usize, text: &str, idx: usize, top: bool) -> bool {
+        let marked = split_collapse(text);
+        if marked.is_none() && self.collapses.is_empty() {
+            return false;
+        }
+        let (clean, open) = match marked {
+            Some((c, o)) => (c.to_string(), o),
+            None => (text.to_string(), false),
+        };
+        if marked.is_some() && !top {
+            self.diag(
+                idx,
+                Severity::Warning,
+                "{collapse} works on a heading outside any if, for, while or repeat block; ignored here",
+            );
+            self.mark(idx, LineKind::Prose);
+            self.prose.push(Pl {
+                text: format!("{} {}", "#".repeat(level), clean),
+                idx,
+                kind: PKind::Normal,
+            });
+            return true;
+        }
+        if !top {
+            return false;
+        }
+        self.flush_prose();
+        while self.collapses.last().is_some_and(|&l| l >= level) {
+            self.collapses.pop();
+            self.pending_blank = None;
+            self.emit("'</details>", idx);
+        }
+        self.mark(idx, LineKind::Prose);
+        if marked.is_some() {
+            self.emit(
+                format!("'<details class=\"sheet-collapse\"{}><summary>", if open { " open" } else { "" }),
+                idx,
+            );
+            self.collapses.push(level);
+        }
+        self.prose.push(Pl {
+            text: format!("{} {}", "#".repeat(level), clean),
+            idx,
+            kind: PKind::Normal,
+        });
+        if marked.is_some() {
+            self.flush_prose();
+            self.pending_blank = None;
+            self.emit("'</summary>", idx);
+        }
+        true
+    }
+
+    /// `{key results}`: the key quantities defined above, one line each.
+    fn key_results(&mut self, idx: usize) {
+        self.flush_prose();
+        self.mark(idx, LineKind::Quantity);
+        let items: Vec<(String, Option<String>, Option<String>)> = self
+            .keys
+            .iter()
+            .map(|k| (k.name.clone(), k.unit.clone(), k.note.clone()))
+            .collect();
+        if items.is_empty() {
+            self.diag(
+                idx,
+                Severity::Warning,
+                "no quantity above this line is marked {key}; add {key} to the end of the lines to list",
+            );
+            return;
+        }
+        if !self.opts.plain_tex {
+            self.emit("'<div class=\"sheet-key-results\">", idx);
+        }
+        for (name, unit, note) in items {
+            let mut t = match &unit {
+                Some(u) => format!("{name}|{u}"),
+                None => name,
+            };
+            if let Some(n) = note {
+                t.push_str(&format!(" '{n}"));
+            }
+            self.emit(t, idx);
+        }
+        if !self.opts.plain_tex {
+            self.emit("'</div>", idx);
+        }
     }
 
     fn display(&mut self, t: &str, line: usize) {
@@ -1049,14 +1175,18 @@ impl<'a> Comp<'a> {
             text.push_str(&format!("'{l} -'"));
         }
         text.push_str(&format!("{cp} = {default}"));
+        let key = self.key_pending;
         if !labelled {
-            if let Some(n) = &note {
-                if plain {
-                    text.push_str(&format!(" '{n}"));
-                } else {
-                    text.push_str(&format!(" '<span class=\"sheet-note\">{n}</span>"));
-                }
-            }
+            text.push_str(&comment_tail(note.as_deref(), key, plain));
+        } else if key {
+            text.push_str(&comment_tail(None, true, plain));
+        }
+        if key && self.stack.is_empty() {
+            self.keys.push(KeyItem {
+                name: cp.clone(),
+                unit: None,
+                note: note.clone(),
+            });
         }
         if !plain && !self.form_open {
             self.close_form(idx);
@@ -1158,15 +1288,20 @@ impl<'a> Comp<'a> {
             }
             let mut text = stmt_text(s);
             if i + 1 == n {
-                if let Some(nt) = &note {
-                    let h = tex::inline(nt, self.opts.plain_tex, true, false, &mut self.latex);
-                    // Plain Calcpad gets a plain comment; the page styles the class (SHEET_CSS in sheet.ts).
-                    if self.opts.plain_tex {
-                        text.push_str(&format!(" '{h}"));
-                    } else {
-                        text.push_str(&format!(" '<span class=\"sheet-note\">{h}</span>"));
-                    }
-                }
+                let h = note
+                    .as_ref()
+                    .map(|nt| tex::inline(nt, self.opts.plain_tex, true, false, &mut self.latex));
+                let key = self.key_pending;
+                text.push_str(&comment_tail(h.as_deref(), key, self.opts.plain_tex));
+            }
+            if self.key_pending && self.stack.is_empty() && !s.sheet.contains('(') {
+                self.keys.push(KeyItem {
+                    name: s.calcpad.clone(),
+                    unit: s.unit.clone(),
+                    note: note
+                        .as_ref()
+                        .map(|nt| tex::inline(nt, self.opts.plain_tex, true, false, &mut self.latex)),
+                });
             }
             self.emit(text, idx);
         }
@@ -1317,6 +1452,33 @@ pub(crate) fn find_sep(s: &str) -> Option<usize> {
 }
 
 /// `# text` to `###### text`: the level and the text.
+/// The marker that ends a line to list in the key results.
+const KEY: &str = "{key}";
+/// A line that is replaced by the list of key quantities above it.
+const KEY_RESULTS: &str = "{key results}";
+
+/// `x: 1 {key}` is `x: 1` and true.
+pub(crate) fn split_key(content: &str) -> (&str, bool) {
+    let t = content.trim_end();
+    match t.strip_suffix(KEY) {
+        Some(r) if r.ends_with([' ', '\t']) && !r.trim().is_empty() => (r.trim_end(), true),
+        _ => (content, false),
+    }
+}
+
+/// `Workings {collapse}` is (`Workings`, closed) and `Workings {collapse open}` is (`Workings`, open).
+pub(crate) fn split_collapse(text: &str) -> Option<(&str, bool)> {
+    let t = text.trim_end();
+    for (m, open) in [("{collapse open}", true), ("{collapse}", false)] {
+        if let Some(r) = t.strip_suffix(m) {
+            if r.ends_with([' ', '\t']) && !r.trim().is_empty() {
+                return Some((r.trim_end(), open));
+            }
+        }
+    }
+    None
+}
+
 fn heading(line: &str) -> Option<(usize, &str)> {
     let t = line.trim_start();
     let n = t.chars().take_while(|c| *c == '#').count();
@@ -1366,6 +1528,22 @@ fn needs_md(l: &str) -> bool {
 
 fn rhs_all_pos(_s: &str, from: usize, q: usize) -> bool {
     q >= from
+}
+
+/// The comment that ends a quantity line: the note, then the star of a key line. Plain Calcpad gets
+/// plain text; the page styles the classes (SHEET_CSS in sheet.ts).
+fn comment_tail(note: Option<&str>, key: bool, plain: bool) -> String {
+    match (note, key, plain) {
+        (None, false, _) => String::new(),
+        (Some(h), false, true) => format!(" '{h}"),
+        (Some(h), false, false) => format!(" '<span class=\"sheet-note\">{h}</span>"),
+        (None, true, true) => " '\u{2605}".to_string(),
+        (Some(h), true, true) => format!(" '{h} \u{2605}"),
+        (None, true, false) => " '<span class=\"sheet-key\" title=\"key result\">\u{2605}</span>".to_string(),
+        (Some(h), true, false) => {
+            format!(" '<span class=\"sheet-note\">{h}</span> <span class=\"sheet-key\" title=\"key result\">\u{2605}</span>")
+        }
+    }
 }
 
 fn stmt_text(s: &Stmt) -> String {

@@ -282,6 +282,46 @@ change a value. To make your own, write the inputs as above, put the results und
 same form, and **Save values** keeps their numbers in their copy. A new input is one more line, a new option one more
 entry in a list.
 
+## Folding sections and key results
+
+Two small markers shape how a long sheet reads without changing a single number.
+
+```
+## Workings {collapse}
+...the long derivation...
+
+## Results
+Mstar: w * L^2 / 8 -> kN*m | maximum bending moment {key}
+utilisation: Mstar / (0.9 * Ms) | bending utilisation {key}
+
+## Key results
+{key results}
+```
+
+* **A folding section.** A heading that ends with `{collapse}` starts a section that is folded away in the preview
+  and the report until the reader opens it (a click on the heading; a small arrow shows the state). The section
+  runs to the next heading of the same level or a higher one (`#` is the highest), or to the end of the sheet.
+  `{collapse open}` makes it open when the page is first drawn. Its lines are calculated whether it is folded or
+  not, so a folded section can define names the rest of the sheet uses. A folding section can hold other headings
+  (a `###` inside a `##`), and a deeper section may fold on its own. Only a heading at the top level of the sheet
+  can fold: a `{collapse}` heading inside an `if`, `for`, `while` or `repeat` block is a warning and is ignored.
+* **A key line.** A quantity or input line that ends with `{key}` (after the note, if there is one) is a key line.
+  It is marked with a star and highlighted in the preview and the report, and Print and PDF keep the highlight.
+  Several statements on a line (`a: 1; b: 2 {key}`) are all key. It works the same on an input line
+  (`L: ? 6 m | span {key}`).
+* **A key results list.** A line that is just `{key results}` becomes a list of the key quantities above it, each
+  with its name, value and unit as the engine shows them, and the note. It lists the top-level key lines written
+  before it, once each, in the order written; a key line below the list is not in it (the page has no value for it
+  yet), and a list with no key line above it is a warning. Put a heading in front of it as above. A key line
+  inside a block is highlighted but not listed, and a function definition cannot be key.
+* **Print, PDF, Word and Excel.** The Print / PDF output opens every folded section, so the printed report is
+  complete. The Word and Excel exports also include folded sections in full, and a key line carries its star
+  in the line. Leaving folded sections out of an export is not offered.
+* **Plain Calcpad.** Show compiled and Convert to Calcpad give plain text for these: a folding section is
+  the heading in a `<details>` block of text lines and a key line has a star in its comment.
+* The formatter writes `{collapse}`, `{collapse open}` and `{key}` as one space and the marker, and does not change
+  anything else about these lines.
+
 ## Errors
 
 The engine's errors, the report's "on line [n]" links, the error banner, the scroll anchors and

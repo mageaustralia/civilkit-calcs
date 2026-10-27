@@ -494,7 +494,8 @@ export const RIBBON: RibbonTab[] = [
             { name: 'Lists', buttons: [
                 big('tf-ul', 'Bullets', 'list', 'A bulleted list', { text: "'<ul><li>First</li><li>Second</li></ul>\n", line: true, sheet: '- First\n- Second\n' }),
                 big('tf-ol', 'Numbered', 'olist', 'A numbered list', { text: "'<ol><li>First</li><li>Second</li></ol>\n", line: true, sheet: '1. First\n2. Second\n' }),
-                big('tf-fold', 'Fold', 'fold', 'A section that folds in the report', { text: "'<div class=\"fold\">\n'<b>Heading</b> (click to unfold)\n'<p>Content</p>\n'</div>\n", line: true }),
+                big('tf-fold', 'Fold', 'fold', 'A section that folds in the report; in a sheet a heading marked {collapse}', { text: "'<div class=\"fold\">\n'<b>Heading</b> (click to unfold)\n'<p>Content</p>\n'</div>\n", line: true, sheet: '## Workings {collapse}\n' }),
+                big('tf-key', 'Key results', 'star', 'A list of the lines marked {key} above it (sheets): important inputs and results', { text: '"Key results\n', line: true, sheet: '## Key results\n{key results}\n' }),
             ] },
             { name: 'Library', buttons: [
                 more('a-html', 'More HTML', 'source', 'Every HTML snippet', 'html'),

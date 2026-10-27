@@ -116,8 +116,37 @@ export async function formatSheet(src: string): Promise<string> {
 /** The look of a quantity's note and of a run of input lines (`sheet-form`): classes in the compiled text, styled here instead of inline. */
 export const SHEET_CSS = '<style id="cprs-sheet">.sheet-note{color:#5f6a77;font-style:italic;margin-left:.6em}.sheet-form{border-left:3px solid #8aa4c8;padding:.15em 0 .15em .8em;margin:.5em 0}@media screen{.dark-theme .sheet-note{color:#7c8896}.dark-theme .sheet-form{border-left-color:#4f6a8f}}</style>';
 
-/** Adds SHEET_CSS to a page's head. */
+/**
+ * The look of a key line (`sheet-key`, the star the compiler puts after a line ending in `{key}`), of the key results list
+ * and of a folding section (`sheet-collapse`, a heading marked `{collapse}`). Added to a page only when it has one of them,
+ * so a sheet that uses neither is drawn exactly as before. The key rules use `:has()`, which every current browser
+ * supports; where it is missing the star still marks the line.
+ */
+export const SHEET_FEATURE_CSS = '<style id="cprs-sheet-features">'
+    + '.sheet-key{color:#b7791f;font-weight:700;margin-left:.5em;cursor:help}'
+    + 'p:has(.sheet-key){background:rgba(255,193,7,.17);border-left:3px solid #e0a800;padding:.1em .5em .1em .6em;margin-left:-.6em;border-radius:0 3px 3px 0}'
+    + '.sheet-key-results{border:1px solid #d6dbe3;border-radius:6px;padding:.3em .9em;margin:.5em 0;background:rgba(0,0,0,.02)}'
+    + '.sheet-key-results p:has(.sheet-key){background:none;border-left:0;padding:0;margin-left:0}'
+    + '.sheet-collapse{margin:.5em 0}'
+    + '.sheet-collapse>summary{cursor:pointer;display:flex;align-items:baseline;gap:.45em;list-style:none;border-radius:4px}'
+    + '.sheet-collapse>summary::-webkit-details-marker{display:none}'
+    + '.sheet-collapse>summary::before{content:"\\25B8";color:#5f6a77;font-size:1.2em;line-height:1;flex:none;transition:transform .12s}'
+    + '.sheet-collapse[open]>summary::before{transform:rotate(90deg)}'
+    + '@media (hover:hover){.sheet-collapse>summary:hover{background:rgba(95,106,119,.12)}}'
+    + '.sheet-collapse>summary:focus-visible{outline:2px solid #4da3ff;outline-offset:2px}'
+    + '.sheet-collapse>summary>h1,.sheet-collapse>summary>h2,.sheet-collapse>summary>h3,.sheet-collapse>summary>h4,.sheet-collapse>summary>h5,.sheet-collapse>summary>h6{display:inline-block;margin:.25em 0}'
+    + '@media screen{'
+    + '.dark-theme .sheet-key{color:#f2c14e}.dark-theme p:has(.sheet-key){background:rgba(242,193,78,.14);border-left-color:#f2c14e}'
+    + '.dark-theme .sheet-key-results{border-color:#2a3038;background:rgba(255,255,255,.03)}'
+    + '.dark-theme .sheet-collapse>summary::before{color:#9aa5b4}}'
+    + '@media screen and (hover:hover){.dark-theme .sheet-collapse>summary:hover{background:rgba(154,165,180,.14)}}'
+    + '@media print{.sheet-key{color:#000}p:has(.sheet-key){background:#fff3cd;border-left:3px solid #c99700;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    + '.sheet-collapse>summary::before{content:none}}'
+    + '</style>';
+
+/** Adds SHEET_CSS (and SHEET_FEATURE_CSS, if the page has key lines or folding sections) to a page's head. */
 export function withSheetCss(html: string): string {
+    const css = SHEET_CSS + (/class="sheet-(key|collapse)/.test(html) ? SHEET_FEATURE_CSS : '');
     const i = html.toLowerCase().lastIndexOf('</head>');
-    return i < 0 ? SHEET_CSS + html : html.slice(0, i) + SHEET_CSS + html.slice(i);
+    return i < 0 ? css + html : html.slice(0, i) + css + html.slice(i);
 }

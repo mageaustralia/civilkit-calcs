@@ -85,6 +85,7 @@ export const ICONS_BIG: Record<string, string> = {
     hr: tile(w('M8 15h16') + '<path class="x" d="M9 9h14M9 21h14" opacity=".6"/>'),
     page: page('', w('M7 16h19') ),
     olist: tile(w('M14 9h10M14 15h10M14 21h10') + t(9, 12, 6, '1') + t(9, 18, 6, '2') + t(9, 24, 6, '3')),
+    star: '<path class="h" d="M16 4l3.600 7.300 8 1.200-5.800 5.600 1.400 8L16 22.300 8.800 26.100l1.400-8L4.400 12.500l8-1.200z"/><path class="o" d="M16 4l3.600 7.300 8 1.200-5.800 5.600 1.400 8L16 22.300 8.800 26.100l1.400-8L4.400 12.500l8-1.200z"/>',
     fold: tile(w('M8 9h16M8 15h8M8 21h16') + a('M20 12l4 3-4 3z')),
     // calculation, files
     run: '<path class="l" d="M8 7l19 10-19 11z"/><path class="m" d="M8 5l19 10L8 25z"/><path class="h" d="M8 5l19 10-19 3z"/><path class="o" d="M8 5l19 10L8 25z"/>',
@@ -192,6 +193,7 @@ export const ICONS_SMALL: Record<string, string> = {
     keyboard: '<rect x="2" y="6" width="20" height="12" rx="1"/><path d="M6 10h1M10 10h1M14 10h1M18 10h1M7 14h10"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>',
     link: '<path d="M10 14a4 4 0 005 0l3-3a4 4 0 00-5-5l-1 1M14 10a4 4 0 00-5 0l-3 3a4 4 0 005 5l1-1"/>',
+    star: '<path d="M12 3l2.700 5.500 6 .9-4.400 4.200 1 6L12 16.800 6.700 19.600l1-6L3.300 9.400l6-.9z"/>',
     fold: '<path d="M4 6h16M4 12h8M4 18h16M16 10l3 3-3 3"/>',
     complex: '<path d="M4 20V8l8 12V8M16 20l4-12"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
@@ -201,3 +203,4 @@ export const ICONS_SMALL: Record<string, string> = {
     sigma: '<path d="M18 5H6l7 7-7 7h12"/>',
     trig: '<path d="M2 12c3-9 5-9 8 0s5 9 8 0 3-6 4-6"/>',
 };
+

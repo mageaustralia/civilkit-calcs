@@ -2389,7 +2389,8 @@ function injectLineLinks(
     "    document.addEventListener('click', function(e) {",
     "      if (e.detail > 1 || e.button) return;",
     "      var t = e.target;",
-    "      if (!t || !t.closest || t.closest('.ck-ins, .ck-chips, .cprs-plotly, svg.plot')) return;",
+    // The heading of a folding section (a summary) folds and opens it; a double click still edits it.
+    "      if (!t || !t.closest || t.closest('.ck-ins, .ck-chips, .cprs-plotly, svg.plot, summary')) return;",
     "      var sel = ''; try { sel = String(window.getSelection() || ''); } catch (_e) {}",
     "      if (sel) return;",
     "      editFrom(t);",

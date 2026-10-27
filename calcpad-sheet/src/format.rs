@@ -44,12 +44,18 @@ fn line(l: &str) -> L {
     }
     let ws = t.len() - t.trim_start().len();
     let (indent, content) = t.split_at(ws);
-    if heading(content).is_some() && ws <= 3 {
-        return L::Heading(content.to_string());
+    if let Some((level, text)) = heading(content).filter(|_| ws <= 3) {
+        return L::Heading(match crate::split_collapse(text) {
+            Some((clean, open)) => format!("{} {clean} {{collapse{}}}", "#".repeat(level), if open { " open" } else { "" }),
+            None => content.to_string(),
+        });
     }
+    // A trailing {key} is written as one space and the marker.
+    let (content, key) = crate::split_key(content);
+    let tail = if key { " {key}" } else { "" };
     match crate::input::parse(content) {
         Some(Ok(inp)) => {
-            let rest = crate::input::canonical(&inp);
+            let rest = format!("{}{tail}", crate::input::canonical(&inp));
             if inp.sep == ':' {
                 return L::Quantity(Q {
                     indent: indent.to_string(),
@@ -79,7 +85,7 @@ fn line(l: &str) -> L {
         return L::Quantity(Q {
             indent: indent.to_string(),
             name,
-            rest: format!("{rest}{note}"),
+            rest: format!("{rest}{note}{tail}"),
         });
     }
     let body = stmts
@@ -93,7 +99,7 @@ fn line(l: &str) -> L {
         })
         .collect::<Vec<_>>()
         .join("; ");
-    L::Other(format!("{indent}{body}{note}"))
+    L::Other(format!("{indent}{body}{note}{tail}"))
 }
 
 /// The sheet, prettified.

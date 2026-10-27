@@ -1560,3 +1560,172 @@ fn a_saved_value_outside_the_bounds_is_an_error_on_the_line() {
         }
     }
 }
+
+// ---- folding sections and key results ---------------------------------------------------------
+
+const FOLD: &str = "<!--sheet-->\n# T\n\nL: ? 6 m | span {key}\n\n## Workings {collapse}\nSome prose.\nw: 12 kN/m | load\nM: w * L^2 / 8 -> kN*m | moment {key}\n\n### Detail\nx: 1\n\n## Results\ny: M * 2 {key}\n\n## Key results\n{key results}\n";
+
+fn out_lines(src: &str, plain: bool) -> (Vec<String>, Vec<(usize, String)>) {
+    let c = compile_with(src, &Options { plain_tex: plain });
+    (
+        c.text.lines().map(str::to_string).collect(),
+        c.diagnostics.iter().map(|d| (d.line, d.message.clone())).collect(),
+    )
+}
+
+#[test]
+fn a_collapse_heading_opens_a_details_block_that_closes_at_the_next_heading_of_its_level() {
+    let (l, d) = out_lines(FOLD, false);
+    assert!(d.is_empty(), "{d:?}");
+    let at = |s: &str| l.iter().position(|x| x == s).unwrap_or_else(|| panic!("{s}: {l:?}"));
+    let open = at("'<details class=\"sheet-collapse\"><summary>");
+    assert_eq!(l[open + 1], "'<h2>Workings</h2>");
+    assert_eq!(l[open + 2], "'</summary>");
+    let close = at("'</details>");
+    // The section holds its prose, its quantities and the deeper heading, and ends before `## Results`.
+    assert!(open < at("'Some prose.") && at("\"Detail") < close && close + 1 == at("'<h2>Results</h2>"));
+    assert_eq!(l.iter().filter(|x| x.as_str() == "'</details>").count(), 1);
+    assert!(!l.iter().any(|x| x.contains("{collapse")), "the marker is not shown");
+}
+
+#[test]
+fn a_collapse_open_section_starts_open_and_the_last_section_closes_at_the_end() {
+    let (l, d) = out_lines("<!--sheet-->\n## A {collapse open}\nx: 1\n## B {collapse}\ny: 2\n", false);
+    assert!(d.is_empty(), "{d:?}");
+    assert!(l.iter().any(|x| x == "'<details class=\"sheet-collapse\" open><summary>"), "{l:?}");
+    assert!(l.iter().any(|x| x == "'<details class=\"sheet-collapse\"><summary>"), "{l:?}");
+    assert_eq!(l.iter().filter(|x| x.as_str() == "'</details>").count(), 2);
+    assert_eq!(l.last().unwrap(), "'</details>");
+}
+
+#[test]
+fn nested_collapse_sections_close_in_order() {
+    let (l, _) = out_lines("<!--sheet-->\n# Top {collapse}\n## Inner {collapse}\na: 1\n## Next\nb: 2\n# Last\nc: 3\n", false);
+    let pos: Vec<usize> = l.iter().enumerate().filter(|(_, x)| x.as_str() == "'</details>").map(|(i, _)| i).collect();
+    assert_eq!(pos.len(), 2, "{l:?}");
+    // The inner section ends before `## Next`, the outer one before `# Last`.
+    assert_eq!(l[pos[0] + 1], "'<h2>Next</h2>");
+    assert_eq!(l[pos[1] + 1], "'<h1>Last</h1>");
+}
+
+#[test]
+fn a_collapse_heading_inside_a_block_is_ignored_with_a_warning() {
+    let (l, d) = out_lines("<!--sheet-->\nif 1 == 1:\n    ## Inner {collapse}\n    a: 1\n", false);
+    assert!(d.iter().any(|(_, m)| m.contains("outside any if")), "{d:?}");
+    assert!(!l.iter().any(|x| x.contains("details")), "{l:?}");
+    assert!(!l.iter().any(|x| x.contains("{collapse")), "{l:?}");
+}
+
+#[test]
+fn a_folded_section_is_calculated_and_in_the_page() {
+    let (c, html, errs) = render(FOLD);
+    no_errors("fold", &errs, &c);
+    assert!(html.contains("<details class=\"sheet-collapse\""), "{html}");
+    assert!(html.contains("<summary>") && html.contains("</summary>") && html.contains("</details>"));
+    // The section's calculation is in the page and later lines use it.
+    let t = text(&html);
+    assert!(t.contains("= 12 kN ∕ m · ( 6 m ) 2 8 = 54 kN · m moment"), "{t}");
+    assert!(t.contains("y = M · 2 = 54 kN · m · 2 = 108 kN · m"), "{t}");
+    // No `open` attribute: it is folded until the reader opens it.
+    assert!(!html.contains("<details class=\"sheet-collapse\" open"), "{html}");
+}
+
+#[test]
+fn a_key_line_gets_a_star_in_its_comment() {
+    let (l, d) = out_lines("<!--sheet-->\nM: 2 kN*m | moment {key}\nN: 3 {key}\nP: 4 | note\na: 1; b: 2 | two {key}\n", false);
+    assert!(d.is_empty(), "{d:?}");
+    let star = "<span class=\"sheet-key\" title=\"key result\">\u{2605}</span>";
+    assert_eq!(l[0], format!("M = 2 kN*m '<span class=\"sheet-note\">moment</span> {star}"));
+    assert_eq!(l[1], format!("N = 3 '{star}"));
+    assert_eq!(l[2], "P = 4 '<span class=\"sheet-note\">note</span>");
+    assert_eq!(l[3], "a = 1");
+    assert_eq!(l[4], format!("b = 2 '<span class=\"sheet-note\">two</span> {star}"));
+    // In plain Calcpad (and so Word and Excel) the star is plain text.
+    let (l, _) = out_lines("<!--sheet-->\nM: 2 kN*m | moment {key}\nN: 3 {key}\n", true);
+    assert_eq!(l, vec!["M = 2 kN*m 'moment \u{2605}".to_string(), "N = 3 '\u{2605}".to_string()]);
+}
+
+#[test]
+fn an_input_can_be_a_key_line() {
+    let (l, d) = out_lines("<!--sheet-->\nL: ? 6 m [2 .. 12] | span {key}\nE: ? [Steel = 200 GPa, *Timber = 11 GPa] | material {key}\nr: ? on {key}\n", false);
+    assert!(d.is_empty(), "{d:?}");
+    let ui: Vec<&String> = l.iter().filter(|x| x.starts_with("#UI")).collect();
+    assert_eq!(ui.len(), 3);
+    assert!(ui.iter().all(|x| x.ends_with("\u{2605}</span>")), "{ui:?}");
+    assert!(ui[0].contains("sheet-note\">span</span> <span class=\"sheet-key\""), "{}", ui[0]);
+}
+
+#[test]
+fn the_key_results_list_has_the_key_lines_above_it() {
+    let (l, d) = out_lines(FOLD, false);
+    assert!(d.is_empty(), "{d:?}");
+    let a = l.iter().position(|x| x == "'<div class=\"sheet-key-results\">").unwrap();
+    let list: Vec<&str> = l[a + 1..].iter().take_while(|x| x.as_str() != "'</div>").map(String::as_str).collect();
+    assert_eq!(list, vec!["L 'span", "M|kN*m 'moment", "y"]);
+    // Plain Calcpad has no wrapper.
+    let (l, _) = out_lines(FOLD, true);
+    assert!(!l.iter().any(|x| x.contains("sheet-key-results")), "{l:?}");
+    assert!(l.contains(&"M|kN*m 'moment".to_string()));
+}
+
+#[test]
+fn the_key_results_list_runs_in_the_engine_with_the_values() {
+    let (c, html, errs) = render(FOLD);
+    no_errors("key", &errs, &c);
+    let t = text(&html);
+    let tail = &t[t.rfind("Key results").unwrap()..];
+    assert!(tail.contains("L = 6 m span"), "{tail}");
+    assert!(tail.contains("M = 54 kN · m moment"), "{tail}");
+    assert!(tail.contains("y = 108 kN · m"), "{tail}");
+    assert_eq!(html.matches("class=\"sheet-key\"").count(), 3, "a star on each of the three key lines");
+}
+
+#[test]
+fn key_lines_that_cannot_be_listed_are_not() {
+    // Below the list, in a block, or a function: a star on the line if it is a key line, never in the list.
+    let src = "<!--sheet-->\na: 1 {key}\nf(x): x * 2 {key}\nif a == 1:\n    c: 3 {key}\n{key results}\nlater: 5 {key}\n";
+    let (l, d) = out_lines(src, true);
+    assert!(d.is_empty(), "{d:?}");
+    assert_eq!(l.iter().position(|x| x == "a"), Some(l.len() - 2), "{l:?}");
+    assert_eq!(l.last().unwrap(), "later = 5 '\u{2605}");
+    assert_eq!(l.iter().filter(|x| x.as_str() == "a").count(), 1);
+    assert!(!l.iter().any(|x| x == "c" || x == "f" || x == "later"), "{l:?}");
+    // The three lines that are not listed still carry the star.
+    assert_eq!(l.iter().filter(|x| x.ends_with('\u{2605}')).count(), 4, "{l:?}");
+}
+
+#[test]
+fn a_key_results_line_with_nothing_above_it_is_a_warning() {
+    let (l, d) = out_lines("<!--sheet-->\n## Key results\n{key results}\nx: 1\n", false);
+    assert!(d.iter().any(|(n, m)| *n == 2 && m.contains("no quantity above this line is marked {key}")), "{d:?}");
+    assert!(!l.iter().any(|x| x.contains("sheet-key-results")), "{l:?}");
+}
+
+#[test]
+fn prose_that_ends_with_the_marker_is_prose() {
+    let (l, d) = out_lines("<!--sheet-->\nWrite {key} to mark a line {key}\n", false);
+    assert!(d.is_empty(), "{d:?}");
+    assert!(l.iter().any(|x| x.contains("{key}")), "{l:?}");
+    assert!(!l.iter().any(|x| x.contains("sheet-key")), "{l:?}");
+}
+
+#[test]
+fn the_marker_lines_are_tidied_and_stay_tidy() {
+    let src = "<!--sheet-->\n## Workings   {collapse}\n##   Open one  {collapse open}\nM:2 kN*m|moment   {key}\nx=3  {key}\nL:?6 m [2..12]|span {key}\n{key results}\n";
+    let f = format(src);
+    assert_eq!(
+        f,
+        "<!--sheet-->\n## Workings {collapse}\n\n## Open one {collapse open}\nM: 2 kN*m | moment {key}\nx = 3 {key}\nL: ? 6 m [2 .. 12] | span {key}\n{key results}\n"
+    );
+    assert_eq!(format(&f), f);
+    // The formatted sheet compiles to the same worksheet.
+    assert_eq!(compile(&f).text.replace(' ', ""), compile(src).text.replace(' ', ""));
+}
+
+#[test]
+fn a_sheet_without_the_markers_is_untouched_by_the_collapse_and_key_code() {
+    // Headings, a trailing brace in a note and braces in LaTeX are as they were.
+    let src = "<!--sheet-->\n# T\n## A\nx: 1 | note {braces}\n$a_{key}$\n## B\n";
+    let (l, _) = out_lines(src, false);
+    assert!(!l.iter().any(|x| x.contains("details") || x.contains("sheet-key")), "{l:?}");
+}

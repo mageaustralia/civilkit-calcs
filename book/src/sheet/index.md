@@ -47,6 +47,7 @@ Every line of a sheet is one of these.
 | Prose | `A simply supported beam.` or `## Heading` | [Prose, LaTeX and tables](prose.md) |
 | Quantity | `L: 6 m \| span` | [Quantities and notes](quantities.md) |
 | Input | `L: ? 6 m \| span` | [Templates with inputs](../templates.md) |
+| Section marker | `## Workings {collapse}`, `M: ... {key}`, `{key results}` | [Folding sections and key results](sections.md) |
 | Function | `f(x): x^2 + 1` | [Functions](functions.md) |
 | Condition | `if u <= 1: "OK" else: "Fails"` | [Conditions and loops](flow.md) |
 | Block | `for i in 1..5:` with an indented body | [Conditions and loops](flow.md) |
