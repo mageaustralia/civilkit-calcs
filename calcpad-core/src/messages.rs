@@ -226,6 +226,10 @@ pub const The_UI_datagrid_requires_a_vector_or_matrix_value: &str = "#UI 'datagr
 pub const The_UI_0_cannot_hold_a_vector_or_matrix_value: &str =
     "#UI '{0}' cannot hold a vector or matrix value. Use a datagrid.";
 pub const The_UI_0_only_applies_to_a_datagrid: &str = "#UI '{0}' only applies to a datagrid.";
+pub const The_UI_0_only_applies_to_an_entry: &str = "#UI '{0}' only applies to an entry.";
+pub const The_UI_min_must_not_be_above_max: &str = "#UI 'min' ({0}) must not be above 'max' ({1}).";
+pub const The_UI_step_must_be_above_zero: &str = "#UI 'step' must be above zero.";
+pub const The_UI_value_0_is_outside_1_to_2: &str = "{0} is outside the range {1} to {2}.";
 pub const The_UI_width_must_be_a_number_or_a_percentage: &str =
     "#UI 'width' must be a number of pixels or a percentage, e.g. \"75%\".";
 pub const Datagrid_size_cannot_exceed_0_cells: &str =

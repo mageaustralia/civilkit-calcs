@@ -61,6 +61,7 @@ export const ICONS_BIG: Record<string, string> = {
     grid: tile('<path class="w" d="M8 8h16v14H8zM8 13h16M8 18h16M13 8v14M19 8v14" stroke-width="1.600"/>'),
     // input and output
     entry: '<rect class="h" x="3" y="9" width="26" height="14" rx="3"/><path class="l" d="M3 19h26v1a3 3 0 01-3 3H6a3 3 0 01-3-3z"/><rect class="o" x="3" y="9" width="26" height="14" rx="3"/>' + a('M10 12h2v8h-2z') + w('M15 16h9') ,
+    slider: '<rect class="h" x="3" y="13" width="26" height="6" rx="3"/><rect class="o" x="3" y="13" width="26" height="6" rx="3"/><circle class="m" cx="20" cy="16" r="6"/><circle class="o" cx="20" cy="16" r="6"/>' + a('M20 13.500v5'),
     dropdown: '<rect class="h" x="3" y="6" width="26" height="9" rx="3"/><rect class="m" x="3" y="17" width="26" height="9" rx="3" opacity=".7"/><rect class="o" x="3" y="6" width="26" height="9" rx="3"/><rect class="o" x="3" y="17" width="26" height="9" rx="3"/>' + a('M20 9.500h6l-3 3.500z') + w('M7 10.500h8M7 21.500h10'),
     radio: '<circle class="h" cx="16" cy="16" r="12"/><path class="l" d="M4 16a12 12 0 0024 0z" opacity=".6"/><circle class="o" cx="16" cy="16" r="12"/><circle class="m" cx="16" cy="16" r="5.500"/><circle class="o" cx="16" cy="16" r="5.500"/>',
     checkbox: tile('<rect class="h" x="8" y="8" width="16" height="14" rx="2"/>' + '<path class="a" d="M10 14.500l4 4 8-9" fill="none" stroke="var(--rb-ic-acc)" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"/>'),
@@ -157,6 +158,7 @@ export const ICONS_SMALL: Record<string, string> = {
     copy: '<rect x="8" y="8" width="12" height="12"/><path d="M16 8V4H4v12h4"/>',
     paste: '<rect x="5" y="5" width="14" height="16"/><path d="M9 5V3h6v2M9 11h6M9 15h6"/>',
     entry: '<rect x="3" y="8" width="18" height="8" rx="1"/><path d="M7 12h5"/>',
+    slider: '<path d="M3 12h18"/><circle cx="14" cy="12" r="3.5"/>',
     dropdown: '<rect x="3" y="6" width="18" height="6" rx="1"/><path d="M15 8l2 2 2-2M3 16h18M3 20h18"/>',
     radio: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>',
     checkbox: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12l3 3 5-6"/>',
@@ -199,4 +201,3 @@ export const ICONS_SMALL: Record<string, string> = {
     sigma: '<path d="M18 5H6l7 7-7 7h12"/>',
     trig: '<path d="M2 12c3-9 5-9 8 0s5 9 8 0 3-6 4-6"/>',
 };
-

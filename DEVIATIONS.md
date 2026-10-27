@@ -506,3 +506,20 @@ and a failure at `3 mN` reads as a bug in the sheet.
 
 **Tests:** `calcpad-core/tests/unit_prefixes.rs` (a table of more than 150 prefix and unit pairs checked by value,
 the ambiguous names, the unprefixable units, and every unit of the old table still parsing to the same unit).
+
+## D17. A number entry can carry bounds and a step (addition)
+
+**CalcpadCE:** `#UI` has no minimum, maximum or step; an entry is a text box and any number typed is accepted.
+
+**Here:** `#UI {"min": 2, "max": 12, "step": 0.5} L = 6m` accepts the keys `min`, `max` and `step` (numbers, in the
+unit of the entry; they apply to an entry only, `min` must not be above `max` and `step` must be above zero).
+They are written to the entry as `data-ui-min`, `data-ui-max` and `data-ui-step`; an entry without them is
+byte for byte what it was. The input form draws a slider beside the box when `min` and `max` are given, and refuses
+a typed value outside them with an error beside the box. A value outside the bounds that arrives from the stored
+`uiOverrides` (the Report, the PDF, the Word and Excel exports) is an error on the line (`L = 15 is outside the
+range 2 to 12.`), not a silent clamp.
+
+**Why:** a span, a load or a ratio has a sensible range, and a slider lets a reader move through it.
+
+**Tests:** `calcpad-core/tests/ui_directive.rs` (`an_entry_with_bounds_*`), `calcpad-sheet/src/tests.rs`
+(`a_slider_input_*`), `web/e2e/inputs-check.mjs`.

@@ -455,3 +455,17 @@ fn json_block_is_not_validated_against_settings_keys() {
         .iter()
         .any(|d| d.code == "CPD-3413"));
 }
+
+// An addition to the C# tests (DEVIATIONS.md, D17): the bounds and the step of a number entry.
+#[test]
+fn bounds_and_step_of_an_entry_are_known_properties() {
+    assert!(messages("#UI {\"min\": 1, \"max\": 5, \"step\": 0.5} a = 2").is_empty());
+    assert!(messages("#UI {\"type\": \"entry\", \"min\": 1} a = 2").is_empty());
+}
+
+#[test]
+fn a_bad_range_is_reported_by_the_linter() {
+    assert!(single(messages("#UI {\"min\": 5, \"max\": 1} a = 2")).contains("'min' (5) must not be above 'max' (1)"));
+    assert!(single(messages("#UI {\"max\": 5, \"step\": 0} a = 2")).contains("'step' must be above zero"));
+    assert!(single(messages("#UI {\"type\": \"checkbox\", \"max\": 5} a = 1")).contains("'max' only applies to an entry"));
+}

@@ -39,7 +39,7 @@ either way too: `phi: ? 0.9` is the input `φ`.
 
 `name = ? 6 m` works as well as `name: ? 6 m`.
 
-## The four kinds of input
+## The kinds of input
 
 | You write | You get | The name is |
 | --- | --- | --- |
@@ -47,6 +47,28 @@ either way too: `phi: ? 0.9` is the input `φ`.
 | `E: ? [Steel = 200 GPa, *Timber = 11 GPa] \| material` | A drop-down list | The value of the chosen option |
 | `k: ? (Low = 1, High = 2) \| load class` | Radio buttons | The value of the chosen option |
 | `ribs: ? on \| stiffeners fitted` | A checkbox | `1` when ticked, `0` when not |
+| `L: ? 6 m [2 .. 12 step 0.5] \| span` | A slider with the box beside it | The number, kept between the bounds |
+
+### Sliders
+
+Put bounds after the default and the box gets a slider:
+
+```sheet
+# Beam moment
+
+L: ? 6 m [2 .. 12 step 0.5] | span
+w: ? 12 kN/m [2 .. 40 step 1] | design load
+M: w * L^2 / 8 -> kN*m | maximum moment
+```
+
+`[2 .. 12 step 0.5]` is the smallest value, the largest value and, if you give one, the step the slider moves
+in. The numbers are in the unit of the default (metres for `6 m`). The default must lie between the bounds.
+In Input mode the slider sits next to the box: drag it, use the arrow keys, or type a number, and the sheet
+recalculates a moment after you stop moving. A number typed outside the bounds is not used; the box turns red
+and says `must be from 2 to 12`. Without `step` the slider takes about a hundred steps across its range; a typed
+number does not have to land on a step. Preview, Report, PDF and the Word and Excel exports show the number, as
+they do for a plain input, so a sheet with sliders reads the same when it is printed. Two of the sample
+templates, the beam check and the cantilever, use sliders for their span, length and loads.
 
 ### Drop-downs and radio buttons
 
@@ -201,8 +223,8 @@ compares the bending stress $\sigma = M/Z$ with an allowable stress and the mid-
 $\delta = 5 w L^4 / (384 E I)$ with a limit.
 
 ## Inputs
-L:     ? 6 m | span
-w:     ? 12 kN/m | applied uniform load
+L:     ? 6 m [2 .. 12 step 0.5] | span
+w:     ? 12 kN/m [2 .. 40 step 1] | applied uniform load
 h:     ? [200 mm deep = 200 mm, *300 mm deep = 300 mm, 400 mm deep = 400 mm] | I-beam section
 mat:   ? [Structural steel = 1, Aluminium = 2, Timber = 3] | material
 limit: ? (L/250 = 250, L/360 = 360, L/500 = 500) | deflection limit
@@ -598,8 +620,8 @@ and, if wanted, its own weight $w$. At the fixed end $M = P L + w L^2 / 2$ and
 $V = P + w L$, and the tip deflection is $\delta = P L^3 / (3 E I) + w L^4 / (8 E I)$.
 
 ## Inputs
-L:     ? 2.5 m | length
-P:     ? 8 kN | point load at the free end
+L:     ? 2.5 m [0.5 .. 6 step 0.1] | length
+P:     ? 8 kN [1 .. 100 step 1] | point load at the free end
 b:     ? 100 mm | section width
 d:     ? 200 mm | section depth
 mat:   ? [Structural steel = 1, Aluminium = 2, Timber = 3] | material

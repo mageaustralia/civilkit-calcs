@@ -363,6 +363,7 @@ export const RIBBON: RibbonTab[] = [
         id: 'io', label: 'Input/Output', groups: [
             { name: 'Input fields', buttons: [
                 big('u-entry', 'Entry', 'entry', 'An input box for a number', { text: '#UI L = 10m\n', line: true, sheet: 'L: ? 10 m | span\n' }),
+                big('u-slider', 'Slider', 'slider', 'A number with bounds, drawn as a slider with a box beside it', { text: '#UI {"min": 0, "max": 20, "step": 0.5} L = 10m\n', line: true, sheet: 'L: ? 10 m [0 .. 20 step 0.5] | span\n' }),
                 big('u-dropdown', 'Dropdown', 'dropdown', 'A drop-down list of choices', { text: '#UI {"type": "dropdown", "keys": ["Low", "Medium", "High"], "values": ["1", "2", "3"]} grade = 1\n', line: true, sheet: 'grade: ? [Low = 1, Medium = 2, High = 3] | grade\n' }),
                 big('u-radio', 'Radio', 'radio', 'A group of radio buttons', { text: '#UI {"type": "radio", "keys": ["Steel", "Concrete"], "values": ["200GPa", "25GPa"]} E = 200GPa\n', line: true, sheet: 'E: ? (Steel = 200 GPa, Concrete = 25 GPa) | material\n' }),
                 big('u-check', 'Checkbox', 'checkbox', 'A checkbox (1 or 0)', { text: '#UI {"type": "checkbox"} useSteel = 1\n', line: true, sheet: 'useSteel: ? on | use steel\n' }),

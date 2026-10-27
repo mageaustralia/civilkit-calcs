@@ -199,13 +199,22 @@ L: ? 6 m | span
 E: ? [Steel = 200 GPa, *Timber = 11 GPa, Alloy = 70 GPa] | material
 k: ? (Low = 1, High = 2) | load class
 ribs: ? on | stiffeners fitted
+w: ? 12 kN/m [2 .. 30 step 0.5] | load
 ```
 
 These are, in order, a number with its unit and a note, a drop-down list (the option marked `*` is the one selected at
-first), radio buttons (the same options in round brackets) and a checkbox.
+first), radio buttons (the same options in round brackets), a checkbox and a slider.
 
 * **A number** is the default, written as a number with an optional unit (`6 m`, `12 kN/m`, `0.9`).
   It is not an expression: `2*3 m` is an error on its line. The unit is shown after the box. Units may use the usual spellings: `m³`, `N/mm²`, `kN·m`, `kg/m³`, `m·s⁻¹`, `°`, `°C`, `%`, `µm` (they are written to the engine as `m^3`, `N/mm^2`, `kN*m` and so on). The engine's own `#UI` line takes only the `^` and `*` spellings, so use those in a `>>` line.
+* **A slider** is a number with bounds after it: `w: ? 12 kN/m [2 .. 30 step 0.5] | load`. The form draws a slider with
+  the box beside it. The bounds are plain numbers in the unit of the default (here kN/m), `step` is optional (without it
+  the slider moves in a step of 1, 2 or 5 times a power of ten that gives about a hundred positions), the minimum must be
+  below the maximum, and the default must lie between them; otherwise the line is an error. The bounds also check the
+  box: a typed value outside them is not used and the box shows `must be from 2 to 30` beside it. Moving the slider
+  re-runs the sheet after a short pause (a quarter of a second), and it works by touch and with the arrow, Home,
+  End and Page keys. The slider is drawn by the input form only; the report, the PDF and the exports show the
+  number. Typing a value between the steps is fine (the step belongs to the slider).
 * **A choice** is a list of `label = value`. The value is a number with an optional unit, as above, and
   it is what the name has when that option is chosen. Without a `*`, the first option is the one selected.
   A label with a comma, an equals sign or brackets is written in double quotes (`"Beam (A), long" = 1`);
@@ -239,6 +248,7 @@ exports and the `uiOverrides` the page keeps all work as they do for a Calcpad w
 | `E: ? [Steel = 200 GPa, *Timber = 11 GPa] \| material` | `#UI {"type":"dropdown","keys":["Steel","Timber"],"values":["200GPa","11GPa"]} 'material -'E = 11GPa` |
 | `k: ? (Low = 1, High = 2)` | `#UI {"type":"radio","keys":["Low","High"],"values":["1","2"]} 'k -'k = 1` |
 | `ribs: ? on` | `#UI {"type":"checkbox"} 'ribs -'ribs = 1` |
+| `w: ? 12 kN/m [2 .. 30 step 0.5] \| load` | `#UI {"min":2,"max":30,"step":0.5} w = 12kN/m 'load` |
 
 Use **Show compiled** to see it for a whole sheet. Bad input lines (no default, an expression for a default, a choice
 with one option or with an option that has no value, an unclosed bracket, two inputs on one line) are errors on their line,
@@ -255,7 +265,9 @@ in the report and as editor markers, and say what to write. A line such as `Why:
   sheet's own defaults, unless *Apply #UI Values in Preview* is on in the settings). Edit the number in the sheet itself
   to change a default.
 * Inputs hold numbers only (the engine's own limit), so there is no text box: a choice of names is a drop-down.
-  The engine has no minimum or maximum on a box either; check a range with a condition, `if L > 30 m: "Span out of range"`.
+  A plain number input has no minimum or maximum; give it bounds as a slider (above) or check a range with a
+  condition, `if L > 30 m: "Span out of range"`. A value outside the bounds of a slider that reaches the engine
+  from saved values is an error on the input's line.
 * The report shows the number a choice stands for, not its label (`mat = 2`). A line such as
   `if mat == 2: "The material is aluminium."` names it, and the templates do.
 

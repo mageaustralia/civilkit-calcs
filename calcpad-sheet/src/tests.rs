@@ -1131,7 +1131,7 @@ fn the_documented_input_examples_run() {
     assert_eq!(n, 2, "two examples before the table");
     let (c, html, errs) = render(&src);
     no_errors("docs", &errs, &c);
-    assert_eq!(c.text.matches("#UI ").count(), 5);
+    assert_eq!(c.text.matches("#UI ").count(), 6);
     assert!(text(&html).contains("The material is aluminium.") || !text(&html).contains("Error"));
     // The table of what is compiled is true as well.
     let rows = [
@@ -1376,4 +1376,187 @@ fn template_pump_values_and_inputs() {
     let (errs, t) = with_inputs(name, &[("pump:1", "1"), ("H_st:1", "35")]);
     assert!(errs.is_empty(), "{errs:?}");
     assert!(t.contains("cannot lift the water") && t.contains("= 0 L"), "{t}");
+}
+
+// ---- compiled samples stay as they were -------------------------------------------------------
+
+fn fnv(s: &str) -> u64 {
+    let mut h: u64 = 0xcbf29ce484222325;
+    for b in s.bytes() {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x100000001b3);
+    }
+    h
+}
+
+/// The sample with the bounds of its sliders taken out (` [2 .. 12 step 0.5]` is removed).
+fn without_bounds(src: &str) -> String {
+    let mut out = String::new();
+    let mut rest = src;
+    while let Some(i) = rest.find(" [") {
+        let tail = &rest[i + 2..];
+        let close = tail.find(']').unwrap_or(0);
+        let inner = &tail[..close];
+        if close > 0 && inner.contains(" .. ") && inner.starts_with(|c: char| c.is_ascii_digit()) {
+            out.push_str(&rest[..i]);
+            rest = &tail[close + 1..];
+        } else {
+            out.push_str(&rest[..i + 2]);
+            rest = tail;
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// A hash of what the compiler gives for every shipped sample, in both modes, recorded before sliders and
+/// collapsible sections existed: a sheet that does not use them compiles to exactly what it did. The two
+/// templates that now use sliders compile to the recorded text once their bounds are taken away.
+#[test]
+fn every_sample_compiles_to_what_it_did_before() {
+    let golden = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests-data/samples_compiled.txt")).unwrap();
+    let mut files: Vec<_> = std::fs::read_dir(SAMPLES)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| p.extension().is_some_and(|x| x == "sheet"))
+        .collect();
+    files.sort();
+    let mut want = std::collections::HashMap::new();
+    for l in golden.lines() {
+        let mut p = l.rsplitn(3, '|');
+        let hash = p.next().unwrap().to_string();
+        let plain = p.next().unwrap() == "true";
+        want.insert((p.next().unwrap().to_string(), plain), hash);
+    }
+    assert_eq!(want.len(), files.len() * 2, "a sample was added or removed: regenerate tests-data/samples_compiled.txt");
+    let mut with_sliders = 0;
+    for f in &files {
+        let name = f.file_name().unwrap().to_string_lossy().to_string();
+        let src = std::fs::read_to_string(f).unwrap();
+        let plain_src = without_bounds(&src);
+        if plain_src != src {
+            with_sliders += 1;
+        }
+        for plain in [false, true] {
+            let c = compile_with(&plain_src, &Options { plain_tex: plain });
+            let all = format!(
+                "{}\n{:?}\n{:?}",
+                c.text,
+                c.map,
+                c.diagnostics.iter().map(|d| format!("{}:{}", d.line, d.message)).collect::<Vec<_>>()
+            );
+            assert_eq!(format!("{:016x}", fnv(&all)), want[&(name.clone(), plain)], "{name} (plain {plain}) compiles differently");
+        }
+    }
+    assert_eq!(with_sliders, 2, "two templates use sliders");
+}
+
+#[test]
+fn the_slider_templates_give_the_same_results_as_their_plain_selves() {
+    for name in ["Template simply supported beam", "Template cantilever tip load"] {
+        let src = sample(name);
+        assert!(src.contains(" .. "), "{name} has sliders");
+        let (c1, h1, e1) = render(&src);
+        no_errors(name, &e1, &c1);
+        let (c2, h2, e2) = render(&without_bounds(&src));
+        no_errors(name, &e2, &c2);
+        assert_eq!(text(&h1), text(&h2), "{name}: the defaults give the same report");
+    }
+}
+
+// ---- sliders ----------------------------------------------------------------------------------
+
+fn compiled_line(src: &str) -> String {
+    let c = compile(&format!("<!--sheet-->\n{src}\n"));
+    assert!(c.diagnostics.is_empty(), "{src}: {:?}", c.diagnostics);
+    c.text.lines().find(|l| l.starts_with("#UI")).unwrap_or_else(|| panic!("{}", c.text)).to_string()
+}
+
+#[test]
+fn a_slider_input_compiles_to_an_entry_with_bounds() {
+    assert_eq!(
+        compiled_line("L: ? 6 m [2 .. 12 step 0.5]"),
+        "#UI {\"min\":2,\"max\":12,\"step\":0.5} L = 6m"
+    );
+    assert_eq!(compiled_line("L: ? 6 m [2 .. 12]"), "#UI {\"min\":2,\"max\":12} L = 6m");
+    assert_eq!(
+        compiled_line("w = ? 12 kN/m [-5 .. 40 step 1] | load"),
+        "#UI {\"min\":-5,\"max\":40,\"step\":1} w = 12kN/m '<span class=\"sheet-note\">load</span>"
+    );
+    // The bounds may be written tight, with a minus sign, a decimal point without a leading digit, or a unicode minus.
+    assert_eq!(compiled_line("a: ? 0.5 [.25 .. 2 step .25]"), "#UI {\"min\":0.25,\"max\":2,\"step\":0.25} a = 0.5");
+    assert_eq!(compiled_line("a: ? 0 [\u{2212}1..1 step 0.1]"), "#UI {\"min\":-1,\"max\":1,\"step\":0.1} a = 0");
+    // A plain input and a choice are as they were.
+    assert_eq!(compiled_line("L: ? 6 m"), "#UI L = 6m");
+}
+
+#[test]
+fn a_slider_with_a_mistake_is_an_error_on_its_line() {
+    for (src, want) in [
+        ("L: ? 20 m [2 .. 12]", "outside the bounds"),
+        ("L: ? 1 m [2 .. 12]", "outside the bounds"),
+        ("L: ? 6 m [12 .. 2]", "minimum 12 must be below the maximum 2"),
+        ("L: ? 6 m [6 .. 6]", "must be below"),
+        ("L: ? 6 m [2 .. 12 step 0]", "step must be above zero"),
+        ("L: ? 6 m [2 .. 12 step -1]", "step must be above zero"),
+        ("L: ? 6 m [2 .. 12 step 20]", "larger than the range"),
+        ("L: ? 6 m [2 .. 12 step]", "no step"),
+        ("L: ? 6 m [2 .. x]", "maximum 'x' must be a plain number"),
+        ("L: ? 6 m [2 m .. 12 m]", "plain number"),
+        ("L: ? 6 m [2 12]", "written `[min .. max]"),
+        ("L: ? 6 m [.. 12]", "no minimum"),
+        ("L: ? 6 m [2 ..]", "no maximum"),
+        ("L: ? 6 m [1e1 .. 12]", "plain number"),
+    ] {
+        let c = compile(&format!("<!--sheet-->\n{src}\n"));
+        assert!(
+            c.diagnostics.iter().any(|d| d.severity == Severity::Error && d.message.contains(want)),
+            "{src}: {want}: {:?}",
+            c.diagnostics
+        );
+        assert!(c.text.contains("Sheet syntax: input:"), "{src}: {}", c.text);
+    }
+}
+
+#[test]
+fn a_slider_line_is_tidied_and_stays_tidy() {
+    let f = format("<!--sheet-->\nL:?6 m[2..12 step .5]|span\nw : ? 12 kN/m  [ 2 ..  40 ]\n");
+    assert_eq!(f, "<!--sheet-->\nL: ? 6 m [2 .. 12 step 0.5] | span\nw: ? 12 kN/m [2 .. 40]\n");
+    assert_eq!(format(&f), f);
+}
+
+#[test]
+fn a_slider_runs_in_the_engine_with_its_bounds_on_the_entry() {
+    let c = compile("<!--sheet-->\nL: ? 6 m [2 .. 12 step 0.5] | span\nA: L * 2\n");
+    let req = serde_json::json!({ "content": c.text, "enableUi": true });
+    let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+    assert!(v["errors"].as_array().unwrap().is_empty(), "{:?}", v["errors"]);
+    let html = v["html"].as_str().unwrap();
+    assert!(
+        html.contains("data-ui-min=\"2\" data-ui-max=\"12\" data-ui-step=\"0.5\""),
+        "the entry carries the bounds"
+    );
+    // The report (no form) shows the number only.
+    let (_, html, errs) = render("<!--sheet-->\nL: ? 6 m [2 .. 12 step 0.5] | span\nA: L * 2\n");
+    assert!(errs.is_empty());
+    assert!(!html.contains("data-ui-min=") && !html.contains("<input"), "no control in the report");
+    // A plain input has no bounds attributes.
+    let c = compile("<!--sheet-->\nL: ? 6 m\n");
+    let req = serde_json::json!({ "content": c.text, "enableUi": true });
+    let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+    assert!(!v["html"].as_str().unwrap().contains("data-ui-min=\""), "a plain entry is as it was");
+}
+
+#[test]
+fn a_saved_value_outside_the_bounds_is_an_error_on_the_line() {
+    let c = compile("<!--sheet-->\nL: ? 6 m [2 .. 12]\nA: L * 2\n");
+    for (value, bad) in [("8", false), ("12", false), ("2", false), ("15", true), ("1.5", true), ("-3", true)] {
+        let req = serde_json::json!({ "content": c.text, "uiOverrides": { "L:1": value } });
+        let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+        let t = text(v["html"].as_str().unwrap());
+        assert_eq!(t.contains("is outside the range 2 to 12"), bad, "{value}: {t}");
+        if !bad {
+            assert!(!t.contains("Error"), "{value}: {t}");
+        }
+    }
 }

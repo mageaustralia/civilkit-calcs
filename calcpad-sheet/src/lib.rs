@@ -1041,7 +1041,7 @@ impl<'a> Comp<'a> {
         }
         // A drop-down or a checkbox shows no name, so the note is its label. A number shows its
         // name and the note follows it, as on a quantity line.
-        let labelled = !matches!(inp.kind, input::Kind::Number(_));
+        let labelled = !matches!(inp.kind, input::Kind::Number(_) | input::Kind::Slider { .. });
         if labelled {
             let l = note
                 .clone()
