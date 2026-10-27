@@ -19,6 +19,7 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
     if (phone) await page.locator('.mobile-bar button', { hasText: 'Results' }).tap();
     const frame = page.locator('iframe').first().contentFrame();
     await frame.locator('.ck-ins-btn').first().waitFor({ timeout: 30000 });
+    await page.waitForTimeout(2000); // the handles are rebuilt as the page settles
     check(await frame.locator('.ck-ins-btn').count() >= 5, `${name}: handles between blocks`);
     const before = await page.evaluate(() => window.calcpadActiveEditor.getValue().split('\n'));
     let btn = frame.locator('.ck-ins-btn').nth(3);
@@ -31,11 +32,16 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
     }
     if (!phone) {
         const zone = frame.locator('.ck-ins').nth(3);
-        check(await zone.locator('.ck-ins-line').evaluate(e => getComputedStyle(e).opacity) === '0', `${name}: no dashed line until hover`);
-        await zone.hover();
-        await page.waitForTimeout(250);
-        check(+await zone.locator('.ck-ins-line').evaluate(e => getComputedStyle(e).opacity) > 0.3, `${name}: dashed line shows on hover`);
+        const line = () => zone.locator('.ck-ins-line').evaluate(e => getComputedStyle(e).opacity);
+        check(await line() === '0', `${name}: no dashed line until hover`);
+        const bb = await zone.boundingBox();
+        await page.mouse.move(bb.x + bb.width / 2 + 200, bb.y + bb.height / 2);
+        await page.waitForTimeout(300);
+        check(+await line() > 0.3, `${name}: dashed line shows on hover`);
         check(+await btn.evaluate(e => getComputedStyle(e).opacity) === 1, `${name}: the + shows on hover`);
+        check(await zone.evaluate(e => getComputedStyle(e).pointerEvents) === 'none', `${name}: the gap itself takes no clicks`);
+        await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+        await page.waitForTimeout(200);
     }
     phone ? await btn.tap() : await btn.click();
     await page.waitForSelector('.insert-menu');

@@ -38,6 +38,15 @@ function apply(): void {
   if (editor) emit('apply', baseline, editor.action(getMarkdown()))
 }
 
+// Clicking away: apply when something changed, otherwise just close.
+function commit(): void {
+  if (!editor) return
+  const edited = editor.action(getMarkdown())
+  if (edited === baseline) emit('cancel')
+  else emit('apply', baseline, edited)
+}
+defineExpose({ commit })
+
 function run(key: Parameters<typeof callCommand>[0], payload?: unknown): void {
   editor?.action(callCommand(key as never, payload as never))
   root.value?.querySelector<HTMLElement>('.ProseMirror')?.focus()
@@ -61,7 +70,7 @@ function run(key: Parameters<typeof callCommand>[0], payload?: unknown): void {
     </div>
     <div ref="root" class="md-block-body"></div>
     <div class="line-edit-foot">
-      <span class="md-keys">Ctrl+Enter to apply · Esc to cancel</span>
+      <span class="md-keys">Ctrl+Enter or click away to apply · Esc to cancel</span>
       <button class="modal-btn primary" @click="apply">Apply</button>
       <button class="modal-btn" @click="emit('cancel')">Cancel</button>
     </div>

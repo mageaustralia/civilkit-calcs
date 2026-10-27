@@ -516,7 +516,7 @@
         @system="toggleEditSystemKeys"
       />
       <div class="line-edit-foot">
-        <span class="line-edit-hint">Enter to apply · Esc to cancel</span>
+        <span class="line-edit-hint">Enter or click away to apply · Esc to cancel</span>
         <button class="modal-btn primary" @click="applyLineEdit">Apply</button>
         <button class="modal-btn" @click="closeLineEdit">Cancel</button>
       </div>
@@ -540,7 +540,7 @@
       @click.stop
     >
       <div v-if="mdEdit.error" class="line-edit-head">{{ mdEdit.error }}</div>
-      <MdBlockEditor :markdown="mdEdit.markdown" @apply="applyMdEdit" @cancel="closeMdEdit" />
+      <MdBlockEditor ref="mdEditor" :markdown="mdEdit.markdown" @apply="applyMdEdit" @cancel="closeMdEdit" />
     </div>
 
     <!-- HTML modal rather than a native dialog, for web/desktop consistency. -->
@@ -1070,6 +1070,7 @@ import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
+const mdEditor = ref<{ commit: () => void } | null>(null)
 
 // ---- Editing in place: the editor sits where the rendered text was, and the preview makes room ----
 let editWatch: ResizeObserver | null = null
@@ -1130,6 +1131,24 @@ function onEditAnchor(frameId: string, data: Record<string, unknown>): void {
   st.y = box.top + (Number(r.top) || 0)
 }
 
+// Clicking away from an editor applies what was typed (Esc is the way to throw it away).
+let lastCommitAt = 0
+let editOpenedAt = 0
+function commitEdit(): void {
+  const l = lineEdit.value
+  if (l) {
+    if (l.text === l.orig) closeLineEdit()
+    else applyLineEdit()
+    return
+  }
+  mdEditor.value?.commit()
+}
+function onAwayPointerDown(e: PointerEvent): void {
+  if (!lineEdit.value && !mdEdit.value) return
+  if ((e.target as Element | null)?.closest?.('.line-edit')) return
+  commitEdit()
+}
+
 function closeMdEdit(): void {
   untrackEdit()
   mdEdit.value = null
@@ -1145,11 +1164,12 @@ function applyMdEdit(baseline: string, edited: string): void {
   }
   untrackEdit()
   mdEdit.value = null
+  lastCommitAt = Date.now()
   const lines = st.block.kind === 'comment' ? next.map(l => "'" + l) : next
   onLineEditRequest.value?.replace?.(st.groupId, st.block.on + 1, st.block.off - 1, lines)
 }
 
-interface LineEditState { x: number; y: number; w: number; frameId: string; to: number; groupId: string; line: number; text: string; note: string }
+interface LineEditState { x: number; y: number; w: number; frameId: string; to: number; groupId: string; line: number; text: string; note: string; orig: string }
 const lineEdit = ref<LineEditState | null>(null)
 const lineEditInput = ref<HTMLTextAreaElement | null>(null)
 
@@ -1236,6 +1256,7 @@ function applyLineEdit(): void {
   if (!st) return
   untrackEdit()
   lineEdit.value = null
+  lastCommitAt = Date.now()
   // One source line stays one line, so the numbers the preview carries remain right.
   onLineEditRequest.value?.apply(st.groupId, st.line, st.text.replace(/\r?\n/g, ' '))
 }
@@ -1297,12 +1318,14 @@ async function openLineEdit(groupId: string, frameId: string, data: Record<strin
   if (block && req.replace) {
     lineEdit.value = null
     mdEdit.value = { x, y, w, frameId, groupId, block, markdown: toMarkdown(block), error: '' }
+    editOpenedAt = Date.now()
     trackEdit(frameId, block.on + 1, block.off - 1)
     return
   }
   // An imported equation is a typeset copy; its calculation is the plain line beside it.
   const note = /class="imp-eq"/.test(text) ? 'typeset copy of a Mathcad equation (display only)' : ''
-  lineEdit.value = { x, y, w, frameId, to: line, groupId, line, text, note }
+  lineEdit.value = { x, y, w, frameId, to: line, groupId, line, text, note, orig: text }
+  editOpenedAt = Date.now()
   trackEdit(frameId, line, line)
   void nextTick(() => { sizeLineEdit(); lineEditInput.value?.focus(); lineEditInput.value?.select() })
 }
@@ -1688,10 +1711,13 @@ function onPreviewWindowMessage(e: MessageEvent): void {
   }
   if (data.type === 'previewContextMenuDismiss') {
     closePreviewContextMenu()
-    closeLineEdit()
+    // The second press of a double-click reaches here just after the editor opened, and must not close it.
+    if (Date.now() - editOpenedAt > 400) commitEdit()
     return
   }
   if (data.type === 'editLine') {
+    // The click that applied a change must not open another editor on the old line numbers.
+    if (Date.now() - lastCommitAt < 350) return
     void openLineEdit(groupId, frameId, data)
     return
   }
@@ -2159,6 +2185,7 @@ function injectLineLinks(
     "document.addEventListener('DOMContentLoaded', function() {",
     "  var GROUP_ID = " + gid + ";",
     "  var FRAME_ID = " + fid + ";",
+    "  var SHEET = " + (insertStrip ? 'true' : 'false') + ";",
     "  var post = function(line, lineType) {",
     "    try { window.parent.postMessage({ type: 'navigateToLine', line: line, lineType: lineType, groupId: GROUP_ID }, '*'); } catch (e) {}",
     "  };",
@@ -2222,13 +2249,14 @@ function injectLineLinks(
     // A dashed line with a centred "+" between rendered blocks (on hover), to insert a new block there (the host shows the menu).
     "  (function() {",
     "    var css = '.ck-ins-layer{position:absolute;left:0;top:0;width:100%;height:0;z-index:5;pointer-events:none}'",
-    "      + '.ck-ins{position:absolute;left:0;right:0;height:16px;margin-top:-8px;pointer-events:auto;cursor:pointer}'",
+    // The gap itself never takes a click (it overlaps the blocks beside it); only the "+" does, and only while its gap shows.
+    "      + '.ck-ins{position:absolute;left:0;right:0;height:16px;margin-top:-8px;pointer-events:none}'",
     "      + '.ck-ins-line{position:absolute;left:8px;right:8px;top:8px;border-top:1px dashed currentColor;opacity:0;pointer-events:none;transition:opacity .12s}'",
-    "      + '.ck-ins-btn{position:absolute;left:50%;top:-2px;margin-left:-10px;width:20px;height:20px;padding:0;border-radius:50%;border:1px solid currentColor;background:Canvas;color:CanvasText;font:600 15px/17px system-ui,sans-serif;cursor:pointer;opacity:0;transition:opacity .12s}'",
-    "      + '.ck-ins:hover .ck-ins-line{opacity:.45}.ck-ins:hover .ck-ins-btn,.ck-ins-btn:focus-visible{opacity:1}'",
+    "      + '.ck-ins-btn{position:absolute;left:50%;top:-2px;margin-left:-10px;width:20px;height:20px;padding:0;border-radius:50%;border:1px solid currentColor;background:Canvas;color:CanvasText;font:600 15px/17px system-ui,sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s}'",
+    "      + '.ck-ins.on .ck-ins-line{opacity:.45}.ck-ins.on .ck-ins-btn{opacity:1;pointer-events:auto}.ck-ins:focus-within .ck-ins-btn{opacity:1}'",
     "      + '.ck-ins-btn:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}'",
     // No hover on touch: handles stay hidden until a block is tapped, then only the gaps just above and below it show.
-    "      + '@media (hover:none){.ck-ins{height:34px;margin-top:-17px;pointer-events:none}.ck-ins.on{pointer-events:auto}.ck-ins-btn{top:3px;width:28px;height:28px;margin-left:-14px;font-size:20px;line-height:24px}.ck-ins-line{top:17px}.ck-ins.on .ck-ins-line{opacity:.55}.ck-ins.on .ck-ins-btn{opacity:1}}'",
+    "      + '@media (hover:none){.ck-ins{height:34px;margin-top:-17px}.ck-ins-btn{top:3px;width:28px;height:28px;margin-left:-14px;font-size:20px;line-height:24px}.ck-ins-line{top:17px}}'",
     "      + '@media print{.ck-ins-layer{display:none}}';",
     "    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);",
     "    var layer = document.createElement('div'); layer.className = 'ck-ins-layer'; document.body.appendChild(layer);",
@@ -2246,7 +2274,7 @@ function injectLineLinks(
     "      }",
     "      return out;",
     "    }",
-    "    var gaps = [], tapY = null;",
+    "    var gaps = [], tapY = null, hoverGap = null;",
     // On touch only the gaps around the last tap show; a rebuild (resize, late layout) puts them back.
     "    function mark() {",
     "      var above = null, below = null;",
@@ -2262,7 +2290,7 @@ function injectLineLinks(
     "      var g = document.createElement('div'); g.className = 'ck-ins'; g.style.top = Math.max(14, y) + 'px';",
     "      var b = document.createElement('button'); b.type = 'button'; b.className = 'ck-ins-btn'; b.textContent = '+';",
     "      g.title = 'Insert a block here'; b.setAttribute('aria-label', 'Insert a block here');",
-    "      g.addEventListener('click', function(e) {",
+    "      b.addEventListener('click', function(e) {",
     "        e.preventDefault(); e.stopPropagation();",
     "        var r = b.getBoundingClientRect();",
     "        try { window.parent.postMessage({ type: 'insertAt', line: line, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, groupId: FRAME_ID }, '*'); } catch (_e) {}",
@@ -2271,7 +2299,7 @@ function injectLineLinks(
     "      g.appendChild(l); g.appendChild(b); layer.appendChild(g); g._y = y; gaps.push(g);",
     "    }",
     "    function build() {",
-    "      layer.textContent = ''; gaps = [];",
+    "      layer.textContent = ''; gaps = []; hoverGap = null;",
     "      var bs = blocks();",
     "      if (!bs.length) return;",
     "      var lastY = -100;",
@@ -2285,6 +2313,16 @@ function injectLineLinks(
     "        add(y, next ? next.line : 0);",
     "      }",
     "      mark();",
+    "    }",
+    // With a mouse, the gap nearest the pointer (within 9px) shows its line and "+".
+    "    if (window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches) {",
+    "      document.addEventListener('mousemove', function(e) {",
+    "        var hit = e.target.closest && e.target.closest('.ck-ins');",
+    "        for (var i = 0; !hit && i < gaps.length; i++) if (Math.abs(gaps[i]._y - e.pageY) <= 9) hit = gaps[i];",
+    "        if (hit === hoverGap) return;",
+    "        hoverGap = hit;",
+    "        for (var j = 0; j < gaps.length; j++) gaps[j].classList.toggle('on', gaps[j] === hit);",
+    "      });",
     "    }",
     "    if (window.matchMedia && matchMedia('(hover:none)').matches) {",
     "      document.addEventListener('click', function(e) {",
@@ -2341,6 +2379,17 @@ function injectLineLinks(
     "    return true;",
     "  }",
     "  document.addEventListener('dblclick', function(e) { editFrom(e.target); });",
+    // In a sheet with a mouse, one click on a block edits it (a drag that selects text does not).
+    "  if (SHEET && window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches) {",
+    "    document.addEventListener('click', function(e) {",
+    "      if (e.detail > 1 || e.button) return;",
+    "      var t = e.target;",
+    "      if (!t || !t.closest || t.closest('.ck-ins, .ck-chips, .cprs-plotly, svg.plot')) return;",
+    "      var sel = ''; try { sel = String(window.getSelection() || ''); } catch (_e) {}",
+    "      if (sel) return;",
+    "      editFrom(t);",
+    "    });",
+    "  }",
     // A finger has no reliable double-click (a double tap zooms): a long press does the same.
     "  var press = null, pressed = 0, pressAt = null;",
     "  function endPress() { if (press) clearTimeout(press); press = null; }",
@@ -2729,6 +2778,7 @@ function setProblems(groupId: string, markers: ProblemItem[]): void {
 }
 
 onMounted(async () => {
+  document.addEventListener('pointerdown', onAwayPointerDown, true)
   document.addEventListener('focusin', applyEditorInputMode)
   document.addEventListener('mousedown', onDocumentInteractionForTabMenu)
   document.addEventListener('keydown', onDocumentInteractionForTabMenu)

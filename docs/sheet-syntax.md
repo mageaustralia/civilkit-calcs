@@ -231,6 +231,10 @@ Copy data, PNG and SVG (the 3D scenes get Copy data and PNG). A `plot` line gets
 read back from the drawing through the axis labels, so it is the plotted values to about four figures. The chips are
 only in the preview, not in print or export.
 
+In a sheet, one click on a block in the preview edits it where it stands (a drag that selects text does not): the
+editor opens over the block, clicking away applies the change, Esc throws it away, Enter (Ctrl+Enter for prose) applies
+at once. On a touch screen a long press opens the editor and Apply and Cancel stay on screen.
+
 ## Ribbon and the Insert tab
 
 Between the rendered blocks in the preview, a small **+** (a tab on the left edge on touch screens) opens a menu to insert a

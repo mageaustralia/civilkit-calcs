@@ -1122,16 +1122,16 @@ select option {
 .status-version { margin: 0 10px; font-size: 11px; white-space: nowrap; }
 @media (max-width: 700px) { .status-upstream { display: none; } }
 
-/* Double-click line editor over the preview. */
+/* The line editor opens over the text it replaces, like a cell: no card, no shadow, an accent bar at its edge. */
 .line-edit {
     position: fixed;
     z-index: 1000;
-    padding: 8px;
-    background: var(--vscode-menu-background, var(--vscode-editor-background, #252526));
-    color: var(--vscode-menu-foreground, var(--vscode-foreground, #cccccc));
-    border: 1px solid var(--vscode-focusBorder, #007fd4);
-    border-radius: 3px;
-    /* Opens over the text it replaces; the preview makes room, so no floating shadow. */
+    padding: 4px 8px 6px;
+    background: var(--vscode-editor-background, #1e1e1e);
+    color: var(--vscode-foreground, #cccccc);
+    border: 0;
+    border-left: 3px solid var(--vscode-focusBorder, #007fd4);
+    border-radius: 0;
     box-shadow: none;
 }
 .line-edit-head { font-size: 11px; opacity: 0.75; margin-bottom: 4px; }
@@ -1150,6 +1150,12 @@ select option {
 }
 .line-edit-foot { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; opacity: 0.9; }
 .line-edit-foot span { flex: 1; opacity: 0.7; }
+/* With a mouse the buttons are not needed (click away applies, Esc cancels); the hint stays. */
+@media (hover: hover) and (pointer: fine) {
+    .line-edit-foot { justify-content: flex-end; margin-top: 2px; }
+    .line-edit-foot button { display: none; }
+    .line-edit-foot span { flex: none; opacity: 0.5; }
+}
 
 /* Phones: one pane at a time, switched from the bar along the bottom. */
 .mobile-bar { display: none; }
