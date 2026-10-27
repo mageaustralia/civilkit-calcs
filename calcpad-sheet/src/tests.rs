@@ -622,7 +622,8 @@ fn python_body(src: &str) -> String {
 
 #[test]
 fn export_keywords_use_the_sheet_spelling() {
-    let body = python_body("<!--sheet-->\n```python\nexport(sigma_c=2.0, phi=3.0, Mstar=4.0, y_c=5.0, plain=6.0)\n```\nx: 1");
+    let body =
+        python_body("<!--sheet-->\n```python\nexport(sigma_c=2.0, phi=3.0, Mstar=4.0, y_c=5.0, plain=6.0)\n```\nx: 1");
     assert_eq!(body, "export(σ_c=2.0, φ=3.0, M_star=4.0, y_c=5.0, plain=6.0)");
 }
 
@@ -659,7 +660,12 @@ fn a_name_exported_from_python_is_defined_for_the_lines_after_it() {
 fn a_bare_python_block_in_a_sheet_is_a_python_block() {
     let src = "<!--sheet-->\n#python\nphi = 3   # not sheet syntax: a | b\nexport(sigma_c=phi)\n#end python\nx: sigma_c * 2\n";
     let c = compile(src);
-    assert!(c.text.contains("#python\nphi = 3   # not sheet syntax: a | b\nexport(σ_c=phi)\n#end python"), "{}", c.text);
+    assert!(
+        c.text
+            .contains("#python\nphi = 3   # not sheet syntax: a | b\nexport(σ_c=phi)\n#end python"),
+        "{}",
+        c.text
+    );
     assert!(!c.text.contains("#markdown"), "{}", c.text);
     assert!(c.diagnostics.is_empty(), "{:?}", c.diagnostics);
     assert_eq!(crate::format::format(src), src);
@@ -670,4 +676,271 @@ fn an_unclosed_bare_python_block_is_an_error_and_is_closed() {
     let c = compile("<!--sheet-->\n#python\nx = 1\n");
     assert!(c.text.trim_end().ends_with("#end python"), "{:?}", c.text);
     assert!(!c.diagnostics.is_empty());
+}
+
+// ---- inputs (docs/sheet-syntax.md, "Inputs and templates") ----
+
+fn lines_of(src: &str) -> Vec<String> {
+    compile(&format!("<!--sheet-->\n{src}"))
+        .text
+        .lines()
+        .map(str::to_string)
+        .collect()
+}
+
+fn errors_of(src: &str) -> Vec<(usize, String)> {
+    compile(&format!("<!--sheet-->\n{src}"))
+        .diagnostics
+        .iter()
+        .filter(|d| d.severity == Severity::Error)
+        .map(|d| (d.line, d.message.clone()))
+        .collect()
+}
+
+#[test]
+fn a_number_input_is_a_ui_entry_with_its_note_after() {
+    let l = lines_of("L: ? 6 m | span");
+    assert_eq!(l[1], "#UI L = 6m '<span class=\"sheet-note\">span</span>");
+    let l = lines_of("w = ? 12 kN/m");
+    assert_eq!(l[1], "#UI w = 12kN/m");
+    let l = lines_of("phi: ? 0.9\nfy: ? 300 MPa");
+    assert_eq!(l[1], "#UI φ = 0.9");
+    assert_eq!(l[2], "#UI fy = 300MPa");
+    let l = lines_of("a: ? -2.5 m\nn: ? 1.5e3");
+    assert_eq!(l[1], "#UI a = -2.5m");
+    assert_eq!(l[2], "#UI n = 1500");
+}
+
+#[test]
+fn a_choice_is_a_dropdown_or_radio_with_the_note_as_label() {
+    let l = lines_of("E: ? [Steel = 200 GPa, *Timber = 11 GPa] | material");
+    assert_eq!(
+        l[1],
+        "#UI {\"type\":\"dropdown\",\"keys\":[\"Steel\",\"Timber\"],\"values\":[\"200GPa\",\"11GPa\"]} 'material -'E = 11GPa"
+    );
+    let l = lines_of("k: ? (Low = 1, High = 2)");
+    assert_eq!(
+        l[1],
+        "#UI {\"type\":\"radio\",\"keys\":[\"Low\",\"High\"],\"values\":[\"1\",\"2\"]} 'k -'k = 1"
+    );
+    // A quoted label may hold commas and brackets, and an apostrophe is fine.
+    let l = lines_of("s: ? [\"Beam (A), long\" = 1, Bob's = 2]");
+    assert!(l[1].contains("\"keys\":[\"Beam (A), long\",\"Bob's\"]"), "{}", l[1]);
+}
+
+#[test]
+fn a_checkbox_is_on_or_off() {
+    assert_eq!(
+        lines_of("ribs: ? on | stiffeners fitted")[1],
+        "#UI {\"type\":\"checkbox\"} 'stiffeners fitted -'ribs = 1"
+    );
+    assert_eq!(
+        lines_of("ribs: ? off")[1],
+        "#UI {\"type\":\"checkbox\"} 'ribs -'ribs = 0"
+    );
+    assert_eq!(lines_of("a: ? true")[1], "#UI {\"type\":\"checkbox\"} 'a -'a = 1");
+    assert_eq!(lines_of("a: ? False")[1], "#UI {\"type\":\"checkbox\"} 'a -'a = 0");
+}
+
+#[test]
+fn input_lines_are_defined_names_and_mapped() {
+    let c = compile("<!--sheet-->\nphi: ? 0.9 | factor\nx: phi * 2\n>> y = phi + 1\n");
+    assert_eq!(c.defs[0].name, "phi");
+    assert_eq!(c.defs[0].calcpad, "φ");
+    assert_eq!(c.kinds[1], LineKind::Quantity);
+    assert_eq!(c.map.len(), c.text.lines().count());
+    assert!(c.text.contains("y = φ + 1"), "{}", c.text);
+}
+
+#[test]
+fn a_run_of_inputs_is_one_form_closed_before_anything_else() {
+    let c = compile("<!--sheet-->\n## Inputs\nL: ? 6 m\nw: ? 12 kN/m\n\nThe load.\nM: w * L\nk: ? 2\n");
+    let t: Vec<&str> = c.text.lines().collect();
+    assert_eq!(t[0], "'<h2>Inputs</h2>");
+    assert_eq!(t[1], "'<div class=\"sheet-form\">");
+    assert!(t[2].starts_with("#UI L") && t[3].starts_with("#UI w"));
+    let close = t.iter().position(|l| *l == "'</div>").unwrap();
+    assert!(close < t.iter().position(|l| l.starts_with("'The load")).unwrap());
+    assert_eq!(t.iter().filter(|l| l.starts_with("'<div")).count(), 2);
+    assert_eq!(t.iter().filter(|l| **l == "'</div>").count(), 2);
+    assert_eq!(t.last().copied(), Some("'</div>"));
+    assert_eq!(c.map.len(), t.len());
+    // Inside a block the wrapper closes before the block does.
+    let c = compile("<!--sheet-->\nn: 1\nif n == 1:\n    a: ? 1\nelse:\n    b: ? 2\n");
+    let t: Vec<&str> = c.text.lines().collect();
+    for (i, l) in t.iter().enumerate() {
+        if *l == "#else" || *l == "#end if" {
+            assert_eq!(t[i - 1], "'</div>", "{t:?}");
+        }
+    }
+}
+
+#[test]
+fn plain_calcpad_has_no_wrapper() {
+    let c = compile_with(
+        "<!--sheet-->\nL: ? 6 m | span\nE: ? [A = 1, B = 2] | pick\n",
+        &Options { plain_tex: true },
+    );
+    assert_eq!(
+        c.text,
+        "#UI L = 6m 'span\n#UI {\"type\":\"dropdown\",\"keys\":[\"A\",\"B\"],\"values\":[\"1\",\"2\"]} 'pick -'E = 1\n"
+    );
+}
+
+#[test]
+fn input_mistakes_are_errors_on_their_line_and_never_panic() {
+    let cases = [
+        ("L: ?", "no default"),
+        ("L: ? 2*3 m", "not an expression"),
+        ("L: ? six", ""),
+        ("L: ? [a = 1]", "at least two"),
+        ("L: ? [a, b]", "needs a value"),
+        ("L: ? [a = 1, b = 2", "not closed"),
+        ("L: ? [a = 1,, b = 2]", "empty"),
+        ("L: ? [*a = 1, *b = 2]", "only one"),
+        ("L: ? [a = x, b = 2]", "must be a number"),
+        ("L: ? [a} = 1, b = 2]", "cannot contain"),
+        ("L: ? [ = 1, b = 2]", "no label"),
+        ("L: ? [a = , b = 2]", "no value"),
+        ("L: ? 1 m; M: ? 2", "one input per line"),
+        ("L: ? 1 +", "must be a number"),
+    ];
+    for (src, want) in cases {
+        let e = errors_of(src);
+        if want.is_empty() {
+            // Prose that merely contains a question mark stays prose, with a warning.
+            let c = compile(&format!("<!--sheet-->\n{src}"));
+            assert!(c.diagnostics.iter().all(|d| d.severity == Severity::Warning), "{src}");
+            continue;
+        }
+        assert_eq!(e.len(), 1, "{src}: {e:?}");
+        assert_eq!(e[0].0, 1, "{src}");
+        assert!(e[0].1.contains(want), "{src}: {}", e[0].1);
+        let c = compile(&format!("<!--sheet-->\n{src}"));
+        assert!(c.text.contains("Sheet syntax: input:"), "{src}: {}", c.text);
+        assert_eq!(c.map.len(), c.text.lines().count());
+    }
+}
+
+#[test]
+fn a_question_in_prose_is_still_prose() {
+    for src in ["Why: ? is it so", "Note: ? maybe", "Is it ok? yes", "a: what?"] {
+        let c = compile(&format!("<!--sheet-->\n{src}"));
+        assert!(!c.text.contains("#UI"), "{src}: {}", c.text);
+        assert!(c.diagnostics.iter().all(|d| d.severity == Severity::Warning), "{src}");
+        assert_eq!(c.kinds[1], LineKind::Prose, "{src}");
+    }
+}
+
+#[test]
+fn inputs_run_in_the_engine_and_results_follow_the_default() {
+    let src = "<!--sheet-->\n## Inputs\nL: ? 6 m | span\nw: ? 12 kN/m | load\nE: ? [Steel = 200 GPa, *Timber = 11 GPa] | material\nribs: ? on | ribs\nM: w * L^2 / 8 -> kN*m\nif ribs == 1: \"Ribs on\" else: \"Ribs off\"\nEE: E * 1\n";
+    let (c, html, errs) = render(src);
+    no_errors("inputs", &errs, &c);
+    let t = text(&html);
+    assert!(t.contains("L = 6 m span"), "{t}");
+    assert!(t.contains("material - E = 11 GPa"), "{t}");
+    assert!(t.contains("ribs - ribs = 1"), "{t}");
+    assert!(t.contains("= 54 kN"), "{t}");
+    assert!(t.contains("Ribs on"), "{t}");
+}
+
+#[test]
+fn an_entered_value_reaches_the_report() {
+    // The page sends the entered values with the request, as it does for a Calcpad worksheet.
+    let c = compile("<!--sheet-->\nL: ? 6 m\nA: L * 2 m\n");
+    let req = serde_json::json!({ "content": c.text, "enableUi": true, "uiOverrides": { "L:1": "9" } });
+    let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+    let html = v["html"].as_str().unwrap();
+    assert!(html.contains("calcpad-ui-input"), "the form shows the entry");
+    let req = serde_json::json!({ "content": c.text, "uiOverrides": { "L:1": "9" } });
+    let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+    assert!(text(v["html"].as_str().unwrap()).contains("A = L · 2 m = 9 m · 2 m = 18 m"));
+}
+
+#[test]
+fn the_values_comment_written_by_the_page_passes_through() {
+    let c = compile("<!--sheet-->\n'<!--{\"uiOverrides\":{\"L:1\":\"8\"}}-->\n# T\nL: ? 6 m\n");
+    assert_eq!(c.text.lines().next(), Some("'<!--{\"uiOverrides\":{\"L:1\":\"8\"}}-->"));
+    assert!(is_sheet("<!--sheet-->\n'<!--{}-->"));
+    assert_eq!(c.kinds[1], LineKind::Raw);
+}
+
+#[test]
+fn formatting_inputs_is_tidy_and_idempotent() {
+    let src = "<!--sheet-->\n## Inputs\nL:?6 m|span\nwidth :   ?  300  mm  | b\nE: ?[ Steel=200 GPa,*Timber =11 GPa ]|material\nk = ?(a=1,b=2)\nribs:?on|r\nM: w*L\n";
+    let f = format(src);
+    assert_eq!(
+        f,
+        "<!--sheet-->\n## Inputs\nL    : ? 6 m | span\nwidth: ? 300 mm | b\nE    : ? [Steel = 200 GPa, *Timber = 11 GPa] | material\nk = ? (a = 1, b = 2)\nribs: ? on | r\nM   : w*L\n"
+    );
+    assert_eq!(format(&f), f);
+    // A mistake is left as written.
+    let bad = "<!--sheet-->\nL: ? [a = 1\n";
+    assert_eq!(format(bad), bad);
+    assert_eq!(format(&format(bad)), format(bad));
+    // The formatted text compiles to the same worksheet.
+    assert_eq!(compile(&f).text.replace(' ', ""), compile(src).text.replace(' ', ""));
+}
+
+#[test]
+fn existing_sheets_compile_exactly_as_before_inputs_existed() {
+    // The hash of each sample's compile (text, map, diagnostics, names, kinds, both TeX modes)
+    // and of its formatting, taken with the compiler as it was before input lines.
+    const BEFORE: &[(&str, u64)] = &[
+        ("3D biaxial column interaction", 0xcb6686cf191eda00),
+        ("3D footing reactions bar chart", 0x2fbd90a5fd36f409),
+        ("3D mode shapes explorer", 0xc3da61c4f185ebab),
+        ("3D plate deflection surface", 0x3913bf7be812c36d),
+        ("3D space frame geometry", 0x325e79090f6505c1),
+        ("Animated beam moving load", 0x52b30ee4a5fa3934),
+        ("Beam bending", 0x78eb724dc4d9901e),
+        ("Beam deflection derived symbolically", 0x65203ad17a1a88b3),
+        ("Beam deflection", 0xa43c19124c0de730),
+        ("Beam explorer with Python and Plotly", 0x4dca43234ce4129b),
+        ("Cantilever tip load", 0xbb7160ba04bf8ef9),
+        ("Column", 0x71d27984a6746167),
+        ("LaTeX prose", 0xb825c1d403834f11),
+        ("Laguerre polynomial roots", 0x5ffba579fd06a1af),
+        ("Loads table", 0xe98ccde9a2b332ed),
+        ("Mixing with Calcpad", 0x6642b809d9a868a1),
+        ("Plot gallery implicit curves", 0xf236cda174914be7),
+        ("Plot", 0xc7953b29c520bc2f),
+        ("Tennis ball flight", 0x854dc1cf43307572),
+    ];
+    fn fnv(s: &str) -> u64 {
+        let mut h: u64 = 0xcbf29ce484222325;
+        for b in s.bytes() {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        h
+    }
+    for (name, want) in BEFORE {
+        let src = sample(name);
+        let mut acc = String::new();
+        for plain in [false, true] {
+            let c = compile_with(&src, &Options { plain_tex: plain });
+            acc.push_str(&c.text);
+            acc.push_str(&format!(
+                "{:?}{:?}{}",
+                c.map,
+                c.diagnostics
+                    .iter()
+                    .map(|d| (d.line, d.severity == Severity::Error, d.message.clone()))
+                    .collect::<Vec<_>>(),
+                c.uses_latex
+            ));
+            acc.push_str(&format!(
+                "{:?}",
+                c.defs
+                    .iter()
+                    .map(|d| (d.name.clone(), d.calcpad.clone(), d.line))
+                    .collect::<Vec<_>>()
+            ));
+            acc.push_str(&format!("{:?}", c.kinds));
+        }
+        acc.push_str(&format(&src));
+        assert_eq!(fnv(&acc), *want, "{name}: the compiled output changed");
+    }
 }

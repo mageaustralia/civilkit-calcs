@@ -6,6 +6,7 @@
 
 pub mod expr;
 mod format;
+pub mod input;
 mod names;
 mod pyexport;
 mod tex;
@@ -166,6 +167,8 @@ struct Comp<'a> {
     latex: bool,
     stack: Vec<Block>,
     seq: usize,
+    /// A `sheet-form` wrapper is open around a run of input lines (the page styles it).
+    form_open: bool,
 }
 
 /// Leading whitespace: (width with a tab as 4, mixed tabs and spaces, byte length).
@@ -204,6 +207,7 @@ impl<'a> Comp<'a> {
             latex: false,
             stack: Vec::new(),
             seq: 0,
+            form_open: false,
         }
     }
 
@@ -223,6 +227,19 @@ impl<'a> Comp<'a> {
     }
 
     fn emit(&mut self, s: impl Into<String>, line: usize) {
+        self.close_form(line);
+        self.push_line(s, line);
+    }
+
+    /// Ends the wrapper around a run of input lines, before any other output.
+    fn close_form(&mut self, line: usize) {
+        if self.form_open {
+            self.form_open = false;
+            self.push_line("'</div>", line);
+        }
+    }
+
+    fn push_line(&mut self, s: impl Into<String>, line: usize) {
         if let Some(b) = self.pending_blank.take() {
             if !self.out.is_empty() && self.out.last().is_some_and(|l| !l.is_empty()) {
                 self.out.push(String::new());
@@ -617,6 +634,13 @@ impl<'a> Comp<'a> {
                 self.emit(r, idx);
                 continue;
             }
+            if content.starts_with("'<!--{") && content.ends_with("-->") {
+                // A metadata comment (the values saved from the input form): the engine's own comment, as written.
+                self.flush_prose();
+                self.mark(idx, LineKind::Raw);
+                self.emit(content.clone(), idx);
+                continue;
+            }
             if content == "$$" {
                 math = Some((Vec::new(), idx));
                 continue;
@@ -648,7 +672,11 @@ impl<'a> Comp<'a> {
         }
         if let Some(Fence::Python(_, _, hash)) = fence {
             let last = lines.len().saturating_sub(1);
-            let msg = if hash { "the #python block is never closed with #end python" } else { "the python fence is never closed with ```" };
+            let msg = if hash {
+                "the #python block is never closed with #end python"
+            } else {
+                "the python fence is never closed with ```"
+            };
             self.diag(last, Severity::Error, msg);
             self.emit("#end python", last);
         }
@@ -665,6 +693,7 @@ impl<'a> Comp<'a> {
             self.close();
         }
         self.flush_prose();
+        self.close_form(lines.len().saturating_sub(1));
     }
 
     fn display(&mut self, t: &str, line: usize) {
@@ -696,6 +725,9 @@ impl<'a> Comp<'a> {
                 );
             }
             return false;
+        }
+        if self.input(content, idx) {
+            return true;
         }
         if content == "break" || content == "continue" {
             if self.stack.iter().any(|b| b.kind != Kind::If) {
@@ -888,6 +920,83 @@ impl<'a> Comp<'a> {
             }
         }
         Some(stmts.iter().map(stmt_text).collect())
+    }
+
+    /// An input line (`L: ? 6 m | span`): the engine's `#UI` control. False if the line is not one.
+    fn input(&mut self, content: &str, idx: usize) -> bool {
+        let inp = match input::parse(content) {
+            None => {
+                if input::is_input_line(content) {
+                    self.diag(
+                        idx,
+                        Severity::Warning,
+                        "looks like an input line (`name: ? default`) but is not valid; read as text",
+                    );
+                }
+                return false;
+            }
+            Some(Err(m)) => {
+                self.mark(idx, LineKind::Quantity);
+                self.error_line(idx, &format!("input: {m}"));
+                return true;
+            }
+            Some(Ok(i)) => i,
+        };
+        let (json, default) = match input::directive(&inp) {
+            Ok(x) => x,
+            Err(m) => {
+                self.mark(idx, LineKind::Quantity);
+                self.error_line(idx, &format!("input: {m}"));
+                return true;
+            }
+        };
+        self.flush_prose();
+        self.mark(idx, LineKind::Quantity);
+        let cp = names::rename(&inp.name);
+        self.found.insert(inp.name.clone());
+        if !self.defs.iter().any(|d| d.name == inp.name) {
+            self.defs.push(Def {
+                name: inp.name.clone(),
+                calcpad: cp.clone(),
+                line: idx,
+            });
+        }
+        let plain = self.opts.plain_tex;
+        let note = inp
+            .note
+            .as_deref()
+            .map(|n| tex::inline(n, plain, true, false, &mut self.latex).replace('\'', "&#39;"));
+        let mut text = String::from("#UI ");
+        if let Some(j) = &json {
+            text.push_str(j);
+            text.push(' ');
+        }
+        // A drop-down or a checkbox shows no name, so the note is its label. A number shows its
+        // name and the note follows it, as on a quantity line.
+        let labelled = !matches!(inp.kind, input::Kind::Number(_));
+        if labelled {
+            let l = note
+                .clone()
+                .unwrap_or_else(|| tex::escape_html(&inp.name).replace('\'', "&#39;"));
+            text.push_str(&format!("'{l} -'"));
+        }
+        text.push_str(&format!("{cp} = {default}"));
+        if !labelled {
+            if let Some(n) = &note {
+                if plain {
+                    text.push_str(&format!(" '{n}"));
+                } else {
+                    text.push_str(&format!(" '<span class=\"sheet-note\">{n}</span>"));
+                }
+            }
+        }
+        if !plain && !self.form_open {
+            self.close_form(idx);
+            self.push_line("'<div class=\"sheet-form\">", idx);
+            self.form_open = true;
+        }
+        self.push_line(text, idx);
+        true
     }
 
     fn plot(&mut self, p: &str, idx: usize) -> bool {
