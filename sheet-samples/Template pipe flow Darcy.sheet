@@ -1,0 +1,53 @@
+<!--sheet-->
+# Pipe flow: friction loss and pump head
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. Water flows
+through a full circular pipe of diameter $D$ and length $L_p$. The Darcy-Weisbach equation gives the
+friction head loss $h_f = f \frac{L_p}{D}\frac{V^2}{2g}$. The friction factor is $f = 64/Re$ in laminar
+flow and, in turbulent flow, the explicit Swamee-Jain formula
+$f = 0.25 / \left[\log_{10}\left(\frac{\varepsilon}{3.7 D} + \frac{5.74}{Re^{0.9}}\right)\right]^2$.
+Fittings add $h_m = K V^2 / 2g$.
+
+## Inputs
+Q:    ? 25 L/s | flow rate
+D:    ? 150 mm | inside diameter of the pipe
+L_p:  ? 300 m | pipe length
+dz:   ? 5 m | rise in level from the inlet to the outlet
+K_m:  ? 2.5 | sum of the loss coefficients of the fittings
+eps:  ? [Drawn plastic = 0.0015 mm, *Commercial steel = 0.045 mm, Cast iron = 0.26 mm, Concrete = 1 mm] | pipe material, roughness
+temp: ? (5 degrees C = 1, 20 degrees C = 2, 40 degrees C = 3) | water temperature
+minor: ? on | include the fittings
+
+## Water properties
+rho_tab: [1000 kg/m^3, 998 kg/m^3, 992 kg/m^3] | density at 5, 20 and 40 degrees C
+nu_tab:  [0.00000152 m^2/s, 0.00000100 m^2/s, 0.00000066 m^2/s] | kinematic viscosity at 5, 20 and 40 degrees C
+rho: rho_tab.temp -> kg/m^3
+nu:  nu_tab.temp -> m^2/s
+g_acc: 9.81 m/s^2 | gravitational acceleration
+
+if temp == 1: "The water is at 5 degrees C."
+if temp == 2: "The water is at 20 degrees C."
+if temp == 3: "The water is at 40 degrees C."
+
+## Flow
+A:  π * D^2 / 4 -> cm^2 | flow area
+V:  Q / A -> m/s | mean velocity
+Re: V * D / nu | Reynolds number
+rr: eps / D | relative roughness
+
+if Re < 2300:
+    The flow is laminar.
+    f: 64 / Re | friction factor, laminar
+else:
+    The flow is turbulent.
+    f: 0.25 / (log(rr / 3.7 + 5.74 / Re^0.9))^2 | friction factor, Swamee-Jain
+
+## Head loss
+h_f: f * (L_p / D) * V^2 / (2 * g_acc) -> m | friction head loss
+h_m: minor * K_m * V^2 / (2 * g_acc) -> m | head loss in the fittings, when included
+h_L: h_f + h_m -> m | total head loss
+H:   dz + h_L -> m | head the pump must supply
+dp:  rho * g_acc * h_L -> kPa | pressure drop from losses
+P_h: rho * g_acc * Q * H -> kW | hydraulic power
+
+if V <= 3 m/s: "OK: the velocity is within the usual limit of 3 m/s." else: "High velocity: more than 3 m/s, consider a larger pipe."

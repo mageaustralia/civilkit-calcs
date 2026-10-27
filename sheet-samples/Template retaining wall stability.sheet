@@ -1,0 +1,66 @@
+<!--sheet-->
+# Retaining wall: sliding and overturning
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. A cantilever
+retaining wall of concrete (a stem on a base slab) holds back a level fill; the sheet takes a strip of wall one metre long.
+The active earth pressure is $K_a = \tan^2(45^\circ - \phi/2)$, acting on the vertical plane through
+the heel, so the thrust is $P_a = \tfrac12 K_a \gamma H^2$ at $H/3$ above the underside of the base. A
+surcharge $q$ on the fill adds $K_a q H$ at $H/2$ and its weight on the heel. The wall slides on a
+base friction of $\tan(2\phi/3)$, and overturns about the toe. The soil in front of the toe is ignored.
+
+## Inputs
+H_s:   ? 3 m | height of the stem above the base slab
+B:     ? 2.4 m | width of the base slab
+t_b:   ? 0.4 m | thickness of the base slab
+t_s:   ? 0.4 m | thickness of the stem
+L_t:   ? 0.6 m | length of the toe, in front of the stem
+soil:  ? (Loose sand = 28 °, *Medium sand = 32 °, Dense sand = 36 °) | backfill, friction angle
+q_s:   ? 10 kPa | surcharge on the fill, when it is on
+sur:   ? off | surcharge on the fill
+
+## Constants
+gamma_c: 24 kN/m^3 | unit weight of concrete
+gamma_s: 18 kN/m^3 | unit weight of the fill
+b_w:     1 m | length of wall in the strip
+FS_min:  1.5 | required factor of safety, for sliding and for overturning
+
+## Geometry
+phi: soil | friction angle of the fill
+H:   H_s + t_b -> m | height of the thrust plane, above the underside of the base
+L_h: B - L_t - t_s -> m | length of the heel, behind the stem
+q:   sur * q_s -> kPa | surcharge in use
+
+## Earth pressure
+K_a: tan(45 ° - phi / 2)^2 | active pressure coefficient
+P_s: K_a * gamma_s * H^2 / 2 * b_w -> kN | thrust of the fill
+P_q: K_a * q * H * b_w -> kN | thrust of the surcharge
+P_h: P_s + P_q -> kN | total horizontal thrust
+
+## Weights and their lever arms about the toe
+W_stem: gamma_c * t_s * H_s * b_w -> kN | stem
+x_stem: L_t + t_s / 2 -> m | its lever arm
+W_base: gamma_c * B * t_b * b_w -> kN | base slab
+x_base: B / 2 -> m | its lever arm
+W_fill: gamma_s * L_h * H_s * b_w -> kN | fill on the heel
+W_sur:  q * L_h * b_w -> kN | surcharge on the heel
+x_heel: B - L_h / 2 -> m | lever arm of the fill and the surcharge
+W: W_stem + W_base + W_fill + W_sur -> kN | total vertical load
+
+## Overturning
+M_o: P_s * H / 3 + P_q * H / 2 -> kN*m | overturning moment about the toe
+M_r: W_stem * x_stem + W_base * x_base + (W_fill + W_sur) * x_heel -> kN*m | resisting moment about the toe
+FS_o: M_r / M_o | factor of safety against overturning
+if FS_o >= FS_min: "Overturning: OK." else: "Overturning: the factor of safety is too low, widen the base."
+
+## Sliding
+mu:   tan(2 * phi / 3) | friction coefficient of the base on the ground
+R_h:  mu * W -> kN | sliding resistance
+FS_s: R_h / P_h | factor of safety against sliding
+if FS_s >= FS_min: "Sliding: OK." else: "Sliding: the factor of safety is too low, widen the base or make it thicker."
+
+## Bearing pressure under the base
+x_r: (M_r - M_o) / W -> m | where the resultant crosses the base, from the toe
+e:   B / 2 - x_r -> m | eccentricity from the middle of the base
+q_max: W / (B * b_w) * (1 + 6 * e / B) -> kPa | pressure at the toe
+q_min: W / (B * b_w) * (1 - 6 * e / B) -> kPa | pressure at the heel
+if abs(e) <= B / 6: "The resultant is inside the middle third: the whole base is in compression." else: "The resultant is outside the middle third: part of the base lifts off, and the pressures above no longer apply."

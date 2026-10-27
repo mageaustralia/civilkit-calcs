@@ -1,0 +1,60 @@
+<!--sheet-->
+# Simply supported beam check
+
+A template with inputs. Choose **Input** in the results bar to fill in the form; every change
+recalculates the page. The beam is a doubly symmetric I-beam, so one depth $h$ describes it:
+flange width $b = h/2$, flange thickness $t_f = h/20$ and web thickness $t_w = h/40$. The check
+compares the bending stress $\sigma = M/Z$ with an allowable stress and the mid-span deflection
+$\delta = 5 w L^4 / (384 E I)$ with a limit.
+
+## Inputs
+L:     ? 6 m | span
+w:     ? 12 kN/m | applied uniform load
+h:     ? [200 mm deep = 200 mm, *300 mm deep = 300 mm, 400 mm deep = 400 mm] | I-beam section
+mat:   ? [Structural steel = 1, Aluminium = 2, Timber = 3] | material
+limit: ? (L/250 = 250, L/360 = 360, L/500 = 500) | deflection limit
+sw:    ? on | include the own weight of the beam
+
+## Material properties
+The input above picks one entry of each table, so a new material is one more entry in each.
+
+E_tab:   [200 GPa, 70 GPa, 11 GPa] | modulus of elasticity
+fa_tab:  [165 MPa, 100 MPa, 12 MPa] | allowable bending stress
+rho_tab: [7850 kg/m^3, 2700 kg/m^3, 500 kg/m^3] | density
+E:   E_tab.mat -> GPa
+f_a: fa_tab.mat -> MPa
+rho: rho_tab.mat -> kg/m^3
+
+if mat == 1: "The material is structural steel."
+if mat == 2: "The material is aluminium."
+if mat == 3: "The material is timber."
+
+## Section
+b:   h / 2 | flange width
+t_f: h / 20 | flange thickness
+t_w: h / 40 | web thickness
+A:   2 * b * t_f + (h - 2 * t_f) * t_w -> cm^2 | area
+I:   (b * h^3 - (b - t_w) * (h - 2 * t_f)^3) / 12 -> cm^4 | second moment of area
+Z:   2 * I / h -> cm^3 | elastic section modulus
+
+## Load
+g_acc: 9.81 m/s^2 | gravitational acceleration
+w_sw:  sw * rho * A * g_acc -> kN/m | own weight, when included
+w_tot: w + w_sw | total uniform load
+
+## Results
+M_max: w_tot * L^2 / 8 -> kN*m | maximum bending moment, at mid-span
+V_max: w_tot * L / 2 -> kN | maximum shear force, at the supports
+sigma: M_max / Z -> MPa | maximum bending stress
+delta: 5 * w_tot * L^4 / (384 * E * I) -> mm | mid-span deflection
+delta_lim: L / limit -> mm | deflection limit
+util_b: sigma / f_a | bending utilisation
+util_d: delta / delta_lim | deflection utilisation
+
+if util_b <= 1: "Bending: OK, the stress is within the allowable stress." else: "Bending: the stress exceeds the allowable stress, choose a deeper section or a stronger material."
+if util_d <= 1: "Deflection: OK, within the limit." else: "Deflection: over the limit, choose a deeper section or a stiffer material."
+
+## Moment diagram
+M(x): w_tot * x * (L - x) / 2 -> kN*m | bending moment along the span
+
+plot M(x * 1 m) / (1 kN*m) for x in 0..L / (1 m)
