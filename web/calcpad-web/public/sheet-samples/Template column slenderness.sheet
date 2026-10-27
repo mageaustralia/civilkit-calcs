@@ -1,0 +1,62 @@
+<!--sheet-->
+# Rectangular column: slenderness and buckling
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. A solid
+rectangular column of length $L$ with an effective length factor $k$ has a slenderness
+$\lambda = k L / r$, where $r = b_{min}/\sqrt{12}$ is the smallest radius of gyration. Above the
+transition slenderness $\lambda_c = \pi \sqrt{2E/f_y}$ the column buckles elastically (Euler),
+$\sigma_{cr} = \pi^2 E / \lambda^2$. Below it the parabolic (Johnson) formula applies,
+$\sigma_{cr} = f_y \left(1 - f_y \lambda^2 / (4 \pi^2 E)\right)$. The load that is allowed is
+$\sigma_{cr} A$ divided by a factor of safety.
+
+## Inputs
+b:    ? 60 mm | section width
+d:    ? 100 mm | section depth
+L:    ? 2.4 m | column length
+k:    ? [Pinned at both ends = 1, Fixed and pinned = 0.7, Fixed at both ends = 0.5, Fixed and free = 2] | end conditions
+mat:  ? [Structural steel = 1, Aluminium = 2, Timber = 3] | material
+N:    ? 100 kN | axial load
+FS:   ? 2 | factor of safety
+
+## Material properties
+E_tab:  [200 GPa, 70 GPa, 11 GPa] | modulus of elasticity
+fy_tab: [250 MPa, 160 MPa, 24 MPa] | yield strength, or crushing strength for timber
+E:  E_tab.mat -> GPa
+f_y: fy_tab.mat -> MPa
+
+if mat == 1: "The material is structural steel."
+if mat == 2: "The material is aluminium."
+if mat == 3: "The material is timber."
+
+## Section
+A:   b * d -> cm^2 | area
+b_min: min(b, d) | smaller side
+I_min: max(b, d) * b_min^3 / 12 -> cm^4 | smaller second moment of area
+r:   b_min / sqrt(12) -> mm | smallest radius of gyration
+
+## Slenderness
+L_e:      k * L -> m | effective length
+lambda:   L_e / r | slenderness ratio
+lambda_c: π * sqrt(2 * E / f_y) | transition slenderness
+
+if lambda <= 50:
+    The column is short: crushing is likely to govern rather than buckling.
+else if lambda <= lambda_c:
+    The column is intermediate: it buckles inelastically and the parabolic formula applies.
+else:
+    The column is slender: it buckles elastically and the Euler formula applies.
+
+## Buckling resistance
+sigma_E: π^2 * E / lambda^2 -> MPa | elastic (Euler) buckling stress
+P_E:     π^2 * E * I_min / L_e^2 -> kN | elastic (Euler) buckling load
+
+if lambda <= lambda_c:
+    sigma_cr: f_y * (1 - f_y * lambda^2 / (4 * π^2 * E)) -> MPa | critical stress, parabolic formula
+else:
+    sigma_cr: sigma_E | critical stress, Euler formula
+
+P_cr:    sigma_cr * A -> kN | critical load
+P_allow: P_cr / FS -> kN | allowed load
+util:    N / P_allow | utilisation
+
+if util <= 1: "OK: the applied load is within the allowed load." else: "Fails: the applied load exceeds the allowed load. Enlarge the section, shorten the column or fix its ends."

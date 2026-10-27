@@ -113,8 +113,8 @@ export async function formatSheet(src: string): Promise<string> {
     return mod.format(src);
 }
 
-/** The look of a quantity's note: a class in the compiled text, styled here instead of inline. */
-export const SHEET_CSS = '<style id="cprs-sheet">.sheet-note{color:#5f6a77;font-style:italic;margin-left:.6em}@media screen{.dark-theme .sheet-note{color:#7c8896}}</style>';
+/** The look of a quantity's note and of a run of input lines (`sheet-form`): classes in the compiled text, styled here instead of inline. */
+export const SHEET_CSS = '<style id="cprs-sheet">.sheet-note{color:#5f6a77;font-style:italic;margin-left:.6em}.sheet-form{border-left:3px solid #8aa4c8;padding:.15em 0 .15em .8em;margin:.5em 0}@media screen{.dark-theme .sheet-note{color:#7c8896}.dark-theme .sheet-form{border-left-color:#4f6a8f}}</style>';
 
 /** Adds SHEET_CSS to a page's head. */
 export function withSheetCss(html: string): string {

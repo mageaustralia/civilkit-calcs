@@ -163,7 +163,8 @@ on its sheet line.
 
 ## Calcpad pass-through
 
-Every engine feature stays reachable. A line starting with `>>` is passed to the engine as
+Every engine feature stays reachable. (Number, choice and checkbox inputs have a sheet form of their own,
+see "Inputs and templates"; the data grid and the other `#UI` forms are reached this way.) A line starting with `>>` is passed to the engine as
 written, and so is everything between a `calcpad` fence:
 
 ````
@@ -187,6 +188,85 @@ line assigns (`sigma = 3`), is spelled the way the sheet spells it: `phi` in a r
 `φ`. (Text after a `'` or `"` in a raw line is left alone. `Show compiled` shows the result.)
 
 A raw block inside a sheet block keeps the block's indentation rules like any other line.
+
+## Inputs and templates
+
+An input line makes a value the reader of the sheet can change. It is a quantity line whose right side
+starts with `?`:
+
+```
+L: ? 6 m | span
+E: ? [Steel = 200 GPa, *Timber = 11 GPa, Alloy = 70 GPa] | material
+k: ? (Low = 1, High = 2) | load class
+ribs: ? on | stiffeners fitted
+```
+
+These are, in order, a number with its unit and a note, a drop-down list (the option marked `*` is the one selected at
+first), radio buttons (the same options in round brackets) and a checkbox.
+
+* **A number** is the default, written as a number with an optional unit (`6 m`, `12 kN/m`, `0.9`).
+  It is not an expression: `2*3 m` is an error on its line. The unit is shown after the box.
+* **A choice** is a list of `label = value`. The value is a number with an optional unit, as above, and
+  it is what the name has when that option is chosen. Without a `*`, the first option is the one selected.
+  A label with a comma, an equals sign or brackets is written in double quotes (`"Beam (A), long" = 1`);
+  a label cannot hold `}`. A choice needs two options or more.
+* **A checkbox** is `on` or `off` (`true` and `false` also work) and the name is `1` or `0`: `if ribs == 1:`.
+* **The note** after `|` is shown after a number, as on a quantity line. A drop-down, radio buttons and a checkbox
+  show no name, so their note is the label in front of the control (the name is used when there is no note).
+* One input per line, and the name is a plain name (Greek spellings as always). `name = ? 6 m` works too.
+  The name is defined like any quantity: later lines, `>>` lines and Go to definition use it.
+* A choice gives one number. To choose among several properties at once (a material with its modulus, strength and
+  density) give the choice an index and look the rest up in vectors defined after it. The templates do this:
+
+```
+mat: ? [Structural steel = 1, Aluminium = 2, Timber = 3] | material
+E_tab: [200 GPa, 70 GPa, 11 GPa] | modulus of elasticity
+E: E_tab.mat -> GPa
+if mat == 2: "The material is aluminium."
+```
+
+A run of input lines is one **form**: a heading and the input lines under it make a group, drawn with a bar at its
+left edge. In plain Calcpad (Convert to Calcpad, Show compiled) the bar is not written.
+
+### What the compiler writes
+
+An input line is compiled to the engine's own `#UI` control, so the input form, the report, the Word and Excel
+exports and the `uiOverrides` the page keeps all work as they do for a Calcpad worksheet:
+
+| Sheet | Calcpad |
+| --- | --- |
+| `L: ? 6 m \| span` | `#UI L = 6m 'span` |
+| `E: ? [Steel = 200 GPa, *Timber = 11 GPa] \| material` | `#UI {"type":"dropdown","keys":["Steel","Timber"],"values":["200GPa","11GPa"]} 'material -'E = 11GPa` |
+| `k: ? (Low = 1, High = 2)` | `#UI {"type":"radio","keys":["Low","High"],"values":["1","2"]} 'k -'k = 1` |
+| `ribs: ? on` | `#UI {"type":"checkbox"} 'ribs -'ribs = 1` |
+
+Use **Show compiled** to see it for a whole sheet. Bad input lines (no default, an expression for a default, a choice
+with one option or with an option that has no value, an unclosed bracket, two inputs on one line) are errors on their line,
+in the report and as editor markers, and say what to write. A line such as `Why: ? is it` is prose, with a warning.
+
+### How the form behaves
+
+* Open a template and choose **Input** in the results bar. The page shows the sheet with a box, list, button or
+  checkbox in place of each input line, and the results below it recalculate when you change one (press Enter or leave
+  the box). **Report** and **Print PDF** next to it use the entered values, as do the Word and Excel exports.
+* The values are held in the page, so typing never changes the file. **Save values** writes them into the sheet as a
+  comment line directly under `<!--sheet-->` (`'<!--{"uiOverrides":{"L:1":"8"}}-->`); the compiler passes that line
+  through, and they are applied again the next time the sheet is opened in Input mode or as a Report (Preview shows the
+  sheet's own defaults, unless *Apply #UI Values in Preview* is on in the settings). Edit the number in the sheet itself
+  to change a default.
+* Inputs hold numbers only (the engine's own limit), so there is no text box: a choice of names is a drop-down.
+  The engine has no minimum or maximum on a box either; check a range with a condition, `if L > 30 m: "Span out of range"`.
+* The report shows the number a choice stands for, not its label (`mat = 2`). A line such as
+  `if mat == 2: "The material is aluminium."` names it, and the templates do.
+
+### Templates
+
+The Samples dialog has a **Templates** group of five sheets that use inputs: a simply supported beam check, a
+cantilever with a tip load, a rectangular column (slenderness and buckling), a pad footing bearing pressure check and
+pipe flow (Darcy-Weisbach). They use generic textbook formulas and no design standard. Open one, press **Input**,
+change a value. To make your own, write the inputs as above, put the results under them and save the file. Sharing a template is sharing the `.sheet` file (or the text of the sheet); anyone who opens it gets the
+same form, and **Save values** keeps their numbers in their copy. A new input is one more line, a new option one more
+entry in a list.
 
 ## Errors
 
@@ -247,7 +327,7 @@ conditions and loops are the indented blocks, and the Text Formatting tab writes
 (Bold `**x**`, Italic `*x*`, H1 to H5, Bullets and Numbered lists, Link, Code), a definition such as `c = 299792458m/s` is
 `c: 299792458 m/s`. Functions, operators, Greek letters, units and constants are the same in
 both syntaxes (with the argument and matrix punctuation above). Anything with no sheet form
-(`#UI` forms, `$Map`, directives, macros) inserts its Calcpad text as `>>` lines, and its
+(the data grid and the other `#UI` forms, `$Map`, directives, macros) inserts its Calcpad text as `>>` lines, and its
 button carries a small `>>` mark and a tooltip saying so; the sidebar's Insert tab does the same.
 Each open file has its own mode and the ribbon and the Insert tab follow the active tab.
 

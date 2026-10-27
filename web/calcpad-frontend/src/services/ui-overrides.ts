@@ -182,6 +182,10 @@ export function writeUiOverrides(source: string, overrides: UiOverrides): string
     if (Object.keys(overrides).length === 0) return source;
 
     const comment = serializeMetadataComment({ [OVERRIDES_KEY]: overrides });
+    // A sheet is recognised by its marker as the first non-blank line, so the comment goes under it.
+    const marker = lines.findIndex((l) => l.trim() !== '');
+    if (marker >= 0 && /^<!--sheet-->$/i.test(lines[marker].trim()))
+        return [...lines.slice(0, marker + 1), comment, ...lines.slice(marker + 1)].join(eol);
     return [comment, ...lines].join(eol);
 }
 

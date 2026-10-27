@@ -47,6 +47,21 @@ fn line(l: &str) -> L {
     if heading(content).is_some() && ws <= 3 {
         return L::Heading(content.to_string());
     }
+    match crate::input::parse(content) {
+        Some(Ok(inp)) => {
+            let rest = crate::input::canonical(&inp);
+            if inp.sep == ':' {
+                return L::Quantity(Q {
+                    indent: indent.to_string(),
+                    name: inp.name,
+                    rest,
+                });
+            }
+            return L::Other(format!("{indent}{} = {rest}", inp.name));
+        }
+        Some(Err(_)) => return L::Other(t.to_string()),
+        None => {}
+    }
     if !is_quantity_line(content) {
         return L::Other(t.to_string());
     }

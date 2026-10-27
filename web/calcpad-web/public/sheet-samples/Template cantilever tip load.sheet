@@ -1,0 +1,55 @@
+<!--sheet-->
+# Cantilever with a load at the tip
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. A cantilever of
+length $L$ with a solid rectangular section $b \times d$ carries a point load $P$ at the free end
+and, if wanted, its own weight $w$. At the fixed end $M = P L + w L^2 / 2$ and
+$V = P + w L$, and the tip deflection is $\delta = P L^3 / (3 E I) + w L^4 / (8 E I)$.
+
+## Inputs
+L:     ? 2.5 m | length
+P:     ? 8 kN | point load at the free end
+b:     ? 100 mm | section width
+d:     ? 200 mm | section depth
+mat:   ? [Structural steel = 1, Aluminium = 2, Timber = 3] | material
+limit: ? (L/90 = 90, L/180 = 180, L/360 = 360) | tip deflection limit
+sw:    ? on | include the own weight of the beam
+
+## Material properties
+E_tab:   [200 GPa, 70 GPa, 11 GPa] | modulus of elasticity
+fa_tab:  [165 MPa, 100 MPa, 12 MPa] | allowable bending stress
+rho_tab: [7850 kg/m^3, 2700 kg/m^3, 500 kg/m^3] | density
+E:   E_tab.mat -> GPa
+f_a: fa_tab.mat -> MPa
+rho: rho_tab.mat -> kg/m^3
+
+if mat == 1: "The material is structural steel."
+if mat == 2: "The material is aluminium."
+if mat == 3: "The material is timber."
+
+## Section
+A: b * d -> cm^2 | area
+I: b * d^3 / 12 -> cm^4 | second moment of area
+Z: b * d^2 / 6 -> cm^3 | elastic section modulus
+
+## Load
+g_acc: 9.81 m/s^2 | gravitational acceleration
+w:     sw * rho * A * g_acc -> kN/m | own weight, when included
+
+## Results at the fixed end and at the tip
+M_max: P * L + w * L^2 / 2 -> kN*m | maximum bending moment, at the fixed end
+V_max: P + w * L -> kN | maximum shear force, at the fixed end
+sigma: M_max / Z -> MPa | maximum bending stress
+delta: P * L^3 / (3 * E * I) + w * L^4 / (8 * E * I) -> mm | tip deflection
+theta: P * L^2 / (2 * E * I) + w * L^3 / (6 * E * I) | tip rotation, in radians
+delta_lim: L / limit -> mm | tip deflection limit
+util_b: sigma / f_a | bending utilisation
+util_d: delta / delta_lim | deflection utilisation
+
+if util_b <= 1: "Bending: OK, the stress is within the allowable stress." else: "Bending: the stress exceeds the allowable stress, enlarge the section or change the material."
+if util_d <= 1: "Deflection: OK, within the limit." else: "Deflection: over the limit, enlarge the section or change the material."
+
+## Bending moment diagram
+M(x): P * (L - x) + w * (L - x)^2 / 2 -> kN*m | bending moment at a distance x from the fixed end
+
+plot M(x * 1 m) / (1 kN*m) for x in 0..L / (1 m)
