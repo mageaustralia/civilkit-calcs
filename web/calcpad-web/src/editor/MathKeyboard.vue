@@ -144,7 +144,7 @@ button { font: inherit; }
 .mk-gr .mk-grid { grid-template-columns: repeat(9, 1fr); }
 /* Mouse and trigger-pad devices: smaller keys, closer to a desk calculator than a phone. */
 @media (hover: hover) and (pointer: fine) {
-  .mk { width: 100%; max-width: 600px; margin: 0 auto; border: 1px solid var(--ck-line); border-bottom: 0; border-radius: 8px 8px 0 0; overflow: hidden; }
+  .mk { width: min(600px, 100vw); border: 1px solid var(--ck-line); border-radius: 8px; overflow: hidden; }
   .mk-tabs { justify-content: flex-start; }
   .mk-tabs { padding-top: 4px; }
   .mk-tabs button { height: 28px; font-size: 13px; padding: 0 10px; }

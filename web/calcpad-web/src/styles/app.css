@@ -1220,6 +1220,18 @@ select option {
 
 /* The docked math keyboard and its show button. */
 .dock-keys { flex: none; z-index: 5; padding-bottom: env(safe-area-inset-bottom); }
+/* Mouse devices: a floating panel at the bottom centre, so the editor and preview stay visible on both sides. */
+@media (hover: hover) and (pointer: fine) {
+    .dock-keys {
+        position: fixed;
+        left: 50%;
+        bottom: 26px;
+        transform: translateX(-50%);
+        margin: 0;
+        z-index: 20;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+    }
+}
 .kbd-toggle {
     position: fixed;
     right: 12px;
