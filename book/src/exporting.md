@@ -1,6 +1,7 @@
 # Exporting
 
-Video: Export a report to Word, Excel and PDF (`videos/08-export-word-excel-pdf.mp4`)
+<p><strong>Video:</strong> Export a report to Word, Excel and PDF</p>
+<video controls preload="none" style="width:100%;max-width:960px" src="videos/08-export-word-excel-pdf.mp4"></video>
 
 A calculated sheet leaves the page in four ways: a PDF through the print dialog, a Word document,
 an Excel workbook and standalone HTML. All of them are built in the page, from the same calculated

@@ -1,6 +1,7 @@
 # Python blocks
 
-Video: Plots from Python, Plotly and matplotlib style (`videos/04-plots-from-python.mp4`)
+<p><strong>Video:</strong> Plots from Python, Plotly and matplotlib style</p>
+<video controls preload="none" style="width:100%;max-width:960px" src="videos/04-plots-from-python.mp4"></video>
 
 A sheet can hold small Python programs. They run in the page, in a sandbox, on a compact Python
 interpreter (MicroPython) with small stand-ins for numpy, matplotlib and Plotly. What a block prints,
