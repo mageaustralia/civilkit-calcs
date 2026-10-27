@@ -1,4 +1,4 @@
-// The "+" between rendered blocks of a sheet: handles appear, the menu inserts the block at the right line and leaves its text selected,
+// The dashed line and centred "+" between rendered blocks of a sheet: handles appear, the menu inserts the block at the right line and leaves its text selected,
 // on a desktop window and on a phone.   node e2e/insert-strip-check.mjs [--url U]
 import { chromium, devices } from 'playwright';
 
@@ -23,6 +23,14 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
     const before = await page.evaluate(() => window.calcpadActiveEditor.getValue().split('\n'));
     const btn = frame.locator('.ck-ins-btn').nth(3);
     await btn.scrollIntoViewIfNeeded();
+    if (!phone) {
+        const zone = frame.locator('.ck-ins').nth(3);
+        check(await zone.locator('.ck-ins-line').evaluate(e => getComputedStyle(e).opacity) === '0', `${name}: no dashed line until hover`);
+        await zone.hover();
+        await page.waitForTimeout(250);
+        check(+await zone.locator('.ck-ins-line').evaluate(e => getComputedStyle(e).opacity) > 0.3, `${name}: dashed line shows on hover`);
+        check(+await btn.evaluate(e => getComputedStyle(e).opacity) === 1, `${name}: the + shows on hover`);
+    }
     phone ? await btn.tap() : await btn.click();
     await page.waitForSelector('.insert-menu');
     check(await page.locator('.insert-menu button').count() === 8, `${name}: the menu lists eight blocks`);
