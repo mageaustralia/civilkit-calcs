@@ -1,0 +1,299 @@
+<!--sheet-->
+# Tennis ball flight: drag, spin and trajectory
+
+A tennis ball in the air feels three forces: its **weight**, **air drag** against the direction of travel, and the **Magnus force** that spin adds at right angles to both the spin axis and the velocity. Topspin pushes the ball down, backspin lifts it, sidespin curves it. Together they decide how hard a shot can be hit and still land in.
+
+The model integrates $m\,\dot{\mathbf v} = m\mathbf g - \tfrac12\rho C_d A\,|v|\,\mathbf v + \tfrac12\rho C_L A\,|v|^2\,\hat{\mathbf n}$ with a fourth-order Runge-Kutta step, where $\hat{\mathbf n}$ is the unit vector along $\boldsymbol\omega\times\mathbf v$ and the lift coefficient comes from the spin parameter $S = r\omega/v$ as $C_L = 1/(2 + 1/S)$.
+
+## Ball and air
+
+m_b: 57.5 g -> kg | ball mass, ITF range 56.0 to 59.4 g
+d_b: 66.7 mm | ball diameter, ITF range 65.4 to 68.6 mm
+rho_a: 1.20 kg/m^3 | air density near sea level at 20 °C
+C_d: 0.55 | drag coefficient of a fuzzy ball in this speed range, about 0.5 to 0.65
+g_n: 9.81 m/s^2 | gravity
+
+A_b: pi * d_b^2 / 4 -> cm^2 | frontal area
+W_b: m_b * g_n -> N | weight
+v_t: sqrt(2 * W_b / (rho_a * C_d * A_b)) -> m/s | terminal velocity, where drag equals weight
+
+## Forces at match speeds
+
+v_serve: 55 m/s | a fast first serve, about 200 km/h
+v_drive: 30 m/s | a firm groundstroke, about 108 km/h
+F_d_serve: rho_a * C_d * A_b * v_serve^2 / 2 -> N | drag at serve speed
+F_d_drive: rho_a * C_d * A_b * v_drive^2 / 2 -> N | drag at groundstroke speed
+a_d_serve: F_d_serve / m_b -> m/s^2 | the ball slows this fast at the start of a serve
+ratio_serve: F_d_serve / W_b | drag compared with weight at serve speed
+
+At serve speed the drag is several times the weight of the ball, which is why a flat serve loses almost a third of its speed before it lands.
+
+## Spin and lift
+
+w_rpm: 3000 | topspin of a good forehand, revolutions per minute
+w_rad: w_rpm * 2 * pi / (60 * 1 s) -> 1/s | angular velocity, rad/s
+S_drive: (d_b / 2) * w_rad / v_drive | spin parameter at groundstroke speed
+C_L: 1 / (2 + 1 / S_drive) | lift coefficient, an empirical fit
+F_L: rho_a * C_L * A_b * v_drive^2 / 2 -> N | Magnus force at groundstroke speed
+ratio_L: F_L / W_b | Magnus force compared with weight
+
+3000 rpm of topspin gives a downward force of the same order as the weight of the ball, so the ball is pulled down about 1.7 times as hard as gravity alone would pull it.
+
+## Python: trajectories
+
+The fence below holds the numbers again (a Python block cannot read the variables of the sheet), so change them there to explore. Everything is in metres, seconds and kilograms. The court is the standard one: baseline at x = 0, net at 11.89 m, far baseline at 23.77 m, service line at 18.29 m, singles sideline at y = 4.115 m.
+
+```python
+import math
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+# ---- ball and air (match the sheet above) ----
+M, R, RHO, CD, G = 0.0575, 0.03335, 1.20, 0.55, 9.81
+AREA = math.pi * R * R
+RPM = 2 * math.pi / 60
+
+# ---- court, metres ----
+NET_X, NET_H, BASE_X, SERVICE_X, HALF_W = 11.89, 0.914, 23.77, 18.29, 4.115
+
+
+def accel(vx, vy, vz, wx, wy, wz, drag=True):
+    v = math.sqrt(vx * vx + vy * vy + vz * vz)
+    if drag:
+        k = 0.5 * RHO * CD * AREA * v / M
+        ax, ay, az = -k * vx, -k * vy, -G - k * vz
+    else:
+        ax, ay, az = 0.0, 0.0, -G
+    w = math.sqrt(wx * wx + wy * wy + wz * wz)
+    if drag and w > 0 and v > 0:
+        cx, cy, cz = wy * vz - wz * vy, wz * vx - wx * vz, wx * vy - wy * vx
+        S = R * w / v
+        CL = 1.0 / (2.0 + 1.0 / S)
+        f = 0.5 * RHO * AREA * CL * v / (M * w)     # lift along (spin x velocity), scaled by sin(angle)
+        ax, ay, az = ax + f * cx, ay + f * cy, az + f * cz
+    return ax, ay, az
+
+
+def fly(speed, elev, azim, h0, top=0.0, side=0.0, y0=0.0, drag=True, dt=0.004):
+    """Flight from (0, y0, h0) until the ball reaches the ground.  Angles in degrees, spin in rpm.
+    top > 0 is topspin, top < 0 backspin; side > 0 curves the ball to the right (+y).
+    Returns the path and where it crosses the net and lands."""
+    e, a = math.radians(elev), math.radians(azim)
+    vx, vy, vz = speed * math.cos(e) * math.cos(a), speed * math.cos(e) * math.sin(a), speed * math.sin(e)
+    wx, wy, wz = 0.0, top * RPM, side * RPM
+    x, y, z = 0.0, y0, h0
+    path = [(x, y, z)]
+    net = None
+    t = 0.0
+    while t < 4.0:
+        a1 = accel(vx, vy, vz, wx, wy, wz, drag)
+        s1 = (x + vx * dt / 2, y + vy * dt / 2, z + vz * dt / 2, vx + a1[0] * dt / 2, vy + a1[1] * dt / 2, vz + a1[2] * dt / 2)
+        a2 = accel(s1[3], s1[4], s1[5], wx, wy, wz, drag)
+        s2 = (x + s1[3] * dt / 2, y + s1[4] * dt / 2, z + s1[5] * dt / 2, vx + a2[0] * dt / 2, vy + a2[1] * dt / 2, vz + a2[2] * dt / 2)
+        a3 = accel(s2[3], s2[4], s2[5], wx, wy, wz, drag)
+        s3 = (x + s2[3] * dt, y + s2[4] * dt, z + s2[5] * dt, vx + a3[0] * dt, vy + a3[1] * dt, vz + a3[2] * dt)
+        a4 = accel(s3[3], s3[4], s3[5], wx, wy, wz, drag)
+        nx = x + dt / 6 * (vx + 2 * s1[3] + 2 * s2[3] + s3[3])
+        ny = y + dt / 6 * (vy + 2 * s1[4] + 2 * s2[4] + s3[4])
+        nz = z + dt / 6 * (vz + 2 * s1[5] + 2 * s2[5] + s3[5])
+        vx += dt / 6 * (a1[0] + 2 * a2[0] + 2 * a3[0] + a4[0])
+        vy += dt / 6 * (a1[1] + 2 * a2[1] + 2 * a3[1] + a4[1])
+        vz += dt / 6 * (a1[2] + 2 * a2[2] + 2 * a3[2] + a4[2])
+        t += dt
+        if net is None and x < NET_X <= nx:
+            u = (NET_X - x) / (nx - x)
+            net = (y + u * (ny - y), z + u * (nz - z))
+        if nz <= 0.0:
+            u = z / (z - nz)
+            path.append((x + u * (nx - x), y + u * (ny - y), 0.0))
+            return dict(path=path, net=net, land=(path[-1][0], path[-1][1]), t=t, v_land=math.sqrt(vx * vx + vy * vy + vz * vz))
+        x, y, z = nx, ny, nz
+        path.append((x, y, z))
+    return dict(path=path, net=net, land=(path[-1][0], path[-1][1]), t=t, v_land=0.0)
+
+
+def aim(speed, target_x, h0, top=0.0, drag=True):
+    """The launch angle (degrees) that lands the ball at target_x on the centre line, by bisection."""
+    lo, hi = -20.0, 40.0
+    for _ in range(9):
+        mid = (lo + hi) / 2
+        if fly(speed, mid, 0.0, h0, top, 0.0, 0.0, drag, 0.006)["land"][0] > target_x:
+            hi = mid
+        else:
+            lo = mid
+    return (lo + hi) / 2
+
+
+# ---- 1. one groundstroke at 30 m/s, hit from 1.0 m and landing 1.8 m inside the baseline, with different spins ----
+H0, V0, TARGET = 1.0, 30.0, BASE_X - 1.8
+cases = [("Backspin 1500 rpm", -1500, "#8c6bb1"), ("No spin", 0, "#7f7f7f"), ("Topspin 1500 rpm", 1500, "#2ca02c"),
+         ("Topspin 3000 rpm", 3000, "#1f77b4"), ("Topspin 4500 rpm", 4500, "#d62728")]
+fig = go.Figure()
+rows = {}
+for name, top, col in cases:
+    el = aim(V0, TARGET, H0, top)
+    r = fly(V0, el, 0.0, H0, top, 0.0, 0.0, True, 0.004)
+    rows[top] = (el, r)
+    xs = [p[0] for p in r["path"]]
+    zs = [p[2] for p in r["path"]]
+    fig.add_trace(go.Scatter(x=xs, y=zs, mode="lines", name="%s, %.1f deg" % (name, el), line=dict(color=col, width=3),
+                             hovertemplate="x %{x:.1f} m<br>height %{y:.2f} m<extra>" + name + "</extra>"))
+vac = aim(V0, TARGET, H0, 0, False)
+rv = fly(V0, vac, 0.0, H0, 0, 0, 0.0, False, 0.004)
+fig.add_trace(go.Scatter(x=[p[0] for p in rv["path"]], y=[p[2] for p in rv["path"]], mode="lines", name="No air, %.1f deg" % vac,
+                         line=dict(color="#aaaaaa", width=2, dash="dot")))
+fig.add_shape(type="line", x0=NET_X, x1=NET_X, y0=0, y1=NET_H, line=dict(color="#444444", width=4))
+fig.add_shape(type="line", x0=0, x1=BASE_X + 1, y0=0, y1=0, line=dict(color="#888888", width=2))
+fig.add_annotation(x=NET_X, y=NET_H + 0.12, text="net 0.914 m", showarrow=False)
+fig.add_annotation(x=TARGET, y=0.15, text="landing", showarrow=False)
+fig.update_layout(title="Groundstroke at 30 m/s: the same landing spot, five spins", height=460, xaxis_title="distance from the baseline (m)",
+                  yaxis_title="height (m)", yaxis_range=[0, 4.0], legend=dict(orientation="h", y=-0.25), margin=dict(t=50))
+fig.show()
+top3 = rows[3000]
+clear3 = top3[1]["net"][1] - NET_H
+clear0 = rows[0][1]["net"][1] - NET_H
+apex3 = max(p[2] for p in top3[1]["path"])
+export(angle_top=float(top3[0]), angle_flat=float(rows[0][0]), net_clear_top=float(clear3), net_clear_flat=float(clear0),
+       apex_top=float(apex3), v_land_top=float(top3[1]["v_land"]), v_land_flat=float(rows[0][1]["v_land"]))
+```
+
+## Python: how hard can it be hit?
+
+For every speed and topspin the launch angle is solved so that the ball lands 1.8 m inside the baseline, and the height over the net is read off. The contour at zero is the edge: left of it the ball would hit the net.
+
+```python
+speeds = [15, 20, 25, 30, 35, 40, 45]
+tops = [-1000, 0, 1000, 2000, 3000, 4000, 5000]
+z = []
+for top in tops:
+    row = []
+    for v in speeds:
+        el = aim(v, TARGET, H0, top)
+        r = fly(v, el, 0.0, H0, top, 0.0, 0.0, True, 0.006)
+        row.append(round((r["net"][1] - NET_H) * 100, 1) if r["net"] else -100.0)
+    z.append(row)
+fig2 = go.Figure(go.Contour(x=speeds, y=tops, z=z, zmin=-40, zmax=300, colorscale=[[0, "#d73027"], [0.1176, "#ffffbf"], [1, "#1a9850"]],
+                            contours=dict(start=0, end=300, size=50, showlabels=True, labelfont=dict(size=11)),
+                            colorbar=dict(title=dict(text="over the net (cm)")),
+                            hovertemplate="%{x} m/s, %{y} rpm<br>%{z} cm over the net<extra></extra>"))
+fig2.update_layout(title="Height over the net, ball landing 1.8 m inside the baseline", height=460, xaxis_title="ball speed (m/s)",
+                   yaxis_title="topspin (rpm, negative is backspin)", margin=dict(t=50, l=70))
+fig2.show()
+export(clear_30_0=float(z[1][3]), clear_30_3000=float(z[4][3]), clear_40_0=float(z[1][5]), clear_40_3000=float(z[4][5]))
+```
+
+## Python: three serves in 3D
+
+Flat, slice and kick serves hit from 2.8 m at the baseline, each aimed at the same spot in the opposite service box (wide on the deuce side). The azimuth and elevation are solved so the ball lands on the target, so the differences you see are the spin and the speed: sidespin bends the slice (the dotted line is the same slice without its sidespin), topspin makes the kick drop.
+
+```python
+SERVER_Y = 0.6
+TARGET_X, TARGET_Y = SERVICE_X - 1.0, -3.4
+serves = [("Flat, 55 m/s, little spin", 55.0, 300.0, 0.0, "#d62728"),
+          ("Slice, 45 m/s, 2200 rpm sidespin", 45.0, -800.0, 2200.0, "#1f77b4"),
+          ("Kick, 38 m/s, 3500 rpm topspin", 38.0, 3500.0, -1200.0, "#2ca02c")]
+
+
+def solve_serve(v, top, side):
+    az, el = math.degrees(math.atan2(TARGET_Y - SERVER_Y, TARGET_X)), -4.0
+    for _ in range(4):
+        lo, hi = -25.0, 25.0
+        for _ in range(9):
+            el = (lo + hi) / 2
+            if fly(v, el, az, 2.8, top, side, SERVER_Y, True, 0.006)["land"][0] > TARGET_X:
+                hi = el
+            else:
+                lo = el
+        r = fly(v, el, az, 2.8, top, side, SERVER_Y, True, 0.006)
+        az += math.degrees(math.atan2(TARGET_Y - r["land"][1], TARGET_X))
+    return az, el
+
+
+out = []
+cols = []
+for name, v, top, side, col in serves:
+    az, el = solve_serve(v, top, side)
+    r = fly(v, el, az, 2.8, top, side, SERVER_Y, True, 0.004)
+    out.append((name, v, az, el, r))
+    cols.append(col)
+
+fig3 = make_subplots(rows=2, cols=1, subplot_titles=["Seen from above", "Seen from the side"], vertical_spacing=0.14)
+for (name, v, az, el, r), col in zip(out, cols):
+    p = r["path"]
+    fig3.add_trace(go.Scatter(x=[q[0] for q in p], y=[q[1] for q in p], mode="lines", name=name, line=dict(color=col, width=3),
+                              legendgroup=name), row=1, col=1)
+    fig3.add_trace(go.Scatter(x=[q[0] for q in p], y=[q[2] for q in p], mode="lines", name=name, line=dict(color=col, width=3),
+                              legendgroup=name, showlegend=False), row=2, col=1)
+# the slice again with its sidespin taken away: the gap is what the spin does
+nm, nv, naz, nel, nr = out[1]
+ghost = fly(nv, nel, naz, 2.8, serves[1][2], 0.0, SERVER_Y, True, 0.004)["path"]
+fig3.add_trace(go.Scatter(x=[q[0] for q in ghost], y=[q[1] for q in ghost], mode="lines", name="Slice with the sidespin removed",
+                          line=dict(color="#1f77b4", width=2, dash="dot")), row=1, col=1)
+side_shift = nr["land"][1] - fly(nv, nel, naz, 2.8, serves[1][2], 0.0, SERVER_Y, True, 0.004)["land"][1]
+fig3.add_shape(type="rect", x0=0, x1=BASE_X, y0=-HALF_W, y1=HALF_W, line=dict(color="#888888", width=2), row=1, col=1)
+fig3.add_shape(type="rect", x0=NET_X, x1=SERVICE_X, y0=-HALF_W, y1=HALF_W, line=dict(color="#aaaaaa", width=1), row=1, col=1)
+fig3.add_shape(type="line", x0=NET_X, x1=SERVICE_X, y0=0, y1=0, line=dict(color="#aaaaaa", width=1), row=1, col=1)
+fig3.add_shape(type="line", x0=NET_X, x1=NET_X, y0=0, y1=NET_H, line=dict(color="#444444", width=4), row=2, col=1)
+fig3.update_xaxes(title_text="along the court (m)", range=[0, 24], row=2, col=1)
+fig3.update_xaxes(range=[0, 24], row=1, col=1)
+fig3.update_yaxes(title_text="across (m)", range=[-5, 5], scaleanchor="x", row=1, col=1)
+fig3.update_yaxes(title_text="height (m)", range=[0, 3.2], row=2, col=1)
+fig3.update_layout(title="Serves aimed at the same spot", height=640, legend=dict(orientation="h", y=-0.12), margin=dict(t=70))
+fig3.show()
+
+fig4 = go.Figure()
+for (name, v, az, el, r), col in zip(out, cols):
+    p = r["path"]
+    fig4.add_trace(go.Scatter3d(x=[q[0] for q in p], y=[q[1] for q in p], z=[q[2] for q in p], mode="lines", name=name,
+                                line=dict(color=col, width=6), hovertemplate="x %{x:.1f} m<br>y %{y:.2f} m<br>height %{z:.2f} m<extra>" + name + "</extra>"))
+    fig4.add_trace(go.Scatter3d(x=[r["land"][0]], y=[r["land"][1]], z=[0.0], mode="markers", marker=dict(size=5, color=col), showlegend=False,
+                                hoverinfo="skip"))
+court = [(0, -HALF_W), (BASE_X, -HALF_W), (BASE_X, HALF_W), (0, HALF_W), (0, -HALF_W)]
+fig4.add_trace(go.Scatter3d(x=[c[0] for c in court], y=[c[1] for c in court], z=[0] * 5, mode="lines", line=dict(color="#777777", width=3),
+                            name="singles court", hoverinfo="skip"))
+fig4.add_trace(go.Scatter3d(x=[NET_X, NET_X, SERVICE_X, SERVICE_X - 0.0, SERVICE_X, NET_X], y=[-HALF_W, HALF_W, HALF_W, 0, -HALF_W, -HALF_W],
+                            z=[0] * 6, mode="lines", line=dict(color="#999999", width=2), showlegend=False, hoverinfo="skip"))
+fig4.add_trace(go.Scatter3d(x=[SERVICE_X - 0, NET_X], y=[0, 0], z=[0, 0], mode="lines", line=dict(color="#999999", width=2), showlegend=False,
+                            hoverinfo="skip"))
+fig4.add_trace(go.Mesh3d(x=[NET_X, NET_X, NET_X, NET_X], y=[-HALF_W - 0.914, HALF_W + 0.914, HALF_W + 0.914, -HALF_W - 0.914],
+                         z=[0, 0, 1.07, 1.07], i=[0, 0], j=[1, 2], k=[2, 3], color="#444444", opacity=0.35, name="net", hoverinfo="skip"))
+fig4.update_layout(title="The same three serves in 3D", height=560, margin=dict(l=0, r=0, t=50, b=0), legend=dict(orientation="h", y=-0.02),
+                   scene=dict(xaxis=dict(title=dict(text="along the court (m)")), yaxis=dict(title=dict(text="across (m)"), range=[-6, 6]),
+                              zaxis=dict(title=dict(text="height (m)"), range=[0, 4]), aspectmode="manual", aspectratio=dict(x=2.2, y=1.0, z=0.5),
+                              camera=dict(eye=dict(x=-1.0, y=-2.1, z=0.9), center=dict(x=0, y=0, z=-0.1))))
+fig4.show()
+nets = [o[4]["net"][1] - NET_H for o in out]
+export(slice_bend=float(side_shift), serve_flat_kmh=float(out[0][1] * 3.6), net_clear_flat_serve=float(nets[0]), net_clear_slice=float(nets[1]), net_clear_kick=float(nets[2]),
+       t_flat=float(out[0][4]["t"]), t_kick=float(out[2][4]["t"]), v_land_flat=float(out[0][4]["v_land"]), v_land_kick=float(out[2][4]["v_land"]))
+```
+
+## Results
+
+The numbers below come back from the Python blocks.
+
+Groundstroke, 30 m/s, landing 1.8 m inside the baseline:
+launch_top: angle_top * 1 deg | launch angle with 3000 rpm of topspin
+launch_flat: angle_flat * 1 deg | launch angle with no spin
+over_net_top: net_clear_top * 1 m -> cm | height over the net with topspin
+over_net_flat: net_clear_flat * 1 m -> cm | height over the net with no spin
+peak_top: apex_top * 1 m | highest point with topspin
+v_land_top_kmh: v_land_top * 3.6 | speed at the bounce with topspin, km/h
+
+Speed against spin (height over the net, cm; negative would be a net):
+c_30_flat: clear_30_0 | 30 m/s, no spin
+c_30_top: clear_30_3000 | 30 m/s, 3000 rpm
+c_40_flat: clear_40_0 | 40 m/s, no spin
+c_40_top: clear_40_3000 | 40 m/s, 3000 rpm
+
+Serves:
+bend: slice_bend * 1 m | how far the sidespin moves the landing point of the slice
+t_flat_ms: t_flat * 1000 | flight time of the flat serve, ms
+v_flat_land_kmh: v_land_flat * 3.6 | flat serve speed at the bounce, km/h
+v_kick_land_kmh: v_land_kick * 3.6 | kick serve speed at the bounce, km/h
+loss_flat: (serve_flat_kmh - v_flat_land_kmh) / serve_flat_kmh * 100 | share of the speed of the flat serve lost to drag, %
+
+## Reading the results
+
+Hitting the same shot with topspin lets the ball clear the net by more, because the Magnus force pulls it down onto the court after the net: the launch angle is higher and the arc has a margin, which is why most players hit through the ball with topspin. Without spin the margin shrinks quickly as the ball gets faster: at 40 m/s a flat shot clears the net by only about 13 cm, while 3000 rpm of topspin gives about 58 cm, as the contour chart shows. Check the sensitivity to the drag coefficient, which changes with the fuzz and wear of the ball, by editing `CD` and `C_d` together.
+
+The model treats the spin as constant for the whole flight (it decays by only a few percent in a second), ignores wind, and uses one drag coefficient. It does not model the bounce. The lift fit is an approximation to published wind-tunnel and trajectory measurements, good to the order of the effect, not to the centimetre.
