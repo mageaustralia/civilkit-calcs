@@ -607,7 +607,7 @@
     @hide="setDockKeys(false)"
   />
   <button
-    v-if="!dockKeys && (!narrow || mobilePane === 'edit')"
+    v-if="touchKeys && !dockKeys && (!narrow || mobilePane === 'edit')"
     type="button"
     class="kbd-toggle"
     title="Show math keyboard"
@@ -628,6 +628,7 @@
       </svg> {{ infoCount }}
     </span>
     <span class="status-output" :class="{ active: bottomPanelOpen && activeBottomTab === 'output' }" @click="openBottomTab('output')">Output</span>
+    <span class="status-output status-kbd" :class="{ active: dockKeys }" role="button" tabindex="0" title="Math keyboard" @click="setDockKeys(!dockKeys)" @keydown.enter.prevent="setDockKeys(!dockKeys)">&#x2328; Keyboard</span>
     <span class="spacer"></span>
     <span class="status-version" data-testid="status-version" :title="`CivilKit Calcs ${appVersion}, built on CalcpadCE ${upstreamVersion}`">CivilKit Calcs {{ appVersion }}<span class="status-upstream">, built on CalcpadCE {{ upstreamVersion }}</span></span>
     <span v-if="serverStatus !== 'connected'" class="status-server" :class="serverStatus" :title="serverStatusTitle">
