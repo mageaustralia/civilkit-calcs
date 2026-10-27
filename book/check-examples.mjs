@@ -1,7 +1,8 @@
 // Runs every ```sheet and ```cpd block of the book through the real engine.
 //   node check-examples.mjs [--show] [file.md ...]
 // A sheet is compiled by the sheet wasm module, then the Calcpad text is run by the Cli binary.
-// ```python blocks are only compiled with CPython to catch syntax errors; they run in the page.
+// ```python blocks are only compiled with CPython to catch syntax errors; they run in the page (check-python.mjs).
+// A block tagged `sheet python` is a sheet with Python fences: it is compiled and the Python is syntax checked.
 // An example fails when the sheet compiler reports an error or the engine writes an error into the page.
 // --show prints the text of each result (used to copy real output into the book).
 // Environment: SHEET_WASM_DIR (default ../web/calcpad-web/public/wasm), CALCPAD_CLI (default ../target/debug/Cli
@@ -15,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const show = args.includes('--show');
-const files = args.filter((a) => !a.startsWith('--'));
+const files = args.filter((a) => !a.startsWith('--')).map((f) => resolve(process.env.ORIG_PWD ?? process.cwd(), f));
 
 const wasmDir = resolve(process.env.SHEET_WASM_DIR ?? join(here, '..', 'web', 'calcpad-web', 'public', 'wasm'));
 const cli = process.env.CALCPAD_CLI ?? ['debug', 'release'].map((p) => join(here, '..', 'target', p, 'Cli')).find(existsSync);
@@ -50,7 +51,7 @@ let n = 0, bad = 0, sheets = 0, cpds = 0, pys = 0;
 for (const md of mds) {
     const src = readFileSync(md, 'utf8').split('\n');
     for (let i = 0; i < src.length; i++) {
-        const m = /^(`{3,})(sheet|cpd|python)\s*$/.exec(src[i]);
+        const m = /^(`{3,})(sheet python|sheet|cpd|python)\s*$/.exec(src[i]);
         if (!m) continue;
         const start = i + 1;
         let j = start;
@@ -61,6 +62,23 @@ for (const md of mds) {
         const where = `${md.replace(here + '/', '')}:${start}`;
         let cpd = body;
         const problems = [];
+        if (m[2] === 'sheet python') {
+            // A sheet with Python fences: the sheet must compile, and each fence must be valid Python.
+            // The engine run needs the Python runtime of the page, see check-python.mjs.
+            sheets++;
+            if (!/^\s*<!--sheet-->/.test(body)) body = '<!--sheet-->\n' + body;
+            const c = JSON.parse(sheet.compile(body, false));
+            for (const d of c.diagnostics) if (d.severity === 'error') problems.push(`sheet line ${d.line + 1}: ${d.message}`);
+            for (const f of body.matchAll(/^```python\n([\s\S]*?)^```/gm)) {
+                try {
+                    execFileSync('python3', ['-I', '-c', 'import sys; compile(sys.stdin.read(), "block", "exec")'], { input: f[1], stdio: ['pipe', 'pipe', 'pipe'] });
+                } catch (e) {
+                    problems.push(`python syntax: ${String(e.stderr).trim().split('\n').slice(-3).join(' ')}`);
+                }
+            }
+            if (problems.length) { bad++; console.log(`FAIL ${where}`); for (const p of problems) console.log(`     ${p}`); }
+            continue;
+        }
         if (m[2] === 'python') {
             // Python runs in the page (MicroPython); here only the syntax is checked.
             pys++;

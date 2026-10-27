@@ -17,14 +17,22 @@ The search box in the toolbar searches the whole guide, and works offline in the
 
 Every fenced block tagged `sheet` or `cpd` is run through the real engine, and a block that
 makes the engine report an error fails the check. A block that shows an error on purpose is
-tagged `text`. Blocks tagged `python` are checked for syntax only, because Python runs in the
-browser.
+tagged `text`. Python needs the page, so a sheet that holds a Python fence is tagged
+`sheet python`: `check-examples.sh` compiles it and checks the Python syntax, and
+`check-python.mjs` runs it in the built app (headless Chromium), answers the Python prompt and
+fails on a Python error or an error line. The same script opens every sheet with `#UI` input
+lines in Input mode and counts the controls.
 
 ```sh
 cargo build -p calcpad-cli -j 2      # the Cli binary, target/debug/Cli
 tools/build_wasm.sh sheet            # the sheet compiler, web/calcpad-web/public/wasm
 book/check-examples.sh               # all chapters
 book/check-examples.sh --show book/src/units.md   # also print the result of each example as text
+```
+
+```sh
+cd web && npm install && npm run build      # the built app, once
+node book/check-python.mjs                   # Python examples and input forms (--dist DIR for another build)
 ```
 
 Environment: `CALCPAD_CLI` is the path of the `Cli` binary (default `target/debug/Cli`, then

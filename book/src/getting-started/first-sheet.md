@@ -35,8 +35,7 @@ L = 6 m    span
 w = 12 kN/m    design load
 ```
 
-The result updates as you type. If it does not, press **Calculate** on the Calculation tab, or
-F5.
+The result updates as you type. If it does not, press **Calculate** on the Calculation tab, or Ctrl+Alt+X.
 
 ## 3. Calculate with units
 

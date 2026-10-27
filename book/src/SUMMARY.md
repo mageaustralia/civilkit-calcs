@@ -21,3 +21,27 @@
 - [Units](units.md)
 - [Vectors and matrices](vectors-matrices.md)
 - [Function and command reference](reference/functions.md)
+
+# Plots and Python
+
+- [Plots](plots.md)
+- [Python blocks](python.md)
+
+# Tools
+
+- [Templates with inputs](templates.md)
+- [Symbolic maths](symbolic.md)
+- [Importing worksheets](importing.md)
+- [Exporting](exporting.md)
+- [Editing](editing.md)
+
+# More
+
+- [Samples tour](samples.md)
+- [Troubleshooting and FAQ](troubleshooting.md)
+
+# Appendices
+
+- [Keyboard shortcuts](appendix/shortcuts.md)
+- [Deviations from CalcpadCE](appendix/deviations.md)
+- [Credits and licences](appendix/credits.md)

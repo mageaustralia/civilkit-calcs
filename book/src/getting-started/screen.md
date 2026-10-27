@@ -56,7 +56,7 @@ views:
 * **Report**: the print layout, as it will come out in a PDF or Word file.
 
 Results update as you type; **Auto-calculate** can be turned off on the Calculation tab, and
-then **Calculate** (F5, or Ctrl+Alt+X) runs the sheet on demand.
+then **Calculate** (Ctrl+Alt+X, and F5 in the desktop app) runs the sheet on demand.
 
 Under a plot there is a row of small buttons (log axes, 1:1, copy data, save as PNG or SVG).
 These are in the preview only and are not part of a printout or export.
