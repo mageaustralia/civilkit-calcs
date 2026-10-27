@@ -166,7 +166,7 @@ New surface and how it is closed:
 
 ## Offline behaviour
 
-The interpreter, `ui.py` (8 KB, fetched only when a block mentions `ui`) and the panel script are local. The panel's widgets,
+The interpreter, `ui.py` (11 KB, fetched only when a block mentions `ui`) and the panel script are local. The panel's widgets,
 table and text work offline once the page has been visited (there is still no service worker: a first visit needs a connection, as
 for all Python). A chart needs Plotly.js from its CDN as before; offline the chart's place shows the existing note, widgets still work,
 tables and text still update. Phase 3 can ship Plotly with the app to make charts offline too (3.6 MB, a policy decision, not a
@@ -186,7 +186,7 @@ Web and Python layer only; no Rust, no wasm rebuild.
 | `src/wasm/python-panels.ts` | Frame script and CSS; host handler (shape check, reply to the asking frame); per-tab values; export strip. |
 | `src/wasm/transport.ts`, `src/App.vue` | Seed passed in; panel script added after the Plotly one; widget container removed for Word and Excel; `panelEvent` routed. |
 | `public/sheet-samples/Panel *.sheet` | The three examples below (Samples, group "Panels"). |
-| `e2e/panels-check.mjs` | 50 checks: drawing, a change without a conversion, redraw in place, replay, exports, forged events, players, an exception, a hung function, phone layout. Light, dark, desktop and phone screenshots. |
+| `e2e/panels-check.mjs` | Over 40 checks: drawing, a change without a conversion, redraw in place, replay, exports, forged events, players, an exception, a hung function, phone layout. Light, dark, desktop and phone screenshots. |
 
 What it **proves**: the main risk, a live re-run of a Python function from a widget in a sandboxed frame, is cheap (about 150 ms
 here) and safe under the existing model; state, consent, the time limit and exports compose with it; the seed carries the state across
