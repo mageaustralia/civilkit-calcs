@@ -944,3 +944,173 @@ fn existing_sheets_compile_exactly_as_before_inputs_existed() {
         assert_eq!(fnv(&acc), *want, "{name}: the compiled output changed");
     }
 }
+
+/// The report of a sheet with the values entered in its input form (what the page sends).
+fn with_inputs(name: &str, entered: &[(&str, &str)]) -> (Vec<Value>, String) {
+    let c = compile(&sample(name));
+    let ov: serde_json::Map<String, Value> = entered.iter().map(|(k, v)| (k.to_string(), Value::from(*v))).collect();
+    let req = serde_json::json!({ "content": c.text, "uiOverrides": ov });
+    let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+    (
+        v["errors"].as_array().cloned().unwrap_or_default(),
+        text(v["html"].as_str().unwrap_or("")),
+    )
+}
+
+#[test]
+fn template_beam_values_and_inputs() {
+    let (errs, t) = with_inputs("Template simply supported beam", &[]);
+    assert!(errs.is_empty(), "{errs:?}");
+    // h = 300 mm: I = 10376.4 cm^4, Z = 691.76 cm^3, own weight 0.502 kN/m, M = 12.5 * 36 / 8.
+    for want in [
+        "= 10376.4 cm",
+        "= 691.76 cm",
+        "= 0.502 kN",
+        "= 56.26 kN",
+        "= 81.33 MPa",
+        "= 10.17 mm",
+        "= 24 mm",
+        "Bending: OK",
+        "Deflection: OK",
+        "The material is structural steel.",
+    ] {
+        assert!(t.contains(want), "{want}: {t}");
+    }
+    // Timber (3) over a longer span (10 m) with a 200 mm section fails both checks.
+    let (errs, t) = with_inputs(
+        "Template simply supported beam",
+        &[("L:1", "10"), ("mat:1", "3"), ("h:1", "200mm")],
+    );
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("The material is timber."), "{t}");
+    assert!(
+        t.contains("Bending: the stress exceeds") && t.contains("Deflection: over the limit"),
+        "{t}"
+    );
+    // Own weight off removes it from the load.
+    let (_, t) = with_inputs("Template simply supported beam", &[("sw:1", "0")]);
+    assert!(t.contains("w tot = w + w sw = 12 kN") && t.contains("= 54 kN"), "{t}");
+}
+
+#[test]
+fn template_cantilever_values_and_inputs() {
+    let (errs, t) = with_inputs("Template cantilever tip load", &[]);
+    assert!(errs.is_empty(), "{errs:?}");
+    // P L + w L^2 / 2 with w = 7850 * 0.02 m^2 * 9.81 = 1.54 kN/m; delta = 3.69 mm.
+    for want in [
+        "= 24.81 kN",
+        "= 11.85 kN",
+        "= 37.22 MPa",
+        "= 3.69 mm",
+        "= 27.78 mm",
+        "Bending: OK",
+    ] {
+        assert!(t.contains(want), "{want}: {t}");
+    }
+    let (errs, t) = with_inputs("Template cantilever tip load", &[("P:1", "60"), ("limit:1", "360")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(
+        t.contains("Bending: the stress exceeds") || t.contains("Deflection: over the limit"),
+        "{t}"
+    );
+}
+
+#[test]
+fn template_column_values_and_inputs() {
+    let (errs, t) = with_inputs("Template column slenderness", &[]);
+    assert!(errs.is_empty(), "{errs:?}");
+    for want in [
+        "= 17.32 mm",
+        "= 138.56",
+        "= 125.66",
+        "= 102.81 MPa",
+        "= 616.85 kN",
+        "= 308.43 kN",
+        "The column is slender",
+        "OK: the applied load",
+    ] {
+        assert!(t.contains(want), "{want}: {t}");
+    }
+    // Fixed at both ends (0.5) makes it intermediate: lambda 69.3, parabolic formula.
+    let (errs, t) = with_inputs("Template column slenderness", &[("k:1", "0.5")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(
+        t.contains("= 69.28") && t.contains("The column is intermediate") && t.contains("parabolic formula"),
+        "{t}"
+    );
+    let (_, t) = with_inputs("Template column slenderness", &[("N:1", "400")]);
+    assert!(t.contains("Fails: the applied load exceeds"), "{t}");
+}
+
+#[test]
+fn template_footing_values_and_inputs() {
+    let (errs, t) = with_inputs("Template pad footing bearing", &[]);
+    assert!(errs.is_empty(), "{errs:?}");
+    // P = 600 + 57.6 + 43.2, e = 60 / 700.8, q = 146 * (1 +- 6 e / L).
+    for want in [
+        "= 700.8 kN",
+        "= 0.0856 m",
+        "= 146 kPa",
+        "= 177.25 kPa",
+        "= 114.75 kPa",
+        "= 0.886",
+        "OK: the largest pressure",
+    ] {
+        assert!(t.contains(want), "{want}: {t}");
+    }
+    // A large moment lifts the base off the soil: e > L / 6.
+    let (errs, t) = with_inputs("Template pad footing bearing", &[("M:1", "400")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(
+        t.contains("Part of the base lifts off the soil.") && t.contains("Fails: the largest pressure"),
+        "{t}"
+    );
+    let (_, t) = with_inputs("Template pad footing bearing", &[("q_a:1", "300kPa")]);
+    assert!(t.contains("= 300 kPa"), "{t}");
+}
+
+#[test]
+fn template_pipe_values_and_inputs() {
+    let (errs, t) = with_inputs("Template pipe flow Darcy", &[]);
+    assert!(errs.is_empty(), "{errs:?}");
+    // V = 0.025 / 0.017671, Re = V D / nu, Swamee-Jain f = 0.0186, h_f = f (L/D) V^2 / 2g.
+    for want in [
+        "= 1.41 m",
+        "= 139610",
+        "= 0.0186",
+        "= 3.79 m",
+        "= 0.255 m",
+        "= 9.05 m",
+        "= 2.22 kW",
+        "The flow is turbulent.",
+    ] {
+        assert!(t.contains(want), "{want}: {t}");
+    }
+    // A very small flow is laminar, f = 64 / Re.
+    let (errs, t) = with_inputs("Template pipe flow Darcy", &[("Q:1", "0.05"), ("temp:1", "1")]);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(t.contains("The flow is laminar.") && t.contains("f = 64"), "{t}");
+    let (_, t) = with_inputs("Template pipe flow Darcy", &[("Q:1", "100")]);
+    assert!(t.contains("High velocity"), "{t}");
+}
+
+#[test]
+fn the_manifest_marks_the_samples_that_have_inputs() {
+    let m: Value = serde_json::from_str(&std::fs::read_to_string(format!("{SAMPLES}manifest.json")).unwrap()).unwrap();
+    let mut templates = 0;
+    for s in m["samples"].as_array().unwrap() {
+        let file = s["file"].as_str().unwrap().trim_start_matches("sheet-samples/");
+        let src = std::fs::read_to_string(format!("{SAMPLES}{file}")).unwrap();
+        let has_inputs = compile(&src).text.lines().any(|l| l.starts_with("#UI "));
+        assert_eq!(
+            s["ui"].as_bool().unwrap(),
+            has_inputs,
+            "{file}: \"ui\" must say whether the sheet has inputs"
+        );
+        if s["group"] == "Templates" {
+            templates += 1;
+            assert!(has_inputs, "{file}");
+        }
+    }
+    assert_eq!(templates, 5);
+}

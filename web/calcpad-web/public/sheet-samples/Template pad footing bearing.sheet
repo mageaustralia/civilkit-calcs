@@ -1,0 +1,45 @@
+<!--sheet-->
+# Pad footing: bearing pressure check
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. A rectangular
+pad footing $B \times L$ carries a vertical column load $N$ and a moment $M$ about the axis
+parallel to $B$. The total vertical load $P$ adds the weight of the footing and of the soil above
+it, the eccentricity is $e = M/P$ and, while $e \le L/6$ (no uplift), the largest bearing pressure is
+$q_{max} = \frac{P}{B L}\left(1 + \frac{6e}{L}\right)$. Beyond that the pressure acts on part of the
+base only, $q_{max} = \frac{2P}{3B(L/2 - e)}$. It is compared with an allowable bearing pressure.
+
+## Inputs
+N:    ? 600 kN | vertical column load
+M:    ? 60 kN*m | column moment, in the direction of L
+B:    ? 2 m | footing width
+L:    ? 2.4 m | footing length, in the direction of the moment
+t:    ? 0.5 m | footing thickness
+D_f:  ? 1 m | depth of the base below the ground
+q_a:  ? [Soft clay = 80 kPa, Firm clay = 150 kPa, *Medium dense sand = 200 kPa, Dense gravel = 300 kPa] | soil, allowable bearing pressure
+wts:  ? on | include the weight of the footing and of the soil above it
+
+## Constants
+gamma_c: 24 kN/m^3 | unit weight of concrete
+gamma_s: 18 kN/m^3 | unit weight of the soil above the footing
+
+## Vertical load
+W_f: wts * gamma_c * B * L * t -> kN | weight of the footing
+W_s: wts * gamma_s * B * L * (D_f - t) -> kN | weight of the soil above the footing
+P:   N + W_f + W_s -> kN | total vertical load on the soil
+
+## Bearing pressure
+e:   M / P -> m | eccentricity of the load
+e_lim: L / 6 | the load stays inside the middle third while e is below this
+q_avg: P / (B * L) -> kPa | average pressure
+
+if e <= e_lim:
+    q_max: q_avg * (1 + 6 * e / L) -> kPa | largest pressure
+    q_min: q_avg * (1 - 6 * e / L) -> kPa | smallest pressure
+    The whole base stays in contact with the soil.
+else:
+    q_max: 2 * P / (3 * B * (L / 2 - e)) -> kPa | largest pressure, partial contact
+    q_min: 0 kPa | smallest pressure
+    Part of the base lifts off the soil.
+
+util: q_max / q_a | utilisation of the allowable bearing pressure
+if util <= 1: "OK: the largest pressure is within the allowable bearing pressure." else: "Fails: the largest pressure exceeds the allowable bearing pressure. Enlarge the footing."
