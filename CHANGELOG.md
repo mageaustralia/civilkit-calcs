@@ -11,7 +11,15 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+## [26.10.12] - 2026-10-28
+
 ### Added
+- A user guide (mdBook, in `book/`): getting started, the sheet format, the calculation language, units, plots in sheets and from Python, templates with inputs, the symbolic dialog, importing, exporting and troubleshooting. Every fenced example is run by `book/check-examples.sh`, the Python examples by `book/check-python.mjs`. It is served at `/calcs/guide/`. Eight short how-to videos accompany it (scripts in `book/videos/`).
+- An on-screen math keyboard with tabs, for touch screens and, as a floating panel you can drag, on desktop (Keyboard item in the status bar).
+- An insert strip: a + between rendered blocks of a sheet opens a menu of blocks to insert there.
+- Plot chips under each plot in the preview: log x and y, 1:1, copy data, save PNG or SVG.
+- Edit in place: one click opens a sheet block, clicking away applies it.
+- A tennis ball flight sample (drag, Magnus lift, spin and serve trajectories) and a taller box for large matrices.
 - Sheet inputs: a line such as `L: ? 6 m | span` is a number input, `E: ? [Steel = 200 GPa, *Timber = 11 GPa]` a drop-down (round brackets give radio buttons) and `ribs: ? on` a checkbox. They compile to the engine's own `#UI` controls, so the input form, the report and the Word and Excel exports work with no engine change; a run of inputs is drawn as one form, the formatter tidies them, and bad lines are errors on their line. See "Inputs and templates" in docs/sheet-syntax.md.
 - A "Templates" group in the Samples dialog with seven sheets that use inputs: a simply supported beam check, a cantilever with a tip load, rectangular column slenderness, a pad footing bearing pressure check, Darcy pipe flow, a retaining wall (sliding, overturning and bearing, with a backfill radio group and a surcharge checkbox) and a pump and pipeline operating point (a table of heads and a plot of both curves). Generic textbook formulas, no design standard.
 - The ribbon's Entry, Dropdown, Radio and Checkbox buttons insert the sheet form in a sheet.
@@ -27,6 +35,8 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 - Save values in a sheet wrote its comment above the `<!--sheet-->` marker, so the file stopped being a sheet. It now writes it under the marker, and the compiler passes that comment through.
 
 ### Changed
+- The sidebar has three tabs (Insert, TOC, Variables); Settings, Export, Errors and Prettify open as dialogs, and Prettify joins the Document ribbon.
+- In the browser the app leaves the browser's own shortcuts alone (address bar, tabs, zoom, bookmarks, print, new window).
 - The app follows the shared suite theme: ribbon, tabs, side panel, dialogs, menus, inputs, scrollbars, the editor and its find widget, the results pane and the Plotly charts use the shared palette in light and dark. The status bar is a quiet raised strip with an accent on the open item instead of a solid blue block. Printed reports and exported documents keep their own light styling.
 
 ## [26.10.11] - 2026-10-26
