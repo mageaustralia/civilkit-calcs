@@ -80,25 +80,39 @@
     </div>
     </div>
 
-    <p v-if="tabUnavailable(pane.activeTab)" class="unavailable-note">{{ INPUT_MODE_NOTE }}</p>
+    <p v-if="tabUnavailable(shown(pane))" class="unavailable-note">{{ INPUT_MODE_NOTE }}</p>
 
     <!-- `inert` rather than a per-control disabled flag: it takes the whole tab out of
          both pointer and keyboard reach in one attribute, whatever it holds. -->
-    <div class="tab-content" :class="{ unavailable: tabUnavailable(pane.activeTab) }" :inert="tabUnavailable(pane.activeTab)">
+    <!-- Settings, Export, Errors and Prettify open as a dialog over the page rather than as sidebar tabs: the same
+         panel, moved to the body so it can be wide and shows even while the sidebar is hidden. -->
+    <Teleport to="body" :disabled="!(dialogTab && paneIndex === 0)">
+    <div v-if="dialogTab && paneIndex === 0" class="cpd-dialog-backdrop" @mousedown="closeDialog"></div>
+    <div
+      class="tab-content"
+      :class="{ unavailable: tabUnavailable(shown(pane)), 'as-dialog': dialogTab && paneIndex === 0 }"
+      :inert="tabUnavailable(shown(pane))"
+      :role="dialogTab && paneIndex === 0 ? 'dialog' : undefined"
+      :aria-label="dialogTab && paneIndex === 0 ? DIALOG_TITLES[dialogTab] : undefined"
+    >
+      <div v-if="dialogTab && paneIndex === 0" class="cpd-dialog-head">
+        <span>{{ DIALOG_TITLES[dialogTab] }}</span>
+        <button type="button" aria-label="Close" title="Close (Esc)" @click="closeDialog">&#x2715;</button>
+      </div>
       <CalcpadInsertTab
-        v-if="pane.activeTab === 'insert'"
+        v-if="shown(pane) === 'insert'"
         :insert-items="insertItems"
         @insert-text="handleInsertText"
         @insert-image="handleInsertImage"
       />
       <CalcpadTocTab
-        v-else-if="pane.activeTab === 'toc'"
+        v-else-if="shown(pane) === 'toc'"
         :headings="tocHeadings"
         :loading="tocLoading"
         @go-to-line="handleGoToLine"
       />
       <CalcpadSettingsTab
-        v-else-if="pane.activeTab === 'settings'"
+        v-else-if="shown(pane) === 'settings'"
         :settings="settings"
         :initial-preview-theme="previewTheme"
         :initial-color-theme="colorTheme"
@@ -151,13 +165,13 @@
         @update-editor-font-family="handleUpdateEditorFontFamily"
       />
       <CalcpadVariablesTab
-        v-else-if="pane.activeTab === 'variables'"
+        v-else-if="shown(pane) === 'variables'"
         :variables-data="variablesData"
         :loading="variablesLoading"
         @insert-text="handleInsertText"
       />
       <CalcpadFormattingTab
-        v-else-if="pane.activeTab === 'formatting'"
+        v-else-if="shown(pane) === 'formatting'"
         :indent-style="prettifyIndentStyle"
         :indent-size="prettifyIndentSize"
         :trim-trailing-whitespace="prettifyTrimTrailing"
@@ -167,7 +181,7 @@
         @update-trim-trailing="handleUpdatePrettifyTrim"
       />
       <CalcpadExportTab
-        v-else-if="pane.activeTab === 'export'"
+        v-else-if="shown(pane) === 'export'"
         :plots="plots"
         :loading="plotsLoading"
         :version-config="versionConfig"
@@ -186,12 +200,12 @@
         @write-files-now="handleWriteFilesNow"
       />
       <CalcpadErrorsTab
-        v-else-if="pane.activeTab === 'errors'"
+        v-else-if="shown(pane) === 'errors'"
         :errors="convertErrors"
         @go-to-line="handleGoToLine"
       />
       <CalcpadMetadataTab
-        v-else-if="pane.activeTab === 'metadata'"
+        v-else-if="shown(pane) === 'metadata'"
         :block="metadataBlock"
         :ui-controls="uiControls"
         @apply="handleApplyMetadata"
@@ -200,6 +214,7 @@
         @draft-dirty="handleMetadataDraftDirty"
       />
     </div>
+    </Teleport>
     </div>
     </div>
   </div>
@@ -317,11 +332,7 @@ const tabs = computed<Tab[]>(() => {
   const base: Tab[] = [
     { id: 'insert', label: 'Insert' },
     { id: 'toc', label: 'TOC' },
-    { id: 'settings', label: 'Settings' },
-    { id: 'variables', label: 'Variables' },
-    { id: 'formatting', label: 'Formatting' },
-    { id: 'export', label: 'Export' },
-    { id: 'errors', label: 'Errors' }
+    { id: 'variables', label: 'Variables' }
   ]
   // The metadata comment editor is driven by editor cursor tracking, available
   // in the VS Code webview and the desktop app (both host a real editor).
@@ -425,8 +436,21 @@ const hideSidebar = () => {
   postMessage({ type: 'hideSidebar' })
 }
 
+// Settings, Export, Errors and Prettify are dialogs; the three sidebar tabs are Insert, TOC and Variables.
+const DIALOG_TITLES: Record<string, string> = { settings: 'Settings', export: 'Export', errors: 'Errors and warnings', formatting: 'Prettify' }
+const dialogTab = ref<string | null>(null)
+const shown = (pane: Pane): string => dialogTab.value ?? pane.activeTab
+const closeDialog = () => { dialogTab.value = null }
+const onDialogKey = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && dialogTab.value) { e.stopPropagation(); closeDialog() }
+}
+
 const activateTab = (pane: Pane, tabId: string) => {
-  pane.activeTab = tabId
+  if (tabId in DIALOG_TITLES) dialogTab.value = tabId
+  else {
+    dialogTab.value = null
+    pane.activeTab = tabId
+  }
   // Nothing below is worth asking the host for while the tab is inert.
   if (tabUnavailable(tabId)) return
 
@@ -854,6 +878,7 @@ defineExpose({ switchTab, switchView })
 onMounted(() => {
   // Listen for messages from host
   window.addEventListener('message', handleMessage)
+  window.addEventListener('keydown', onDialogKey, true)
 
   // Request initial data
   postMessage({ type: 'getInsertData' })
@@ -874,6 +899,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('message', handleMessage)
+  window.removeEventListener('keydown', onDialogKey, true)
   if (props.versionConfig.isDesktop) {
     window.removeEventListener('keydown', handleExportShortcut, true)
   }
@@ -1049,6 +1075,60 @@ onUnmounted(() => {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0;
+}
+
+/* Settings, Export, Errors and Prettify: the tab panel as a dialog over the page. */
+.cpd-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(0, 0, 0, 0.35);
+}
+.tab-content.as-dialog {
+  position: fixed;
+  z-index: 901;
+  top: 6vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(680px, 96vw);
+  max-height: 88vh;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  font-family: var(--vscode-font-family, system-ui, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-foreground, #1c2129);
+  background: var(--vscode-editor-background, #fff);
+  border: 1px solid var(--vscode-widget-border, #8886);
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+.cpd-dialog-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-weight: 600;
+  background: var(--vscode-editor-background, #fff);
+  border-bottom: 1px solid var(--vscode-widget-border, #8886);
+}
+.cpd-dialog-head button {
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 15px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+}
+.cpd-dialog-head button:hover { background: var(--vscode-toolbar-hoverBackground, #8882); }
+@media (max-width: 760px) {
+  .tab-content.as-dialog { top: 0; left: 0; transform: none; width: 100vw; max-height: 100dvh; height: 100dvh; border-radius: 0; border: 0; }
 }
 
 .tab-content.unavailable {

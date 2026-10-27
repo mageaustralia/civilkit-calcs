@@ -519,7 +519,7 @@ export const RIBBON: RibbonTab[] = [
                 action('k-toggle', 'Show results', 'show', 'Show or hide the results pane', 'togglePreview'),
             ] },
             { name: 'Settings', buttons: [
-                action('k-settings', 'Calculation settings', 'settings', 'Decimals, precision, complex mode, plot options (Settings tab)', 'settings'),
+                action('k-settings', 'Calculation settings', 'settings', 'Decimals, precision, complex mode, plot options (Settings dialog)', 'settings'),
                 more('a-numset', 'Numerical settings', 'settings', 'Precision and tolerance lines', 'numSettings'),
                 action('k-variables', 'Variables', 'list', 'The variables of the worksheet', 'tab:variables'),
                 action('k-errors', 'Errors', 'info', 'Errors and warnings', 'tab:errors'),
@@ -532,16 +532,17 @@ export const RIBBON: RibbonTab[] = [
                 action('d-pdf', 'Print PDF', 'pdf', 'Print the report as a PDF', 'pdf'),
                 action('d-word', 'Word', 'word', 'Save the report as a Word document', 'word'),
                 action('d-excel', 'Excel', 'excel', 'Save the variables as an Excel workbook', 'excel'),
-                action('d-export', 'Export tab', 'export', 'HTML, PDF, Word and #write: the Export tab', 'exportTab'),
+                action('d-export', 'Export…', 'export', 'HTML, PDF, Word and #write: the Export dialog', 'exportTab'),
             ] },
             { name: 'Import', buttons: [
                 action('d-import', 'Import worksheet', 'open', 'Bring in a worksheet from another calculation tool (.xmcd or .mcdx); it opens as a new worksheet', 'importWorksheet'),
+                action('d-prettify', 'Prettify', 'text', 'Auto-indent the document (indent style and trailing whitespace)', 'tab:formatting'),
                 action('d-tidy', 'Tidy text', 'text', 'Remove imported fonts, sizes and colours from paragraphs and turn import markers into short notes; equations are left alone', 'tidyText'),
                 action('d-markdown', 'Text to Markdown', 'comment', 'Tidy, then write simple paragraphs as Markdown (#md on blocks)', 'markdownText'),
             ] },
             { name: 'Page', buttons: [
                 action('d-saveas', 'Save As', 'saveas', 'Save As', 'saveas'),
-                action('d-pdfsettings', 'Header and footer', 'settings', 'Page numbers, date and title for PDF export (Settings tab)', 'settings'),
+                action('d-pdfsettings', 'Header and footer', 'settings', 'Page numbers, date and title for PDF export (Settings dialog)', 'settings'),
                 big('d-pagebreak', 'Page break', 'page', 'Start a new page when printing', { text: "'<div style=\"page-break-after:always\"></div>\n", line: true }),
             ] },
             { name: 'Report', buttons: [
