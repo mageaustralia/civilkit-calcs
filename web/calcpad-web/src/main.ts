@@ -78,6 +78,18 @@ import { mountRibbon } from './wasm/ribbon';
 const isTauri = typeof (window as any).__TAURI_INTERNALS__ !== 'undefined';
 if (!isTauri) (window as any).calcpadEngine = installWasmTransport();
 
+// In a browser, the shortcuts the browser and the system own are not ours: Cmd/Ctrl+L (address bar), D, R, N, O, P, T, W, Q,
+// 1-9 (tab switching), zoom and Shift+V. The editor never sees them, so nothing here claims them and the browser's own action runs.
+// Save (S) stays ours. The desktop app keeps its own bindings.
+if (!isTauri) {
+    const browserOwned = new Set(['KeyL', 'KeyD', 'KeyR', 'KeyN', 'KeyO', 'KeyP', 'KeyT', 'KeyW', 'KeyQ', 'KeyJ', 'Backquote', 'Equal', 'Minus',
+        'Digit0', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9']);
+    window.addEventListener('keydown', (e) => {
+        if (!(e.metaKey || e.ctrlKey)) return;
+        if (browserOwned.has(e.code) || (e.code === 'KeyV' && e.shiftKey)) e.stopImmediatePropagation();
+    }, true);
+}
+
 /** Link schemes a worksheet may ask to open outside the app. */
 const EXTERNAL_LINK_SCHEMES = /^(https?|file):/i;
 
@@ -872,12 +884,14 @@ async function bootstrap(): Promise<void> {
             }),
         );
 
-        // Word wrap (Alt+Z) + duplicate line (Ctrl+D) per editor. Ctrl+D
+        // Word wrap (Alt+Z) + duplicate line (Ctrl+D, desktop app only) per editor. Ctrl+D
         // overrides Monaco's default "add selection to next find match".
         ed.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyZ, toggleWordWrap);
-        ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, () => {
-            ed.trigger('keyboard', 'editor.action.copyLinesDownAction', null);
-        });
+        if (isTauri) {
+            ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, () => {
+                ed.trigger('keyboard', 'editor.action.copyLinesDownAction', null);
+            });
+        }
 
         attachQuickTyper(ed, editorBridge);
         attachOperatorReplacer(ed);
@@ -894,7 +908,7 @@ async function bootstrap(): Promise<void> {
         ed.addAction({
             id: 'calcpad.focusPreviewToLine',
             label: 'Focus Preview to Line',
-            keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Backquote],
+            keybindings: isTauri ? [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Backquote] : [],
             contextMenuGroupId: 'navigation',
             contextMenuOrder: 1.5,
             run: () => syncPreviewToCursorFor(group, true),
