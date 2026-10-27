@@ -293,16 +293,26 @@ lines too. "Unused variable" hints are dropped for sheets, since every quantity 
 
 ## The editor
 
-A sheet has its own colours and completions (names defined in the sheet, Greek spellings, block
-snippets), and these work on names:
+A sheet has its own colours, and these work on names:
 
+* **Completion** while you type: the names the sheet defines above the cursor (with their last calculated
+  value), the parameters of the function being written, built-in functions with their signature, units after a
+  number or `->`, Greek spellings, and at the start of a line the block keywords, the `>>` marker, code fences,
+  `$$`, the input forms and `<!--sheet-->`. Nothing is offered in prose, in a note after `|`, in a string,
+  in a formula or in a Python block. Tab accepts.
+* **Rename everywhere** (F2, the context menu, or the Variables tab): every use of a name in code, in one undo
+  step, with a preview of the count and a refusal for a name that collides. A function's parameters and the variable
+  of a `plot` line are renamed only on their own line. Prose, notes, strings, `$...$` formulas, the unit after a
+  number and Python code are left alone, except the names a Python block `export`s, which are the sheet's
+  variables. See "Rename everywhere" in the user guide's Editing chapter.
+* **Variable palette** (Ctrl+;, Cmd+; on a Mac): a search box over every name with its value and unit; Enter inserts the name, Alt+Enter goes to its definition.
 * **Format Document** (Shift+Alt+F) prettifies: one space around `:`, `|` and `->` and after
   `;`, a blank line before each heading, runs of blank lines collapsed, and the colons of a run
   of quantity lines aligned. Expressions, prose, `>>` lines, fences and formulas are not touched,
   and formatting twice changes nothing.
 * **Go to definition** (F12), **find references** and **hover** (the defining line and the
   Calcpad spelling) work on the names a sheet defines; references are searched in code lines, not
-  in prose. Names are also coloured by semantic highlighting.
+  in prose, and a function's parameter is a separate name. Names are also coloured by semantic highlighting.
 * **Show compiled** and **Convert to Calcpad**, above.
 * **Rich-text editing**: click prose in the preview (a paragraph with its heading, a list, a
   table) to edit it as formatted text in place; input lines and calculations stay one-line edits.

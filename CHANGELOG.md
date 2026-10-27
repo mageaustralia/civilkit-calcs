@@ -11,6 +11,16 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- Completion in the sheet editor and the worksheet editor, from one provider that knows where code ends and text begins: names defined above the cursor with their last calculated value, the parameters of the function being written, built-in functions with signature and description (commas in a sheet, `;` in a worksheet), units after a number or a unit chain, `#` directives and `$` commands, and in a sheet the block keywords, `>>`, code fences, `$$`, the input forms and `<!--sheet-->`. Nothing is offered in comments, text lines, strings, notes, `#markdown`/`#html`/`#python` blocks, sheet prose or formulas. Monaco's list of words from the file is off.
+- Rename everywhere (F2, the editor's context menu and the Variables tab's context menu): scope-aware (a function's or macro's parameters are renamed only in their own scope), code only, one undo step, with a live count and preview of the changed lines and a refusal for an invalid name, a built-in, a name already in use or a capture by a parameter. Names a Python block exports are renamed with the worksheet; other Python is untouched. This replaces the engine-backed rename, which could not tell a parameter from a variable.
+- Variable palette: Ctrl+; (Cmd+; on a Mac) searches every variable, function and macro with its last calculated value and unit. Enter inserts, Alt+Enter goes to the definition. The Variables tab search also matches definitions, parameters and notes, and its context menu has Rename Everywhere and Go to Definition.
+- The web transport answers `values` (one calculation with the variables recorded) for the completion details and the palette.
+- `e2e/editor-nav-check.mjs`.
+
+### Changed
+- Find references in a sheet uses the same scan as rename, so a parameter is a separate name and strings and units are not matches.
+
 ## [26.10.12] - 2026-10-28
 
 ### Added
