@@ -205,7 +205,7 @@ These are, in order, a number with its unit and a note, a drop-down list (the op
 first), radio buttons (the same options in round brackets) and a checkbox.
 
 * **A number** is the default, written as a number with an optional unit (`6 m`, `12 kN/m`, `0.9`).
-  It is not an expression: `2*3 m` is an error on its line. The unit is shown after the box.
+  It is not an expression: `2*3 m` is an error on its line. The unit is shown after the box. Units may use the usual spellings: `m³`, `N/mm²`, `kN·m`, `kg/m³`, `m·s⁻¹`, `°`, `°C`, `%`, `µm` (they are written to the engine as `m^3`, `N/mm^2`, `kN*m` and so on). The engine's own `#UI` line takes only the `^` and `*` spellings, so use those in a `>>` line.
 * **A choice** is a list of `label = value`. The value is a number with an optional unit, as above, and
   it is what the name has when that option is chosen. Without a `*`, the first option is the one selected.
   A label with a comma, an equals sign or brackets is written in double quotes (`"Beam (A), long" = 1`);

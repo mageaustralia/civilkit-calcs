@@ -45,7 +45,8 @@ fn tokenize(s: &str) -> Result<Vec<(Tok, bool)>, String> {
     let mut i = 0;
     let mut space = false;
     while i < cs.len() {
-        let c = cs[i];
+        // Other spellings of the multiplication dot are the engine's middle dot.
+        let c = if matches!(cs[i], '\u{22C5}' | '\u{2219}' | '\u{2022}') { '\u{b7}' } else { cs[i] };
         if c.is_whitespace() {
             space = true;
             i += 1;
@@ -90,7 +91,8 @@ fn tokenize(s: &str) -> Result<Vec<(Tok, bool)>, String> {
             while i < cs.len() && names::is_name_char(cs[i]) {
                 i += 1;
             }
-            tok = Tok::Ident(cs[st..i].iter().collect());
+            // The micro sign is the engine's Greek mu.
+            tok = Tok::Ident(cs[st..i].iter().collect::<String>().replace('\u{b5}', "\u{3bc}"));
         } else if sup_char(c).is_some() {
             let mut t = String::new();
             while i < cs.len() {

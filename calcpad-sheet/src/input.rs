@@ -219,7 +219,7 @@ fn ui_value(translated: &str) -> Option<String> {
         return Some(s);
     }
     let ok =
-        unit[0].is_alphabetic() || matches!(unit[0], '°' | '%' | '‰' | '′' | '″') || unit[0] == 'µ' || unit[0] == 'Ω';
+        unit[0].is_alphabetic() || matches!(unit[0], '°' | '%' | '‰' | '′' | '″') || matches!(unit[0], '\u{b5}' | '\u{3bc}') || unit[0] == 'Ω';
     let rest_ok = unit.iter().all(|c| {
         c.is_alphanumeric()
             || matches!(

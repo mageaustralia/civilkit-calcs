@@ -1231,3 +1231,35 @@ fn two_options_with_one_value_are_an_error_on_the_input_line() {
     assert!(c.diagnostics.iter().any(|d| d.message.contains("same value")), "{:?}", c.diagnostics);
     assert!(c.text.contains("same value"), "{}", c.text);
 }
+
+#[test]
+fn units_in_inputs_take_the_usual_unicode_spellings() {
+    for (written, emitted) in [
+        ("5 m\u{b3}", "5m^3"),
+        ("5 m^3", "5m^3"),
+        ("5 kN\u{b7}m", "5kN*m"),
+        ("5 kN\u{22c5}m", "5kN*m"),
+        ("5 N/mm\u{b2}", "5N/mm^2"),
+        ("5 kg/m\u{b3}", "5kg/m^3"),
+        ("5 mm\u{2074}", "5mm^4"),
+        ("5 m\u{b7}s\u{207b}\u{b9}", "5m*s^-1"),
+        ("5 MPa", "5MPa"),
+        ("5 \u{b0}", "5\u{b0}"),
+        ("5 \u{b0}C", "5\u{b0}C"),
+        ("5%", "5%"),
+        ("5 \u{b5}m", "5\u{3bc}m"),
+        ("5 \u{3a9}", "5\u{3a9}"),
+    ] {
+        let src = format!("<!--sheet-->\nv: ? {written}\nw: v * 1\n");
+        let (c, html, errs) = render(&src);
+        no_errors(written, &errs, &c);
+        let ui = c.text.lines().find(|l| l.starts_with("#UI")).unwrap();
+        assert_eq!(ui, format!("#UI v = {emitted}"), "{written}");
+        assert!(text(&html).contains("w = v"), "{written}: {}", text(&html));
+        // The same units in a choice, with the default chosen.
+        let src = format!("<!--sheet-->\nv: ? (Low = 3 {u}, *High = {written})\n", u = written.trim_start_matches('5').trim());
+        let got = chosen(&src);
+        assert_eq!(got.len(), 1, "{written}: {got:?}");
+        assert!(got[0].starts_with('5'), "{written}: {got:?}");
+    }
+}
