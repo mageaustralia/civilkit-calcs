@@ -23,6 +23,11 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
     const before = await page.evaluate(() => window.calcpadActiveEditor.getValue().split('\n'));
     const btn = frame.locator('.ck-ins-btn').nth(3);
     await btn.scrollIntoViewIfNeeded();
+    if (phone) {
+        check(await frame.locator('.ck-ins.on').count() === 0, `${name}: no handles until a block is tapped`);
+        await frame.locator('[data-source-line]').nth(3).tap();
+        check(await frame.locator('.ck-ins.on').count() <= 2 && await frame.locator('.ck-ins.on').count() >= 1, `${name}: tapping a block shows only its neighbouring handles`);
+    }
     if (!phone) {
         const zone = frame.locator('.ck-ins').nth(3);
         check(await zone.locator('.ck-ins-line').evaluate(e => getComputedStyle(e).opacity) === '0', `${name}: no dashed line until hover`);
