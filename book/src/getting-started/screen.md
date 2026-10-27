@@ -25,7 +25,7 @@ sheet form inserts Calcpad text as `>>` lines and carries a small `>>` mark.
 | Tab | What is on it |
 | --- | --- |
 | Math | Operators, Greek letters and symbols, programming (conditions, loops, macros), constants, numerical methods, units. |
-| Input/Output | Input fields (`#UI`): entry, dropdown, radio, checkbox, data grid; reading and writing files; the Input mode button. |
+| Input/Output | Input fields: entry, dropdown, radio, checkbox (the `?` form in a sheet, `#UI` in a worksheet), data grid; reading and writing files; the Input mode button. |
 | Functions | Trigonometric, hyperbolic, logarithmic, rounding, statistical, logical, complex and other functions; define a function; the **Symbolic** dialog. |
 | Matrices/Tables | Vector and matrix literals, vector and matrix functions, linear algebra, tables, data grid. |
 | Plots | Function, parametric, multiple and colour-map plots; plot settings. |
@@ -51,8 +51,8 @@ views:
   view while you work.
 * **Unwrapped**: the source listing with macros and includes resolved. Useful for finding errors
   in macros.
-* **Input**: the fill-in form of a worksheet that has `#UI` inputs. See
-  [Templates with inputs](../templates.md).
+* **Input**: the fill-in form of a sheet or worksheet that has inputs (`L: ? 6 m` in a sheet, `#UI`
+  in a worksheet). See [Templates with inputs](../templates.md).
 * **Report**: the print layout, as it will come out in a PDF or Word file.
 
 Results update as you type; **Auto-calculate** can be turned off on the Calculation tab, and

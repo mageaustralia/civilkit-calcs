@@ -1,6 +1,6 @@
 # Samples tour
 
-The **Samples** browser (File > Samples..., or the Resources tab) lists 126 worksheets, with
+The **Samples** browser (File > Samples..., or the Resources tab) lists 131 worksheets, with
 groups, a search box and a preview. Opening a sample puts it in a new tab, where you can change it
 freely: nothing you do changes the original. A sample that has input fields carries an **input form**
 tag. The Samples browser never runs a sample's Python; its preview shows the source, and opening the
@@ -14,6 +14,7 @@ Written in the sheet format. They are listed first.
 | --- | --- |
 | Sheet syntax (11) | Beam bending, a short column, a floor-load table with vectors and matrices, a moment diagram with a plot, LaTeX prose, mixing with raw Calcpad and loops, beam and cantilever deflection, a three-span beam explorer with Python and Plotly, a beam deflection derived with the Symbolic dialog, polynomial roots. |
 | 3D plots (5) | A plate deflection surface, a column interaction surface, a space frame in 3D lines, a mode-shape explorer with a dropdown, a 3D bar chart of footing reactions. |
+| Templates (5) | Sheets with input forms: a simply supported beam check, a cantilever with a tip load, rectangular column slenderness, a pad footing bearing pressure check and pipe flow. Each carries the **input form** tag. See [Templates with inputs](templates.md). |
 | Plots (2) | A plot gallery of implicit curves, functions and polylines on a grid, and an animated beam with a moving load (Play, Pause, a slider). |
 | Physics (1) | A tennis ball in flight: drag, spin and the sideways force from spin, integrated in a Python block. |
 
@@ -40,6 +41,8 @@ Good places to start:
 
 * **Getting Started: Calculating**, **Functions and Plots** and **Units and Conversion**, to see
   the Calcpad language at its simplest.
+* **Template: simply supported beam check** (the Templates group), to see an input form: press **Input**
+  and change the span.
 * **Beam bending with real units** (sheet) and **Bending moment diagram** (sheet), the shortest
   complete sheets.
 * **Matrix** worksheets, for a tour of the vector and matrix functions.

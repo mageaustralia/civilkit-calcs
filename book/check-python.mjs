@@ -1,7 +1,9 @@
 // Runs the examples of the book that need the page, in the built app (headless Chromium), the way a reader would:
 // every ```sheet python block is put in the editor, the Python prompt is answered, and the calculated
 // report is read back. A block fails when the report holds an error line or a Python error.
-// Every ```sheet block with a `#UI` input line is opened in Input mode, and its controls are counted.
+// Every ```sheet block with an input line (`name: ? 6 m`, a drop-down, radio buttons, a checkbox) or a `>> #UI` line
+// is opened in Input mode, and its controls are counted: a sheet with `?` lines must draw exactly one control per
+// line (a radio group is one control), a sheet with `>> #UI` lines at least one per line.
 //   node check-python.mjs [--dist DIR] [--port 4190] [--show] [file.md ...]
 // Needs a built app (npm run build in web/, which also needs tools/build_wasm.sh) and Playwright
 // with a Chromium (PLAYWRIGHT_BROWSERS_PATH if it is not in the default place).
@@ -23,6 +25,7 @@ const { chromium } = await import(pathToFileURL(pw).href);
 
 const walk = (d) => readdirSync(d).flatMap((n) => { const p = join(d, n); return statSync(p).isDirectory() ? walk(p) : p.endsWith('.md') ? [p] : []; });
 const mds = files.length ? files.flatMap((f) => (statSync(f).isDirectory() ? walk(f) : [f])) : walk(join(here, 'src')).concat(walk(join(here, 'videos')));
+const INPUT = /^\s*[\p{L}_][\p{L}\p{N}_.]*\s*[:=]\s*\?\s*(?:[-+\d.\[(]|on\b|off\b|true\b|false\b)/mu;
 const blocks = [];
 for (const md of mds) {
     const src = readFileSync(md, 'utf8').split('\n');
@@ -32,7 +35,7 @@ for (const md of mds) {
         let j = i + 1;
         while (j < src.length && !src[j].startsWith(m[1])) j++;
         const text = src.slice(i + 1, j).join('\n') + '\n';
-        if (m[2] === 'sheet python' || />>\s*#UI/.test(text)) blocks.push({ where: `${md.replace(here + '/', '')}:${i + 2}`, text, form: m[2] === 'sheet' });
+        if (m[2] === 'sheet python' || />>\s*#UI/.test(text) || INPUT.test(text)) blocks.push({ where: `${md.replace(here + '/', '')}:${i + 2}`, text, form: m[2] === 'sheet' });
         i = j;
     }
 }
@@ -90,8 +93,10 @@ for (const b of blocks) {
                 n = Math.max(n, await f.locator('input.calcpad-ui-input, select.calcpad-ui-dropdown, .calcpad-ui-radio, input.calcpad-ui-checkbox, .calcpad-ui-datagrid').count().catch(() => 0));
             }
         }
-        const expect = (b.text.match(/^>>\s*#UI/gm) ?? []).length;
-        if (n < expect) problems.push(`the form drew ${n} controls for ${expect} #UI lines`);
+        const ui = (b.text.match(/^>>\s*#UI/gm) ?? []).length;
+        const q = (b.text.match(new RegExp(INPUT.source, 'gmu')) ?? []).length;
+        if (n < ui + q) problems.push(`the form drew ${n} controls for ${ui + q} input lines`);
+        if (!ui && q && n !== q) problems.push(`the form drew ${n} controls for ${q} input lines (one each expected)`);
         formNote = `, form: ${n} controls`;
         await page.locator('.preview-mode-group .toolbar-btn', { hasText: /^Preview$/ }).first().click({ timeout: 10000 });
         const dont = page.locator('.modal-backdrop button', { hasText: /^Don't Save$/ });

@@ -110,4 +110,5 @@ screen and the part that appears in the report. The complete list is in
 
 * [Directives and commands](directives.md): conditions, loops, macros, modules, constants,
   settings, files, numerical commands.
-* [Templates with inputs](../templates.md): `#UI` forms.
+* [Input forms with `#UI`](ui-inputs.md): the `#UI` directive, grids and entry options.
+* [Templates with inputs](../templates.md): fill-in forms, and the `?` input lines of a sheet.

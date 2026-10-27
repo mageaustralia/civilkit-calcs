@@ -4,6 +4,9 @@
 // ```python blocks are only compiled with CPython to catch syntax errors; they run in the page (check-python.mjs).
 // A block tagged `sheet python` is a sheet with Python fences: it is compiled and the Python is syntax checked.
 // An example fails when the sheet compiler reports an error or the engine writes an error into the page.
+// A block can be tied to the shipped samples and to expected results with comment lines directly above its fence:
+//   <!-- sample: Template simply supported beam.sheet -->   the block must equal that file of the sample folder
+//   <!-- expect: M_max = 56.26 | Bending: OK -->            each fragment must be in the result text (spaces ignored)
 // --show prints the text of each result (used to copy real output into the book).
 // Environment: SHEET_WASM_DIR (default ../web/calcpad-web/public/wasm), CALCPAD_CLI (default ../target/debug/Cli
 // or ../target/release/Cli, whichever exists).
@@ -47,7 +50,8 @@ const text = (html) =>
     html.replace(/<(script|style)[\s\S]*?<\/\1>/g, '').replace(/<sup>([\s\S]*?)<\/sup>/g, '^$1').replace(/<sub>([\s\S]*?)<\/sub>/g, '_$1').replace(/<svg[\s\S]*?<\/svg>/g, '[drawing]').replace(/<[^>]+>/g, ' ')
         .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 
-let n = 0, bad = 0, sheets = 0, cpds = 0, pys = 0;
+const samplesDir = join(wasmDir, '..', 'sheet-samples');
+let n = 0, bad = 0, sheets = 0, cpds = 0, pys = 0, samplesChecked = 0, expects = 0;
 for (const md of mds) {
     const src = readFileSync(md, 'utf8').split('\n');
     for (let i = 0; i < src.length; i++) {
@@ -62,6 +66,18 @@ for (const md of mds) {
         const where = `${md.replace(here + '/', '')}:${start}`;
         let cpd = body;
         const problems = [];
+        // Comment lines directly above the fence (blank lines and <details> tags are skipped).
+        const marks = {};
+        for (let k = start - 2; k >= 0 && /^\s*$|^<details>|^<summary>|^<!--\s*(sample|expect):/.test(src[k]); k--) {
+            const mm = /^<!--\s*(sample|expect):\s*(.*?)\s*-->\s*$/.exec(src[k]);
+            if (mm) marks[mm[1]] = mm[2];
+        }
+        if (marks.sample) {
+            samplesChecked++;
+            const f = join(samplesDir, marks.sample);
+            if (!existsSync(f)) problems.push(`sample ${marks.sample} does not exist`);
+            else if (readFileSync(f, 'utf8') !== body) problems.push(`the block differs from the shipped sample ${marks.sample}`);
+        }
         if (m[2] === 'sheet python') {
             // A sheet with Python fences: the sheet must compile, and each fence must be valid Python.
             // The engine run needs the Python runtime of the page, see check-python.mjs.
@@ -105,6 +121,14 @@ for (const md of mds) {
             const html = readFileSync(out, 'utf8');
             for (const e of html.matchAll(/<(?:p|span|div)[^>]*class="err"[^>]*>([\s\S]*?)<\/(?:p|span|div)>/g)) problems.push(text(e[1]).slice(0, 200));
             if (show) console.log(`--- ${where}\n${text(html)}\n`);
+            if (marks.expect) {
+                const flat = (t) => t.replace(/\s+/g, '');
+                const got = flat(text(html));
+                for (const frag of marks.expect.split('|')) {
+                    expects++;
+                    if (!got.includes(flat(frag))) problems.push(`expected "${frag.trim()}" in the result`);
+                }
+            }
         } catch (e) {
             problems.push(`engine failed: ${e.message.split('\n')[0]}`);
         }
@@ -115,5 +139,5 @@ for (const md of mds) {
         }
     }
 }
-console.log(`${n} examples (${sheets} sheet, ${cpds} cpd, ${pys} python syntax only): ${n - bad} ok, ${bad} failed`);
+console.log(`${n} examples (${sheets} sheet, ${cpds} cpd, ${pys} python syntax only; ${samplesChecked} equal to a shipped sample, ${expects} expected results): ${n - bad} ok, ${bad} failed`);
 process.exit(bad ? 1 : 0);

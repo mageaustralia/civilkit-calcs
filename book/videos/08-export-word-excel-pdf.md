@@ -8,7 +8,7 @@
 
 ## Before recording
 
-1. Paste the sheet below into a new tab. It has inputs, a table, a vector, a matrix and a plot, so
+1. Paste the sheet below into a new tab. It has values, a table, a vector, a matrix and a plot, so
    that every part of the exports has something to show.
 2. Choose a folder for the downloads and clear it.
 

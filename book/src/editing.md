@@ -19,7 +19,7 @@ information counts.
 | Insert a symbol, function, unit or snippet | the **Insert** tab in the sidebar, or the ribbon |
 
 The Insert tab has a search box that filters the whole library. In a sheet, entries that have no
-sheet form (`#UI`, `$Map`, directives) carry a `>>` mark and insert Calcpad text as `>>` lines.
+sheet form (the data grid and the other `#UI` forms, `$Map`, directives) carry a `>>` mark and insert Calcpad text as `>>` lines.
 
 ## In-place editing in the results
 

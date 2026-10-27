@@ -87,7 +87,7 @@ The result ends with:
 
 ```text
 Ms = fy·Ze = 300 MPa · 1230000 mm³ = 369 kN·m    moment capacity
-utilisation = M⋆ / (0.9·Ms) = 54 kN·m / (0.9 · 369 kN·m) = 0.16
+utilisation = M⋆ / (0.9·Ms) = 54 kN·m / (0.9 · 369 kN·m) = 0.163
 OK
 ```
 
@@ -147,3 +147,4 @@ is saved as a `.sheet` file. In other browsers the file downloads. See
 * All the line kinds: [The sheet format](../sheet/index.md).
 * Why the units came out right: [Units](../units.md).
 * Draw the moment along the beam: [Plots](../plots.md).
+* Turn the sheet into a form you fill in: [Templates with inputs](../templates.md).

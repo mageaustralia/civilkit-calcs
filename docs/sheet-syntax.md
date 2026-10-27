@@ -302,7 +302,7 @@ snippets), and these work on names:
   Calcpad spelling) work on the names a sheet defines; references are searched in code lines, not
   in prose. Names are also coloured by semantic highlighting.
 * **Show compiled** and **Convert to Calcpad**, above.
-* **Rich-text editing**: double-click prose in the preview (a paragraph with its heading, a list, a
+* **Rich-text editing**: click prose in the preview (a paragraph with its heading, a list, a
   table) to edit it as formatted text in place; input lines and calculations stay one-line edits.
   See `docs/rich-text-editing.md`.
 

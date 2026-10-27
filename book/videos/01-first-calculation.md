@@ -19,7 +19,7 @@
 | Time | On screen | Type or do | Narration |
 | --- | --- | --- | --- |
 | 0:00 to 0:10 | The address bar shows civilkit.io/calcs, then the page. A lower-third reads "CivilKit Calcs" and "runs in your browser". | Show the page loading. Click **New**. | S1 |
-| 0:10 to 0:24 | Editor on the left, empty. Type the heading and the two input lines. The results update beside you. | Type block A below. | S2 |
+| 0:10 to 0:24 | Editor on the left, empty. Type the heading and the two lines of values. The results update beside you. | Type block A below. | S2 |
 | 0:24 to 0:38 | A third line appears. The result shows the formula, the numbers put in, and fifty-four kilonewton metres. Zoom in on the result. | Type the `Mstar` line (block B). | S3 |
 | 0:38 to 0:58 | Four more lines. The capacity line shows three hundred and sixty-nine kilonewton metres. Zoom in on that line. The last line prints OK. | Type block C. | S4 |
 | 0:58 to 1:10 | Change `12` to `80` in the load line. The moment turns to three hundred and sixty, the ratio to one point zero eight, and the last line to Fails. Change it back. | Double-click the number 12, type 80, then back. | S5 |
@@ -84,7 +84,7 @@ OK
 
 S1: Here is how to do a calculation in CivilKit Calcs. It runs in your browser, so there is nothing to install.
 
-S2: Start a new sheet. Write a heading, then the inputs. A name, a colon, a value with its unit, and a note after the bar.
+S2: Start a new sheet. Write a heading, then the values. A name, a colon, a value with its unit, and a note after the bar.
 
 S3: Now the moment. Write the formula in plain text. The result shows the formula, the numbers put in, and the answer. Fifty-four kilonewton metres.
 
@@ -96,7 +96,7 @@ S6: Behind the scenes, a sheet is turned into the Calcpad language. You can see 
 
 ## Full text for the voice (one block)
 
-Here is how to do a calculation in CivilKit Calcs. It runs in your browser, so there is nothing to install. Start a new sheet. Write a heading, then the inputs. A name, a colon, a value with its unit, and a note after the bar. Now the moment. Write the formula in plain text. The result shows the formula, the numbers put in, and the answer. Fifty-four kilonewton metres. Add the section capacity. A stress in megapascals times a volume in cubic millimetres comes out as a moment in kilonewton metres. You did not convert anything. The engine tracks the units. Then a ratio, and a pass or fail message. Change the load to eighty. Everything recalculates as you type, and the check now fails. Behind the scenes, a sheet is turned into the Calcpad language. You can see it, and learn from it. CivilKit Calcs is free and open source.
+Here is how to do a calculation in CivilKit Calcs. It runs in your browser, so there is nothing to install. Start a new sheet. Write a heading, then the values. A name, a colon, a value with its unit, and a note after the bar. Now the moment. Write the formula in plain text. The result shows the formula, the numbers put in, and the answer. Fifty-four kilonewton metres. Add the section capacity. A stress in megapascals times a volume in cubic millimetres comes out as a moment in kilonewton metres. You did not convert anything. The engine tracks the units. Then a ratio, and a pass or fail message. Change the load to eighty. Everything recalculates as you type, and the check now fails. Behind the scenes, a sheet is turned into the Calcpad language. You can see it, and learn from it. CivilKit Calcs is free and open source.
 
 ## Light marketing beats
 

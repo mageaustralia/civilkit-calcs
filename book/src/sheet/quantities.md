@@ -130,3 +130,17 @@ A: [2, -1; -1, 2]
 
 `[1, 2, 3]` is a vector; `[1, 2; 3, 4]` is a matrix with columns separated by commas and rows by
 semicolons. See [Vectors and matrices](../vectors-matrices.md).
+
+## Inputs: a quantity the reader can change
+
+Put a `?` in front of the value and the quantity becomes an input, with that value as its default:
+
+```sheet
+L: ? 6 m | span
+w: ? 12 kN/m | design load
+M: w * L^2 / 8 -> kN*m | maximum moment
+```
+
+In Input mode `L` and `w` are boxes. Everywhere else the lines read as the quantities they are. A
+list of options (`[Steel = 200 GPa, Timber = 11 GPa]`, or round brackets for radio buttons) and
+`on` or `off` (a checkbox) are inputs too. See [Templates with inputs](../templates.md).

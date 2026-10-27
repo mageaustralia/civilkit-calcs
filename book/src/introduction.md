@@ -23,7 +23,8 @@ inside the page, so a calculation is never sent to a server.
   block that draws with a matplotlib-style or Plotly-style interface, including 3D charts.
 * **Python blocks.** Small Python programs inside a sheet, run in the page, with results handed
   back to the sheet as ordinary quantities.
-* **Templates with inputs.** Turn a calculation into a fill-in form.
+* **Templates with inputs.** Put a `?` in front of a value (`L: ? 6 m`) and it becomes a box, a
+  drop-down, radio buttons or a checkbox in a fill-in form. A template is one file.
 * **Symbolic maths.** Rearrange a formula, differentiate, integrate or solve exactly.
 * **A worksheet importer.** Bring in worksheets from another calculation tool.
 * **Export.** Word with real equations, Excel with native charts, and PDF through the print
@@ -40,6 +41,21 @@ the ones you need.
 Each chapter that matches a short how-to video carries a line starting with "Video:". The
 videos are recorded from the scripts in the `book/videos` folder of the source.
 
+## The videos
+
+| Video | Length | Chapter |
+| --- | --- | --- |
+| 1. Your first calculation in five minutes | 85 seconds | [Your first sheet in five minutes](getting-started/first-sheet.md) |
+| 2. Units and results | 85 seconds | [Units](units.md) |
+| 3. Plots in the sheet format | 80 seconds | [Plots](plots.md) |
+| 4. Plots from Python (Plotly style and matplotlib style) | 90 seconds | [Python blocks](python.md) |
+| 5. Templates with inputs | 85 seconds | [Templates with inputs](templates.md) |
+| 6. Import an existing worksheet | 90 seconds | [Importing worksheets](importing.md) |
+| 7. Symbolic maths for a beam deflection | 90 seconds | [Symbolic maths](symbolic.md) |
+| 8. Export a report to Word, Excel and PDF | 85 seconds | [Exporting](exporting.md) |
+
+The lengths are the planned ones in the storyboards.
+
 ## Credit
 
 CivilKit Calcs is built on [CalcpadCE](https://github.com/imartincei/CalcpadCE), the continuation
@@ -51,5 +67,7 @@ editor support and the sample worksheets all come from that work. See
 
 Every `sheet` and `cpd` example in this guide was run through the real engine when the guide was
 built (`book/check-examples.sh`). The results shown beside them are what the engine printed, with
-the default setting of two decimals. The Python examples need the browser, so they are checked
-for syntax by the script and were run in the page by hand.
+the default setting of two decimals. The five template sheets quoted in [Templates with
+inputs](templates.md) are checked to be identical to the samples the app ships. The Python examples
+and the input forms need the browser: they are run in the built app (`book/check-python.mjs`),
+which also counts the controls each form draws.

@@ -14,7 +14,7 @@ Click the line number in the report to jump to the source.
 | `Cannot rewrite existing units: kip` | A custom unit (`.kip = ...`) has the name of a built-in unit. Choose another name. |
 | `Matrix must be symmetric.` | `eigenvals`, `eigenvecs` and `eigen` need a matrix of the symmetric type. Use `copy(A, symmetric(n), 1, 1)`. See [Vectors and matrices](vectors-matrices.md). |
 | `Inconsistent units: "unitless" and "m"` in a plot | The plot variable carried a unit. Write `plot f(x * 1 m) for x in 0..6`. See [Plots](plots.md). |
-| `#UI does not support expressions unless 'allowExpression' is true.` | The value in a `#UI` line is not a plain number. Use `allowExpression` or move the formula into a sheet line. See [Templates](templates.md). |
+| `#UI does not support expressions unless 'allowExpression' is true.` | The value in a `#UI` line is not a plain number. Use `allowExpression` or move the formula into a sheet line. In a sheet, an input line with `?` takes a number only: `2*3 m` is an error on its line. See [Input forms with #UI](calcpad/ui-inputs.md) and [Templates](templates.md). |
 | `The condition could not be evaluated, so the block is unresolved...` | An `#if` or `if` condition has an error (usually an undefined name). The block runs no branch. |
 | `Python was not run` | You answered "Not now" to the Python question. The refusal is remembered until the Python code changes; edit it to be asked again. |
 | `Sheet syntax: ...` in red | The sheet compiler found a bad `plot` line, an unclosed `$$` or similar. The marker is on that line. |
@@ -28,14 +28,19 @@ Click the line number in the report to jump to the source.
   (`g = 9.80665m/s^2`) before you use `g` as an acceleration.
 * **A variable called `m`, `s` or `L`.** After a number `m` is still the metre. A variable called `m`
   is a variable when it stands alone. In Python `export` names, avoid names that are units.
-* **Rounding.** The result shows two decimals by default (Settings, Decimals). The number inside is
-  full precision.
-* **A `#UI` value saved above the sheet marker.** In a sheet, Save values writes its comment above
-  `<!--sheet-->`, and the file stops being a sheet: every line then shows an error such as
-  `Invalid symbol: "#"` for the headings. Delete the first line (the comment) to repair it.
-  See [Templates](templates.md).
-* **A radio group opens with nothing chosen.** Its default has a divided unit. Use a plain number
-  as the default and the value, and put the unit in the sheet line.
+* **Rounding.** The result shows two decimals by default (Settings, Decimals), and a number below
+  one keeps three significant figures (`0.163`, `0.0856`). The number inside is full precision: a
+  utilisation of 1.004 is shown as `1`, and a check on it (`if util <= 1`) still sees 1.004.
+* **Every line of a sheet shows an error such as `Invalid symbol: "#"`.** The first line of the
+  file is not `<!--sheet-->`. Older versions wrote the comment of **Save values** above that line;
+  the current one writes it under the marker. Delete the stray first line, or put the marker back
+  as the first line. See [Templates](templates.md#saving-the-values).
+* **A radio group or drop-down opens showing the wrong option, or none.** The values of its options
+  have a divided unit (`kN/m`). The calculation still uses the default. Use plain numbers for the
+  values and put the rest of the unit in the sheet line. See the known limits in
+  [Templates](templates.md#known-limits).
+* **My saved values are not used.** A saved value belongs to the input's name. If the input was
+  renamed, the old value is ignored. Preview always shows the defaults; use Input or Report.
 
 ## Frequently asked questions
 

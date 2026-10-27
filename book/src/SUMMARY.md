@@ -18,6 +18,7 @@
   - [Mixing in Calcpad, Show compiled and errors](sheet/passthrough.md)
 - [The Calcpad language](calcpad/index.md)
   - [Directives and commands](calcpad/directives.md)
+  - [Input forms with #UI](calcpad/ui-inputs.md)
 - [Units](units.md)
 - [Vectors and matrices](vectors-matrices.md)
 - [Function and command reference](reference/functions.md)

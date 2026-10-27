@@ -1,10 +1,15 @@
 # Rich-text editing of prose
 
-Prose written as Markdown can be edited as formatted text instead of source. Double-click a paragraph,
-heading, list or table in the preview and an editor opens in its place; the rest of the page moves down to
-make room and follows scrolling. Apply (or Ctrl+Enter) writes the text back to the source in one undo
-step, and Esc or Cancel leaves it alone. Double-clicking an equation, an input line or anything else
-still opens the one-line source editor.
+Prose written as Markdown can be edited as formatted text instead of source. In a sheet, click a
+paragraph, heading, list or table in the preview and an editor opens in its place; the rest of the
+page moves down to make room and follows scrolling. Clicking away applies the change (Ctrl+Enter
+applies at once, Enter makes a new line), and Esc leaves the text alone. A drag that selects text
+does not open the editor. Everything you apply is written back to the source in one undo step. On a
+touch screen a long press opens the editor, and Apply and Cancel stay on screen.
+
+In a Calcpad worksheet the same editor opens on a **double-click** on the Markdown text, and Apply
+(or Ctrl+Enter) or Cancel close it. An equation, an input line or anything else opens the one-line
+source editor instead, on the same gesture (one click in a sheet, a double-click in a worksheet).
 
 ## What is editable
 

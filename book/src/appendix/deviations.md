@@ -30,6 +30,7 @@ page is a summary for users.
 * The **Symbolic** dialog.
 * The **worksheet importer**.
 * **Rich-text editing** of Markdown prose in the results.
+* **Sheet inputs**: `L: ? 6 m` and its drop-down, radio and checkbox forms, which compile to `#UI`.
 * **Model bindings**: a comment that ties an input to a quantity of a structural model, with a marker
   in the report. No model is connected yet.
 * A **ribbon** interface, a phone layout and an installable, offline app.

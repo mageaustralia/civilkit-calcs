@@ -180,7 +180,7 @@ The relative precision of the numerical methods is the `Precision` setting (defa
 
 ## Input forms
 
-`#UI` turns an assignment into an input control. See [Templates with inputs](../templates.md).
+`#UI` turns an assignment into an input control. See [Input forms with `#UI`](ui-inputs.md). In a sheet, most inputs are written as `L: ? 6 m` lines instead; see [Templates with inputs](../templates.md).
 
 ## Not available in the browser
 

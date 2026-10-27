@@ -37,7 +37,7 @@ sheet spells it (`phi` in a raw line is `φ`). Text after a `'` or `"` in a raw 
 
 A raw block inside a sheet block keeps the block's indentation rules like any other line.
 
-The ribbon uses `>>` for anything with no sheet form: `#UI` input forms, `$Map` colour maps,
+The ribbon uses `>>` for anything with no sheet form: the data grid and the other `#UI` input forms (an entry, drop-down, radio or checkbox has a sheet form, `L: ? 6 m`), `$Map` colour maps,
 directives and macros. Those buttons carry a small `>>` mark and a tooltip saying so. See
 [The Calcpad language](../calcpad/index.md).
 

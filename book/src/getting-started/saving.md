@@ -37,7 +37,7 @@ text. You can open them in any text editor and keep them in version control.
 
 ## Working offline
 
-CivilKit Calcs is a progressive web app. After one visit the whole app (about 19 MB) is cached by
+CivilKit Calcs is a progressive web app. After one visit the whole app (about 21 MB) is cached by
 the browser, and it opens and calculates with no connection. To make it behave like an installed
 program, use your browser's **Install** or **Add to home screen** command.
 

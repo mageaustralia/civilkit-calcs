@@ -34,7 +34,7 @@ L = 6 m    span
 w = 12 kN/m    design load
 M_star = w·L²/8 = 12 kN/m · (6 m)² / 8 = 54 kN·m    maximum bending moment
 Ms = 300 MPa · 1230000 mm³ = 369 kN·m
-utilisation = M_star / (0.9·Ms) = 54 kN·m / (0.9 · 369 kN·m) = 0.16
+utilisation = M_star / (0.9·Ms) = 54 kN·m / (0.9 · 369 kN·m) = 0.163
 OK
 ```
 
@@ -46,6 +46,7 @@ Every line of a sheet is one of these.
 | --- | --- | --- |
 | Prose | `A simply supported beam.` or `## Heading` | [Prose, LaTeX and tables](prose.md) |
 | Quantity | `L: 6 m \| span` | [Quantities and notes](quantities.md) |
+| Input | `L: ? 6 m \| span` | [Templates with inputs](../templates.md) |
 | Function | `f(x): x^2 + 1` | [Functions](functions.md) |
 | Condition | `if u <= 1: "OK" else: "Fails"` | [Conditions and loops](flow.md) |
 | Block | `for i in 1..5:` with an indented body | [Conditions and loops](flow.md) |
