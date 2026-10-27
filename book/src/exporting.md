@@ -67,9 +67,8 @@ replaced by a note.
 
 ## HTML
 
-**Save HTML** writes a standalone page with the report, its styles, fonts and pictures. Scripts a
-worksheet carries are kept, and the page's input form is static: it shows the controls but nothing
-recalculates behind them.
+**Save HTML** writes a standalone page with the report, its styles, fonts and pictures. An exported
+input form is static: it shows the controls, but nothing recalculates behind them.
 
 ## Files a worksheet writes
 

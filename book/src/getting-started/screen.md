@@ -64,8 +64,8 @@ These are in the preview only and are not part of a printout or export.
 ## The sidebar
 
 The sidebar holds the **Insert** tab, a searchable library of every symbol, function, unit and
-snippet (a click inserts it at the cursor), and tabs for the table of contents, the variables of
-the worksheet and its metadata. **Settings**, **Export**, **Errors** and **Prettify** open as
+snippet (a click inserts it at the cursor), and tabs for the table of contents (TOC) and the
+variables of the worksheet. **Settings**, **Export**, **Errors** and **Prettify** open as
 dialogs over the page. Hide the sidebar with Ctrl+Shift+B.
 
 ## On a phone
