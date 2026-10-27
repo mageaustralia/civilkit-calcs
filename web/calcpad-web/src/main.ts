@@ -110,6 +110,7 @@ function getEmptyPreviewHtml(theme: 'light' | 'dark'): string {
     const c = theme === 'light'
         ? { fg: '#1c2129', dim: '#5b6573', bg: '#ffffff', link: '#0a6bcf' }
         : { fg: '#e7ebf2', dim: '#9aa5b4', bg: '#14171d', link: '#4da3ff' };
+    const inBrowser = typeof (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ === 'undefined';
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -135,7 +136,7 @@ function getEmptyPreviewHtml(theme: 'light' | 'dark'): string {
         <tr><th>Bold</th><td>Ctrl+B</td></tr>
         <tr><th>Italic</th><td>Ctrl+I</td></tr>
         <tr><th>Underline</th><td>Ctrl+U</td></tr>
-        <tr><th>Subscript</th><td>Ctrl+=</td></tr>
+${inBrowser ? '' : `        <tr><th>Subscript</th><td>Ctrl+=</td></tr>
         <tr><th>Superscript</th><td>Ctrl+Shift+=</td></tr>
         <tr><th>Heading 1-6</th><td>Ctrl+1 ... Ctrl+6</td></tr>
         <tr><th>Paragraph</th><td>Ctrl+L</td></tr>
@@ -143,8 +144,8 @@ function getEmptyPreviewHtml(theme: 'light' | 'dark'): string {
         <tr><th>Bulleted List</th><td>Ctrl+Shift+L</td></tr>
         <tr><th>Numbered List</th><td>Ctrl+Shift+N</td></tr>
         <tr><th>Toggle Comment</th><td>Ctrl+Q</td></tr>
-    </table>
-    <h4>Resources</h4>
+`}    </table>
+${inBrowser ? '    <p>The other formatting commands are in the Insert tab and the ribbon, and the math keyboard is in the status bar.</p>\n' : ''}    <h4>Resources</h4>
     <p><a href="https://github.com/mageaustralia/civilkit-calcs">CivilKit Calcs on GitHub</a></p>
     <p><a href="https://github.com/imartincei/CalcpadCE">CalcpadCE (upstream) on GitHub</a></p>
     <p><a href="https://calcpad-ce.org/">calcpad-ce.org</a></p>
