@@ -111,6 +111,27 @@ becomes an empty comment so the block stays in one piece, and a `-->` inside a l
 `--&gt;` while it is disabled and restored on Enable. Anything that used a disabled math line sees
 an undefined name until it is enabled again.
 
+### Collapsing sections
+
+Hover a heading in a sheet and a small arrow shows under its grip. Click it and every block under
+the heading, up to the next heading of the same or a higher level, folds away; the heading shows
+how many blocks are hidden. Click the arrow again to open the section. A folded `##` section hides
+only its own blocks, a folded `#` section hides its `##` sub-sections too. The grip menu of a
+heading also has **Collapse all** and **Expand all**.
+
+Folding is only a view: the sheet text and the results do not change, and printing and exporting
+always include everything. Folds stay as you edit and when you switch between tabs. Headings are
+matched by level, text and how many headings with the same text come before them.
+
+### Reordering blocks
+
+Drag a block's grip up or down; a blue line shows where it will land, and the block goes there when
+you let go. Dragging a heading takes its whole section along: the heading and the blocks up to the
+next heading of the same or a higher level (folded blocks too). A section cannot be dropped inside
+itself. The move is one step in the editor's history, and a toast offers **Undo**. A click on the
+grip, or a movement of under 6 pixels, still opens its menu. On a touch screen, tap a block to show
+its grip, then drag the grip.
+
 ### Plot chips
 
 Under each plot in the preview there is a row of chips: Log x, Log y, 1:1 (equal axis scale),

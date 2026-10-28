@@ -1,5 +1,5 @@
 // Pure checks of the block move / duplicate / delete edits.   node e2e/block-ops-check.mjs
-import { blockEdit, blockText, blockDisabled, blockHolding, textStarts } from '../calcpad-web/src/wasm/block-ops.ts';
+import { blockEdit, moveBlockTo, blockText, blockDisabled, blockHolding, textStarts } from '../calcpad-web/src/wasm/block-ops.ts';
 const fails = [];
 const check = (ok, what) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}`); if (!ok) fails.push(what); };
 const apply = (lines, e) => { const out = [...lines]; out.splice(e.from - 1, e.to - e.from + 1, ...e.text); return out; };
@@ -42,5 +42,19 @@ check(eq(run(['  x', ' y'], [1, 2], 1, 'disable'), ['  <!-- x -->', ' y']), 'ind
 // Which block holds the caret.
 check(blockHolding(doc, starts, 6) === 6 && blockHolding(doc, starts, 4) === null && blockHolding(doc, starts, 9) === 8, 'the block holding a caret line (null on spacing)');
 check(eq(textStarts(['# T', '', 'a', 'b', '', '```python', 'x', '', 'y', '```', '', 'z']), [1, 3, 6, 12]), 'text-only block starts keep a fence with blank lines whole');
+const mv = (lines, starts, line, before, last) => { const e = moveBlockTo(lines, starts, line, before, last); return e && { out: apply(lines, e), at: e.at }; };
+check(eq(mv(doc, starts, 3, 8)?.out, ['# T', '', 'b: 2 m', 'c: 3 m', '', 'a: 1 m', '', '- x', '- y']), 'moveBlockTo: down to before a later block');
+check(mv(doc, starts, 3, 8)?.at === 6, 'moveBlockTo: reports the new start line (down)');
+check(eq(mv(doc, starts, 3, 0)?.out, ['# T', '', 'b: 2 m', 'c: 3 m', '', '- x', '- y', '', 'a: 1 m']), 'moveBlockTo: to the end');
+check(eq(mv(doc, starts, 8, 3)?.out, ['# T', '', '- x', '- y', '', 'a: 1 m', '', 'b: 2 m', 'c: 3 m']) && mv(doc, starts, 8, 3).at === 3, 'moveBlockTo: up to before an earlier block');
+check(eq(mv(doc, starts, 8, 1)?.out, ['- x', '- y', '', '# T', '', 'a: 1 m', '', 'b: 2 m', 'c: 3 m']), 'moveBlockTo: to the very top');
+check(mv(doc, starts, 3, 3) === null && mv(doc, starts, 3, 5) === null, 'moveBlockTo: before itself or right after itself is a no-op');
+check(mv(doc, starts, 8, 0) === null, 'moveBlockTo: the last block to the end is a no-op');
+check(mv(doc, starts, 3, 99) === null && mv(doc, starts, 99, 3) === null, 'moveBlockTo: unknown lines are refused');
+const sec = ['# A', 'a1: 1 m', '', '## A.1', 'a2: 2 m', '', '# B', 'b1: 3 m', '', '# C', 'c1: 4 m'];
+const ss = [1, 2, 4, 5, 7, 8, 10, 11];
+check(eq(mv(sec, ss, 1, 10, 5)?.out, ['# B', 'b1: 3 m', '', '# A', 'a1: 1 m', '', '## A.1', 'a2: 2 m', '', '# C', 'c1: 4 m']), 'moveBlockTo: a section (heading to its last block) moves as one');
+check(eq(mv(sec, ss, 10, 1, 11)?.out, ['# C', 'c1: 4 m', '', '# A', 'a1: 1 m', '', '## A.1', 'a2: 2 m', '', '# B', 'b1: 3 m']), 'moveBlockTo: the last section moves to the top');
+check(mv(sec, ss, 1, 4, 5) === null && mv(sec, ss, 1, 2, 5) === null, 'moveBlockTo: a section cannot drop inside itself');
 if (fails.length) { console.error(`${fails.length} FAILED`); process.exit(1); }
 console.log('all ok');

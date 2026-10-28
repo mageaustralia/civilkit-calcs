@@ -54,7 +54,7 @@ import { attachAutoIndenter } from './editor/auto-indent';
 import { registerFormattingCommands, getParseMode } from './editor/formatting-commands';
 import { looksLikeLine, sheetInsert } from './wasm/sheet-insert';
 import { insertEdit, type InsertBlock } from './wasm/sheet-blocks';
-import { blockEdit, blockLineAfter, blockText, blockDisabled, blockHolding, textStarts, type BlockOp } from './wasm/block-ops';
+import { blockEdit, moveBlockTo, blockLineAfter, blockText, blockDisabled, blockHolding, textStarts, type BlockOp } from './wasm/block-ops';
 import { copyBlockText } from './wasm/block-clipboard';
 import { NEW_SHEET_TEXT, WELCOME_SHEET_TEXT } from './wasm/sheet-ui';
 import { registerFormatDocumentProvider } from './editor/format-document';
@@ -1752,6 +1752,20 @@ async function bootstrap(): Promise<void> {
             const use = starts.length ? starts : textStarts(lines);
             const line = blockHolding(lines, use, pos.lineNumber);
             return line === null ? null : { line, starts: use };
+        },
+        // Drag and drop in the preview: the block (or a heading with its section, up to `last`) goes before `before` (0: the end).
+        moveBlock: (groupId: string, starts: number[], line: number, before: number, last: number) => {
+            const ed = groups.get(groupId)?.editor;
+            const model = ed?.getModel();
+            if (!ed || !model) return false;
+            const e = moveBlockTo(model.getLinesContent(), starts, line, before, last);
+            if (!e) return false;
+            ed.pushUndoStop();
+            ed.executeEdits('block-move', [{ range: { startLineNumber: e.from, startColumn: 1, endLineNumber: e.to, endColumn: model.getLineMaxColumn(e.to) }, text: e.text.join('\n') }]);
+            ed.pushUndoStop();
+            ed.setPosition({ lineNumber: Math.min(e.at, model.getLineCount()), column: 1 });
+            ed.revealLineInCenterIfOutsideViewport(Math.min(e.at, model.getLineCount()));
+            return true;
         },
         undo: (groupId: string) => {
             const ed = groups.get(groupId)?.editor;
