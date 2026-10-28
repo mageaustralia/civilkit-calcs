@@ -131,7 +131,7 @@ fn tokenize(s: &str) -> Result<Vec<(Tok, bool)>, String> {
                     ';' => Tok::Semi,
                     '.' => Tok::Dot,
                     '+' | '-' | '*' | '/' | '^' | '%' | '<' | '>' | '!' | '=' | '≤' | '≥' | '≠' | '≡' | '∧' | '∨'
-                    | '×' | '·' | '÷' | '−' | '⦼' | '\\' | '∠' | '⊕' => Tok::Op(c.to_string()),
+                    | '×' | '·' | '÷' | '−' | '⦼' | '\\' | '∠' | '⊕' | '‰' | '‱' => Tok::Op(c.to_string()),
                     _ => return Err(format!("unexpected character '{c}'")),
                 },
             };
@@ -436,6 +436,8 @@ pub fn translate_unit(s: &str) -> Result<String, String> {
                 "÷" | "/" => "/",
                 "^" => "^",
                 "-" | "−" => "-",
+                // Percent and per mille are units: `-> %` shows a ratio as a percentage.
+                "%" | "‰" | "‱" => o.as_str(),
                 _ => return Err(format!("'{o}' is not part of a unit")),
             }),
             _ => return Err("not a unit".into()),

@@ -84,6 +84,7 @@ f(x): x^2 + 1
   number is never renamed (`3 psi` is a pressure and `psi` alone is ψ).
 * **Conversion:** `-> unit` converts the result: `Ms: fy * Ze -> kN*m` (Calcpad's `|kN*m`). It
   must come last, before any note.
+  `-> %` (or `-> ‰`) shows a ratio as a percentage: `util: Ed / Rd -> %` gives `69.07 %`.
 * **Notes:** the first `|` outside brackets starts the note. `||` is the logical or. Use
   `abs(x)` for an absolute value.
 * **Several per line:** separate with `;`. A note belongs to the last one.

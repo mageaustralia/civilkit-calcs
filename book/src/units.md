@@ -122,6 +122,39 @@ A few bare names mean different things in the US and UK systems (`gal`, `ton`, `
 `cwt`, `therm`). The setting **Non-metric units** picks one. Write the explicit suffix
 (`gal_US`, `gal_UK`) when a sheet must not depend on the setting.
 
+## Percentages
+
+A ratio has no unit, so it comes out as a plain number. Convert it with `-> %` to show it as a
+percentage, and write `%` after a number to enter one. `‰` (per mille) works the same way.
+
+<!-- expect: 355.1 kN = 0.691 | util = ratio = 0.691 = 69.07 % | f = Ed · r = 245.25 kN · 4 % = 9.81 kN -->
+```sheet
+Ed: 245.25 kN
+Rd: 355.1 kN
+ratio: Ed / Rd
+util: ratio -> %
+r: 4%
+f: Ed * r
+slope: 1 / 40 -> ‰
+```
+
+```text
+ratio = Ed / Rd = 245.25 kN / 355.1 kN = 0.691
+util = ratio = 0.691 = 69.07 %
+r = 4 %
+f = Ed · r = 245.25 kN · 4 % = 9.81 kN
+slope = 1 / 40 = 25 ‰
+```
+
+The value itself does not change, only the way it is shown: `util` is the same number as
+`ratio`, and `r` is 0.04 in every formula. A result in percent is rounded to the decimals set on the
+Math Formatting tab like any other result, and the rounded figure typed back in (`69.07%`) is the
+same ratio to that many digits. An input works the same way: `rate: ? 12.5 %` shows a box holding
+12.5 with `%` after it, and the name is 0.125 in the formulas.
+
+A percentage times a plain number is a plain number (`4 % · 2` is `0.08`); add `-> %` to the line
+to keep it as a percentage.
+
 ## Your own units
 
 A unit is defined like a variable, with a dot in front of the name. A sheet defines it through a
