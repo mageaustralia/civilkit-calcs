@@ -28,6 +28,7 @@ const UPSTREAM_URL = 'https://github.com/imartincei/CalcpadCE';
 const PROJECT_URL = 'https://github.com/mageaustralia/civilkit-calcs';
 const DOCS_URL = UPSTREAM_URL;
 const CHANGELOG_URL = `${PROJECT_URL}/blob/main/CHANGELOG.md`;
+const WHATS_NEW_URL = 'https://civilkit.io/calcs/whats-new/';
 const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '';
 const UPSTREAM_VERSION = import.meta.env.VITE_UPSTREAM_VERSION ?? '';
 const mod = /Mac|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
@@ -158,6 +159,7 @@ export const ACTIONS: Record<string, Handler> = {
         `CalcpadCE: ${UPSTREAM_URL}`,
         `This project: ${PROJECT_URL}`,
         `What's new: [the changelog](${CHANGELOG_URL})`,
+        `Short clips of each release: [What's new](${WHATS_NEW_URL})`,
         'MIT licence. Not affiliated with the CalcpadCE authors.',
     ]),
 };
