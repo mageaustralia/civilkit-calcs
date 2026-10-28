@@ -488,7 +488,7 @@ export const RIBBON: RibbonTab[] = [
                 big('tf-p', 'Paragraph', 'text', 'A paragraph', { text: '<p>{sel}</p>', test: "'{}" }),
                 big('tf-br', 'Line break', 'br', 'A line break', { text: '<br/>', test: "'a {} b" }),
                 big('tf-hr', 'Rule', 'hr', 'A horizontal rule', { text: "'<hr/>\n", line: true, sheet: '---\n' }),
-                big('tf-page', 'Page break', 'page', 'Start a new page when printing', { text: "'<div style=\"page-break-after:always\"></div>\n", line: true }),
+                big('tf-page', 'Page break', 'page', 'Start a new page when printing and in the Word file', { text: "'<div style=\"page-break-after:always\"></div>\n", line: true, sheet: '<div style="page-break-after:always"></div>\n' }),
             ] },
             { name: 'Lists', buttons: [
                 big('tf-ul', 'Bullets', 'list', 'A bulleted list', { text: "'<ul><li>First</li><li>Second</li></ul>\n", line: true, sheet: '- First\n- Second\n' }),
@@ -543,7 +543,7 @@ export const RIBBON: RibbonTab[] = [
             { name: 'Page', buttons: [
                 action('d-saveas', 'Save As', 'saveas', 'Save As', 'saveas'),
                 action('d-pdfsettings', 'Header and footer', 'settings', 'Page numbers, date and title for PDF export (Settings dialog)', 'settings'),
-                big('d-pagebreak', 'Page break', 'page', 'Start a new page when printing', { text: "'<div style=\"page-break-after:always\"></div>\n", line: true }),
+                big('d-pagebreak', 'Page break', 'page', 'Start a new page when printing and in the Word file', { text: "'<div style=\"page-break-after:always\"></div>\n", line: true, sheet: '<div style="page-break-after:always"></div>\n' }),
             ] },
             { name: 'Report', buttons: [
                 action('d-report', 'Report', 'report', 'The print layout', 'mode:report'),

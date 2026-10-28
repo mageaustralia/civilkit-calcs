@@ -17,6 +17,36 @@ and a **Plots** list that downloads each plot as an image, or all of them as a Z
 Which view to export: **Report** is the usual choice. It applies the values entered in an input form,
 hides `#pre` text and shows `#post` text. Preview shows what the results pane shows.
 
+## Page breaks
+
+To start a new page at a point in the report, put a page break line there:
+
+```sheet
+# Loads
+
+w: 12 kN/m | design load
+
+<div style="page-break-after:always"></div>
+
+# Bending
+
+L: 6 m
+M: w * L^2 / 8 -> kN*m
+```
+
+**Print PDF** and **Word** both start "Bending" on a new page. You do not need to type the line:
+
+* In a sheet, the **+** between two blocks has **Page break** at the end of its menu.
+* The ribbon has **Page break** on the **Document** tab (Page group) and the **Text Formatting** tab.
+  It inserts the line at the cursor.
+
+The preview draws the break as a dashed line labelled "Page break". The line is not printed and is
+not in the Word file. A Calcpad worksheet (`.cpd`) writes the same thing as an HTML comment line,
+`'<div style="page-break-after:always"></div>`, and the ribbon button inserts that form there.
+
+Word also honours the other ways HTML forces a break on an element (`page-break-before: always`,
+`break-before: page`, `break-after: page`). Excel has no pages, so the workbook ignores page breaks.
+
 ## Word
 
 **Word** writes a `.docx` of the report:

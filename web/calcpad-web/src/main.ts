@@ -78,6 +78,8 @@ import './editor/workers';
 import { installWasmTransport } from './wasm/transport';
 import { installWebFiles, webExtensions } from './wasm/setup';
 import { mountRibbon } from './wasm/ribbon';
+import type { WebFiles } from './wasm/web-files';
+import { installBeforeUnloadGuard, titleWithUnsavedMark } from './services/unsaved-guard';
 
 /** Runtime check: are we running inside a Tauri webview? */
 const isTauri = typeof (window as any).__TAURI_INTERNALS__ !== 'undefined';
@@ -872,9 +874,9 @@ async function bootstrap(): Promise<void> {
         // Extra windows are numbered from their `main-N` label so they can be told apart in
         // the taskbar; the main window, and the single-window case, stay unmarked.
         const suffix = isPrimaryWindow ? '' : ` (${windowLabel.slice('main-'.length)})`;
-        const title = active?.title
+        const title = titleWithUnsavedMark(active?.title
             ? `${active.title} - CivilKit Calcs ${appVersion}${suffix}`
-            : `CivilKit Calcs ${appVersion}${suffix}`;
+            : `CivilKit Calcs ${appVersion}${suffix}`, !!active?.dirty);
         document.title = title;
         setNativeTitle?.(title);
     }
@@ -1644,8 +1646,25 @@ async function bootstrap(): Promise<void> {
     };
 
     // ---- Tab-strip user actions (dispatched by group id) ----
-    // The Tauri branch overrides the close handlers with save-prompt-aware
-    // versions; on web there's nothing to save, so a plain close is correct.
+    // The Tauri branch overrides the close handlers with its own save-prompt-aware
+    // versions; the web ones below ask through webConfirmClose.
+    let webFiles: WebFiles | null = null;
+
+    /** Web: offer Save before closing a tab whose changes would otherwise be lost. */
+    async function webConfirmClose(g: EditorGroup, id: string): Promise<boolean> {
+        if (!g.tabs.isDirty(id) || !g.tabs.isLastReference(id)) return true;
+        if (activeGroup !== g) setActiveGroup(g);
+        if (g.tabs.activeId !== id) g.tabs.activate(id);
+        const choice = await confirmThreeWay({
+            title: 'Unsaved changes',
+            message: `Save changes to ${g.tabs.getTitle(id) ?? 'this document'} before closing?`,
+            yesLabel: 'Save',
+            noLabel: "Don't Save",
+        });
+        if (choice === 'cancel') return false;
+        if (choice === 'yes') return !!await webFiles?.save();
+        return true;
+    }
     async function activateTab(groupId: string, id: string): Promise<void> {
         const g = groups.get(groupId);
         if (!g) return;
@@ -1656,9 +1675,10 @@ async function bootstrap(): Promise<void> {
     }
 
     appInstance.onTabActivate = (groupId: string, id: string) => { void activateTab(groupId, id); };
-    appInstance.onTabCloseRequest = (groupId: string, id: string) => {
+    appInstance.onTabCloseRequest = async (groupId: string, id: string) => {
         const g = groups.get(groupId);
         if (!g) return;
+        if (!await webConfirmClose(g, id)) return;
         g.tabs.close(id);
         void handleEmptyGroup(g);
     };
@@ -1794,17 +1814,22 @@ async function bootstrap(): Promise<void> {
             }]);
         },
     };
-    appInstance.onTabCloseOthersRequest = (groupId: string, id: string) => {
+    appInstance.onTabCloseOthersRequest = async (groupId: string, id: string) => {
         const g = groups.get(groupId);
         if (!g) return;
         for (const t of g.tabs.all) {
-            if (t.id !== id) g.tabs.close(t.id);
+            if (t.id === id) continue;
+            if (!await webConfirmClose(g, t.id)) return;
+            g.tabs.close(t.id);
         }
     };
-    appInstance.onTabCloseAllRequest = (groupId: string) => {
+    appInstance.onTabCloseAllRequest = async (groupId: string) => {
         const g = groups.get(groupId);
         if (!g) return;
-        for (const t of g.tabs.all) g.tabs.close(t.id);
+        for (const t of g.tabs.all) {
+            if (!await webConfirmClose(g, t.id)) break;
+            g.tabs.close(t.id);
+        }
         void handleEmptyGroup(g);
     };
 
@@ -2003,7 +2028,9 @@ async function bootstrap(): Promise<void> {
     appInstance.onRunRequest = () => { void runRefresh(); };
 
     // calcpad-rs: open, save, recent files, print and the #include/#read library in the browser.
-    if (!isTauri) mountRibbon(installWebFiles((window as any).calcpadEngine, { tabs: () => (window as any).calcpadTabs, appendOutput: (l, m) => appInstance.appendOutput(l, m), bridge: activeBridge, showSidebarTab: (id: string) => sidebarInstance.switchTab?.(id) }), { app: appInstance, bridge: activeBridge, showSidebarTab: (id: string) => sidebarInstance.switchTab?.(id) });
+    if (!isTauri) mountRibbon(webFiles = installWebFiles((window as any).calcpadEngine, { tabs: () => (window as any).calcpadTabs, appendOutput: (l, m) => appInstance.appendOutput(l, m), bridge: activeBridge, showSidebarTab: (id: string) => sidebarInstance.switchTab?.(id) }), { app: appInstance, bridge: activeBridge, showSidebarTab: (id: string) => sidebarInstance.switchTab?.(id) });
+    // The browser keeps no copy of unsaved text across a reload, so ask before the page goes.
+    if (!isTauri) installBeforeUnloadGuard(() => [...groups.values()].some(g => g.tabs.anyDirty()));
 
     // Tauri-specific: native menu clicks + file operations
     if (isTauri && tauriBridge) {
