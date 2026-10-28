@@ -1350,3 +1350,18 @@ select:focus,
     outline: var(--ck-focus-ring) !important;
     outline-offset: -1px !important;
 }
+
+/* Floating prose toolbar (editor/prose-toolbar.ts) */
+.prose-toolbar { position: absolute; z-index: 60; display: flex; gap: 2px; padding: 3px; border-radius: 6px; font: 12px system-ui, sans-serif;
+  background: var(--vscode-editorWidget-background, #252526); color: var(--vscode-editorWidget-foreground, inherit);
+  border: 1px solid var(--vscode-editorWidget-border, #8886); box-shadow: 0 2px 8px #0005; user-select: none; white-space: nowrap; }
+.prose-toolbar[hidden] { display: none; }
+.prose-toolbar button { min-width: 26px; height: 24px; padding: 0 6px; cursor: pointer; font: inherit; color: inherit; background: transparent; border: 1px solid transparent; border-radius: 3px; }
+.prose-toolbar button:hover { background: var(--vscode-toolbar-hoverBackground, #8883); }
+.prose-toolbar button.on { background: var(--vscode-toolbar-activeBackground, #08f4); border-color: var(--vscode-focusBorder, #08f); }
+.prose-toolbar .pt-b { font-weight: 700; } .prose-toolbar .pt-i { font-style: italic; } .prose-toolbar .pt-c { font-family: ui-monospace, monospace; }
+.prose-toolbar .pt-style { min-width: 84px; text-align: left; }
+.prose-toolbar .pt-menu { position: absolute; top: 100%; left: 0; margin-top: 2px; display: flex; flex-direction: column; min-width: 110px; padding: 3px; border-radius: 6px;
+  background: inherit; border: 1px solid var(--vscode-editorWidget-border, #8886); box-shadow: 0 2px 8px #0005; }
+.prose-toolbar .pt-menu[hidden] { display: none; }
+.prose-toolbar .pt-menu button { text-align: left; }

@@ -2,12 +2,14 @@
 // Rich-text editing of one `#md on` block (see md-block.ts). Loaded on demand: Milkdown (MIT, built on
 // ProseMirror) is only fetched the first time someone edits a paragraph.
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { Editor, defaultValueCtx, rootCtx } from '@milkdown/kit/core'
-import { commonmark, toggleEmphasisCommand, toggleStrongCommand, wrapInBulletListCommand, wrapInHeadingCommand } from '@milkdown/kit/preset/commonmark'
+import { Editor, defaultValueCtx, editorViewCtx, rootCtx } from '@milkdown/kit/core'
+import { commonmark, liftListItemCommand, toggleEmphasisCommand, toggleInlineCodeCommand, toggleLinkCommand, toggleStrongCommand, wrapInBulletListCommand, wrapInHeadingCommand, wrapInOrderedListCommand } from '@milkdown/kit/preset/commonmark'
 import { addColAfterCommand, addRowAfterCommand, deleteSelectedCellsCommand, gfm, insertTableCommand } from '@milkdown/kit/preset/gfm'
 import { history } from '@milkdown/kit/plugin/history'
 import { callCommand, getMarkdown } from '@milkdown/kit/utils'
 import '@milkdown/kit/prose/view/style/prosemirror.css'
+import { ProseToolbar, isTouchDevice } from './prose-toolbar'
+import type { ProseAction } from './prose-format'
 
 const props = defineProps<{ markdown: string }>()
 const emit = defineEmits<{ (e: 'apply', baseline: string, edited: string): void; (e: 'cancel'): void }>()
@@ -30,9 +32,97 @@ onMounted(async () => {
   // What the editor makes of the untouched text: paragraphs still equal to this keep their source line.
   baseline = editor.action(getMarkdown())
   root.value.querySelector<HTMLElement>('.ProseMirror')?.focus()
+  startToolbar()
 })
 
-onBeforeUnmount(() => { void editor?.destroy() })
+onBeforeUnmount(() => { stopToolbar(); void editor?.destroy() })
+
+// ---- The floating text toolbar above the selection (not on touch screens: the bar above stays there) ----
+const host = ref<HTMLDivElement | null>(null)
+let bar: ProseToolbar | null = null
+let nav = false
+let stopBar: (() => void) | null = null
+
+function startToolbar(): void {
+  const pm = root.value?.querySelector<HTMLElement>('.ProseMirror')
+  if (!pm || !host.value || isTouchDevice()) return
+  bar = new ProseToolbar(actToolbar)
+  host.value.appendChild(bar.el)
+  let queued = false
+  const update = () => { queued = false; placeToolbar() }
+  const soon = () => { if (!queued) { queued = true; requestAnimationFrame(update) } }
+  // The bar follows clicks, arrow keys and selections; typing hides it until the caret is moved again.
+  const on = (t: EventTarget, ev: string, fn: EventListener) => { t.addEventListener(ev, fn); return () => t.removeEventListener(ev, fn) }
+  const offs = [
+    on(pm, 'beforeinput', () => { nav = false; soon() }),
+    on(pm, 'pointerup', () => { nav = true; soon() }),
+    on(pm, 'keyup', ((e: KeyboardEvent) => { if (e.shiftKey || /^(Arrow|Home$|End$|Page)/.test(e.key)) { nav = true; soon() } }) as EventListener),
+    on(pm, 'blur', () => bar?.hide()),
+    on(pm, 'focus', soon),
+    on(root.value as HTMLElement, 'scroll', soon),
+    on(document, 'selectionchange', soon),
+  ]
+  stopBar = () => offs.forEach(f => f())
+}
+
+function stopToolbar(): void { stopBar?.(); bar?.el.remove(); bar = null }
+
+function placeToolbar(): void {
+  if (!editor || !bar || !host.value) return
+  const view = editor.ctx.get(editorViewCtx)
+  const { selection, schema, doc } = view.state
+  if (!view.hasFocus() || (selection.empty && !nav)) { bar.hide(); return }
+  const { from, to, $from } = selection
+  const has = (name: string) => {
+    const t = schema.marks[name]
+    return !!t && (selection.empty ? !!t.isInSet(view.state.storedMarks ?? $from.marks()) : doc.rangeHasMark(from, to, t))
+  }
+  const inList = (name: string) => { for (let d = $from.depth; d > 0; d--) if ($from.node(d).type.name === name) return true; return false }
+  const heading = $from.parent.type.name === 'heading' ? Number($from.parent.attrs.level) : 0
+  bar.setState({ heading, bold: has('strong'), italic: has('emphasis'), code: has('inline_code'), link: has('link'), bullet: inList('bullet_list'), number: inList('ordered_list') })
+  bar.show()
+  const c = view.coordsAtPos(from)
+  const box = host.value.getBoundingClientRect()
+  const h = bar.el.offsetHeight
+  let top = c.top - box.top - h - 4
+  if (top < 0) top = c.bottom - box.top + 4
+  bar.el.style.top = top + 'px'
+  bar.el.style.left = Math.max(0, Math.min(c.left - box.left, box.width - bar.el.offsetWidth)) + 'px'
+}
+
+function actToolbar(a: ProseAction): void {
+  doToolbar(a)
+  nav = true
+  requestAnimationFrame(placeToolbar)
+}
+
+function doToolbar(a: ProseAction): void {
+  if (!editor) return
+  const view = editor.ctx.get(editorViewCtx)
+  const { schema, selection, doc } = view.state
+  const inList = (name: string) => { for (let d = selection.$from.depth; d > 0; d--) if (selection.$from.node(d).type.name === name) return true; return false }
+  const lists = (kind: 'bullet_list' | 'ordered_list') => {
+    const wrap = kind === 'bullet_list' ? wrapInBulletListCommand : wrapInOrderedListCommand
+    if (inList(kind)) return run(liftListItemCommand.key)
+    if (inList('bullet_list') || inList('ordered_list')) run(liftListItemCommand.key)
+    run(wrap.key)
+  }
+  switch (a) {
+    case 'bold': return run(toggleStrongCommand.key)
+    case 'italic': return run(toggleEmphasisCommand.key)
+    case 'code': return run(toggleInlineCodeCommand.key)
+    case 'link': {
+      const t = schema.marks.link
+      if (t && !selection.empty && doc.rangeHasMark(selection.from, selection.to, t)) return run(toggleLinkCommand.key, { href: '' })
+      const href = window.prompt('Link address', 'https://')
+      if (href) run(toggleLinkCommand.key, { href })
+      return
+    }
+    case 'bullet': return lists('bullet_list')
+    case 'number': return lists('ordered_list')
+    default: return run(wrapInHeadingCommand.key, a === 'normal' ? 0 : Number(a[1]))
+  }
+}
 
 function apply(): void {
   if (editor) emit('apply', baseline, editor.action(getMarkdown()))
@@ -54,7 +144,7 @@ function run(key: Parameters<typeof callCommand>[0], payload?: unknown): void {
 </script>
 
 <template>
-  <div class="md-block" @keydown.esc.stop.prevent="emit('cancel')" @keydown.ctrl.enter.stop.prevent="apply" @keydown.meta.enter.stop.prevent="apply">
+  <div ref="host" class="md-block" @keydown.esc.stop.prevent="emit('cancel')" @keydown.ctrl.enter.stop.prevent="apply" @keydown.meta.enter.stop.prevent="apply">
     <div class="md-block-bar" role="toolbar" aria-label="Text formatting">
       <button type="button" title="Bold (Ctrl+B)" @mousedown.prevent @click="run(toggleStrongCommand.key)"><b>B</b></button>
       <button type="button" title="Italic (Ctrl+I)" @mousedown.prevent @click="run(toggleEmphasisCommand.key)"><i>I</i></button>
@@ -78,6 +168,7 @@ function run(key: Parameters<typeof callCommand>[0], payload?: unknown): void {
 </template>
 
 <style>
+.md-block { position: relative; }
 .md-block-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .md-block-bar button { white-space: nowrap; }
 .md-block-bar button {

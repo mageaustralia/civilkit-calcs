@@ -35,6 +35,8 @@ import { setAppTheme, coerceAppTheme, getResolvedAppTheme, onAppThemeChanged, fo
 import { registerSemanticTokensProvider } from './editor/semantic-tokens';
 import { setupDiagnostics } from './editor/diagnostics';
 import { registerCompletionProvider } from './editor/completions';
+import { attachProseToolbar } from './editor/prose-toolbar-monaco';
+import { attachSheetSuggest } from './editor/sheet-suggest';
 import { registerIncludeCompletionProvider } from './editor/include-completions';
 import { registerHoverProvider } from './editor/hover';
 import { registerLegacyInputFix } from './editor/legacy-input-fix';
@@ -898,6 +900,8 @@ async function bootstrap(): Promise<void> {
         attachQuickTyper(ed, editorBridge);
         attachOperatorReplacer(ed);
         attachAutoIndenter(ed);
+        attachProseToolbar(ed);
+        attachSheetSuggest(ed, editorBridge);
         registerFormattingCommands(ed, editorBridge);
 
         // Per-group diagnostics.

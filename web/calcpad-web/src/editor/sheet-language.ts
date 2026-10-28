@@ -1,6 +1,7 @@
 import * as monaco from 'monaco-editor';
 import { compileSheetNow, formatSheet, isSheetText, loadSheet } from '../wasm/sheet';
 import type { SheetCompiled } from '../wasm/sheet';
+import { builtinFunctions, inMathContext, verbatimLines } from './sheet-suggest';
 
 /** Monaco language id of a sheet (docs/sheet-syntax.md). Calcpad's own providers do not apply to it. */
 export const SHEET_LANGUAGE = 'calcpad-sheet';
@@ -163,8 +164,28 @@ export function registerSheetLanguage(): void {
             const out: monaco.languages.CompletionItem[] = [];
             const compiled = compileSheetNow(model.getValue());
             if (!compiled) void loadSheet();
+            // Typing a word offers names and functions in math lines only; Ctrl+Space with no word typed offers all.
+            const asked = word.word === '';
+            const i = position.lineNumber - 1;
+            const lines = model.getLinesContent();
+            if (!asked) {
+                if (!/^[\p{L}_]/u.test(word.word) || verbatimLines(lines.slice(0, i + 1))[i]) return { suggestions: [] };
+                if (!inMathContext(compiled?.kinds[i], lines[i].slice(0, position.column - 1))) return { suggestions: [] };
+            }
             for (const d of compiled?.defs ?? []) {
-                out.push({ label: d.name, kind: monaco.languages.CompletionItemKind.Variable, insertText: d.name, range, detail: d.calcpad === d.name ? 'defined in this sheet' : `Calcpad name: ${d.calcpad}` });
+                if (!asked && d.line >= i) continue;
+                out.push({
+                    label: d.name, kind: monaco.languages.CompletionItemKind.Variable, insertText: d.name, range, sortText: '0' + d.name,
+                    detail: d.calcpad === d.name ? 'defined in this sheet' : `Calcpad name: ${d.calcpad}`,
+                    documentation: { value: '```\n' + (lines[d.line] ?? '').trim() + '\n```' },
+                });
+            }
+            for (const f of builtinFunctions()) {
+                out.push({
+                    label: f.name, kind: monaco.languages.CompletionItemKind.Function, insertText: f.name + '($0)', range, sortText: '2' + f.name,
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: f.detail, documentation: { value: f.doc },
+                });
             }
             for (const g of GREEK) {
                 out.push({ label: g, kind: monaco.languages.CompletionItemKind.Text, insertText: g, range, detail: 'Greek letter' });
