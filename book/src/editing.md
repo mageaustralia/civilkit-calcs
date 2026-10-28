@@ -123,6 +123,19 @@ Folding is only a view: the sheet text and the results do not change, and printi
 always include everything. Folds stay as you edit and when you switch between tabs. Headings are
 matched by level, text and how many headings with the same text come before them.
 
+### Sorting a table
+
+Click a column heading of a table in the preview to sort its rows by that column: the first click
+sorts ascending, the second descending, the third puts the rows back in the order of the source. An
+arrow next to the heading shows which way it is sorted. A column of numbers sorts by value, even
+with a unit after the number (`2.5 kN` comes before `10 kN`); any other column sorts as text, with
+`A2` before `A10`. Empty cells stay at the bottom.
+
+Sorting is only a view, like folding: the sheet text does not change, the sort stays as you edit,
+and printing and exporting show the rows as they are written. The headings are buttons, so Tab
+reaches them and Enter or Space sorts; on a phone, tap a heading. See
+[Tables](sheet/prose.md#tables).
+
 ### Reordering blocks
 
 Drag a block's grip up or down; a blue line shows where it will land, and the block goes there when

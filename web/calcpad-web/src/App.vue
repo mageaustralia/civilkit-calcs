@@ -1095,6 +1095,7 @@ const onLineEditRequest = ref<{
 // Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
 import MathKeyboard from './editor/MathKeyboard.vue'
 import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
+import { injectTableSort, type TableSortState } from './wasm/table-sort'
 import type { BlockOp } from './wasm/block-ops'
 import { pasteSource, peekClipboard, rememberedBlock } from './wasm/block-clipboard'
 import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
@@ -1386,6 +1387,11 @@ const collapsedByDoc = new Map<string, string[]>()
 function collapseKey(frameId: string, groupId: string): string { return docKeyByFrame.get(frameId) || groupId }
 function onCollapseState(frameId: string, groupId: string, data: Record<string, unknown>): void {
   if (Array.isArray(data.keys)) collapsedByDoc.set(collapseKey(frameId, groupId), data.keys.filter((k): k is string => typeof k === 'string'))
+}
+// Sorted tables of the preview, per document tab (view state only, see wasm/table-sort.ts).
+const tableSortByDoc = new Map<string, TableSortState>()
+function onTableSort(frameId: string, groupId: string, data: Record<string, unknown>): void {
+  if (data.state && typeof data.state === 'object') tableSortByDoc.set(collapseKey(frameId, groupId), data.state as TableSortState)
 }
 function collapseAllSections(on: boolean): void {
   const m = blockMenu.value
@@ -1878,6 +1884,10 @@ function onPreviewWindowMessage(e: MessageEvent): void {
     onCollapseState(frameId, groupId, data)
     return
   }
+  if (data.type === 'tableSort') {
+    onTableSort(frameId, groupId, data)
+    return
+  }
   if (data.type === 'plotChip') {
     void plotChipHost(data).catch(() => {})
     return
@@ -2274,6 +2284,7 @@ function setPreviewHtml(groupId: string, html: string, scrollToLine?: number, do
   )
   out = injectPreviewConsole(out, groupId)
   out = injectUiPosition(out, groupId)
+  if (!isUi && onLineEditRequest.value?.isSheet?.(groupId)) out = injectTableSort(out, groupId, tableSortByDoc.get(docKey || groupId) ?? {})
   previewHtmlByGroup.set(groupId, html)
   setPreviewHtmlOutput(groupId, html)
   return commitToBuffer(groupId, out)

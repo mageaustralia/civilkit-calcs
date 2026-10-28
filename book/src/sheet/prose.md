@@ -74,6 +74,10 @@ w_uls = 1.2·G + 1.5·Q = 1.2 · 4.5 kPa + 1.5 · 3 kPa = 9.9 kPa    strength co
 The table is text. It does not feed the calculation, so type the numbers again in quantity lines,
 or define the quantities first and mention them in the table text.
 
+In the preview, click a column heading to sort the rows by it (again for descending, a third time
+for the source order). It is a view only: the sheet, the printout and the exports keep the order
+you wrote. See [Sorting a table](../editing.md#sorting-a-table).
+
 ## Forcing prose
 
 A line starts with a backslash when it must not be read as a quantity:
