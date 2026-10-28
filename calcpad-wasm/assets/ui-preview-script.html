@@ -18,7 +18,7 @@
     }
 
     // The line wrapper carries data-ui-var too, so the classes pick out the control itself.
-    var CONTROLS = '.calcpad-ui-input, .calcpad-ui-dropdown, .calcpad-ui-checkbox, .calcpad-ui-radio, .calcpad-ui-datagrid';
+    var CONTROLS = '.calcpad-ui-input, .calcpad-ui-slider, .calcpad-ui-dropdown, .calcpad-ui-checkbox, .calcpad-ui-radio, .calcpad-ui-datagrid';
     // How long a datagrid waits for data entry to stop before it posts.
     var GRID_IDLE_MS = 400;
 
@@ -49,7 +49,8 @@
         var control = active && active.closest ? active.closest(CONTROLS) : null;
         var sheet = typeof jspreadsheet !== 'undefined' ? jspreadsheet.current : null;
         if (control && !control.classList.contains('calcpad-ui-datagrid')) {
-            state.key = control.getAttribute('data-ui-var');
+            state.key = control.getAttribute('data-ui-var') || control.getAttribute('data-ui-slider-for');
+            if (control.classList.contains('calcpad-ui-slider')) state.slider = true;
             if (active.setSelectionRange && active.type === 'text')
                 state.caret = [active.selectionStart, active.selectionEnd];
         } else if (sheet && sheet.calcpadUiKey && sheet.selectedCell) {
@@ -66,7 +67,7 @@
         if (pending.key && pending.cell)
             restoreCell(sheetsByKey[pending.key], pending.cell, pending.scroll);
         else if (pending.key)
-            restoreFocus(pending.key, pending.caret);
+            restoreFocus(pending.key, pending.caret, pending.slider);
     }
 
     // The offset goes back verbatim: selecting the cell only scrolls far enough to reveal it,
@@ -79,10 +80,13 @@
         sheet.content.scrollTop = scroll[1];
     }
 
-    function restoreFocus(key, caret) {
+    function restoreFocus(key, caret, slider) {
         var target = null;
         document.querySelectorAll(CONTROLS).forEach(function (el) {
-            if (!target && el.getAttribute('data-ui-var') === key) target = el;
+            if (target) return;
+            var isSlider = el.classList.contains('calcpad-ui-slider');
+            if (isSlider ? (slider && el.getAttribute('data-ui-slider-for') === key)
+                         : (!slider && el.getAttribute('data-ui-var') === key)) target = el;
         });
         if (target && target.tagName === 'SPAN')
             target = target.querySelector('input[type="radio"]:checked') || target.querySelector('input[type="radio"]');
@@ -92,6 +96,12 @@
         if (!caret || !target.setSelectionRange) return;
         try { target.setSelectionRange(caret[0], caret[1]); } catch (e) { }
     }
+
+    // The host shows the frame only once it has loaded, and a hidden control cannot take the focus; it asks again then.
+    window.addEventListener('message', function (e) {
+        if (e.source !== window.parent || !e.data || e.data.type !== 'cpdUiRestoreFocus') return;
+        restoreState();
+    });
 
     // The re-render lands long after the edit, so the position is rewritten until then.
     function trackPosition() {
@@ -226,14 +236,142 @@
                 typed = committed;
                 return;
             }
+            // A bounded entry refuses a value outside its bounds; the slider code shows the error.
+            if (input.__calcpadRange && input.__calcpadRange() === null && mode !== 'expression') {
+                typed = input.value;
+                return;
+            }
             input.value = value;
             committed = value;
             typed = value;
+            if (input.__calcpadRange) input.__posted = value;
             change(input, value);
         });
         input.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') input.blur();
         });
+    });
+
+    // ---- sliders ---------------------------------------------------------------------------
+    // An entry with data-ui-min and data-ui-max (the sheet's `[2 .. 12 step 0.5]`) gets a slider
+    // beside its box. The slider is made here, not by the engine, so the report, the PDF and
+    // the exports keep the plain number. Moving it re-runs the sheet after a pause (SLIDER_MS);
+    // a value typed outside the bounds is not posted and shows an error on the line.
+    var SLIDER_MS = 250;
+
+    function decimalsOf(x) {
+        var t = String(x);
+        if (t.indexOf('e-') !== -1) return parseInt(t.split('e-')[1], 10) + (t.split('e-')[0].split('.')[1] || '').length;
+        return (t.split('.')[1] || '').length;
+    }
+
+    // A step of 1, 2 or 5 times a power of ten that gives the slider about a hundred positions.
+    function niceStep(lo, hi) {
+        var raw = (hi - lo) / 100;
+        if (!(raw > 0)) return 1;
+        var pow = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
+        var m = raw / pow;
+        return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * pow;
+    }
+
+    function numberOf(el, name) {
+        var attr = el.getAttribute('data-ui-' + name);
+        return attr === null || attr === '' ? NaN : parseFloat(attr);
+    }
+
+    var sliderStyle = document.createElement('style');
+    sliderStyle.textContent =
+        '.calcpad-ui-slider{vertical-align:middle;width:min(14em,40vw);min-width:7em;margin:0 .6em;height:2.2em;cursor:pointer;touch-action:pan-y;accent-color:#2f6fb5}' +
+        '.calcpad-ui-range-note{font-size:.85em;opacity:.7;margin-right:.6em;white-space:nowrap}' +
+        '.calcpad-ui-input.calcpad-ui-invalid{outline:2px solid #c0392b;outline-offset:1px;background-color:rgba(192,57,43,.12)}' +
+        '.calcpad-ui-error{color:#c0392b;font-size:.9em;margin-left:1em;white-space:nowrap}' +
+        'body.dark-theme .calcpad-ui-slider{accent-color:#4da3ff}' +
+        'body.dark-theme .calcpad-ui-input.calcpad-ui-invalid{outline-color:#ff6b5b}' +
+        'body.dark-theme .calcpad-ui-error{color:#ff8a7c}' +
+        '@media (pointer:coarse){.calcpad-ui-slider{height:2.8em;width:min(16em,48vw)}}';
+    document.head.appendChild(sliderStyle);
+
+    document.querySelectorAll('.calcpad-ui-input[data-ui-min][data-ui-max]').forEach(function (input) {
+        // Bounds are for the number-only mode, where the unit stays in the document.
+        if (modeOf(input) !== 'number') return;
+        var lo = numberOf(input, 'min'), hi = numberOf(input, 'max');
+        if (!isFinite(lo) || !isFinite(hi) || lo > hi) return;
+        var step = numberOf(input, 'step');
+        if (!(step > 0)) step = niceStep(lo, hi);
+        var places = Math.max(decimalsOf(step), decimalsOf(lo));
+
+        var slider = document.createElement('input');
+        slider.type = 'range';
+        slider.className = 'calcpad-ui-slider';
+        slider.min = lo;
+        slider.max = hi;
+        slider.step = step;
+        slider.setAttribute('data-ui-slider-for', input.getAttribute('data-ui-var'));
+        slider.setAttribute('aria-label', 'Slider for ' + input.getAttribute('data-ui-var'));
+        var current = parseFloat(input.value);
+        slider.value = isFinite(current) ? Math.min(hi, Math.max(lo, current)) : lo;
+        input.parentNode.insertBefore(slider, input.nextSibling);
+
+        var error = document.createElement('span');
+        error.className = 'calcpad-ui-error';
+        error.setAttribute('role', 'alert');
+        error.hidden = true;
+        // At the end of the line, after the unit and the note, so the unit does not read as part of the message.
+        (input.closest('p') || slider.parentNode).appendChild(error);
+
+        function show(message) {
+            input.classList.toggle('calcpad-ui-invalid', !!message);
+            input.setAttribute('aria-invalid', message ? 'true' : 'false');
+            error.hidden = !message;
+            error.textContent = message || '';
+        }
+
+        // The bounds apply to what is typed; a typed value outside them is not posted.
+        function check() {
+            var t = input.value.trim().replace('\u2212', '-');
+            if (!NUMBER.test(t.replace(/\.$/, ''))) return null;
+            var x = parseFloat(t);
+            if (x < lo || x > hi) {
+                show('must be from ' + lo + ' to ' + hi);
+                return null;
+            }
+            show('');
+            return x;
+        }
+        input.__calcpadRange = check;
+
+        var timer = null;
+        function post(value) {
+            clearTimeout(timer);
+            timer = null;
+            if (value === input.__posted) return;
+            input.__posted = value;
+            change(input, value);
+        }
+        input.__posted = input.value.trim();
+
+        slider.addEventListener('input', function () {
+            var v = parseFloat(slider.value);
+            var text = String(parseFloat(v.toFixed(places)));
+            input.value = text;
+            show('');
+            clearTimeout(timer);
+            timer = setTimeout(function () { post(text); }, SLIDER_MS);
+        });
+        // Releasing the slider, or a key press that settles, posts after a moment (so held keys count once).
+        slider.addEventListener('change', function () {
+            var text = String(parseFloat(parseFloat(slider.value).toFixed(places)));
+            clearTimeout(timer);
+            timer = setTimeout(function () { post(text); }, 60);
+        });
+        // What is typed moves the slider as it is typed, and an out-of-range value is flagged.
+        input.addEventListener('input', function () {
+            var x = check();
+            if (x !== null) slider.value = x;
+            else if (input.value.trim() === '') show('');
+        });
+        input.addEventListener('change', function () { check(); });
+        check();
     });
 
     document.querySelectorAll('.calcpad-ui-dropdown').forEach(function (select) {

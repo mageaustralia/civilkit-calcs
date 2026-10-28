@@ -143,16 +143,16 @@ ready for a spreadsheet. The 3D plots have Copy data and PNG only.
 Give a number input a range and Input mode shows a slider under its box:
 
 ```sheet
-L: ? 6 m slider 2..12 step 0.5 | span
-w: ? 12 kN/m slider 0..30 | design load
+L: ? 6 m [2 .. 12 step 0.5] | span
+w: ? 12 kN/m [0 .. 30] | design load
 M: w * L^2 / 8 -> kN*m | maximum moment
 ```
 
 Dragging the slider (or using the arrow keys, Home and End) fills the box and recalculates the
 results while you drag; typing in the box moves the slider. The numbers are in the unit of the
 default, the slider stops at the minimum and maximum, and `step` is the size of one stop (without it,
-about a hundredth of the range). A line without `slider` has no slider. On a phone the track is
-taller so a finger can use it. See [Templates with inputs](templates.md#sliders-for-number-inputs).
+about a hundredth of the range). A line without brackets has no slider. A typed value outside the bounds is refused with a message beside the box. On a phone the track is
+taller so a finger can use it. See [Templates with inputs](templates.md#sliders).
 
 ## The math keyboard
 

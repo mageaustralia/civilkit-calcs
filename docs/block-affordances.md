@@ -17,7 +17,7 @@ plain functions in `web/calcpad-web/src/wasm/block-ops.ts` and `sheet-blocks.ts`
 | F4 | Delete with an Undo toast | Built with F2a (one undo step; the toast calls the editor's undo) |
 | F5 | Cut, copy and paste a block, turn a block off | Built |
 | F6 | On-screen math keyboard | Built (26.10.12) |
-| F7 | Slider for an input line | Built (`slider MIN..MAX [step S]` on a `? ` line) |
+| F7 | Slider for an input line | Built (`[MIN .. MAX step S]` after the default on a `? ` line) |
 
 ## Rules these follow
 

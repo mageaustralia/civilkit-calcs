@@ -65,6 +65,72 @@ fn resolve_key(text: &str, is_us: bool) -> String {
     format!("{}{}", base, if is_us { "_US" } else { "_UK" })
 }
 
+/// The SI prefixes: symbol, power of ten. `u` is the ASCII spelling of micro; `\u{00B5}` (the micro sign)
+/// and `\u{03BC}` (Greek mu) are both accepted and shown as Greek mu.
+const SI_PREFIXES: [(&str, i32); 22] = [
+    ("da", 1),
+    ("y", -24),
+    ("z", -21),
+    ("a", -18),
+    ("f", -15),
+    ("p", -12),
+    ("n", -9),
+    ("\u{03BC}", -6),
+    ("\u{00B5}", -6),
+    ("u", -6),
+    ("m", -3),
+    ("c", -2),
+    ("d", -1),
+    ("h", 2),
+    ("k", 3),
+    ("M", 6),
+    ("G", 9),
+    ("T", 12),
+    ("P", 15),
+    ("E", 18),
+    ("Z", 21),
+    ("Y", 24),
+];
+
+/// The units an SI prefix may be put in front of. Anything else (`min`, `h`, `d`, `ft`, `in`, `lb`,
+/// `psi`, `\u{00B0}C`, `K`, ...) is not prefixable. `kg` is not here: prefixes go on `g`.
+const PREFIXABLE: [&str; 36] = [
+    "g", "m", "s", "A", "mol", "cd", "rad", "L", "N", "Nm", "Pa", "bar", "J", "W", "Wh", "VA", "VAR", "Hz",
+    "V", "C", "F", "\u{03A9}", "S", "\u{2127}", "Wb", "T", "H", "Bq", "Gy", "Sv", "lm", "lx", "kat", "eV",
+    "Ah", "Da",
+];
+
+thread_local! {
+    static PREFIXED: RefCell<HashMap<String, Option<UnitRef>>> = RefCell::new(HashMap::new());
+}
+
+/// A prefix and a prefixable unit (`mN`, `\u{00B5}m`, `YPa`). The table is tried first, so a name it
+/// has always means what it meant: `min` is the minute, `Pa` the pascal, `cd` the candela, `ft`
+/// the foot, `h` the hour, `d` the day, `T` the tesla, `da` is not a unit.
+fn prefixed_unit(text: &str) -> Option<UnitRef> {
+    if text.len() < 2 || text.len() > 12 {
+        return None;
+    }
+    if let Some(hit) = PREFIXED.with(|c| c.borrow().get(text).cloned()) {
+        return hit;
+    }
+    let found = (|| {
+        for (p, n) in SI_PREFIXES {
+            let Some(rest) = text.strip_prefix(p) else { continue };
+            if !PREFIXABLE.contains(&rest) {
+                continue;
+            }
+            let base = TABLE.with(|t| t.units.get(rest).cloned())?;
+            // The prefix is part of the symbol (`mN`), so the unit's own text carries it.
+            let u = base.scale(&format!("{}{}", get_prefix(n), base.text()), get_scale(n));
+            return Some(r(u));
+        }
+        None
+    })();
+    PREFIXED.with(|c| c.borrow_mut().insert(text.to_string(), found.clone()));
+    found
+}
+
 /// `Math.Pow` as used by the unit code.
 #[inline]
 fn my_pow(x: f64, y: f32) -> f64 {
@@ -384,11 +450,34 @@ impl Unit {
 
     pub fn try_get(text: &str, is_us: bool) -> Option<UnitRef> {
         let key = resolve_key(text, is_us);
-        TABLE.with(|t| t.units.get(&key).cloned())
+        TABLE
+            .with(|t| t.units.get(&key).cloned())
+            .or_else(|| prefixed_unit(&key))
+    }
+
+    /// `key|text|powers|factors` for a unit, the line of the regression snapshot of the units
+    /// that existed before prefixes applied to every SI unit (tests/data/unit_table_before.txt).
+    #[doc(hidden)]
+    pub fn snapshot_line(key: &str, u: &Unit) -> String {
+        let n = u.n as usize;
+        format!(
+            "{}|{}|{:?}|{:?}",
+            key,
+            u.text(),
+            &u.pw[..n],
+            (0..n).map(|i| u.fc[i].get()).collect::<Vec<_>>()
+        )
+    }
+
+    /// The unit a name reads as when its first letters are a prefix and the rest a prefixable unit, whether
+    /// or not the table has the name as well (for the tests that look for names the table shadows).
+    #[doc(hidden)]
+    pub fn prefix_reading(text: &str) -> Option<UnitRef> {
+        prefixed_unit(text)
     }
 
     pub fn exists(unit: &str) -> bool {
-        TABLE.with(|t| t.units.contains_key(unit))
+        TABLE.with(|t| t.units.contains_key(unit)) || prefixed_unit(unit).is_some()
     }
 
     // ----- scaling ------------------------------------------------------------------

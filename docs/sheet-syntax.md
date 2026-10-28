@@ -199,20 +199,22 @@ L: ? 6 m | span
 E: ? [Steel = 200 GPa, *Timber = 11 GPa, Alloy = 70 GPa] | material
 k: ? (Low = 1, High = 2) | load class
 ribs: ? on | stiffeners fitted
+w: ? 12 kN/m [2 .. 30 step 0.5] | load
 ```
 
 These are, in order, a number with its unit and a note, a drop-down list (the option marked `*` is the one selected at
-first), radio buttons (the same options in round brackets) and a checkbox.
+first), radio buttons (the same options in round brackets), a checkbox and a slider.
 
 * **A number** is the default, written as a number with an optional unit (`6 m`, `12 kN/m`, `0.9`).
   It is not an expression: `2*3 m` is an error on its line. The unit is shown after the box. Units may use the usual spellings: `m³`, `N/mm²`, `kN·m`, `kg/m³`, `m·s⁻¹`, `°`, `°C`, `%`, `µm` (they are written to the engine as `m^3`, `N/mm^2`, `kN*m` and so on). The engine's own `#UI` line takes only the `^` and `*` spellings, so use those in a `>>` line.
-* **A slider** is an optional range after the number: `L: ? 6 m slider 2..12 | span`, or with a step,
-  `slider 2..12 step 0.5`. Input mode shows a slider under the box, in step with it. The bounds and the step are plain
-  numbers in the unit of the default; the default must lie inside the range and the minimum must be below the maximum
-  (otherwise an error on the line). Without `step` a stop is about a hundredth of the range. The word `slider` keeps the
-  `..` from being read as anything else and a line without it is unchanged. Only a number takes one. The compiler writes the
-  same `#UI` line plus a hidden `sheet-range` marker (with `data-min`, `data-max`, `data-step`) after the note, which the
-  page turns into the slider; plain Calcpad output has no marker.
+* **A slider** is a number with bounds after it: `w: ? 12 kN/m [2 .. 30 step 0.5] | load`. The form draws a slider with
+  the box beside it. The bounds are plain numbers in the unit of the default (here kN/m), `step` is optional (without it
+  the slider moves in a step of 1, 2 or 5 times a power of ten that gives about a hundred positions), the minimum must be
+  below the maximum, and the default must lie between them; otherwise the line is an error. The bounds also check the
+  box: a typed value outside them is not used and the box shows `must be from 2 to 30` beside it. Moving the slider
+  re-runs the sheet after a short pause (a quarter of a second), and it works by touch and with the arrow, Home,
+  End and Page keys. The slider is drawn by the input form only; the report, the PDF and the exports show the
+  number. Typing a value between the steps is fine (the step belongs to the slider).
 * **A choice** is a list of `label = value`. The value is a number with an optional unit, as above, and
   it is what the name has when that option is chosen. Without a `*`, the first option is the one selected.
   A label with a comma, an equals sign or brackets is written in double quotes (`"Beam (A), long" = 1`);
@@ -246,6 +248,7 @@ exports and the `uiOverrides` the page keeps all work as they do for a Calcpad w
 | `E: ? [Steel = 200 GPa, *Timber = 11 GPa] \| material` | `#UI {"type":"dropdown","keys":["Steel","Timber"],"values":["200GPa","11GPa"]} 'material -'E = 11GPa` |
 | `k: ? (Low = 1, High = 2)` | `#UI {"type":"radio","keys":["Low","High"],"values":["1","2"]} 'k -'k = 1` |
 | `ribs: ? on` | `#UI {"type":"checkbox"} 'ribs -'ribs = 1` |
+| `w: ? 12 kN/m [2 .. 30 step 0.5] \| load` | `#UI {"min":2,"max":30,"step":0.5} w = 12kN/m 'load` |
 
 Use **Show compiled** to see it for a whole sheet. Bad input lines (no default, an expression for a default, a choice
 with one option or with an option that has no value, an unclosed bracket, two inputs on one line) are errors on their line,
@@ -262,7 +265,9 @@ in the report and as editor markers, and say what to write. A line such as `Why:
   sheet's own defaults, unless *Apply #UI Values in Preview* is on in the settings). Edit the number in the sheet itself
   to change a default.
 * Inputs hold numbers only (the engine's own limit), so there is no text box: a choice of names is a drop-down.
-  The engine has no minimum or maximum on a box either; check a range with a condition, `if L > 30 m: "Span out of range"`.
+  A plain number input has no minimum or maximum; give it bounds as a slider (above) or check a range with a
+  condition, `if L > 30 m: "Span out of range"`. A value outside the bounds of a slider that reaches the engine
+  from saved values is an error on the input's line.
 * The report shows the number a choice stands for, not its label (`mat = 2`). A line such as
   `if mat == 2: "The material is aluminium."` names it, and the templates do.
 
@@ -276,6 +281,46 @@ curves). They use generic textbook formulas and no design standard. Open one, pr
 change a value. To make your own, write the inputs as above, put the results under them and save the file. Sharing a template is sharing the `.sheet` file (or the text of the sheet); anyone who opens it gets the
 same form, and **Save values** keeps their numbers in their copy. A new input is one more line, a new option one more
 entry in a list.
+
+## Folding sections and key results
+
+Two small markers shape how a long sheet reads without changing a single number.
+
+```
+## Workings {collapse}
+...the long derivation...
+
+## Results
+Mstar: w * L^2 / 8 -> kN*m | maximum bending moment {key}
+utilisation: Mstar / (0.9 * Ms) | bending utilisation {key}
+
+## Key results
+{key results}
+```
+
+* **A folding section.** A heading that ends with `{collapse}` starts a section that is folded away in the preview
+  and the report until the reader opens it (a click on the heading; a small arrow shows the state). The section
+  runs to the next heading of the same level or a higher one (`#` is the highest), or to the end of the sheet.
+  `{collapse open}` makes it open when the page is first drawn. Its lines are calculated whether it is folded or
+  not, so a folded section can define names the rest of the sheet uses. A folding section can hold other headings
+  (a `###` inside a `##`), and a deeper section may fold on its own. Only a heading at the top level of the sheet
+  can fold: a `{collapse}` heading inside an `if`, `for`, `while` or `repeat` block is a warning and is ignored.
+* **A key line.** A quantity or input line that ends with `{key}` (after the note, if there is one) is a key line.
+  It is marked with a star and highlighted in the preview and the report, and Print and PDF keep the highlight.
+  Several statements on a line (`a: 1; b: 2 {key}`) are all key. It works the same on an input line
+  (`L: ? 6 m | span {key}`).
+* **A key results list.** A line that is just `{key results}` becomes a list of the key quantities above it, each
+  with its name, value and unit as the engine shows them, and the note. It lists the top-level key lines written
+  before it, once each, in the order written; a key line below the list is not in it (the page has no value for it
+  yet), and a list with no key line above it is a warning. Put a heading in front of it as above. A key line
+  inside a block, or on a function definition, is highlighted but not listed.
+* **Print, PDF, Word and Excel.** The Print / PDF output opens every folded section, so the printed report is
+  complete. The Word and Excel exports also include folded sections in full, and a key line carries its star
+  in the line. Leaving folded sections out of an export is not offered.
+* **Plain Calcpad.** Show compiled and Convert to Calcpad give plain text for these: a folding section is
+  the heading in a `<details>` block of text lines and a key line has a star in its comment.
+* The formatter writes `{collapse}`, `{collapse open}` and `{key}` as one space and the marker, and does not change
+  anything else about these lines.
 
 ## Errors
 

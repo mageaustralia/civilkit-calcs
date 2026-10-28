@@ -47,6 +47,8 @@ const URL_ATTRIBUTES = ['href', 'src', 'action', 'formaction', 'xlink:href', 'da
 export function sanitizeForPrint(html: string): string {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     doc.querySelectorAll(ACTIVE_ELEMENTS).forEach(e => e.remove());
+    // A folded section (a sheet heading marked {collapse}) is on screen only: the printed report has all of it.
+    doc.querySelectorAll('details').forEach(d => d.setAttribute('open', ''));
     for (const el of Array.from(doc.querySelectorAll('*'))) {
         for (const attr of Array.from(el.attributes)) {
             const name = attr.name.toLowerCase();

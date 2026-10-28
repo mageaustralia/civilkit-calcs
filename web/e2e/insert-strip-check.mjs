@@ -45,7 +45,8 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
     }
     phone ? await btn.tap() : await btn.click();
     await page.waitForSelector('.insert-menu');
-    check(await page.locator('.insert-menu button').count() === 8, `${name}: the menu lists eight blocks`);
+    const labels = await page.locator('.insert-menu button').allInnerTexts();
+    check(labels.length === 10 && labels.some(l => /Folding section/.test(l)) && labels.some(l => /Key results/.test(l)), `${name}: the menu lists ten blocks, with the folding section and the key results (${labels.map(l => l.trim().replace(/\s+/g, ' ')).join(' | ')})`);
     await page.locator('.insert-menu button', { hasText: 'Heading' }).click();
     const after = await page.evaluate(() => window.calcpadActiveEditor.getValue().split('\n'));
     const sel = await page.evaluate(() => { const e = window.calcpadActiveEditor; return e.getModel().getValueInRange(e.getSelection()); });
