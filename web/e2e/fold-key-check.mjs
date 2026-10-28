@@ -83,7 +83,12 @@ const { page, errors } = await open(1500, 900, 'light');
 const newTab = (text) => page.evaluate((t) => window.calcpadTabs.newUntitled(t), text);
 const editorText = () => page.evaluate(() => window.calcpadActiveEditor.getValue());
 const markers = () => page.evaluate(() => window.monaco.editor.getModelMarkers({}).map((m) => [m.startLineNumber, m.severity, m.message]));
-const mode = (name) => page.locator('.preview-mode-group .toolbar-btn', { hasText: new RegExp(`^${name}$`) }).click({ timeout: 10000 });
+const mode = async (name) => {
+    const dont = page.locator('.modal-backdrop button', { hasText: /^Don't Save$/ });
+    if (await dont.isVisible().catch(() => false)) await dont.click();
+    await page.locator('.preview-mode-group .toolbar-btn', { hasText: new RegExp(`^${name}$`) }).click({ timeout: 30000 });
+    if (await dont.waitFor({ timeout: 1000 }).then(() => true, () => false)) await dont.click();
+};
 /** The preview frame that is shown (the other buffer can hold an older page), as a locator. */
 const front = () => page.frameLocator('iframe.preview-frame:not(.preview-frame-back)');
 /** Runs `fn` in the shown frame's document. */

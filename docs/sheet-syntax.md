@@ -313,7 +313,7 @@ utilisation: Mstar / (0.9 * Ms) | bending utilisation {key}
   with its name, value and unit as the engine shows them, and the note. It lists the top-level key lines written
   before it, once each, in the order written; a key line below the list is not in it (the page has no value for it
   yet), and a list with no key line above it is a warning. Put a heading in front of it as above. A key line
-  inside a block is highlighted but not listed, and a function definition cannot be key.
+  inside a block, or on a function definition, is highlighted but not listed.
 * **Print, PDF, Word and Excel.** The Print / PDF output opens every folded section, so the printed report is
   complete. The Word and Excel exports also include folded sections in full, and a key line carries its star
   in the line. Leaving folded sections out of an export is not offered.
