@@ -21,6 +21,34 @@ information counts.
 The Insert tab has a search box that filters the whole library. In a sheet, entries that have no
 sheet form (the data grid and the other `#UI` forms, `$Map`, directives) carry a `>>` mark and insert Calcpad text as `>>` lines.
 
+### The text toolbar
+
+Select some words in a line of prose, or click into one, and a small toolbar appears above the line:
+**Style** (Normal, Heading 1, 2 or 3), **B**, *I*, **</>** for code, **Link**, a bulleted list and a
+numbered list. It does not appear on quantity lines, in code fences or inside a `$$` formula, where
+those would only add characters that mean something else. The same toolbar appears over the text in
+the in-place rich-text editor.
+
+Each button's tooltip shows the Markdown it types (`Bold: **text**`, `Link: [text](address)`,
+`Numbered list: 1. item`), so you can learn the syntax and type it yourself next time.
+
+* A button is a toggle: Bold on text that is already bold takes the `**` off again, and a list button
+  on a list takes the markers off. A button that is on is shown pressed.
+* With no selection, Bold wraps the word at the caret.
+* **Link** wraps the selection as `[text](url)` and selects `url`, ready for the address.
+* The edit is made in the source, in one undo step, and the editor keeps the focus.
+* On a phone or tablet the floating bar stays away so it does not fight the system selection menu;
+  the in-place editor keeps its fixed bar there.
+
+### Name completion
+
+Type a letter in a calculation and the editor offers the names the sheet has defined on the lines
+above (with the defining line beside each, for example `w: 12 kN/m | load`) and the built-in
+functions (`max`, `sqrt`, `sin` and the rest). Accepting a function writes the brackets and leaves the
+caret between them. Nothing pops up while you write prose, in a note after `|`, in quoted text or in
+a `$...$` formula. Ctrl+Space on an empty spot offers everything, including the Greek spellings and
+the block snippets.
+
 ## In-place editing in the results
 
 Edit a sheet *where it stands*, in the preview.
@@ -46,11 +74,99 @@ It loads the first time you use it.
 
 ### Insert between blocks
 
-Between the rendered blocks there is a small **+**. It opens a menu to insert a block at that place:
-Math line, Text, Heading, List, Table, Plot, Condition or Python. The new block goes in front of the
-next block's source line, indented like it, and its first word is left selected in the editor so
-you can type over it. On a touch screen the **+** appears as a tab on the left edge, around the
-block you tapped.
+Move the pointer between two rendered blocks and a dashed line appears with a **+** in the middle.
+Click the **+** for a menu of blocks to insert there: Math line, Text, Heading, List, Table, Plot,
+Condition or Python. The new block goes in front of the next block's source line, indented like it,
+and its first word is left selected in the editor so you can type over it. On a touch screen the
+**+** stays hidden until you tap a block, and then shows only in the two gaps beside it.
+
+### Cut, copy and paste blocks
+
+The block menu (the **⋮** grip at the left of a block) has **Cut**, **Copy** and **Paste below**.
+Copy puts the block's source text on the system clipboard, so you can also paste it into another
+sheet or a chat. Cut does the same and then deletes the block, with an **Undo** toast. **Paste below**
+inserts the clipboard text after the block, with one blank line between, as a single undo step. If
+the browser will not let the page read the system clipboard, Paste uses the last block you copied
+or cut in this window. The **+** menu between blocks also lists **Paste** whenever there is something
+to paste.
+
+**Ctrl+Shift+K** (**Cmd+Shift+K** on a Mac) deletes the block that holds the editor caret, with the
+same Undo toast. In a file that is not a sheet it keeps its usual meaning, delete line.
+
+### Turning a block off
+
+**Disable** in the block menu comments a block out: it drops out of the preview and the calculation
+but stays in the sheet. A sheet has no multi-line comment, so each line of the block is wrapped in
+an HTML comment (the one comment the language has):
+
+```sheet
+a: 2 m
+<!-- b: a * 3 -->
+```
+
+A disabled block is not drawn at all, so it has no grip. To get it back, put the caret in it and press
+**Ctrl+Shift+/** (**Cmd+Shift+/** on a Mac), which toggles Disable and Enable, or press Undo
+right after disabling. Limits: every line is wrapped on its own, a blank line inside the block
+becomes an empty comment so the block stays in one piece, and a `-->` inside a line is written as
+`--&gt;` while it is disabled and restored on Enable. Anything that used a disabled math line sees
+an undefined name until it is enabled again.
+
+### Collapsing sections
+
+Hover a heading in a sheet and a small arrow shows under its grip. Click it and every block under
+the heading, up to the next heading of the same or a higher level, folds away; the heading shows
+how many blocks are hidden. Click the arrow again to open the section. A folded `##` section hides
+only its own blocks, a folded `#` section hides its `##` sub-sections too. The grip menu of a
+heading also has **Collapse all** and **Expand all**.
+
+Folding is only a view: the sheet text and the results do not change, and printing and exporting
+always include everything. Folds stay as you edit and when you switch between tabs. Headings are
+matched by level, text and how many headings with the same text come before them.
+
+### Reordering blocks
+
+Drag a block's grip up or down; a blue line shows where it will land, and the block goes there when
+you let go. Dragging a heading takes its whole section along: the heading and the blocks up to the
+next heading of the same or a higher level (folded blocks too). A section cannot be dropped inside
+itself. The move is one step in the editor's history, and a toast offers **Undo**. A click on the
+grip, or a movement of under 6 pixels, still opens its menu. On a touch screen, tap a block to show
+its grip, then drag the grip.
+
+### Plot chips
+
+Under each plot in the preview there is a row of chips: Log x, Log y, 1:1 (equal axis scale),
+Copy data, PNG and SVG. Copy data puts the plotted values on the clipboard as tab-separated text,
+ready for a spreadsheet. The 3D plots have Copy data and PNG only.
+
+### Sliders on inputs
+
+Give a number input a range and Input mode shows a slider under its box:
+
+```sheet
+L: ? 6 m slider 2..12 step 0.5 | span
+w: ? 12 kN/m slider 0..30 | design load
+M: w * L^2 / 8 -> kN*m | maximum moment
+```
+
+Dragging the slider (or using the arrow keys, Home and End) fills the box and recalculates the
+results while you drag; typing in the box moves the slider. The numbers are in the unit of the
+default, the slider stops at the minimum and maximum, and `step` is the size of one stop (without it,
+about a hundredth of the range). A line without `slider` has no slider. On a phone the track is
+taller so a finger can use it. See [Templates with inputs](templates.md#sliders-for-number-inputs).
+
+## The math keyboard
+
+The **Keyboard** item in the status bar opens an on-screen math keyboard with tabs for numbers and
+operators, functions, calculus and plots (sum, integral, root, parametric plot), matrices, capital
+and lower-case letters, Greek letters and units. On a computer it is a panel you can drag by its title; on a touch screen it docks
+at the bottom. A key or template inserts at the cursor of the editor, or of the in-place editor when
+one is open. In a sheet, angles are degrees unless the sheet has a `#rad` line.
+
+## The sidebar
+
+The sidebar has three tabs: **Insert**, **TOC** (the outline of headings) and **Variables**.
+Settings, Export, Errors and Prettify open as dialogs from the ribbon (and Errors from the status
+bar); Esc closes them.
 
 ## Phones and tablets
 

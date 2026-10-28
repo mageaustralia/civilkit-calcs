@@ -1262,6 +1262,29 @@ select option {
 .insert-glyph { flex: none; width: 28px; text-align: center; font-family: var(--vscode-editor-font-family, monospace); color: var(--ck-accent); }
 @media (hover: none) { .insert-menu button { height: 44px; font-size: 16px; } }
 
+/* The menu behind a block's grip is narrower; Undo after a block change sits at the bottom of the window. */
+.block-menu { width: 180px; max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); overflow-y: auto; }
+@media (hover: none) { .block-menu button { height: 38px; } }
+.block-toast {
+    position: fixed;
+    z-index: 60;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 8px 8px 16px;
+    background: var(--ck-raised);
+    color: var(--ck-text);
+    border: 1px solid var(--ck-line);
+    border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    font-size: 14px;
+}
+.block-toast button { height: 30px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--ck-accent-soft); color: var(--ck-accent); font: inherit; font-weight: 600; cursor: pointer; }
+.block-toast button:focus-visible { outline: 2px solid var(--ck-accent); outline-offset: 1px; }
+
 /* The docked math keyboard and its show button. */
 .dock-keys { flex: none; z-index: 5; padding-bottom: env(safe-area-inset-bottom); }
 /* Mouse devices: a floating panel at the bottom centre, so the editor and preview stay visible on both sides. */
@@ -1328,3 +1351,18 @@ select:focus,
     outline: var(--ck-focus-ring) !important;
     outline-offset: -1px !important;
 }
+
+/* Floating prose toolbar (editor/prose-toolbar.ts) */
+.prose-toolbar { position: absolute; z-index: 60; display: flex; gap: 2px; padding: 3px; border-radius: 6px; font: 12px system-ui, sans-serif;
+  background: var(--vscode-editorWidget-background, #252526); color: var(--vscode-editorWidget-foreground, inherit);
+  border: 1px solid var(--vscode-editorWidget-border, #8886); box-shadow: 0 2px 8px #0005; user-select: none; white-space: nowrap; }
+.prose-toolbar[hidden] { display: none; }
+.prose-toolbar button { min-width: 26px; height: 24px; padding: 0 6px; cursor: pointer; font: inherit; color: inherit; background: transparent; border: 1px solid transparent; border-radius: 3px; }
+.prose-toolbar button:hover { background: var(--vscode-toolbar-hoverBackground, #8883); }
+.prose-toolbar button.on { background: var(--vscode-toolbar-activeBackground, #08f4); border-color: var(--vscode-focusBorder, #08f); }
+.prose-toolbar .pt-b { font-weight: 700; } .prose-toolbar .pt-i { font-style: italic; } .prose-toolbar .pt-c { font-family: ui-monospace, monospace; }
+.prose-toolbar .pt-style { min-width: 84px; text-align: left; }
+.prose-toolbar .pt-menu { position: absolute; top: 100%; left: 0; margin-top: 2px; display: flex; flex-direction: column; min-width: 110px; padding: 3px; border-radius: 6px;
+  background: inherit; border: 1px solid var(--vscode-editorWidget-border, #8886); box-shadow: 0 2px 8px #0005; }
+.prose-toolbar .pt-menu[hidden] { display: none; }
+.prose-toolbar .pt-menu button { text-align: left; }

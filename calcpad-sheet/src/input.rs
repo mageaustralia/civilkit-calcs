@@ -34,6 +34,16 @@ pub struct Input {
     pub sep: char,
     pub kind: Kind,
     pub note: Option<String>,
+    /// A number input's slider range, `slider 2..12 step 0.5`.
+    pub range: Option<Range>,
+}
+
+/// The bounds of a slider as written (numbers in the unit of the default), and the optional step.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Range {
+    pub min: String,
+    pub max: String,
+    pub step: Option<String>,
 }
 
 /// The name and the text after `?` when the line is an input line (`name: ? ...`).
@@ -82,7 +92,84 @@ pub fn parse(content: &str) -> Option<Result<Input, String>> {
         return Some(Err("write one input per line".into()));
     }
     let spec = parts.first().map(|p| p.trim()).unwrap_or("");
-    Some(kind(spec).map(|kind| Input { name, sep, kind, note }))
+    let (spec, range) = match split_slider(spec) {
+        Ok(x) => x,
+        Err(m) => return Some(Err(m)),
+    };
+    Some(kind(spec).and_then(|kind| {
+        if let (Some(r), Kind::Number(v)) = (&range, &kind) {
+            check_default(v, r)?;
+        }
+        Ok(Input { name, sep, kind, note, range })
+    }))
+}
+
+/// Splits `6 m slider 2..12 step 0.5` into the default and its range. The spec is returned
+/// whole when there is no `slider` word.
+fn split_slider(spec: &str) -> Result<(&str, Option<Range>), String> {
+    let lower = spec.to_ascii_lowercase();
+    let Some(at) = lower.match_indices("slider").map(|(i, _)| i).find(|&i| {
+        i > 0
+            && lower[..i].ends_with(char::is_whitespace)
+            && lower[i + 6..].starts_with(|c: char| c.is_whitespace() || c.is_ascii_digit() || c == '-' || c == '.')
+    }) else {
+        return Ok((spec, None));
+    };
+    let head = spec[..at].trim_end();
+    if head.is_empty() || head.starts_with(['[', '(']) || matches!(head.to_ascii_lowercase().as_str(), "on" | "off" | "true" | "false") {
+        return Err(format!("a slider goes after a number default; {SLIDER_HINT}"));
+    }
+    let r = spec[at + 6..].trim();
+    let (bounds, step) = match r.to_ascii_lowercase().find("step") {
+        Some(i) => (r[..i].trim(), Some(r[i + 4..].trim())),
+        None => (r, None),
+    };
+    let num = |t: &str, what: &str| -> Result<f64, String> {
+        t.replace('\u{2212}', "-")
+            .parse::<f64>()
+            .ok()
+            .filter(|v| v.is_finite())
+            .ok_or_else(|| format!("the slider {what} '{t}' is not a number; {SLIDER_HINT}"))
+    };
+    let (lo, hi) = bounds
+        .find("..")
+        .map(|p| (bounds[..p].trim(), bounds[p + 2..].trim()))
+        .ok_or_else(|| format!("a slider needs a range `min..max`; {SLIDER_HINT}"))?;
+    let (a, b) = (num(lo, "minimum")?, num(hi, "maximum")?);
+    if a >= b {
+        return Err(format!("the slider minimum {lo} must be less than the maximum {hi}"));
+    }
+    if let Some(st) = step {
+        let v = num(st, "step")?;
+        if v <= 0.0 || v > b - a {
+            return Err(format!("the slider step {st} must be above 0 and no more than the range"));
+        }
+    }
+    let range = Range {
+        min: lo.to_string(),
+        max: hi.to_string(),
+        step: step.map(str::to_string),
+    };
+    Ok((head, Some(range)))
+}
+
+const SLIDER_HINT: &str = "write `name: ? 6 m slider 2..12` or `slider 2..12 step 0.5`";
+
+/// The default has to lie on the slider: its leading number is compared with the bounds.
+fn check_default(def: &str, r: &Range) -> Result<(), String> {
+    let fix = |t: &str| t.replace('\u{2212}', "-");
+    let t = fix(def);
+    let v = (1..=t.len())
+        .rev()
+        .filter(|&n| t.is_char_boundary(n))
+        .find_map(|n| t[..n].parse::<f64>().ok());
+    let (Some(v), Ok(lo), Ok(hi)) = (v, fix(&r.min).parse::<f64>(), fix(&r.max).parse::<f64>()) else {
+        return Ok(());
+    };
+    if v < lo || v > hi {
+        return Err(format!("the default {def} is outside the slider range {}..{}", r.min, r.max));
+    }
+    Ok(())
 }
 
 const HINT: &str = "an input is `name: ? 6 m`, `name: ? [Low = 1, High = 2]` or `name: ? on`";
@@ -183,6 +270,13 @@ pub fn canonical(i: &Input) -> String {
                 .collect();
             format!("{a}{}{b}", items.join(", "))
         }
+    };
+    let body = match &i.range {
+        Some(r) => match &r.step {
+            Some(st) => format!("{body} slider {}..{} step {st}", r.min, r.max),
+            None => format!("{body} slider {}..{}", r.min, r.max),
+        },
+        None => body,
     };
     match &i.note {
         Some(n) => format!("? {body} | {n}"),

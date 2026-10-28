@@ -35,6 +35,8 @@ import { setAppTheme, coerceAppTheme, getResolvedAppTheme, onAppThemeChanged, fo
 import { registerSemanticTokensProvider } from './editor/semantic-tokens';
 import { setupDiagnostics } from './editor/diagnostics';
 import { registerCompletionProvider } from './editor/completions';
+import { attachProseToolbar } from './editor/prose-toolbar-monaco';
+import { attachSheetSuggest } from './editor/sheet-suggest';
 import { registerIncludeCompletionProvider } from './editor/include-completions';
 import { registerHoverProvider } from './editor/hover';
 import { registerLegacyInputFix } from './editor/legacy-input-fix';
@@ -52,6 +54,8 @@ import { attachAutoIndenter } from './editor/auto-indent';
 import { registerFormattingCommands, getParseMode } from './editor/formatting-commands';
 import { looksLikeLine, sheetInsert } from './wasm/sheet-insert';
 import { insertEdit, type InsertBlock } from './wasm/sheet-blocks';
+import { blockEdit, moveBlockTo, blockLineAfter, blockText, blockDisabled, blockHolding, textStarts, type BlockOp } from './wasm/block-ops';
+import { copyBlockText } from './wasm/block-clipboard';
 import { NEW_SHEET_TEXT, WELCOME_SHEET_TEXT } from './wasm/sheet-ui';
 import { registerFormatDocumentProvider } from './editor/format-document';
 import { setActiveDocumentKeyResolver, getActiveDocumentKey, type EditorBridge } from './editor/bridge';
@@ -110,6 +114,7 @@ function getEmptyPreviewHtml(theme: 'light' | 'dark'): string {
     const c = theme === 'light'
         ? { fg: '#1c2129', dim: '#5b6573', bg: '#ffffff', link: '#0a6bcf' }
         : { fg: '#e7ebf2', dim: '#9aa5b4', bg: '#14171d', link: '#4da3ff' };
+    const inBrowser = typeof (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ === 'undefined';
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -135,7 +140,7 @@ function getEmptyPreviewHtml(theme: 'light' | 'dark'): string {
         <tr><th>Bold</th><td>Ctrl+B</td></tr>
         <tr><th>Italic</th><td>Ctrl+I</td></tr>
         <tr><th>Underline</th><td>Ctrl+U</td></tr>
-        <tr><th>Subscript</th><td>Ctrl+=</td></tr>
+${inBrowser ? '' : `        <tr><th>Subscript</th><td>Ctrl+=</td></tr>
         <tr><th>Superscript</th><td>Ctrl+Shift+=</td></tr>
         <tr><th>Heading 1-6</th><td>Ctrl+1 ... Ctrl+6</td></tr>
         <tr><th>Paragraph</th><td>Ctrl+L</td></tr>
@@ -143,8 +148,8 @@ function getEmptyPreviewHtml(theme: 'light' | 'dark'): string {
         <tr><th>Bulleted List</th><td>Ctrl+Shift+L</td></tr>
         <tr><th>Numbered List</th><td>Ctrl+Shift+N</td></tr>
         <tr><th>Toggle Comment</th><td>Ctrl+Q</td></tr>
-    </table>
-    <h4>Resources</h4>
+`}    </table>
+${inBrowser ? '    <p>The other formatting commands are in the Insert tab and the ribbon, and the math keyboard is in the status bar.</p>\n' : ''}    <h4>Resources</h4>
     <p><a href="https://github.com/mageaustralia/civilkit-calcs">CivilKit Calcs on GitHub</a></p>
     <p><a href="https://github.com/imartincei/CalcpadCE">CalcpadCE (upstream) on GitHub</a></p>
     <p><a href="https://calcpad-ce.org/">calcpad-ce.org</a></p>
@@ -896,7 +901,19 @@ async function bootstrap(): Promise<void> {
         attachQuickTyper(ed, editorBridge);
         attachOperatorReplacer(ed);
         attachAutoIndenter(ed);
+        attachProseToolbar(ed);
+        attachSheetSuggest(ed, editorBridge);
         registerFormattingCommands(ed, editorBridge);
+        // Ctrl/Cmd+Shift+K deletes the sheet block that holds the caret (Monaco's own binding deletes the line, which stays for other files);
+        // Ctrl/Cmd+Shift+/ disables it or, on a disabled block, enables it again.
+        ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyK, () => {
+            if (!appInstance.caretBlockOp(group.id, 'delete')) ed.trigger('keyboard', 'editor.action.deleteLines', null);
+        });
+        ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Slash, () => {
+            const pos = ed.getPosition();
+            const off = !!pos && blockDisabled(ed.getModel()?.getLinesContent() ?? [], pos.lineNumber);
+            appInstance.caretBlockOp(group.id, off ? 'enable' : 'disable');
+        });
 
         // Per-group diagnostics.
         group.diagnostics = setupDiagnostics(ed, activeBridge.api, () => {
@@ -1686,6 +1703,74 @@ async function bootstrap(): Promise<void> {
             ed.revealLineInCenterIfOutsideViewport(e.selectLine);
             ed.focus();
             return true;
+        },
+        blockOp: (groupId: string, starts: number[], line: number, op: BlockOp, clip?: string) => {
+            const ed = groups.get(groupId)?.editor;
+            const model = ed?.getModel();
+            if (!ed || !model) return false;
+            const lines = model.getLinesContent();
+            // Copy and Cut put the block's source on the clipboard first (inside the click, so the browser allows it).
+            if (op === 'copy' || op === 'cut') {
+                const t = blockText(lines, starts, line);
+                if (t === null) return false;
+                void copyBlockText(t);
+            }
+            const e = blockEdit(lines, starts, line, op, clip);
+            if (!e) return op === 'copy' && blockText(lines, starts, line) !== null;
+            const last = lines.length;
+            let range;
+            if (e.text.length) {
+                range = { startLineNumber: e.from, startColumn: 1, endLineNumber: e.to, endColumn: model.getLineMaxColumn(e.to) };
+            } else if (e.to < last) {
+                range = { startLineNumber: e.from, startColumn: 1, endLineNumber: e.to + 1, endColumn: 1 };
+            } else if (e.from > 1) {
+                // The last lines go, with the line break that led into them.
+                range = { startLineNumber: e.from - 1, startColumn: model.getLineMaxColumn(e.from - 1), endLineNumber: e.to, endColumn: model.getLineMaxColumn(e.to) };
+            } else {
+                range = { startLineNumber: 1, startColumn: 1, endLineNumber: last, endColumn: model.getLineMaxColumn(last) };
+            }
+            // Its own undo step, so Undo after a delete does not also take back the edit before it.
+            ed.pushUndoStop();
+            ed.executeEdits('block-' + op, [{ range, text: e.text.join('\n') }]);
+            ed.pushUndoStop();
+            const at = Math.min(blockLineAfter(lines, starts, line, op), model.getLineCount());
+            ed.setPosition({ lineNumber: at, column: 1 });
+            ed.revealLineInCenterIfOutsideViewport(at);
+            return true;
+        },
+        blockDisabled: (groupId: string, line: number) => {
+            const model = groups.get(groupId)?.editor.getModel();
+            return !!model && blockDisabled(model.getLinesContent(), line);
+        },
+        // The block that holds the editor caret: its start line and the block starts to work with (null when there is none).
+        caretBlock: (groupId: string, starts: number[]) => {
+            const ed = groups.get(groupId)?.editor;
+            const model = ed?.getModel();
+            const pos = ed?.getPosition();
+            if (!model || !pos || !isSheetText(model.getValue())) return null;
+            const lines = model.getLinesContent();
+            const use = starts.length ? starts : textStarts(lines);
+            const line = blockHolding(lines, use, pos.lineNumber);
+            return line === null ? null : { line, starts: use };
+        },
+        // Drag and drop in the preview: the block (or a heading with its section, up to `last`) goes before `before` (0: the end).
+        moveBlock: (groupId: string, starts: number[], line: number, before: number, last: number) => {
+            const ed = groups.get(groupId)?.editor;
+            const model = ed?.getModel();
+            if (!ed || !model) return false;
+            const e = moveBlockTo(model.getLinesContent(), starts, line, before, last);
+            if (!e) return false;
+            ed.pushUndoStop();
+            ed.executeEdits('block-move', [{ range: { startLineNumber: e.from, startColumn: 1, endLineNumber: e.to, endColumn: model.getLineMaxColumn(e.to) }, text: e.text.join('\n') }]);
+            ed.pushUndoStop();
+            ed.setPosition({ lineNumber: Math.min(e.at, model.getLineCount()), column: 1 });
+            ed.revealLineInCenterIfOutsideViewport(Math.min(e.at, model.getLineCount()));
+            return true;
+        },
+        undo: (groupId: string) => {
+            const ed = groups.get(groupId)?.editor;
+            ed?.focus();
+            ed?.trigger('block-toast', 'undo', null);
         },
         replace: (groupId: string, from: number, to: number, text: string[]) => {
             const ed = groups.get(groupId)?.editor;

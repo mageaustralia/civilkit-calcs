@@ -19,6 +19,31 @@ r = f(3; 4) + g(1) = 7
 Calls take commas in a sheet; the compiler writes the engine's `;`. Functions can use any
 quantity defined above them, and may be used in plots (`plot g(t) for t in 0..5`).
 
+### Keeping functions for reuse
+
+A function defined in a sheet belongs to that sheet. To use it in other sheets, put its definition
+in a `.cpd` file and add the file to the library (**File** > Library > Add files to the library,
+or drop it on the page). Any sheet then pulls it in with an include line:
+
+```text
+>> #include beam_functions.cpd
+```
+
+The file holds Calcpad text, so its arguments are separated by `;`:
+
+```text
+delta(w; L; E; I) = 5*w*L^4/(384*E*I)
+```
+
+Two things to watch in definitions that integrate over time or space:
+
+* The limits of `$Area`, `$Sum` and the other numerical commands must have the same unit.
+  `$Area{F(t) @ t = 0ms : 2s}` is fine; a bare `0` against `2s` is an error.
+* An angular frequency is a number per second. Write `20 / 1 s`, not `20 rad/s`.
+
+Copying the definition lines into each sheet also works, and keeps the sheet self-contained when you
+send it to someone who does not have your library.
+
 ## Built-in functions
 
 The engine has more than 200 functions: trigonometric, hyperbolic, logarithmic, rounding,

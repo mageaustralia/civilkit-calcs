@@ -529,8 +529,27 @@
         <button v-for="b in INSERT_BLOCKS" :key="b.id" type="button" role="menuitem" :title="b.title" @click="runInsert(b)">
           <span class="insert-glyph" aria-hidden="true">{{ b.glyph }}</span>{{ b.label }}
         </button>
+        <button v-if="pasteText" type="button" role="menuitem" title="Paste the copied block here" @click="runInsert(pasteBlock(pasteText))">
+          <span class="insert-glyph" aria-hidden="true">&#x2398;</span>Paste
+        </button>
       </div>
     </template>
+    <!-- The grip at the left of a rendered block. -->
+    <template v-if="blockMenu">
+      <div class="insert-backdrop" @mousedown="closeBlockMenu" @touchstart.passive="closeBlockMenu"></div>
+      <div class="insert-menu block-menu" role="menu" aria-label="Block actions" :style="{ left: blockMenu.x + 'px', top: blockMenu.y + 'px' }" @keydown="onBlockMenuKey">
+        <button v-for="a in blockActions" :key="a.op" type="button" role="menuitem" @click="runBlockOp(a.op)">
+          <span class="insert-glyph" aria-hidden="true">{{ a.glyph }}</span>{{ a.label }}
+        </button>
+        <template v-if="blockMenu.heading">
+          <button type="button" role="menuitem" @click="collapseAllSections(true)"><span class="insert-glyph" aria-hidden="true">▸</span>Collapse all</button>
+          <button type="button" role="menuitem" @click="collapseAllSections(false)"><span class="insert-glyph" aria-hidden="true">▾</span>Expand all</button>
+        </template>
+      </div>
+    </template>
+    <div v-if="blockToast" class="block-toast" role="status">
+      {{ blockToast.text }}<button v-if="blockToast.undo" type="button" @click="undoBlockOp">Undo</button>
+    </div>
     <!-- Double-click on prose written as Markdown (#md on): rich-text editing of that block. -->
     <div
       v-if="mdEdit"
@@ -1061,12 +1080,25 @@ const onLineEditRequest = ref<{
   isSheet?: (groupId: string) => boolean
   /** Inserts a block before source line `before` (0 appends); returns false if it could not. */
   insertBlock?: (groupId: string, before: number, block: InsertBlock) => boolean
+  /** Moves, copies or deletes the block that starts at `line` (`starts` are all block starts); returns false if it does not apply. */
+  blockOp?: (groupId: string, starts: number[], line: number, op: BlockOp, clip?: string) => boolean
+  /** True when the block that starts at `line` is disabled (commented out). */
+  blockDisabled?: (groupId: string, line: number) => boolean
+  /** The block that holds the editor caret, with the block starts to use, or null. */
+  caretBlock?: (groupId: string, starts: number[]) => { line: number; starts: number[] } | null
+  /** One undo step in the group's editor. */
+  undo?: (groupId: string) => void
+  /** Drag and drop: moves the block at `line` (with the blocks up to start line `last`) before the block at `before` (0: the end). */
+  moveBlock?: (groupId: string, starts: number[], line: number, before: number, last: number) => boolean
 } | null>(null)
 
 // Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
 import MathKeyboard from './editor/MathKeyboard.vue'
 import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
+import type { BlockOp } from './wasm/block-ops'
+import { pasteSource, peekClipboard, rememberedBlock } from './wasm/block-clipboard'
 import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
+import { INPUT_SLIDER_SCRIPT } from './wasm/input-slider'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
@@ -1264,6 +1296,11 @@ function applyLineEdit(): void {
 // The "+" between rendered blocks: a small menu of blocks to insert at that spot.
 interface InsertMenuState { x: number; y: number; groupId: string; before: number }
 const insertMenu = ref<InsertMenuState | null>(null)
+// "Paste" in the insert menu when a copied block (or text on the system clipboard) is waiting.
+const pasteText = ref('')
+function pasteBlock(text: string): InsertBlock {
+  return { id: 'paste', label: 'Paste', title: 'Paste the copied block here', glyph: '\u2398', text: text.replace(/\r\n?/g, '\n').replace(/^\n+|\s+$/g, '') }
+}
 function openInsertMenu(groupId: string, frameId: string, data: Record<string, unknown>): void {
   const before = Number(data.line)
   const iframe = frontFrame(frameId)
@@ -1276,9 +1313,109 @@ function openInsertMenu(groupId: string, frameId: string, data: Record<string, u
   const y = below + h > window.innerHeight - 8 ? Math.max(8, box.top + (Number(r.top) || 0) - h - 4) : below
   closeLineEdit()
   insertMenu.value = { x, y, groupId, before }
+  pasteText.value = rememberedBlock()
+  void peekClipboard().then(t => { if (insertMenu.value) pasteText.value = t.trim() ? t : '' }).catch(() => {})
   void nextTick(() => document.querySelector<HTMLElement>('.insert-menu button')?.focus())
 }
 function closeInsertMenu(): void { insertMenu.value = null }
+
+// The grip at the left of a rendered block: move it, copy it or delete it (Undo is offered after a delete).
+interface BlockMenuState { x: number; y: number; groupId: string; frameId: string; line: number; starts: number[]; disabled: boolean; heading: boolean }
+const blockMenu = ref<BlockMenuState | null>(null)
+const BLOCK_ACTIONS: { op: BlockOp; label: string; glyph: string }[] = [
+  { op: 'up', label: 'Move up', glyph: '\u2191' },
+  { op: 'down', label: 'Move down', glyph: '\u2193' },
+  { op: 'duplicate', label: 'Duplicate', glyph: '\u29c9' },
+  { op: 'cut', label: 'Cut', glyph: '\u2702' },
+  { op: 'copy', label: 'Copy', glyph: '\u2398' },
+  { op: 'paste', label: 'Paste below', glyph: '\u2399' },
+  { op: 'disable', label: 'Disable', glyph: '\u2298' },
+  { op: 'delete', label: 'Delete', glyph: '\u00d7' },
+]
+// A block that is already commented out offers Enable in place of Disable.
+const blockActions = computed(() => BLOCK_ACTIONS.map(a => (a.op === 'disable' && blockMenu.value?.disabled ? { op: 'enable' as BlockOp, label: 'Enable', glyph: '\u2299' } : a)))
+function openBlockMenu(groupId: string, frameId: string, data: Record<string, unknown>): void {
+  const line = Number(data.line)
+  const iframe = frontFrame(frameId)
+  const starts = Array.isArray(data.starts) ? data.starts.map(Number).filter(n => Number.isInteger(n)) : []
+  if (!iframe || !Number.isInteger(line) || line < 1 || !starts.length) return
+  const r = (data.rect ?? {}) as Record<string, unknown>
+  const box = iframe.getBoundingClientRect()
+  const w = 180, h = (BLOCK_ACTIONS.length + (data.heading === true ? 2 : 0)) * 40 + 12
+  const x = Math.max(8, Math.min(box.left + (Number(r.left) || 0), window.innerWidth - w - 8))
+  const below = box.top + (Number(r.top) || 0) + (Number(r.height) || 0) + 4
+  const y = below + h > window.innerHeight - 8 ? Math.max(8, box.top + (Number(r.top) || 0) - h - 4) : below
+  closeLineEdit()
+  closeInsertMenu()
+  blockMenu.value = { x, y, groupId, frameId, line, starts, disabled: !!onLineEditRequest.value?.blockDisabled?.(groupId, line), heading: data.heading === true }
+  void nextTick(() => document.querySelector<HTMLElement>('.block-menu button')?.focus())
+}
+function closeBlockMenu(): void { blockMenu.value = null }
+const blockToast = ref<{ groupId: string; text: string; undo: boolean } | null>(null)
+let blockToastTimer = 0
+function runBlockOp(op: BlockOp): void {
+  const m = blockMenu.value
+  blockMenu.value = null
+  if (m) void doBlockOp(m.groupId, m.starts, m.line, op)
+}
+const BLOCK_TOASTS: Record<BlockOp, string> = {
+  delete: 'Block deleted', duplicate: 'Block duplicated', up: 'Block moved up', down: 'Block moved down',
+  cut: 'Block cut', copy: 'Block copied', paste: 'Block pasted',
+  disable: 'Block disabled: hidden from the preview, kept in the sheet as comment lines',
+  enable: 'Block enabled',
+}
+async function doBlockOp(groupId: string, starts: number[], line: number, op: BlockOp): Promise<void> {
+  const req = onLineEditRequest.value
+  const clip = op === 'paste' ? await pasteSource() : undefined
+  if (!req?.blockOp?.(groupId, starts, line, op, clip)) return
+  window.clearTimeout(blockToastTimer)
+  blockToast.value = { groupId, text: BLOCK_TOASTS[op], undo: op !== 'copy' }
+  blockToastTimer = window.setTimeout(() => { blockToast.value = null }, 6000)
+}
+// The latest block starts each preview reported, for the keyboard shortcuts (the caret has no grip to start from).
+const previewBlockStarts = new Map<string, number[]>()
+/** Ctrl/Cmd+Shift+K and the disable shortcut: act on the block that holds the editor caret. False when there is none. */
+function caretBlockOp(groupId: string, op: BlockOp): boolean {
+  const hit = onLineEditRequest.value?.caretBlock?.(groupId, previewBlockStarts.get(groupId) ?? [])
+  if (!hit) return false
+  void doBlockOp(groupId, hit.starts, hit.line, op)
+  return true
+}
+// Collapsed headings of the preview, per document tab, so a re-rendered preview folds the same sections again.
+const collapsedByDoc = new Map<string, string[]>()
+function collapseKey(frameId: string, groupId: string): string { return docKeyByFrame.get(frameId) || groupId }
+function onCollapseState(frameId: string, groupId: string, data: Record<string, unknown>): void {
+  if (Array.isArray(data.keys)) collapsedByDoc.set(collapseKey(frameId, groupId), data.keys.filter((k): k is string => typeof k === 'string'))
+}
+function collapseAllSections(on: boolean): void {
+  const m = blockMenu.value
+  blockMenu.value = null
+  if (m) frontFrame(m.frameId)?.contentWindow?.postMessage({ type: 'ckCollapseAll', on }, '*')
+}
+// A block dropped on a new place in the preview: the same one undo step and Undo toast as the menu actions.
+function onBlockMove(groupId: string, data: Record<string, unknown>): void {
+  const starts = Array.isArray(data.starts) ? data.starts.map(Number).filter(n => Number.isInteger(n)) : []
+  const line = Number(data.line), before = Number(data.before), last = Number(data.last)
+  if (!starts.length || !Number.isInteger(line) || !Number.isInteger(before) || !Number.isInteger(last)) return
+  if (!onLineEditRequest.value?.moveBlock?.(groupId, starts, line, before, last)) return
+  window.clearTimeout(blockToastTimer)
+  blockToast.value = { groupId, text: 'Block moved', undo: true }
+  blockToastTimer = window.setTimeout(() => { blockToast.value = null }, 6000)
+}
+function undoBlockOp(): void {
+  const t = blockToast.value
+  blockToast.value = null
+  window.clearTimeout(blockToastTimer)
+  if (t) onLineEditRequest.value?.undo?.(t.groupId)
+}
+function onBlockMenuKey(e: KeyboardEvent): void {
+  if (e.key === 'Escape') { e.preventDefault(); closeBlockMenu(); return }
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+  const items = Array.from(document.querySelectorAll<HTMLElement>('.block-menu button'))
+  const i = items.indexOf(document.activeElement as HTMLElement)
+  e.preventDefault()
+  items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus()
+}
 function runInsert(block: InsertBlock): void {
   const m = insertMenu.value
   insertMenu.value = null
@@ -1725,6 +1862,22 @@ function onPreviewWindowMessage(e: MessageEvent): void {
     openInsertMenu(groupId, frameId, data)
     return
   }
+  if (data.type === 'blockStarts') {
+    if (Array.isArray(data.starts)) previewBlockStarts.set(groupId, data.starts.map(Number).filter(n => Number.isInteger(n)))
+    return
+  }
+  if (data.type === 'blockMenu') {
+    openBlockMenu(groupId, frameId, data)
+    return
+  }
+  if (data.type === 'blockMove') {
+    onBlockMove(groupId, data)
+    return
+  }
+  if (data.type === 'collapseState') {
+    onCollapseState(frameId, groupId, data)
+    return
+  }
   if (data.type === 'plotChip') {
     void plotChipHost(data).catch(() => {})
     return
@@ -2114,7 +2267,7 @@ function setPreviewHtml(groupId: string, html: string, scrollToLine?: number, do
   // An explicit line target outranks restoring the old position.
   const seed = scrollToLine === undefined ? scrollByFrameDoc.get(scrollKey(groupId, docKey)) : undefined
   let out = injectPreviewAgent(
-    injectLineLinks(html, scrollToLine, groupId, undefined, !isUi, !isUi && !!onLineEditRequest.value?.isSheet?.(groupId)),
+    injectLineLinks(html, scrollToLine, groupId, undefined, !isUi, !isUi && !!onLineEditRequest.value?.isSheet?.(groupId), collapsedByDoc.get(docKey || groupId) ?? []),
     groupId,
     !!onClipboardReadRequest.value,
     seed,
@@ -2167,6 +2320,157 @@ function scrollPreviewToSourceLine(groupId: string, line: number, exact = false)
   frontFrame(UI_PRINT_FRAME + groupId)?.contentWindow?.postMessage(msg, '*')
 }
 
+// Section collapse and drag-to-reorder for the preview's block grips (script lines for the insert-strip IIFE).
+function collapseDragLines(collapsed: string[]): string[] {
+  return [
+    // Collapsing a heading hides the blocks under it up to the next heading of the same or a higher level (screen only; print shows all).
+    // The state lives on the host, keyed by level, text and occurrence, so it survives the re-render after every edit.
+    "var COLLAPSED = " + JSON.stringify(collapsed).replace(/</g, '\\u003c') + ";",
+    "var cdItems = [];",
+    "function cdLevel(el) { var m = /^H([1-6])$/.exec(el.tagName); return m ? +m[1] : 0; }",
+    "function cdFull(el) { return !!(cdText(el) || el.querySelector('img,svg,canvas,table,iframe')); }",
+    "function cdText(el) {",
+    "  var t = '';",
+    "  for (var n = el.firstChild; n; n = n.nextSibling) {",
+    "    if (n.nodeType === 3) t += n.nodeValue; else if (n.nodeType === 1 && !(n.classList.contains('lineLink') || /^ck-/.test(n.className))) t += n.textContent;",
+    "  }",
+    "  return t.replace(/\\s+/g, ' ').trim();",
+    "}",
+    "function cdScan() {",
+    "  var all = document.querySelectorAll('[data-source-line]'), seen = {}, out = [];",
+    "  for (var i = 0; i < all.length; i++) {",
+    "    var el = all[i], n = parseInt(el.getAttribute('data-source-line'), 10);",
+    "    if (isNaN(n) || (el.parentElement && el.parentElement.closest('[data-source-line]'))) continue;",
+    "    var lv = cdLevel(el), key = null;",
+    "    if (lv) { var base = lv + '|' + cdText(el); seen[base] = (seen[base] || 0) + 1; key = base + '|' + seen[base]; }",
+    "    out.push({ el: el, line: n, level: lv, key: key, full: cdFull(el) });",
+    "  }",
+    "  return out;",
+    "}",
+    "function applyCollapse() {",
+    "  cdItems = cdScan();",
+    "  var cut = 0, head = null, hidden = 0;",
+    "  for (var i = 0; i < cdItems.length; i++) {",
+    "    var it = cdItems[i];",
+    "    if (it.level && cut && it.level <= cut) { head.setAttribute('data-ck-n', hidden); cut = 0; head = null; }",
+    "    var hide = cut > 0;",
+    "    it.el.classList.toggle('ck-hid', hide);",
+    "    if (hide) { if (it.full) hidden++; it.el.classList.remove('ck-col'); continue; }",
+    "    var col = !!it.level && COLLAPSED.indexOf(it.key) >= 0;",
+    "    it.el.classList.toggle('ck-col', col);",
+    "    if (col) { cut = it.level; head = it.el; hidden = 0; }",
+    "  }",
+    "  if (head) head.setAttribute('data-ck-n', hidden);",
+    "}",
+    "function cdItem(el) { for (var i = 0; i < cdItems.length; i++) if (cdItems[i].el === el) return cdItems[i]; return null; }",
+    "function cdChanged() {",
+    "  try { window.parent.postMessage({ type: 'collapseState', keys: COLLAPSED, groupId: FRAME_ID }, '*'); } catch (_e) {}",
+    "  build();",
+    "}",
+    "function toggleSection(key) {",
+    "  var i = COLLAPSED.indexOf(key);",
+    "  if (i < 0) COLLAPSED.push(key); else COLLAPSED.splice(i, 1);",
+    "  cdChanged();",
+    "}",
+    "window.addEventListener('message', function(e) {",
+    "  var d = e.data;",
+    "  if (e.source !== window.parent || !d || d.type !== 'ckCollapseAll') return;",
+    "  COLLAPSED = [];",
+    "  if (d.on) for (var i = 0; i < cdItems.length; i++) if (cdItems[i].key) COLLAPSED.push(cdItems[i].key);",
+    "  cdChanged();",
+    "});",
+    // The starts of every block, including those a collapsed heading hides, so a block action sees the whole sheet.
+    "function allStarts() {",
+    "  var out = [];",
+    "  for (var i = 0; i < cdItems.length; i++) {",
+    "    var el = cdItems[i].el;",
+    "    if (!el.classList.contains('ck-hid')) {",
+    "      var cs = getComputedStyle(el);",
+    "      if (cs.display === 'inline' || cs.display === 'none' || !el.getBoundingClientRect().height) continue;",
+    "    }",
+    "    out.push(cdItems[i].line);",
+    "  }",
+    "  return out;",
+    "}",
+    // Chevron under the grip of a heading.
+    "function addChev(g, b, it) {",
+    "  var col = b.el.classList.contains('ck-col');",
+    "  var c = document.createElement('button'); c.type = 'button'; c.className = 'ck-chev' + (col ? ' col' : '');",
+    "  c.textContent = col ? '\\u25b8' : '\\u25be';",
+    "  c.title = col ? 'Expand section' : 'Collapse section'; c.setAttribute('aria-label', c.title); c.setAttribute('aria-expanded', col ? 'false' : 'true');",
+    "  c.style.top = (Math.max(0, b.top) + 28) + 'px'; c.style.left = g.style.left;",
+    "  c.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); toggleSection(it.key); });",
+    "  layer.appendChild(c); g._chev = c; g._bottom = Math.max(g._bottom, b.top + 52);",
+    "}",
+    // Dragging the grip (past 6px) moves the block, or a heading with its section; a click without that opens the menu.
+    "function dragGrip(g, b) {",
+    "  var sx = 0, sy = 0, down = false, moved = false, cands = [], drop = null, bar = null, sect = [], info = null;",
+    "  function begin() {",
+    "    var it = cdItem(b.el); if (!it) return false;",
+    "    var i = cdItems.indexOf(it), j = i;",
+    "    for (var k = i + 1; k < cdItems.length; k++) {",
+    "      if (it.level && cdItems[k].level && cdItems[k].level <= it.level) break;",
+    "      if (!it.level) break;",
+    "      if (cdItems[k].full) j = k;",
+    "    }",
+    "    var next = 0;",
+    "    for (var m = j + 1; m < cdItems.length; m++) if (cdItems[m].full) { next = cdItems[m].line; break; }",
+    "    var last = cdItems[j].line;",
+    "    info = { line: it.line, last: last, next: next };",
+    "    sect = [];",
+    "    for (var s = i; s <= j; s++) { sect.push(cdItems[s].el); cdItems[s].el.classList.add('ck-drag-src'); }",
+    "    var bs = blocks(); cands = [];",
+    "    for (var q = 0; q <= bs.length; q++) {",
+    "      var before = q < bs.length ? bs[q].line : 0;",
+    "      if (q < bs.length && !bs[q].full) continue;",
+    "      if ((before >= it.line && before <= last) || before === next) continue;",
+    "      var y = q === 0 ? bs[0].top - 3 : q === bs.length ? bs[q - 1].bottom + 3 : (bs[q - 1].bottom + bs[q].top) / 2;",
+    "      cands.push({ y: y, before: before });",
+    "    }",
+    "    bar = document.createElement('div'); bar.className = 'ck-drop'; bar.style.display = 'none'; layer.appendChild(bar);",
+    "    document.documentElement.classList.add('ck-dragging');",
+    "    return true;",
+    "  }",
+    "  function over(e) {",
+    "    var py = e.clientY + window.pageYOffset, best = null;",
+    "    for (var i = 0; i < cands.length; i++) if (!best || Math.abs(cands[i].y - py) < Math.abs(best.y - py)) best = cands[i];",
+    "    drop = best;",
+    "    if (best) { bar.style.display = 'block'; bar.style.top = (best.y - 1) + 'px'; } else bar.style.display = 'none';",
+    "    if (e.clientY < 36) window.scrollBy(0, -16); else if (e.clientY > window.innerHeight - 36) window.scrollBy(0, 16);",
+    "  }",
+    "  function end(ok) {",
+    "    var was = moved, d = drop;",
+    "    down = false; moved = false; drop = null;",
+    "    for (var i = 0; i < sect.length; i++) sect[i].classList.remove('ck-drag-src');",
+    "    sect = [];",
+    "    if (bar) { bar.remove(); bar = null; }",
+    "    document.documentElement.classList.remove('ck-dragging');",
+    "    if (was) { g._moved = true; setTimeout(function() { g._moved = false; }, 80); }",
+    "    if (ok && was && d && info) {",
+    "      try { window.parent.postMessage({ type: 'blockMove', line: info.line, last: info.last, before: d.before, starts: allStarts(), groupId: FRAME_ID }, '*'); } catch (_e) {}",
+    "    }",
+    "  }",
+    "  g.addEventListener('pointerdown', function(e) {",
+    "    if (e.button) return;",
+    "    down = true; moved = false; sx = e.clientX; sy = e.clientY;",
+    "    try { g.setPointerCapture(e.pointerId); } catch (_e) {}",
+    "  });",
+    "  g.addEventListener('pointermove', function(e) {",
+    "    if (!down) return;",
+    "    if (!moved) {",
+    "      if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 6) return;",
+    "      if (!begin()) { down = false; return; }",
+    "      moved = true;",
+    "    }",
+    "    e.preventDefault(); over(e);",
+    "  });",
+    "  g.addEventListener('pointerup', function() { end(true); });",
+    "  g.addEventListener('pointercancel', function() { end(false); });",
+    "  g.addEventListener('lostpointercapture', function() { if (down) end(false); });",
+    "}",
+  ]
+}
+
 // Per-render line-link behaviour ported from vscode-calcpad; its CSS lives in the
 // backend's template.html. `lineLinks` turns off just the hover arrows, which the input
 // form and its report drop along with the editor they navigate to.
@@ -2177,6 +2481,7 @@ function injectLineLinks(
   frameId: string = groupId,
   lineLinks: boolean = true,
   insertStrip: boolean = false,
+  collapsed: string[] = [],
 ): string {
   const scrollTarget = typeof scrollToLine === 'number' ? String(scrollToLine) : 'null'
   const gid = JSON.stringify(groupId)
@@ -2257,6 +2562,15 @@ function injectLineLinks(
     "      + '.ck-ins-btn:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}'",
     // No hover on touch: handles stay hidden until a block is tapped, then only the gaps just above and below it show.
     "      + '@media (hover:none){.ck-ins{height:34px;margin-top:-17px}.ck-ins-btn{top:3px;width:28px;height:28px;margin-left:-14px;font-size:20px;line-height:24px}.ck-ins-line{top:17px}}'",
+    // A small grip at the left of each block (on hover, or after a tap) opens the block menu: move, duplicate, delete.
+    "      + '.ck-grip{position:absolute;width:22px;height:24px;padding:0;border:1px solid currentColor;border-radius:5px;background:Canvas;color:CanvasText;font:700 15px/20px system-ui,sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s}'",
+    "      + '.ck-grip.on{opacity:.75;pointer-events:auto}.ck-grip:hover,.ck-grip:focus-visible{opacity:1;pointer-events:auto}.ck-grip:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}'",
+    "      + '@media (hover:none){.ck-grip{width:30px;height:32px;font-size:18px;line-height:28px}}'",
+    // Folded sections and the drag cues are screen-only, so print and export always show every block.
+    "      + '.ck-grip{touch-action:none}.ck-chev{position:absolute;width:22px;height:20px;padding:0;border:0;border-radius:4px;background:Canvas;color:CanvasText;font:14px/20px system-ui,sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s}'",
+    "      + '.ck-chev.on{opacity:.75;pointer-events:auto}.ck-chev.col,.ck-chev:hover,.ck-chev:focus-visible{opacity:1;pointer-events:auto}.ck-chev:focus-visible{outline:2px solid #3b82f6}'",
+    "      + '.ck-drop{position:absolute;left:8px;right:8px;height:3px;border-radius:2px;background:#3b82f6;pointer-events:none}.ck-dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}'",
+    "      + '@media screen{.ck-hid{display:none!important}.ck-col::after{content:\" \\u25b8 \" attr(data-ck-n) \" hidden\";font:400 12px system-ui,sans-serif;opacity:.55;margin-left:.5em}.ck-drag-src{opacity:.4}}'",
     "      + '@media print{.ck-ins-layer{display:none}}';",
     "    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);",
     "    var layer = document.createElement('div'); layer.className = 'ck-ins-layer'; document.body.appendChild(layer);",
@@ -2270,11 +2584,11 @@ function injectLineLinks(
     "        var r = el.getBoundingClientRect();",
     "        var n = parseInt(el.getAttribute('data-source-line'), 10);",
     "        if (!r.height || isNaN(n)) continue;",
-    "        out.push({ line: n, top: r.top + window.pageYOffset, bottom: r.bottom + window.pageYOffset });",
+    "        out.push({ line: n, el: el, top: r.top + window.pageYOffset, bottom: r.bottom + window.pageYOffset, left: r.left + window.pageXOffset, full: !!((el.textContent || '').trim() || el.querySelector('img,svg,canvas,table,iframe')) });",
     "      }",
     "      return out;",
     "    }",
-    "    var gaps = [], tapY = null, hoverGap = null;",
+    "    var gaps = [], grips = [], tapY = null, hoverGap = null;",
     // On touch only the gaps around the last tap show; a rebuild (resize, late layout) puts them back.
     "    function mark() {",
     "      var above = null, below = null;",
@@ -2298,10 +2612,37 @@ function injectLineLinks(
     "      var l = document.createElement('div'); l.className = 'ck-ins-line';",
     "      g.appendChild(l); g.appendChild(b); layer.appendChild(g); g._y = y; gaps.push(g);",
     "    }",
+    "    function addGrip(b, starts) {",
+    "      var g = document.createElement('button'); g.type = 'button'; g.className = 'ck-grip'; g.textContent = '\\u22ee';",
+    "      g.title = 'Block actions'; g.setAttribute('aria-label', 'Block actions');",
+    "      g.style.top = Math.max(0, b.top) + 'px'; g.style.left = Math.max(2, b.left - 26) + 'px';",
+    "      g._top = b.top; g._bottom = b.bottom;",
+    "      g.addEventListener('click', function(e) {",
+    "        e.preventDefault(); e.stopPropagation();",
+    "        if (g._moved) return;",
+    "        var r = g.getBoundingClientRect();",
+    "        try { window.parent.postMessage({ type: 'blockMenu', line: b.line, heading: !!cdLevel(b.el), starts: starts, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, groupId: FRAME_ID }, '*'); } catch (_e) {}",
+    "      });",
+    "      var it = cdItem(b.el);",
+    "      if (it && it.level) addChev(g, b, it);",
+    "      dragGrip(g, b);",
+    "      layer.appendChild(g); grips.push(g);",
+    "    }",
+    "    var ptrY = null;",
+    "    function showGripAt(y) {",
+    "      ptrY = y;",
+    "      var hit = null;",
+    "      for (var i = 0; i < grips.length; i++) if (y !== null && y >= grips[i]._top && y <= grips[i]._bottom) hit = grips[i];",
+    "      for (var j = 0; j < grips.length; j++) { grips[j].classList.toggle('on', grips[j] === hit); if (grips[j]._chev) grips[j]._chev.classList.toggle('on', grips[j] === hit); }",
+    "    }",
+    ...collapseDragLines(collapsed).map(l => '    ' + l),
     "    function build() {",
-    "      layer.textContent = ''; gaps = []; hoverGap = null;",
+    "      applyCollapse(); layer.textContent = ''; gaps = []; grips = []; hoverGap = null;",
     "      var bs = blocks();",
+    "      try { window.parent.postMessage({ type: 'blockStarts', starts: bs.map(function(b) { return b.line; }), groupId: FRAME_ID }, '*'); } catch (_e) {}",
     "      if (!bs.length) return;",
+    "      var starts = allStarts();",
+    "      for (var k = 0; k < bs.length; k++) if (bs[k].full) addGrip(bs[k], starts);",
     "      var lastY = -100;",
     "      for (var i = 0; i <= bs.length; i++) {",
     "        var prev = bs[i - 1], next = bs[i];",
@@ -2312,11 +2653,12 @@ function injectLineLinks(
     "        lastY = y;",
     "        add(y, next ? next.line : 0);",
     "      }",
-    "      mark();",
+    "      mark(); showGripAt(ptrY);",
     "    }",
     // With a mouse, the gap nearest the pointer (within 9px) shows its line and "+".
     "    if (window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches) {",
     "      document.addEventListener('mousemove', function(e) {",
+    "        showGripAt(e.pageY);",
     "        var hit = e.target.closest && e.target.closest('.ck-ins');",
     "        for (var i = 0; !hit && i < gaps.length; i++) if (Math.abs(gaps[i]._y - e.pageY) <= 9) hit = gaps[i];",
     "        if (hit === hoverGap) return;",
@@ -2327,7 +2669,7 @@ function injectLineLinks(
     "    if (window.matchMedia && matchMedia('(hover:none)').matches) {",
     "      document.addEventListener('click', function(e) {",
     "        if (e.target.closest && e.target.closest('.ck-ins')) return;",
-    "        tapY = e.pageY; mark();",
+    "        tapY = e.pageY; mark(); showGripAt(e.pageY);",
     "      });",
     "    }",
     "    var timer = 0;",
@@ -2339,6 +2681,8 @@ function injectLineLinks(
     ] : []),
     // Chips under each plot: log x / y, 1:1, copy data, save PNG / SVG (see plot-chips.ts).
     ...(lineLinks ? [PLOT_CHIPS_SCRIPT] : []),
+    // A slider beside a number input with a range (Input mode only; see input-slider.ts).
+    ...(lineLinks ? [] : [INPUT_SLIDER_SCRIPT]),
     ...(lineLinks ? [
     "  function hideAllLineLinks() {",
     "    document.querySelectorAll('.lineLink').forEach(function(l) { l.style.display = 'none'; });",
@@ -2905,6 +3249,7 @@ function resolveQuickPick(index: number | null): void {
 }
 
 defineExpose({
+  caretBlockOp,
   // group lifecycle
   addGroup,
   removeGroup,
