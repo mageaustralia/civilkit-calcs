@@ -54,7 +54,7 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
 
     // Move down: b swaps with c.
     await open(await idx('second'));
-    check(await page.locator('.block-menu button').count() === 4, `${name}: four actions`);
+    check(await page.locator('.block-menu button').count() === 8, `${name}: eight actions`);
     await act('Move down');
     check((await text()).endsWith('a: 1 m | first\n\nc: 3 m | third\n\nb: 2 m | second'), `${name}: move down swaps the block with the next`); if (fails.length) console.log(JSON.stringify(await text()));
     await page.waitForTimeout(1500);

@@ -52,6 +52,37 @@ Condition or Python. The new block goes in front of the next block's source line
 and its first word is left selected in the editor so you can type over it. On a touch screen the
 **+** stays hidden until you tap a block, and then shows only in the two gaps beside it.
 
+### Cut, copy and paste blocks
+
+The block menu (the **⋮** grip at the left of a block) has **Cut**, **Copy** and **Paste below**.
+Copy puts the block's source text on the system clipboard, so you can also paste it into another
+sheet or a chat. Cut does the same and then deletes the block, with an **Undo** toast. **Paste below**
+inserts the clipboard text after the block, with one blank line between, as a single undo step. If
+the browser will not let the page read the system clipboard, Paste uses the last block you copied
+or cut in this window. The **+** menu between blocks also lists **Paste** whenever there is something
+to paste.
+
+**Ctrl+Shift+K** (**Cmd+Shift+K** on a Mac) deletes the block that holds the editor caret, with the
+same Undo toast. In a file that is not a sheet it keeps its usual meaning, delete line.
+
+### Turning a block off
+
+**Disable** in the block menu comments a block out: it drops out of the preview and the calculation
+but stays in the sheet. A sheet has no multi-line comment, so each line of the block is wrapped in
+an HTML comment (the one comment the language has):
+
+```sheet
+a: 2 m
+<!-- b: a * 3 -->
+```
+
+A disabled block is not drawn at all, so it has no grip. To get it back, put the caret in it and press
+**Ctrl+Shift+/** (**Cmd+Shift+/** on a Mac), which toggles Disable and Enable, or press Undo
+right after disabling. Limits: every line is wrapped on its own, a blank line inside the block
+becomes an empty comment so the block stays in one piece, and a `-->` inside a line is written as
+`--&gt;` while it is disabled and restored on Enable. Anything that used a disabled math line sees
+an undefined name until it is enabled again.
+
 ### Plot chips
 
 Under each plot in the preview there is a row of chips: Log x, Log y, 1:1 (equal axis scale),

@@ -529,19 +529,22 @@
         <button v-for="b in INSERT_BLOCKS" :key="b.id" type="button" role="menuitem" :title="b.title" @click="runInsert(b)">
           <span class="insert-glyph" aria-hidden="true">{{ b.glyph }}</span>{{ b.label }}
         </button>
+        <button v-if="pasteText" type="button" role="menuitem" title="Paste the copied block here" @click="runInsert(pasteBlock(pasteText))">
+          <span class="insert-glyph" aria-hidden="true">&#x2398;</span>Paste
+        </button>
       </div>
     </template>
     <!-- The grip at the left of a rendered block. -->
     <template v-if="blockMenu">
       <div class="insert-backdrop" @mousedown="closeBlockMenu" @touchstart.passive="closeBlockMenu"></div>
       <div class="insert-menu block-menu" role="menu" aria-label="Block actions" :style="{ left: blockMenu.x + 'px', top: blockMenu.y + 'px' }" @keydown="onBlockMenuKey">
-        <button v-for="a in BLOCK_ACTIONS" :key="a.op" type="button" role="menuitem" @click="runBlockOp(a.op)">
+        <button v-for="a in blockActions" :key="a.op" type="button" role="menuitem" @click="runBlockOp(a.op)">
           <span class="insert-glyph" aria-hidden="true">{{ a.glyph }}</span>{{ a.label }}
         </button>
       </div>
     </template>
     <div v-if="blockToast" class="block-toast" role="status">
-      {{ blockToast.text }}<button type="button" @click="undoBlockOp">Undo</button>
+      {{ blockToast.text }}<button v-if="blockToast.undo" type="button" @click="undoBlockOp">Undo</button>
     </div>
     <!-- Double-click on prose written as Markdown (#md on): rich-text editing of that block. -->
     <div
@@ -1074,7 +1077,11 @@ const onLineEditRequest = ref<{
   /** Inserts a block before source line `before` (0 appends); returns false if it could not. */
   insertBlock?: (groupId: string, before: number, block: InsertBlock) => boolean
   /** Moves, copies or deletes the block that starts at `line` (`starts` are all block starts); returns false if it does not apply. */
-  blockOp?: (groupId: string, starts: number[], line: number, op: BlockOp) => boolean
+  blockOp?: (groupId: string, starts: number[], line: number, op: BlockOp, clip?: string) => boolean
+  /** True when the block that starts at `line` is disabled (commented out). */
+  blockDisabled?: (groupId: string, line: number) => boolean
+  /** The block that holds the editor caret, with the block starts to use, or null. */
+  caretBlock?: (groupId: string, starts: number[]) => { line: number; starts: number[] } | null
   /** One undo step in the group's editor. */
   undo?: (groupId: string) => void
 } | null>(null)
@@ -1083,6 +1090,7 @@ const onLineEditRequest = ref<{
 import MathKeyboard from './editor/MathKeyboard.vue'
 import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
 import type { BlockOp } from './wasm/block-ops'
+import { pasteSource, peekClipboard, rememberedBlock } from './wasm/block-clipboard'
 import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
@@ -1281,6 +1289,11 @@ function applyLineEdit(): void {
 // The "+" between rendered blocks: a small menu of blocks to insert at that spot.
 interface InsertMenuState { x: number; y: number; groupId: string; before: number }
 const insertMenu = ref<InsertMenuState | null>(null)
+// "Paste" in the insert menu when a copied block (or text on the system clipboard) is waiting.
+const pasteText = ref('')
+function pasteBlock(text: string): InsertBlock {
+  return { id: 'paste', label: 'Paste', title: 'Paste the copied block here', glyph: '\u2398', text: text.replace(/\r\n?/g, '\n').replace(/^\n+|\s+$/g, '') }
+}
 function openInsertMenu(groupId: string, frameId: string, data: Record<string, unknown>): void {
   const before = Number(data.line)
   const iframe = frontFrame(frameId)
@@ -1293,19 +1306,27 @@ function openInsertMenu(groupId: string, frameId: string, data: Record<string, u
   const y = below + h > window.innerHeight - 8 ? Math.max(8, box.top + (Number(r.top) || 0) - h - 4) : below
   closeLineEdit()
   insertMenu.value = { x, y, groupId, before }
+  pasteText.value = rememberedBlock()
+  void peekClipboard().then(t => { if (insertMenu.value) pasteText.value = t.trim() ? t : '' }).catch(() => {})
   void nextTick(() => document.querySelector<HTMLElement>('.insert-menu button')?.focus())
 }
 function closeInsertMenu(): void { insertMenu.value = null }
 
 // The grip at the left of a rendered block: move it, copy it or delete it (Undo is offered after a delete).
-interface BlockMenuState { x: number; y: number; groupId: string; line: number; starts: number[] }
+interface BlockMenuState { x: number; y: number; groupId: string; line: number; starts: number[]; disabled: boolean }
 const blockMenu = ref<BlockMenuState | null>(null)
 const BLOCK_ACTIONS: { op: BlockOp; label: string; glyph: string }[] = [
   { op: 'up', label: 'Move up', glyph: '\u2191' },
   { op: 'down', label: 'Move down', glyph: '\u2193' },
   { op: 'duplicate', label: 'Duplicate', glyph: '\u29c9' },
+  { op: 'cut', label: 'Cut', glyph: '\u2702' },
+  { op: 'copy', label: 'Copy', glyph: '\u2398' },
+  { op: 'paste', label: 'Paste below', glyph: '\u2399' },
+  { op: 'disable', label: 'Disable', glyph: '\u2298' },
   { op: 'delete', label: 'Delete', glyph: '\u00d7' },
 ]
+// A block that is already commented out offers Enable in place of Disable.
+const blockActions = computed(() => BLOCK_ACTIONS.map(a => (a.op === 'disable' && blockMenu.value?.disabled ? { op: 'enable' as BlockOp, label: 'Enable', glyph: '\u2299' } : a)))
 function openBlockMenu(groupId: string, frameId: string, data: Record<string, unknown>): void {
   const line = Number(data.line)
   const iframe = frontFrame(frameId)
@@ -1319,20 +1340,39 @@ function openBlockMenu(groupId: string, frameId: string, data: Record<string, un
   const y = below + h > window.innerHeight - 8 ? Math.max(8, box.top + (Number(r.top) || 0) - h - 4) : below
   closeLineEdit()
   closeInsertMenu()
-  blockMenu.value = { x, y, groupId, line, starts }
+  blockMenu.value = { x, y, groupId, line, starts, disabled: !!onLineEditRequest.value?.blockDisabled?.(groupId, line) }
   void nextTick(() => document.querySelector<HTMLElement>('.block-menu button')?.focus())
 }
 function closeBlockMenu(): void { blockMenu.value = null }
-const blockToast = ref<{ groupId: string; text: string } | null>(null)
+const blockToast = ref<{ groupId: string; text: string; undo: boolean } | null>(null)
 let blockToastTimer = 0
 function runBlockOp(op: BlockOp): void {
   const m = blockMenu.value
   blockMenu.value = null
-  if (!m || !onLineEditRequest.value?.blockOp?.(m.groupId, m.starts, m.line, op)) return
+  if (m) void doBlockOp(m.groupId, m.starts, m.line, op)
+}
+const BLOCK_TOASTS: Record<BlockOp, string> = {
+  delete: 'Block deleted', duplicate: 'Block duplicated', up: 'Block moved up', down: 'Block moved down',
+  cut: 'Block cut', copy: 'Block copied', paste: 'Block pasted',
+  disable: 'Block disabled: hidden from the preview, kept in the sheet as comment lines',
+  enable: 'Block enabled',
+}
+async function doBlockOp(groupId: string, starts: number[], line: number, op: BlockOp): Promise<void> {
+  const req = onLineEditRequest.value
+  const clip = op === 'paste' ? await pasteSource() : undefined
+  if (!req?.blockOp?.(groupId, starts, line, op, clip)) return
   window.clearTimeout(blockToastTimer)
-  const text = { delete: 'Block deleted', duplicate: 'Block duplicated', up: 'Block moved up', down: 'Block moved down' }[op]
-  blockToast.value = { groupId: m.groupId, text }
+  blockToast.value = { groupId, text: BLOCK_TOASTS[op], undo: op !== 'copy' }
   blockToastTimer = window.setTimeout(() => { blockToast.value = null }, 6000)
+}
+// The latest block starts each preview reported, for the keyboard shortcuts (the caret has no grip to start from).
+const previewBlockStarts = new Map<string, number[]>()
+/** Ctrl/Cmd+Shift+K and the disable shortcut: act on the block that holds the editor caret. False when there is none. */
+function caretBlockOp(groupId: string, op: BlockOp): boolean {
+  const hit = onLineEditRequest.value?.caretBlock?.(groupId, previewBlockStarts.get(groupId) ?? [])
+  if (!hit) return false
+  void doBlockOp(groupId, hit.starts, hit.line, op)
+  return true
 }
 function undoBlockOp(): void {
   const t = blockToast.value
@@ -1792,6 +1832,10 @@ function onPreviewWindowMessage(e: MessageEvent): void {
   }
   if (data.type === 'insertAt') {
     openInsertMenu(groupId, frameId, data)
+    return
+  }
+  if (data.type === 'blockStarts') {
+    if (Array.isArray(data.starts)) previewBlockStarts.set(groupId, data.starts.map(Number).filter(n => Number.isInteger(n)))
     return
   }
   if (data.type === 'blockMenu') {
@@ -2397,6 +2441,7 @@ function injectLineLinks(
     "    function build() {",
     "      layer.textContent = ''; gaps = []; grips = []; hoverGap = null;",
     "      var bs = blocks();",
+    "      try { window.parent.postMessage({ type: 'blockStarts', starts: bs.map(function(b) { return b.line; }), groupId: FRAME_ID }, '*'); } catch (_e) {}",
     "      if (!bs.length) return;",
     "      var starts = bs.map(function(b) { return b.line; });",
     "      for (var k = 0; k < bs.length; k++) if (bs[k].full) addGrip(bs[k], starts);",
@@ -3004,6 +3049,7 @@ function resolveQuickPick(index: number | null): void {
 }
 
 defineExpose({
+  caretBlockOp,
   // group lifecycle
   addGroup,
   removeGroup,
