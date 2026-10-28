@@ -14,6 +14,7 @@
 //! eigenvalues, Cholesky) are in `matrix_solvers.rs`; the HP overrides are in `hp_matrix`.
 pub mod column_matrix;
 pub mod diagonal_matrix;
+pub mod general_eigen;
 pub mod hp_matrix;
 pub mod lower_triangular_matrix;
 pub mod matrix_solvers;

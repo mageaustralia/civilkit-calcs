@@ -12,7 +12,7 @@ Click the line number in the report to jump to the source.
 | `Inconsistent units: "m + s"` | You added or compared quantities of different dimensions. Fix the formula. |
 | `Invalid units: "maximum"` (or `Invalid symbol: "#"` on a heading) | The text is being read as a Calcpad worksheet, not as a sheet, so `\|` means a unit conversion and `#` a directive. The `<!--sheet-->` marker is missing from the first line. Put it back. |
 | `Cannot rewrite existing units: kip` | A custom unit (`.kip = ...`) has the name of a built-in unit. Choose another name. |
-| `Matrix must be symmetric.` | `eigenvals`, `eigenvecs` and `eigen` need a matrix of the symmetric type. Use `copy(A, symmetric(n), 1, 1)`. See [Vectors and matrices](vectors-matrices.md). |
+| `The matrix has complex eigenvalues.` | `eigenvals`, `eigenvecs` and `eigen` return real values only. Use `ceigenvals` and `ceigenvecs`. See [Vectors and matrices](vectors-matrices.md). |
 | `Inconsistent units: "unitless" and "m"` in a plot | The plot variable carried a unit. Write `plot f(x * 1 m) for x in 0..6`. See [Plots](plots.md). |
 | `#UI does not support expressions unless 'allowExpression' is true.` | The value in a `#UI` line is not a plain number. Use `allowExpression` or move the formula into a sheet line. In a sheet, an input line with `?` takes a number only: `2*3 m` is an error on its line. See [Input forms with #UI](calcpad/ui-inputs.md) and [Templates](templates.md). |
 | `The condition could not be evaluated, so the block is unresolved...` | An `#if` or `if` condition has an error (usually an undefined name). The block runs no branch. |

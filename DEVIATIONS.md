@@ -300,6 +300,26 @@ engine. Grammar and limits: [docs/sheet-syntax.md](docs/sheet-syntax.md). Tests:
 tests (`cargo test -p civilkit-calcs-sheet`, which render every sample through the engine and
 check hand-computed values), `web/e2e/sheet-check.mjs` and `web/e2e/verify-ribbon-sheet.mjs`.
 
+## D18. Eigenvalues of any square matrix, and complex eigenvalues (addition)
+
+**CalcpadCE:** `eigenvals`, `eigenvecs` and `eigen` take only a matrix of the symmetric (or diagonal) type. A
+literal such as `[2; 1|1; 2]` is a full matrix, so it fails with `Matrix must be symmetric.` until it is copied
+into `symmetric(n)`, and a matrix that is not symmetric has no eigen function at all.
+
+**Here:** a full matrix that equals its transpose (to a relative 1e-12) is copied to the symmetric type and
+solved as before. Any other square matrix is reduced to Hessenberg form and solved with the shifted double QR
+iteration; when all its eigenvalues are real the three functions return them as for a symmetric matrix
+(ascending, the same `ne` argument, one unit eigenvector per row, scaled so its largest component is positive).
+When some are complex they stop with `The matrix has complex eigenvalues.` Two new functions return the complex
+case in the `fft` layout: `ceigenvals(M)` a 2 x n matrix (real parts, imaginary parts) and `ceigenvecs(M)` a
+2n x n matrix (eigenvector k is rows 2k - 1 and 2k). Units of the matrix carry over to the eigenvalues.
+
+**Why:** a literal stress tensor or `inverse(M)*K` of a dynamics problem is the common input, and the copy into a
+symmetric matrix was a stumbling block.
+
+**Tests:** `calcpad-core/src/matrix/general_eigen.rs` (residuals of random and defective matrices),
+`calcpad-core/tests/general_eigen_functions.rs`, `web/e2e/eigen-check.mjs`.
+
 ## Not deviations (scope and known differences)
 
 These are not deliberate behaviour changes, but they can make output differ:
