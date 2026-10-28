@@ -527,6 +527,8 @@ pub const ENGINE_FUNCTIONS: &[&str] = &[
     "augment",
     "average",
     "cbrt",
+    "ceigenvals",
+    "ceigenvecs",
     "ceiling",
     "cholesky",
     "clrunits",
