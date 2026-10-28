@@ -5,7 +5,7 @@
 /** Replaces source lines `from`..`to` (1-based, inclusive) with `text`; an empty `text` deletes those lines. */
 export interface BlockEdit { from: number; to: number; text: string[] }
 
-export type BlockOp = 'up' | 'down' | 'duplicate' | 'delete';
+export type BlockOp = 'up' | 'down' | 'duplicate' | 'delete' | 'copy' | 'cut' | 'paste' | 'disable' | 'enable';
 
 interface Span { start: number; end: number }
 
@@ -13,7 +13,10 @@ const blank = (s: string | undefined): boolean => s === undefined || s.trim() ==
 
 function spans(lines: string[], starts: number[]): Span[] {
     // A blank source line renders as an empty block of its own; it is spacing, not a block.
-    const s = [...new Set(starts)].filter(n => Number.isInteger(n) && n >= 1 && n <= lines.length && !blank(lines[n - 1])).sort((a, b) => a - b);
+    // A run of disabled lines is one block, whether or not the preview reported its lines (it draws nothing for them).
+    const off = (n: number): boolean => n >= 1 && n <= lines.length && blockDisabled(lines, n);
+    const runs = lines.map((_l, i) => i + 1).filter(n => off(n) && !off(n - 1));
+    const s = [...new Set([...starts, ...runs])].filter(n => Number.isInteger(n) && n >= 1 && n <= lines.length && !blank(lines[n - 1]) && !(off(n) && off(n - 1))).sort((a, b) => a - b);
     return s.map((start, i) => {
         let end = (i + 1 < s.length ? s[i + 1] : lines.length + 1) - 1;
         while (end > start && blank(lines[end - 1])) end--;
@@ -22,7 +25,8 @@ function spans(lines: string[], starts: number[]): Span[] {
 }
 
 /** The edit for `op` on the block that starts at `line`, or null when it does not apply (first block up, last down, unknown line). */
-export function blockEdit(lines: string[], starts: number[], line: number, op: BlockOp): BlockEdit | null {
+export function blockEdit(lines: string[], starts: number[], line: number, op: BlockOp, clip = ''): BlockEdit | null {
+    if (op === 'enable') return toggleEdit(lines, line, false);
     const all = spans(lines, starts);
     const i = all.findIndex(b => b.start === line);
     if (i < 0) return null;
@@ -39,10 +43,77 @@ export function blockEdit(lines: string[], starts: number[], line: number, op: B
         // A blank line keeps the copy from running into its original as one paragraph or list.
         return { from: cur.end, to: cur.end, text: [lines[cur.end - 1], '', ...body(cur)] };
     }
+    if (op === 'copy') return null;
+    if (op === 'disable') return toggleEdit(lines, cur.start, true, cur.end);
+    if (op === 'paste') {
+        const add = clip.split(/\r?\n/);
+        while (add.length && blank(add[0])) add.shift();
+        while (add.length && blank(add[add.length - 1])) add.pop();
+        return add.length ? { from: cur.end, to: cur.end, text: [lines[cur.end - 1], '', ...add] } : null;
+    }
     const next = all[i + 1];
     if (next) return { from: cur.start, to: next.start - 1, text: [] };
     const prev = all[i - 1];
     return { from: prev ? prev.end + 1 : cur.start, to: lines.length, text: [] };
+}
+
+/** The source text of the block that starts at `line`, or null for an unknown line (Copy and Cut). */
+export function blockText(lines: string[], starts: number[], line: number): string | null {
+    const b = spans(lines, starts).find(x => x.start === line);
+    return b ? lines.slice(b.start - 1, b.end).join('\n') : null;
+}
+
+// A disabled line is wrapped in an HTML comment, the one comment the sheet language has: the preview and the calculation
+// skip it and it stays in the text. Each line is wrapped on its own, because a comment that spans lines swallows the
+// blocks after it. A blank line inside the block becomes an empty comment so the block stays one run. Indentation stays
+// outside the comment, so a disabled `if` body keeps its place. `-->` inside a line would end the comment early, so it is
+// written as `--&gt;` and turned back on Enable.
+const OFF = /^(\s*)<!-- (.*) -->$/;
+const offLine = (l: string): string => {
+    if (blank(l)) return '<!-- -->';
+    const ind = /^\s*/.exec(l)![0];
+    return `${ind}<!-- ${l.slice(ind.length).replace(/-->/g, '--&gt;')} -->`;
+};
+const onLine = (l: string): string => (l === '<!-- -->' ? '' : l.replace(OFF, (_m, ind: string, body: string) => ind + body.replace(/--&gt;/g, '-->')));
+
+/** Disables the lines `from`..`to`, or (enable) the run of disabled lines around `from`. Null when there is nothing to change. */
+function toggleEdit(lines: string[], from: number, off: boolean, to = from): BlockEdit | null {
+    const isOff = (l: string | undefined): boolean => l !== undefined && (l === '<!-- -->' || OFF.test(l));
+    if (off) {
+        const body = lines.slice(from - 1, to);
+        return body.length && !body.every(isOff) ? { from, to, text: body.map(offLine) } : null;
+    }
+    if (!isOff(lines[from - 1])) return null;
+    let a = from, b = from;
+    while (a > 1 && isOff(lines[a - 2])) a--;
+    while (b < lines.length && isOff(lines[b])) b++;
+    return { from: a, to: b, text: lines.slice(a - 1, b).map(onLine) };
+}
+
+/** True when the block that starts at `line` is disabled. */
+export function blockDisabled(lines: string[], line: number): boolean {
+    const l = lines[line - 1];
+    return l !== undefined && (l === '<!-- -->' || OFF.test(l));
+}
+
+/** The start line of the block that holds `line` (a caret), or null on spacing below the last line of a block. */
+export function blockHolding(lines: string[], starts: number[], line: number): number | null {
+    const all = spans(lines, starts);
+    const b = [...all].reverse().find(x => x.start <= line);
+    return b && line <= b.end ? b.start : null;
+}
+
+/** Block starts read from the text alone, for when no preview has reported them: a run of lines between blank lines, a fence or $$ pair kept whole. */
+export function textStarts(lines: string[]): number[] {
+    const out: number[] = [];
+    let fence = false, prevBlank = true;
+    lines.forEach((l, i) => {
+        const t = l.trim();
+        if (!fence && t !== '' && prevBlank) out.push(i + 1);
+        if (/^(```|~~~)/.test(t) || t === '$$') fence = !fence;
+        prevBlank = t === '' && !fence;
+    });
+    return out;
 }
 
 /** The block's start line after the edit, so the caret can go to the moved or copied block. */
@@ -57,5 +128,7 @@ export function blockLineAfter(lines: string[], starts: number[], line: number, 
         return cur.start + (n.end - n.start + 1) + Math.max(n.start - cur.end - 1, 0);
     }
     if (op === 'duplicate') return cur.end + 2;
+    if (op === 'paste') return cur.end + 2;
+    if (op === 'copy' || op === 'disable' || op === 'enable') return cur.start;
     return Math.max(Math.min(cur.start, lines.length - (cur.end - cur.start + 1)), 1);
 }

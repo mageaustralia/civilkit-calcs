@@ -52,7 +52,8 @@ import { attachAutoIndenter } from './editor/auto-indent';
 import { registerFormattingCommands, getParseMode } from './editor/formatting-commands';
 import { looksLikeLine, sheetInsert } from './wasm/sheet-insert';
 import { insertEdit, type InsertBlock } from './wasm/sheet-blocks';
-import { blockEdit, blockLineAfter, type BlockOp } from './wasm/block-ops';
+import { blockEdit, blockLineAfter, blockText, blockDisabled, blockHolding, textStarts, type BlockOp } from './wasm/block-ops';
+import { copyBlockText } from './wasm/block-clipboard';
 import { NEW_SHEET_TEXT, WELCOME_SHEET_TEXT } from './wasm/sheet-ui';
 import { registerFormatDocumentProvider } from './editor/format-document';
 import { setActiveDocumentKeyResolver, getActiveDocumentKey, type EditorBridge } from './editor/bridge';
@@ -899,6 +900,16 @@ async function bootstrap(): Promise<void> {
         attachOperatorReplacer(ed);
         attachAutoIndenter(ed);
         registerFormattingCommands(ed, editorBridge);
+        // Ctrl/Cmd+Shift+K deletes the sheet block that holds the caret (Monaco's own binding deletes the line, which stays for other files);
+        // Ctrl/Cmd+Shift+/ disables it or, on a disabled block, enables it again.
+        ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyK, () => {
+            if (!appInstance.caretBlockOp(group.id, 'delete')) ed.trigger('keyboard', 'editor.action.deleteLines', null);
+        });
+        ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Slash, () => {
+            const pos = ed.getPosition();
+            const off = !!pos && blockDisabled(ed.getModel()?.getLinesContent() ?? [], pos.lineNumber);
+            appInstance.caretBlockOp(group.id, off ? 'enable' : 'disable');
+        });
 
         // Per-group diagnostics.
         group.diagnostics = setupDiagnostics(ed, activeBridge.api, () => {
@@ -1689,13 +1700,19 @@ async function bootstrap(): Promise<void> {
             ed.focus();
             return true;
         },
-        blockOp: (groupId: string, starts: number[], line: number, op: BlockOp) => {
+        blockOp: (groupId: string, starts: number[], line: number, op: BlockOp, clip?: string) => {
             const ed = groups.get(groupId)?.editor;
             const model = ed?.getModel();
             if (!ed || !model) return false;
             const lines = model.getLinesContent();
-            const e = blockEdit(lines, starts, line, op);
-            if (!e) return false;
+            // Copy and Cut put the block's source on the clipboard first (inside the click, so the browser allows it).
+            if (op === 'copy' || op === 'cut') {
+                const t = blockText(lines, starts, line);
+                if (t === null) return false;
+                void copyBlockText(t);
+            }
+            const e = blockEdit(lines, starts, line, op, clip);
+            if (!e) return op === 'copy' && blockText(lines, starts, line) !== null;
             const last = lines.length;
             let range;
             if (e.text.length) {
@@ -1716,6 +1733,21 @@ async function bootstrap(): Promise<void> {
             ed.setPosition({ lineNumber: at, column: 1 });
             ed.revealLineInCenterIfOutsideViewport(at);
             return true;
+        },
+        blockDisabled: (groupId: string, line: number) => {
+            const model = groups.get(groupId)?.editor.getModel();
+            return !!model && blockDisabled(model.getLinesContent(), line);
+        },
+        // The block that holds the editor caret: its start line and the block starts to work with (null when there is none).
+        caretBlock: (groupId: string, starts: number[]) => {
+            const ed = groups.get(groupId)?.editor;
+            const model = ed?.getModel();
+            const pos = ed?.getPosition();
+            if (!model || !pos || !isSheetText(model.getValue())) return null;
+            const lines = model.getLinesContent();
+            const use = starts.length ? starts : textStarts(lines);
+            const line = blockHolding(lines, use, pos.lineNumber);
+            return line === null ? null : { line, starts: use };
         },
         undo: (groupId: string) => {
             const ed = groups.get(groupId)?.editor;
