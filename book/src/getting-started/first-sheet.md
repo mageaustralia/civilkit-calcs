@@ -1,7 +1,7 @@
 # Your first sheet in five minutes
 
 <p><strong>Video:</strong> Your first calculation in 5 minutes</p>
-<video controls preload="none" style="width:100%;max-width:960px" src="../videos/01-first-calculation.mp4"></video>
+<video controls preload="none" poster="../videos/01-first-calculation.jpg" style="width:100%;max-width:960px" src="../videos/01-first-calculation.mp4"></video>
 
 This walk-through builds a bending check for a simply supported beam. You will type a few lines,
 see units work, add a pass or fail message and change a number.

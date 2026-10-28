@@ -1,7 +1,7 @@
 # Symbolic maths
 
 <p><strong>Video:</strong> Symbolic maths for a beam deflection</p>
-<video controls preload="none" style="width:100%;max-width:960px" src="videos/07-symbolic-beam-deflection.mp4"></video>
+<video controls preload="none" poster="videos/07-symbolic-beam-deflection.jpg" style="width:100%;max-width:960px" src="videos/07-symbolic-beam-deflection.mp4"></video>
 
 The calculation engine is numeric: it gives you numbers. The **Symbolic** dialog gives you
 formulas. It rearranges an equation, differentiates, integrates, solves for the constants of

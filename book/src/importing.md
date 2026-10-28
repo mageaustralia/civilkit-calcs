@@ -1,7 +1,7 @@
 # Importing worksheets
 
 <p><strong>Video:</strong> Import an existing worksheet</p>
-<video controls preload="none" style="width:100%;max-width:960px" src="videos/06-import-a-worksheet.mp4"></video>
+<video controls preload="none" poster="videos/06-import-a-worksheet.jpg" style="width:100%;max-width:960px" src="videos/06-import-a-worksheet.mp4"></video>
 
 The worksheet importer converts worksheet files from a spreadsheet-like calculation format, with
 text, equations, plots and pictures placed freely on a page (files ending `.xmcd` and `.mcdx`), into

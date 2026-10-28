@@ -1,7 +1,7 @@
 # Units
 
 <p><strong>Video:</strong> Units and results</p>
-<video controls preload="none" style="width:100%;max-width:960px" src="videos/02-units-and-results.mp4"></video>
+<video controls preload="none" poster="videos/02-units-and-results.jpg" style="width:100%;max-width:960px" src="videos/02-units-and-results.mp4"></video>
 
 Units are part of the value. The engine carries them through every operation, converts between
 them, and stops with an error when a formula does not add up dimensionally.

@@ -1,7 +1,7 @@
 # Templates with inputs
 
 <p><strong>Video:</strong> Templates with inputs</p>
-<video controls preload="none" style="width:100%;max-width:960px" src="videos/05-templates-with-inputs.mp4"></video>
+<video controls preload="none" poster="videos/05-templates-with-inputs.jpg" style="width:100%;max-width:960px" src="videos/05-templates-with-inputs.mp4"></video>
 
 A template is a calculation that you fill in rather than edit. A few lines of the sheet are
 **inputs**: a number with its unit, a choice from a list, a group of radio buttons, a checkbox.

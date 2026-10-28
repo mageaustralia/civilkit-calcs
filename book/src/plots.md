@@ -1,7 +1,7 @@
 # Plots
 
 <p><strong>Video:</strong> Plots in the sheet format</p>
-<video controls preload="none" style="width:100%;max-width:960px" src="videos/03-plots-in-sheets.mp4"></video>
+<video controls preload="none" poster="videos/03-plots-in-sheets.jpg" style="width:100%;max-width:960px" src="videos/03-plots-in-sheets.mp4"></video>
 
 There are three ways to draw: the `plot` line of the sheet format, the Calcpad `$Plot` and `$Map`
 commands, and Python blocks, which are covered in [Python blocks](python.md). All three can sit in
