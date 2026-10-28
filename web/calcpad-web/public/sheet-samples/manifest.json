@@ -379,6 +379,34 @@
    "read": false,
    "python": true,
    "assets": []
+  },
+  {
+   "id": "sheet-principal-stresses",
+   "title": "Principal stresses",
+   "group": "Sheet syntax",
+   "folder": "Sheet syntax",
+   "file": "sheet-samples/Principal stresses.sheet",
+   "upstream": "",
+   "description": "Principal stresses and directions of a plane and a 3D stress tensor from eigenvals and eigenvecs, checked with Mohr's circle.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "assets": []
+  },
+  {
+   "id": "sheet-shear-frame-frequencies",
+   "title": "Shear frame natural frequencies",
+   "group": "Sheet syntax",
+   "folder": "Sheet syntax",
+   "file": "sheet-samples/Shear frame natural frequencies.sheet",
+   "upstream": "",
+   "description": "Natural frequencies and mode shapes of a two storey shear frame from the eigenvalues of the non-symmetric matrix M⁻¹K.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "assets": []
   }
  ]
 }

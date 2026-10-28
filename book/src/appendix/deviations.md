@@ -17,6 +17,7 @@ page is a summary for users.
 | Radio and drop-down defaults | A radio group or drop-down marks its default by comparing text, so a default with a divided unit such as `25kN/m` finds no option and opens with nothing chosen (a drop-down shows its first label). | The default is found by value: the division sign, middle dot, raised digits and `^` are compared as plain marks, and `1.0` equals `1`. |
 | Nested blocks | A loop nested in an expression block cannot update the enclosing block's variable. | It can. |
 | Units in arrays | A vector or matrix writes the unit on every element. | It writes the unit once after the bracket (`[16; 12] ft`). `#settings {"unitPerElement": true}` restores the old display. |
+| Eigenvalues | `eigenvals`, `eigenvecs` and `eigen` take only a matrix of the symmetric type. | They take any square matrix; a symmetric literal no longer needs `copy(A, symmetric(n), 1, 1)`. `ceigenvals` and `ceigenvecs` return complex eigenvalues and eigenvectors. |
 | Markdown tables in Word | A table without the `bordered` class has no rules. | A Markdown pipe table is ruled. |
 | Word export | SVG pictures are embedded alone. Numbered lists lose their numbers. | An SVG is also written as a PNG for readers that lack SVG. Ordered lists are numbered. Unknown elements keep their content. |
 | Print header and footer | The server prints title, date and page numbers. | The browser prints; its own header and footer apply. |

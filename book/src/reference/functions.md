@@ -408,6 +408,8 @@ Functions marked `_hp` use the high-performance storage; they behave like the or
 | `eigenvals(a; b)` | First ne eigenvalues of matrix M (or all if omitted) |
 | `eigenvecs(a; b)` | First ne eigenvectors of matrix M (or all if omitted) |
 | `eigen(a; b)` | First ne eigenvalues and eigenvectors (or all if omitted) |
+| `ceigenvals(x)` | Complex eigenvalues of matrix M |
+| `ceigenvecs(x)` | Complex eigenvectors of matrix M |
 | `cholesky(x)` | Cholesky decomposition of symmetric positive-definite matrix |
 | `lu(x)` | LU decomposition of matrix M |
 | `qr(x)` | QR decomposition of matrix M |

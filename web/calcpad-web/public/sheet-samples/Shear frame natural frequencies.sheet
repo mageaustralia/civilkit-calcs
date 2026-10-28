@@ -1,0 +1,37 @@
+<!--sheet-->
+# Shear frame natural frequencies
+
+A two storey shear frame has a lumped mass at each floor and a lateral stiffness per storey.
+Free vibration needs K φ = ω² M φ. Multiplying by the inverse of M turns this into an ordinary
+eigenvalue problem of the matrix M⁻¹K, which is not symmetric; `eigenvals` and `eigenvecs`
+accept it as it is.
+
+m_1: 30 t
+m_2: 20 t
+k_1: 40000 kN/m
+k_2: 30000 kN/m
+
+K: [k_1 + k_2, -k_2; -k_2, k_2]
+M: [m_1, 0 t; 0 t, m_2]
+MK: inverse(M)*K
+
+## Frequencies
+
+lambda: eigenvals(MK)
+omega_1: sqrt(lambda.1)
+omega_2: sqrt(lambda.2)
+f_1: omega_1/(2*π) -> Hz
+f_2: omega_2/(2*π) -> Hz
+T_1: 1/f_1 -> s
+
+## Mode shapes
+
+Each row of `eigenvecs` is one mode, in the order of the frequencies. Scaled so the roof moves 1:
+
+Phi: eigenvecs(MK)
+phi_1: row(Phi, 1)/Phi.(1, 2)
+phi_2: row(Phi, 2)/Phi.(2, 2)
+
+The modes are orthogonal through the mass matrix, so this product is zero:
+
+check: dot(phi_1, M*phi_2)
