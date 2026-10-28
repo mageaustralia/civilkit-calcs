@@ -1,0 +1,30 @@
+<!--sheet-->
+# Principal axes of a section
+
+The second moments of area about any pair of axes form a symmetric matrix. Its eigenvalues
+are the principal second moments and its eigenvectors are the principal axes, so the same
+`eigenvals` and `eigenvecs` calls that give principal stresses give the strong and weak axes
+of an unsymmetric section.
+
+## Section properties about the centroid
+Ixx: 8.2e6 mm^4 | second moment about x
+Iyy: 3.1e6 mm^4 | second moment about y
+Ixy: -2.4e6 mm^4 | product of inertia
+
+I: [Ixx, Ixy; Ixy, Iyy]
+
+## Principal values and axes
+I_p: eigenvals(I)
+I_2: I_p.1
+I_1: I_p.2
+
+The larger value is the strong axis. Each row of `eigenvecs` is a unit vector along an axis:
+
+V: eigenvecs(I)
+theta_p: atan(V.(2, 2)/V.(2, 1))
+
+## Check with the closed form
+I_avg: (Ixx + Iyy)/2
+R: sqrt(((Ixx - Iyy)/2)^2 + Ixy^2) -> mm^4
+I_1c: I_avg + R
+I_2c: I_avg - R
