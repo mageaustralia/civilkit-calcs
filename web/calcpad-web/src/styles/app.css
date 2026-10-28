@@ -1366,3 +1366,9 @@ select:focus,
   background: inherit; border: 1px solid var(--vscode-editorWidget-border, #8886); box-shadow: 0 2px 8px #0005; }
 .prose-toolbar .pt-menu[hidden] { display: none; }
 .prose-toolbar .pt-menu button { text-align: left; }
+/* Convert selection to formula (editor/to-formula-monaco.ts): on the prose toolbar, and under a selection on touch screens */
+.prose-toolbar .pt-formula { font-family: ui-monospace, monospace; margin-left: 4px; border-left-color: var(--vscode-editorWidget-border, #8886); }
+.to-formula-chip { position: absolute; z-index: 60; min-height: 36px; padding: 0 14px; border-radius: 18px; font: 14px system-ui, sans-serif; cursor: pointer;
+  background: var(--vscode-editorWidget-background, #252526); color: var(--vscode-editorWidget-foreground, inherit);
+  border: 1px solid var(--vscode-focusBorder, #08f); box-shadow: 0 2px 8px #0005; }
+.to-formula-chip[hidden] { display: none; }

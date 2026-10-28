@@ -13,6 +13,7 @@ the main ones in the output panel.
 | Ctrl+F | Find in the editor |
 | Ctrl+Shift+B | Show or hide the sidebar |
 | Alt+Z | Wrap long lines |
+| Ctrl+Shift+E | Convert the selected expression to a formula line (see [Editing](../editing.md)) |
 | Shift+Alt+F | Format Document (tidy a sheet) |
 | F12 | Go to the definition of the name under the cursor |
 | Shift+F12 | Find references |
