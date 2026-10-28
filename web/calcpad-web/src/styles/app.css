@@ -1263,7 +1263,8 @@ select option {
 @media (hover: none) { .insert-menu button { height: 44px; font-size: 16px; } }
 
 /* The menu behind a block's grip is narrower; Undo after a block change sits at the bottom of the window. */
-.block-menu { width: 180px; }
+.block-menu { width: 180px; max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); overflow-y: auto; }
+@media (hover: none) { .block-menu button { height: 38px; } }
 .block-toast {
     position: fixed;
     z-index: 60;

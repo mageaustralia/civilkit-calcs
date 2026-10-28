@@ -84,7 +84,7 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
     frame = await reveal('Beta');
     await press(frame.locator('.ck-grip.on'));
     await page.waitForSelector('.block-menu');
-    check(await page.locator('.block-menu button').count() === 6, `${name}: a heading's menu has Collapse all and Expand all`);
+    check(await page.locator('.block-menu button').allTextContents().then(t => t.some(x => /Collapse all/.test(x)) && t.some(x => /Expand all/.test(x))), `${name}: a heading's menu has Collapse all and Expand all`);
     await press(page.locator('.block-menu button', { hasText: 'Collapse all' }));
     await page.waitForTimeout(600);
     frame = await front();

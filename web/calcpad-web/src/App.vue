@@ -1399,7 +1399,7 @@ function onBlockMove(groupId: string, data: Record<string, unknown>): void {
   if (!starts.length || !Number.isInteger(line) || !Number.isInteger(before) || !Number.isInteger(last)) return
   if (!onLineEditRequest.value?.moveBlock?.(groupId, starts, line, before, last)) return
   window.clearTimeout(blockToastTimer)
-  blockToast.value = { groupId, text: 'Block moved' }
+  blockToast.value = { groupId, text: 'Block moved', undo: true }
   blockToastTimer = window.setTimeout(() => { blockToast.value = null }, 6000)
 }
 function undoBlockOp(): void {
