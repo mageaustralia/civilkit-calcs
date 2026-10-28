@@ -32,8 +32,23 @@ Press Ctrl+S (Cmd+S on a Mac), or use Save in the quick-access strip. Ctrl+Shift
 A sheet is saved with the extension `.sheet` and a Calcpad worksheet as `.cpd`. Both are plain
 text. You can open them in any text editor and keep them in version control.
 
-> Saving is manual. Nothing you type is uploaded anywhere, and closing the tab without saving
-> loses unsaved text, so save before you leave.
+> Saving is manual. Nothing you type is uploaded anywhere, and the browser keeps no copy of
+> unsaved text, so save before you leave.
+
+### Knowing what is unsaved
+
+A document has unsaved changes when its text differs from what Save or Save As last wrote.
+
+* Its tab shows a dot (●) after the name, and the browser tab's title starts with ● while that
+  document is the active one.
+* Undoing back to the saved text clears the dot again.
+* Closing a tab with unsaved changes asks **Save**, **Don't Save** or cancel (click outside the
+  box).
+* Closing or reloading the browser tab while any document has unsaved changes makes the browser
+  ask whether to leave. The wording of that box is the browser's own.
+
+Print PDF, Word and Excel exports are copies of the report. They do not save the document, so the
+dot stays until you save it.
 
 ## Working offline
 
