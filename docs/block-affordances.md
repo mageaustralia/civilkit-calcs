@@ -12,12 +12,12 @@ plain functions in `web/calcpad-web/src/wasm/block-ops.ts` and `sheet-blocks.ts`
 |---|---|---|
 | F1 | Insert strip between blocks | Built (26.10.12): dashed line and "+" on hover, menu of block types |
 | F2a | Block grip: move up or down, duplicate, delete with Undo toast | Built |
-| F2b | Heading collapse and drag to reorder | In progress |
-| F3 | Text toolbar on prose, name completion | In progress |
+| F2b | Heading collapse and drag to reorder | Built |
+| F3 | Text toolbar on prose, name completion | Built |
 | F4 | Delete with an Undo toast | Built with F2a (one undo step; the toast calls the editor's undo) |
-| F5 | Cut, copy and paste a block, turn a block off | In progress |
+| F5 | Cut, copy and paste a block, turn a block off | Built |
 | F6 | On-screen math keyboard | Built (26.10.12) |
-| F7 | Slider for an input line | In progress |
+| F7 | Slider for an input line | Built (`slider MIN..MAX [step S]` on a `? ` line) |
 
 ## Rules these follow
 
