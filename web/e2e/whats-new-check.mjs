@@ -4,7 +4,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CANONICAL, GITHUB, PAGE_DIR, MANIFEST, RECENT, anchor, generate, parseChangelog, plainText, pngSize } from '../../tools/make_whats_new.mjs';
+import { CANONICAL, GITHUB, PAGE_DIR, MANIFEST, anchor, generate, parseChangelog, plainText, pngSize } from '../../tools/make_whats_new.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -18,7 +18,7 @@ check(existsSync(pagePath), 'public/whats-new/index.html exists');
 const html = readFileSync(pagePath, 'utf8');
 const manifest = JSON.parse(readFileSync(MANIFEST, 'utf8'));
 const changelog = readFileSync(join(repo, 'CHANGELOG.md'), 'utf8');
-const releases = parseChangelog(changelog).slice(0, RECENT);
+const releases = parseChangelog(changelog);
 
 // ---- the page is what the generator writes now ---------------------------------------------------------------
 check(html === generate(), 'the page equals what tools/make_whats_new.mjs writes now');
@@ -39,8 +39,8 @@ check(ld && ld['@type'] === 'CollectionPage' && ld.url === CANONICAL, 'JSON-LD p
 check(ld && ld.mainEntity.itemListElement.length === releases.length && ld.mainEntity.itemListElement.every((e, i) => e.url === `${CANONICAL}#${anchor(releases[i].version)}`), `JSON-LD lists the ${releases.length} releases with their anchors`);
 check((html.match(/<script/g) ?? []).length === 2 && html.includes('<script src="whats-new.js" defer></script>'), 'the only scripts are the JSON-LD and the same-folder hover-to-play script');
 
-// ---- the releases shown are the newest six ------------------------------------------------------------------------
-check(releases.length === RECENT, `the changelog has ${RECENT} releases to show`);
+// ---- the releases shown are all of them ------------------------------------------------------------------------
+check(releases.length >= 12, `the changelog has ${releases.length} releases to show`);
 const sections = [...html.matchAll(/<section class="release" id="([^"]+)"[^>]*>([^]*?)<\/section>/g)];
 check(sections.length === releases.length && sections.every((m, i) => m[1] === anchor(releases[i].version)), `one section per release, newest first (${sections.map((m) => m[1]).join(', ')})`);
 const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);

@@ -10,6 +10,7 @@ import { chromium } from 'playwright';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pub = resolve(here, '../calcpad-web/public');
+const clipCount = Object.values(JSON.parse(readFileSync(resolve(here, '../calcpad-web/whats-new/clips.json'), 'utf8'))).reduce((n, l) => n + l.length, 0);
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
 const clipsDir = arg('--clips', '') ? resolve(arg('--clips', '')) : '';
 const shots = arg('--shots', '');
@@ -67,7 +68,7 @@ for (const clips of clipsDir ? [false, true] : [false]) {
             imgs: [...document.querySelectorAll('img')].filter((i) => getComputedStyle(i).display !== 'none' && !i.closest('video')).map((i) => [i.complete, i.naturalWidth]),
         }));
         check(m.sw <= m.iw, `${tag}, ${name}: no horizontal scroll (${m.sw} <= ${m.iw})`);
-        check(m.h1 === 1 && m.videos >= 8, `${tag}, ${name}: one h1 and ${m.videos} videos`);
+        check(m.h1 === 1 && m.videos === clipCount, `${tag}, ${name}: one h1 and ${m.videos} videos`);
         const dark = name.includes('dark');
         const lum = m.bg.match(/\d+/g).slice(0, 3).map(Number).reduce((a, b) => a + b, 0) / 3;
         check(dark ? lum < 60 : lum > 200, `${tag}, ${name}: background ${m.bg}`);
@@ -93,6 +94,7 @@ if (clipsDir) {
     const ids = await page.evaluate(() => [...document.querySelectorAll('video')].map((v) => v.closest('figure').id.replace(/^clip-/, '')));
     for (const id of ids) {
         const sel = `#clip-${id} video`;
+        await page.mouse.move(1, 1);   // park the pointer: scrolling a clip under it would fire the hover-to-play script's mouseleave
         await page.locator(sel).scrollIntoViewIfNeeded();
         // advances: currentTime moves while it plays
         const t = await page.evaluate(async (s) => {
@@ -101,17 +103,19 @@ if (clipsDir) {
             while (v.readyState < 3 && Date.now() - t0 < 20000) await new Promise((ok) => setTimeout(ok, 100));
             if (v.paused) await v.play().catch(() => {});
             const a = v.currentTime;
-            await new Promise((ok) => setTimeout(ok, 1200));
+            // software decoding on a busy machine can play slowly: give it up to 8 s to move half a second
+            for (let i = 0; i < 80 && v.currentTime < a + 0.6; i++) await new Promise((ok) => setTimeout(ok, 100));
             return { a, b: v.currentTime, d: v.duration, loop: v.loop, muted: v.muted, src: v.currentSrc.split('/').pop(), paused: v.paused, w: v.videoWidth, h: v.videoHeight };
         }, sel);
         check(t.b > t.a + 0.5 && !t.paused && t.loop && t.muted, `${id}: plays (${t.src}, ${t.w}x${t.h}, ${t.d.toFixed(1)} s): currentTime ${t.a.toFixed(2)} -> ${t.b.toFixed(2)}`);
         // loops: seek near the end and watch the time wrap round
         const wrapped = await page.evaluate(async (s) => {
             const v = document.querySelector(s);
+            if (v.paused) await v.play().catch(() => {});
             v.currentTime = Math.max(0, v.duration - 0.6);
             let prev = v.currentTime, wrap = false;
             const t0 = Date.now();
-            while (Date.now() - t0 < 4000 && !wrap) { await new Promise((ok) => setTimeout(ok, 50)); if (v.currentTime < prev - 0.3) wrap = true; prev = v.currentTime; }
+            while (Date.now() - t0 < 12000 && !wrap) { await new Promise((ok) => setTimeout(ok, 50)); if (v.currentTime < prev - 0.3) wrap = true; prev = v.currentTime; }
             const after = v.currentTime;
             await new Promise((ok) => setTimeout(ok, 500));
             return { wrap, moving: v.currentTime > after, ended: v.ended };
