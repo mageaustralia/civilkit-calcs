@@ -14,30 +14,30 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ## [26.10.12] - 2026-10-28
 
 ### Added
-- A user guide (mdBook, in `book/`): getting started, the sheet format, the calculation language, units, plots in sheets and from Python, templates with inputs, the symbolic dialog, importing, exporting and troubleshooting. Every fenced example is run by `book/check-examples.sh`, the Python examples by `book/check-python.mjs`. It is served at `/calcs/guide/`. Eight short how-to videos accompany it (scripts in `book/videos/`).
-- An on-screen math keyboard with tabs, for touch screens and, as a floating panel you can drag, on desktop (Keyboard item in the status bar).
-- An insert strip: a + between rendered blocks of a sheet opens a menu of blocks to insert there.
-- Plot chips under each plot in the preview: log x and y, 1:1, copy data, save PNG or SVG.
-- Edit in place: one click opens a sheet block, clicking away applies it.
-- A tennis ball flight sample (drag, Magnus lift, spin and serve trajectories) and a taller box for large matrices.
-- Sheet inputs: a line such as `L: ? 6 m | span` is a number input, `E: ? [Steel = 200 GPa, *Timber = 11 GPa]` a drop-down (round brackets give radio buttons) and `ribs: ? on` a checkbox. They compile to the engine's own `#UI` controls, so the input form, the report and the Word and Excel exports work with no engine change; a run of inputs is drawn as one form, the formatter tidies them, and bad lines are errors on their line. See "Inputs and templates" in docs/sheet-syntax.md.
-- A "Templates" group in the Samples dialog with seven sheets that use inputs: a simply supported beam check, a cantilever with a tip load, rectangular column slenderness, a pad footing bearing pressure check, Darcy pipe flow, a retaining wall (sliding, overturning and bearing, with a backfill radio group and a surcharge checkbox) and a pump and pipeline operating point (a table of heads and a plot of both curves). Generic textbook formulas, no design standard.
-- The ribbon's Entry, Dropdown, Radio and Checkbox buttons insert the sheet form in a sheet.
-- `e2e/inputs-check.mjs` opens a template in Input mode, changes each kind of input and checks the result follows, then saves the values, reopens the saved text and checks the form shows them, shows the compiled text and exports.
-- The suite bar: on screens 900 px wide or more in the browser, a slim bar above the ribbon links to the other CivilKit apps. It is left out of an installed window, store builds and phone layouts.
-- `?theme=dark` or `?theme=light` in the address forces the theme for that page load without changing the saved choice.
+- **User guide** - Getting started, the sheet format, units, plots, Python, templates, importing and exporting, at `/calcs/guide/`. Every example in it is run by `book/check-examples.sh`, and eight short how-to videos go with it.
+- **On-screen math keyboard** - Tabbed keys and templates for touch screens, and a draggable floating panel on desktop (Keyboard in the status bar).
+- **Insert strip** - A dashed line with a + appears between rendered blocks; click it to insert a math line, text, heading, list, table, plot, condition or Python block there.
+- **Plot chips** - Log x, Log y, 1:1, Copy data, PNG and SVG under each plot in the preview.
+- **Edit in place** - Click a block in the preview to edit it where it stands; click away to apply, Esc to cancel.
+- **Sheet inputs** - A line such as `L: ? 6 m | span` becomes a number box, `E: ? [Steel = 200 GPa, *Timber = 11 GPa]` a drop-down (round brackets for radio buttons) and `ribs: ? on` a checkbox. They compile to the engine's `#UI` controls, so reports and Word and Excel exports work unchanged; see "Inputs and templates" in docs/sheet-syntax.md.
+- **Templates samples** - Seven sheets that use inputs: beam check, cantilever, column slenderness, pad footing, pipe flow, retaining wall, pump and pipeline. Generic textbook formulas, no design standard.
+- **Input buttons** - The ribbon's Entry, Dropdown, Radio and Checkbox buttons insert the sheet form.
+- **Tennis ball flight sample** - Drag, Magnus lift, spin and serve trajectories; large matrices also get a taller box.
+- **Suite bar** - On screens 900 px wide or more in the browser, a slim bar above the ribbon links to the other CivilKit apps.
+- **Theme in the address** - `?theme=dark` or `?theme=light` sets the theme for that page load without changing the saved choice.
+- **Input check** - `e2e/inputs-check.mjs` changes each kind of input in a template and checks the result, the saved values and the exports.
 
 ### Fixed
-- `e2e/browser-check.mjs` follows the three-tab sidebar: Export and Settings are opened from the Document and Calculation ribbons as dialogs (and closed before the next step), and the Insert tab is picked from the sidebar.
-- Units in sheet expressions and inputs: the dot operators `⋅` and `∙` count as the middle dot, and the micro sign `µ` is read as the engine's Greek mu (`5 µm` failed with `Error parsing "µm" as units`). Input units with raised digits and the middle dot (`m³`, `N/mm²`, `kN·m`) were already translated before the `#UI` line is written; a test now covers them and `°`, `%`, `MPa`, `°C`, `Ω`.
-- A radio group or drop-down whose default has a divided or multiplied unit (`25 kN/m`, `kN*m`, `N/mm^2`, `m^3`) opened with nothing chosen (a drop-down showed its first label but calculated with the default). The form now matches the default to its option by value, with the unit marks made plain, and two options with one value are an error on the input line.
-- A name defined by a raw `>> #UI` line (`>> #UI phi = 0.9`, `Mstar`, `Delta_T`) is now renamed like every other sheet definition, so a later sheet line can use it (it failed with `Undefined φ`).
-- Save values in a sheet wrote its comment above the `<!--sheet-->` marker, so the file stopped being a sheet. It now writes it under the marker, and the compiler passes that comment through.
+- **Units** - The dot operators and the micro sign `µ` are read correctly (`5 µm` failed before).
+- **Radio and drop-down defaults** - A default with a divided or multiplied unit (`25 kN/m`, `N/mm^2`) now selects its option instead of opening empty.
+- **Names from `>> #UI`** - A name defined by a raw `>> #UI` line can be used by later sheet lines (it failed with `Undefined φ`).
+- **Save values** - The comment is now written under the `<!--sheet-->` marker, so the file stays a sheet.
+- **Browser check** - `e2e/browser-check.mjs` follows the three-tab sidebar and the new dialogs.
 
 ### Changed
-- The sidebar has three tabs (Insert, TOC, Variables); Settings, Export, Errors and Prettify open as dialogs, and Prettify joins the Document ribbon.
-- In the browser the app leaves the browser's own shortcuts alone (address bar, tabs, zoom, bookmarks, print, new window).
-- The app follows the shared suite theme: ribbon, tabs, side panel, dialogs, menus, inputs, scrollbars, the editor and its find widget, the results pane and the Plotly charts use the shared palette in light and dark. The status bar is a quiet raised strip with an accent on the open item instead of a solid blue block. Printed reports and exported documents keep their own light styling.
+- **Three sidebar tabs** - Insert, TOC and Variables; Settings, Export, Errors and Prettify open as dialogs, and Prettify joins the Document ribbon.
+- **Browser shortcuts** - In a browser the app leaves the browser's own keys alone (address bar, tabs, zoom, bookmarks, print, new window).
+- **Shared suite theme** - Ribbon, panels, dialogs, editor, results and charts use the shared palette in light and dark, with a quieter status bar. Printed reports and exports keep their light styling.
 
 ## [26.10.11] - 2026-10-26
 
