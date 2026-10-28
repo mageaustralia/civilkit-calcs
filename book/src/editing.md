@@ -162,6 +162,47 @@ and lower-case letters, Greek letters and units. On a computer it is a panel you
 at the bottom. A key or template inserts at the cursor of the editor, or of the in-place editor when
 one is open. In a sheet, angles are degrees unless the sheet has a `#rad` line.
 
+## Convert a selection to a formula
+
+Select an expression you wrote in a sentence, say `w*L^2/8`, and press **Ctrl+Shift+E** (**Cmd+Shift+E** on a
+Mac), or choose **Convert Selection to Formula** in the editor's right-click menu, or **= Formula** on the text
+toolbar. In a sheet this
+
+```sheet
+w: 12 kN/m
+L: 6 m
+
+The moment at midspan is w*L^2/8.
+```
+
+becomes
+
+<!-- expect: res1 = w · L ^2 8 | 54 kNm -->
+```sheet
+w: 12 kN/m
+L: 6 m
+
+The moment at midspan is w*L^2/8.
+res1: w*L^2/8
+```
+
+The new line goes after the paragraph, and its name is selected: type a better one (`Mmid`) and it is
+named. Where the selection lands:
+
+* **In text** (prose, a note after `|`, a Calcpad text line or comment): a line of its own after the
+  paragraph. In a sheet it is a named line, `res1: w*L^2/8`; in a Calcpad worksheet a plain calculation
+  line, `w*L^2/8`. If the selection is the whole line, the line itself becomes the formula. A selection
+  written with its name, `M = w*L^2/8`, keeps that name, and `$...$`, backticks and a full stop around it
+  are dropped.
+* **In a calculation**: the expression is pulled out to a named line above, and the selection becomes the
+  name: `M: w*L^2/8 -> kN*m` turns into `res1: w*L^2/8` and `M: res1 -> kN*m`. Both copies of `res1` are
+  selected, so typing a name renames the two at once.
+
+The new name is the first of `res1`, `res2`, ... that the document does not use yet. The whole change is one
+undo step. A selection that is not an expression on one line (plain words, a heading, a code fence, an
+input's default) is left alone and the editor says so. On a phone or tablet a **= Formula** button shows
+under the selection instead of the toolbar.
+
 ## The sidebar
 
 The sidebar has three tabs: **Insert**, **TOC** (the outline of headings) and **Variables**.

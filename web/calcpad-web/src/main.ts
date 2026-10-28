@@ -51,6 +51,7 @@ import {
 import { attachQuickTyper } from './editor/quick-type';
 import { attachOperatorReplacer } from './editor/operator-replacer';
 import { attachAutoIndenter } from './editor/auto-indent';
+import { attachToFormula } from './editor/to-formula-monaco';
 import { registerFormattingCommands, getParseMode } from './editor/formatting-commands';
 import { looksLikeLine, sheetInsert } from './wasm/sheet-insert';
 import { insertEdit, type InsertBlock } from './wasm/sheet-blocks';
@@ -900,6 +901,7 @@ async function bootstrap(): Promise<void> {
 
         attachQuickTyper(ed, editorBridge);
         attachOperatorReplacer(ed);
+        attachToFormula(ed);
         attachAutoIndenter(ed);
         attachProseToolbar(ed);
         attachSheetSuggest(ed, editorBridge);
