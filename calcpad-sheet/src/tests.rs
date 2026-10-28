@@ -1377,3 +1377,42 @@ fn template_pump_values_and_inputs() {
     assert!(errs.is_empty(), "{errs:?}");
     assert!(t.contains("cannot lift the water") && t.contains("= 0 L"), "{t}");
 }
+
+#[test]
+fn a_number_input_with_a_slider_range_carries_it_in_a_hidden_marker() {
+    let l = lines_of("L: ? 6 m slider 2..12 | span");
+    assert_eq!(
+        l[1],
+        "#UI L = 6m '<span class=\"sheet-note\">span</span><span class=\"sheet-range\" hidden data-min=\"2\" data-max=\"12\"></span>"
+    );
+    let l = lines_of("w = ? 12 kN/m slider 0..30 step 0.5");
+    assert_eq!(l[1], "#UI w = 12kN/m '<span class=\"sheet-range\" hidden data-min=\"0\" data-max=\"30\" data-step=\"0.5\"></span>");
+    // The control is the same as without a range; only the marker is new.
+    assert!(lines_of("a: ? -2.5 slider -5..5")[1].starts_with("#UI a = -2.5 '<span"));
+    assert_eq!(lines_of("L: ? 6 m | span")[1], "#UI L = 6m '<span class=\"sheet-note\">span</span>");
+}
+
+#[test]
+fn slider_mistakes_are_errors_on_the_input_line() {
+    for bad in [
+        "L: ? 6 m slider 12..2",
+        "L: ? 6 m slider 2..12 step 0",
+        "L: ? 6 m slider 2..12 step x",
+        "L: ? 6 m slider 2",
+        "L: ? 20 m slider 2..12",
+        "L: ? on slider 0..1",
+        "L: ? [a = 1, b = 2] slider 0..3",
+    ] {
+        let e = errors_of(bad);
+        assert_eq!(e.len(), 1, "{bad}: {e:?}");
+        assert!(e[0].1.contains("input:"), "{bad}: {e:?}");
+    }
+}
+
+#[test]
+fn a_slider_range_is_formatted_and_idempotent() {
+    let src = "<!--sheet-->\nL:?6 m  SLIDER 2..12  STEP 0.5|span\n";
+    let f = format(src);
+    assert_eq!(f, "<!--sheet-->\nL: ? 6 m slider 2..12 step 0.5 | span\n");
+    assert_eq!(format(&f), f);
+}

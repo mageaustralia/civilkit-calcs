@@ -1084,6 +1084,7 @@ import MathKeyboard from './editor/MathKeyboard.vue'
 import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
 import type { BlockOp } from './wasm/block-ops'
 import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
+import { INPUT_SLIDER_SCRIPT } from './wasm/input-slider'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
@@ -2438,6 +2439,8 @@ function injectLineLinks(
     ] : []),
     // Chips under each plot: log x / y, 1:1, copy data, save PNG / SVG (see plot-chips.ts).
     ...(lineLinks ? [PLOT_CHIPS_SCRIPT] : []),
+    // A slider beside a number input with a range (Input mode only; see input-slider.ts).
+    ...(lineLinks ? [] : [INPUT_SLIDER_SCRIPT]),
     ...(lineLinks ? [
     "  function hideAllLineLinks() {",
     "    document.querySelectorAll('.lineLink').forEach(function(l) { l.style.display = 'none'; });",
