@@ -68,7 +68,7 @@ a millisiemens and `ms` a millisecond. One name is shadowed: `ks` has always bee
 kilosecond is written `1000 s`. A variable you define always wins over a unit of the same
 name, so a sheet that has a variable called `mN` still works.
 
-<!-- expect: F_n = 0.003 | E_m = 2000 | t_n = 5000 -->
+<!-- expect: F _n = F = 3 mN = 0.003 N | E _m = E = 2 GPa = 2000 MPa | t _n = t = 5 μm = 5000 nm -->
 ```sheet
 F: 3 mN
 F_n: F -> N
@@ -79,9 +79,9 @@ t_n: t -> nm
 ```
 
 ```text
-F_n = F -> N = 0.003 N
-E_m = E -> MPa = 2000 MPa
-t_n = t -> nm = 5000 nm
+F_n = F = 3 mN = 0.003 N
+E_m = E = 2 GPa = 2000 MPa
+t_n = t = 5 μm = 5000 nm
 ```
 
 ## Errors you want

@@ -7,7 +7,7 @@ let the sheet say which is which, without changing a single result.
 
 End a heading with `{collapse}` and the section under it is folded away until the reader opens it:
 
-<!-- expect: Beam moment | L = 6 m | M = 54 kN | utilisation = 0.3 -->
+<!-- expect: Beam moment | L = 6 m | = 54 kN · m maximum bending moment | = 0.3 bending utilisation -->
 ```sheet
 # Beam moment
 
@@ -40,7 +40,7 @@ Excel exports include them too. There is no option to leave a folded section out
 
 End a quantity or an input line with `{key}` to mark it as one of the numbers that matter:
 
-<!-- expect: L = 6 m | M = 54 kN | utilisation = 0.3 -->
+<!-- expect: L = 6 m span ★ | = 54 kN · m maximum bending moment ★ | = 0.3 bending utilisation ★ -->
 ```sheet
 L: ? 6 m | span {key}
 w: 12 kN/m | design load
