@@ -33,6 +33,10 @@ there for the line after it. The section runs to the next heading of the same le
 Only a heading at the top level of the sheet can fold. A `{collapse}` heading inside an `if`, `for`, `while` or
 `repeat` block is ignored, with a warning.
 
+The preview also has a fold arrow beside every other heading (see [Editing](../editing.md)). That fold is only a view
+and is not saved in the sheet; a `{collapse}` heading folds by its marker and has no arrow of its own, and "Collapse
+all" leaves it as the sheet wrote it.
+
 When you print, or save as PDF, every folded section is opened, so the printed report is complete. The Word and
 Excel exports include them too. There is no option to leave a folded section out of an export.
 

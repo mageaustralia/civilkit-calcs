@@ -305,6 +305,11 @@ utilisation: Mstar / (0.9 * Ms) | bending utilisation {key}
   not, so a folded section can define names the rest of the sheet uses. A folding section can hold other headings
   (a `###` inside a `##`), and a deeper section may fold on its own. Only a heading at the top level of the sheet
   can fold: a `{collapse}` heading inside an `if`, `for`, `while` or `repeat` block is a warning and is ignored.
+  This marker is part of the sheet and travels with the file. It is separate from the fold arrow the preview shows
+  beside any heading (a view-only fold that is not saved in the sheet): a `{collapse}` heading folds by its marker
+  alone and has no preview arrow, while the arrow works on every other heading. Folding an unmarked heading above a
+  `{collapse}` section hides the whole section, and "Collapse all" in the heading menu leaves marked sections as the
+  sheet wrote them.
 * **A key line.** A quantity or input line that ends with `{key}` (after the note, if there is one) is a key line.
   It is marked with a star and highlighted in the preview and the report, and Print and PDF keep the highlight.
   Several statements on a line (`a: 1; b: 2 {key}`) are all key. It works the same on an input line
