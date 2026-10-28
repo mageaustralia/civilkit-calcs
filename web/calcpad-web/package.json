@@ -27,6 +27,7 @@
     "@tauri-apps/plugin-store": "^2",
     "calcpad-frontend": "file:../calcpad-frontend",
     "katex": "^0.16.11",
+    "mermaid": "12.1.0",
     "monaco-editor": "^0.52.0",
     "vue": "^3.5.39"
   },

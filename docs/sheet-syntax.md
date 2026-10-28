@@ -59,6 +59,14 @@ KaTeX, which is bundled with the app and loaded the first time a sheet has a for
 rendered page needs no script and the content security policy is unchanged. For Word and Excel
 a formula is written as its TeX source in italics.
 
+A fenced code block tagged `mermaid` (in prose, or in a `#markdown` block of a Calcpad worksheet)
+is drawn as a diagram. The app swaps the rendered fence for the SVG that Mermaid draws, with SVG
+text labels; Mermaid is bundled as separate chunks, loaded the first time a page has a diagram,
+and precached by the service worker. The page gets markup and styles only, so the content
+security policy is unchanged, and the HTML and PDF reports carry the drawing. Word export shows
+the source. Diagrams use the dagre layout (`layout: elk` is not shipped). A fence Mermaid cannot
+parse stays as code, followed by the reason.
+
 ## Quantity lines
 
 ```

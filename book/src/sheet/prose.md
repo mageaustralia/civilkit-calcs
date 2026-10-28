@@ -78,6 +78,31 @@ In the preview, click a column heading to sort the rows by it (again for descend
 for the source order). It is a view only: the sheet, the printout and the exports keep the order
 you wrote. See [Sorting a table](../editing.md#sorting-a-table).
 
+## Diagrams
+
+A fenced block tagged `mermaid` is drawn as a diagram in the results: boxes and arrows, a flow
+chart, a sequence or a timeline, written as text in Mermaid's syntax.
+
+````sheet
+# Load path
+
+```mermaid
+graph TD
+  Slab --> Beam
+  Beam --> Column
+  Column --> Footing
+```
+
+G: 4.5 kPa
+````
+
+The drawing comes from the text, so editing the fence redraws it. A fence that cannot be read
+shows its text with the reason under it. Diagrams print and save with the HTML and PDF report as
+drawings; in Word they appear as their text. The same fence works inside a `#markdown` block of a
+Calcpad worksheet. The diagram library is part of the app and is only loaded when a page has a
+diagram, so it works offline and costs nothing on a page without one. The `layout: elk` option of
+Mermaid is not available; diagrams use the standard layout.
+
 ## Forcing prose
 
 A line starts with a backslash when it must not be read as a quantity:
