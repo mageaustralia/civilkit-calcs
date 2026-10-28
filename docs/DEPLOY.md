@@ -81,7 +81,7 @@ Deploy `pages-build-calcs` as the Pages project root, so the files are served un
 
 `https://civilkit.io/calcs/whats-new/` is a static page (`web/calcpad-web/public/whats-new/index.html`, with `whats-new.css` and
 the poster images in `posters/`). Those files are committed and ship with every build. The page is written by
-`tools/make_whats_new.mjs` from `CHANGELOG.md` (the newest six releases) and `web/calcpad-web/whats-new/clips.json` (the clips of
+`tools/make_whats_new.mjs` from `CHANGELOG.md` (every release) and `web/calcpad-web/whats-new/clips.json` (the clips of
 each version, with the sentence that describes each); run it again after a release entry or a manifest change, and
 `node e2e/whats-new-check.mjs` fails if the committed page is out of date.
 

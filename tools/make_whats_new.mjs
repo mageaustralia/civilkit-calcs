@@ -5,7 +5,7 @@
 //
 // Inputs: CHANGELOG.md (Keep a Changelog; "## [26.10.12] - 2026-10-28" starts a release) and
 // web/calcpad-web/whats-new/clips.json (per version: id, title, blurb and recorder of each clip). The page covers the
-// newest RECENT releases: one section each, with the clips of that version and then the changelog's bullets as HTML.
+// every release in the changelog, newest first: one section each, with the clips of that version and then the changelog's bullets as HTML.
 // A clip's poster is public/whats-new/posters/<id>.png (committed); the clip files (clips/<id>.webm and .mp4) are
 // not committed and the page looks right without them. See docs/DEPLOY.md.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -15,12 +15,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const PAGE_DIR = join(repo, 'web', 'calcpad-web', 'public', 'whats-new');
 export const MANIFEST = join(repo, 'web', 'calcpad-web', 'whats-new', 'clips.json');
-export const RECENT = 6;
 export const SITE = 'https://civilkit.io/calcs/';
 export const CANONICAL = `${SITE}whats-new/`;
 export const GITHUB = 'https://github.com/mageaustralia/civilkit-calcs';
 export const TITLE = "What's new in CivilKit Calcs: release notes with short clips";
-export const DESCRIPTION = 'Short looping clips and release notes for recent CivilKit Calcs releases: templates with inputs, a math keyboard, plot chips, 3D plots and a phone layout.';
+export const DESCRIPTION = 'Short looping clips and release notes for every CivilKit Calcs release: sheets, Python blocks, Plotly charts, symbolic algebra, rich-text editing and more.';
 
 export const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 export const anchor = (version) => `v${version.replace(/\./g, '-')}`;
@@ -120,10 +119,10 @@ ${notes}
 
 /** The whole page as a string. `changelog` is the text of CHANGELOG.md, `manifest` the parsed clips.json. */
 export function buildPage(changelog, manifest) {
-    const releases = parseChangelog(changelog).slice(0, RECENT);
+    const releases = parseChangelog(changelog);
     if (!releases.length) throw new Error('CHANGELOG.md has no releases');
     const shown = new Set(releases.map((r) => r.version));
-    for (const v of Object.keys(manifest)) if (!shown.has(v)) throw new Error(`clips.json has clips for ${v}, which is not among the ${RECENT} newest releases (${[...shown].join(', ')})`);
+    for (const v of Object.keys(manifest)) if (!shown.has(v)) throw new Error(`clips.json has clips for ${v}, which is not a release in CHANGELOG.md (${[...shown].join(', ')})`);
     const newest = releases[0];
     const ogClip = (manifest[newest.version] ?? [])[0];
     const ogImage = ogClip ? `${CANONICAL}posters/${ogClip.id}.png` : `${SITE}icon-512.png`;
@@ -179,7 +178,7 @@ ${JSON.stringify(ld, null, 1)}
 </header>
 <main id="main">
 <h1>What's new in CivilKit Calcs</h1>
-<p class="lead">A short clip of the headline features of each recent release, then everything the release changed. The clips are a few seconds long, silent and loop; they were recorded from the app itself.</p>
+<p class="lead">A short clip of the headline features of each release, then everything the release changed. The clips are a few seconds long, silent and loop; they were recorded from the app itself.</p>
 <div class="cta">
 <a class="button" href="../">Open CivilKit Calcs</a>
 <a class="button ghost" href="${GITHUB}/blob/main/CHANGELOG.md">Full changelog</a>
@@ -190,7 +189,7 @@ ${releases.map((r) => `<li><a href="#${anchor(r.version)}">${esc(r.version)}</a>
 </ul>
 </nav>
 ${body}
-<p class="more">Older releases are listed in the <a href="${GITHUB}/blob/main/CHANGELOG.md">changelog</a> and on the <a href="${GITHUB}/releases">releases page</a>.</p>
+<p class="more">The same notes are in the <a href="${GITHUB}/blob/main/CHANGELOG.md">changelog</a> and on the <a href="${GITHUB}/releases">releases page</a>.</p>
 </main>
 <footer class="site">
 <p>CivilKit Calcs is free and open source (MIT). <a href="${GITHUB}">Source on GitHub</a>.</p>

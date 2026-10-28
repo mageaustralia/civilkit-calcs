@@ -12,7 +12,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ## [Unreleased]
 
 ### Added
-- A "What's new" page, `whats-new/` beside the app (`https://civilkit.io/calcs/whats-new/`): for each of the last six releases a few short looping clips of its headline features, then the changelog's Added, Changed and Fixed bullets. `tools/make_whats_new.mjs` writes the static page from `CHANGELOG.md` and `web/calcpad-web/whats-new/clips.json`; `web/e2e/clips/record.mjs` records the clips from the real app (WebM with an MP4 fallback, not committed; the posters are). The page is left out of the service worker precache, and the About dialog links to it. `web/e2e/whats-new-check.mjs` checks it.
+- A "What's new" page, `whats-new/` beside the app (`https://civilkit.io/calcs/whats-new/`): for each release a few short looping clips of its headline features, then the changelog's Added, Changed and Fixed bullets. `tools/make_whats_new.mjs` writes the static page from `CHANGELOG.md` and `web/calcpad-web/whats-new/clips.json`; `web/e2e/clips/record.mjs` records the clips from the real app (WebM with an MP4 fallback, not committed; the posters are). The page is left out of the service worker precache, and the About dialog links to it. `web/e2e/whats-new-check.mjs` checks it.
 
 ## [26.10.12] - 2026-10-28
 
