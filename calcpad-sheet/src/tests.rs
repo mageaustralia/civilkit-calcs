@@ -1729,3 +1729,17 @@ fn a_sheet_without_the_markers_is_untouched_by_the_collapse_and_key_code() {
     let (l, _) = out_lines(src, false);
     assert!(!l.iter().any(|x| x.contains("details") || x.contains("sheet-key")), "{l:?}");
 }
+
+#[test]
+fn the_word_form_of_a_slider_is_not_syntax() {
+    // The bracket form is the only slider. A `slider 2..12` tail is not a range: it is an error on the line, never a slider.
+    for old in ["L: ? 6 m slider 2..12", "L: ? 6 m slider 2..12 step 0.5 | span"] {
+        let e = errors_of(old);
+        assert_eq!(e.len(), 1, "{old}: {e:?}");
+        let t = compile(&format!("<!--sheet-->\n{old}")).text;
+        assert!(!t.contains("\"min\""), "{old}: {t}");
+    }
+    // The formatter does not turn the word form into the bracket form.
+    let src = "<!--sheet-->\nL: ? 6 m slider 2..12\n";
+    assert!(!format(src).contains('['), "{}", format(src));
+}
