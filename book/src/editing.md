@@ -21,6 +21,34 @@ information counts.
 The Insert tab has a search box that filters the whole library. In a sheet, entries that have no
 sheet form (the data grid and the other `#UI` forms, `$Map`, directives) carry a `>>` mark and insert Calcpad text as `>>` lines.
 
+### The text toolbar
+
+Select some words in a line of prose, or click into one, and a small toolbar appears above the line:
+**Style** (Normal, Heading 1, 2 or 3), **B**, *I*, **</>** for code, **Link**, a bulleted list and a
+numbered list. It does not appear on quantity lines, in code fences or inside a `$$` formula, where
+those would only add characters that mean something else. The same toolbar appears over the text in
+the in-place rich-text editor.
+
+Each button's tooltip shows the Markdown it types (`Bold: **text**`, `Link: [text](address)`,
+`Numbered list: 1. item`), so you can learn the syntax and type it yourself next time.
+
+* A button is a toggle: Bold on text that is already bold takes the `**` off again, and a list button
+  on a list takes the markers off. A button that is on is shown pressed.
+* With no selection, Bold wraps the word at the caret.
+* **Link** wraps the selection as `[text](url)` and selects `url`, ready for the address.
+* The edit is made in the source, in one undo step, and the editor keeps the focus.
+* On a phone or tablet the floating bar stays away so it does not fight the system selection menu;
+  the in-place editor keeps its fixed bar there.
+
+### Name completion
+
+Type a letter in a calculation and the editor offers the names the sheet has defined on the lines
+above (with the defining line beside each, for example `w: 12 kN/m | load`) and the built-in
+functions (`max`, `sqrt`, `sin` and the rest). Accepting a function writes the brackets and leaves the
+caret between them. Nothing pops up while you write prose, in a note after `|`, in quoted text or in
+a `$...$` formula. Ctrl+Space on an empty spot offers everything, including the Greek spellings and
+the block snippets.
+
 ## In-place editing in the results
 
 Edit a sheet *where it stands*, in the preview.
