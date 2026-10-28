@@ -46,11 +46,31 @@ It loads the first time you use it.
 
 ### Insert between blocks
 
-Between the rendered blocks there is a small **+**. It opens a menu to insert a block at that place:
-Math line, Text, Heading, List, Table, Plot, Condition or Python. The new block goes in front of the
-next block's source line, indented like it, and its first word is left selected in the editor so
-you can type over it. On a touch screen the **+** appears as a tab on the left edge, around the
-block you tapped.
+Move the pointer between two rendered blocks and a dashed line appears with a **+** in the middle.
+Click the **+** for a menu of blocks to insert there: Math line, Text, Heading, List, Table, Plot,
+Condition or Python. The new block goes in front of the next block's source line, indented like it,
+and its first word is left selected in the editor so you can type over it. On a touch screen the
+**+** stays hidden until you tap a block, and then shows only in the two gaps beside it.
+
+### Plot chips
+
+Under each plot in the preview there is a row of chips: Log x, Log y, 1:1 (equal axis scale),
+Copy data, PNG and SVG. Copy data puts the plotted values on the clipboard as tab-separated text,
+ready for a spreadsheet. The 3D plots have Copy data and PNG only.
+
+## The math keyboard
+
+The **Keyboard** item in the status bar opens an on-screen math keyboard with tabs for numbers and
+operators, functions, calculus and plots (sum, integral, root, parametric plot), matrices, capital
+and lower-case letters, Greek letters and units. On a computer it is a panel you can drag by its title; on a touch screen it docks
+at the bottom. A key or template inserts at the cursor of the editor, or of the in-place editor when
+one is open. In a sheet, angles are degrees unless the sheet has a `#rad` line.
+
+## The sidebar
+
+The sidebar has three tabs: **Insert**, **TOC** (the outline of headings) and **Variables**.
+Settings, Export, Errors and Prettify open as dialogs from the ribbon (and Errors from the status
+bar); Esc closes them.
 
 ## Phones and tablets
 
