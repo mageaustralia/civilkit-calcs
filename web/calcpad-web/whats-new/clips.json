@@ -1,0 +1,56 @@
+{
+  "26.10.12": [
+    {
+      "id": "templates-with-inputs",
+      "title": "Templates with inputs",
+      "blurb": "Open a template from the Samples dialog and switch to Input mode. Here the soil in a pad footing check is changed from medium dense sand to soft clay, and the verdict at the bottom of the page changes from OK to Fails.",
+      "recorder": "01-templates-with-inputs"
+    },
+    {
+      "id": "typing-an-input-line",
+      "title": "An input is one line of a sheet",
+      "blurb": "Start the value of a sheet line with a question mark, as in L: ? 6 m | span, and Input mode shows a number box for it with its unit. Everything below that uses L follows what is typed in the box.",
+      "recorder": "02-typing-an-input-line"
+    },
+    {
+      "id": "math-keyboard",
+      "title": "On-screen math keyboard",
+      "blurb": "The Keyboard item in the status bar opens a math keyboard, a panel you can drag on a desktop. Here a few clicks type y = \u03c0 \u00d7 2^2 and the sheet calculates it.",
+      "recorder": "03-math-keyboard"
+    },
+    {
+      "id": "insert-strip",
+      "title": "Insert strip between blocks",
+      "blurb": "Hover between two rendered blocks of a sheet and a + appears. It opens a menu of blocks to insert at that place; here a table goes in under the heading, with its first cell selected ready to type over.",
+      "recorder": "04-insert-strip"
+    },
+    {
+      "id": "plot-chips",
+      "title": "Plot chips: log axes and save as PNG",
+      "blurb": "Under each plot in the preview a row of chips switches an axis to a log scale, makes the axes 1:1, copies the data and saves the plot as PNG or SVG. This one turns both axes to log, then saves a PNG.",
+      "recorder": "05-plot-chips"
+    },
+    {
+      "id": "edit-in-place",
+      "title": "Edit in place",
+      "blurb": "One click on a block of a sheet opens it where it stands. Click away and the change is applied; Esc throws it away.",
+      "recorder": "06-edit-in-place"
+    }
+  ],
+  "26.10.11": [
+    {
+      "id": "plots-gallery",
+      "title": "Plots sample",
+      "blurb": "The Plots sample is a gallery of Plotly plots with implicit curves, functions, polylines and a second y axis. Here the results pane scrolls through the first of them and back.",
+      "recorder": "07-plots-gallery"
+    }
+  ],
+  "26.10.10": [
+    {
+      "id": "phone-layout",
+      "title": "Phone layout",
+      "blurb": "On a screen 760 px wide or less the app shows one pane at a time, switched from a bar along the bottom: Edit, Results and Insert.",
+      "recorder": "08-phone-layout"
+    }
+  ]
+}
