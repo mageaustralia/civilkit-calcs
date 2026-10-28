@@ -59,3 +59,30 @@ export function blockLineAfter(lines: string[], starts: number[], line: number, 
     if (op === 'duplicate') return cur.end + 2;
     return Math.max(Math.min(cur.start, lines.length - (cur.end - cur.start + 1)), 1);
 }
+
+/** A move edit, with the start line the moved block (or section) has afterwards. */
+export interface MoveEdit extends BlockEdit { at: number }
+
+/**
+ * The edit that moves the block starting at `line` to just before the block starting at `beforeLine` (0 or omitted: to the
+ * end). `lastLine` is the start of the last block that goes with it (a heading drags its section); it defaults to `line`.
+ * Null when it does not apply: unknown lines, or a target inside or right beside the moved blocks.
+ */
+export function moveBlockTo(lines: string[], starts: number[], line: number, beforeLine?: number, lastLine?: number): MoveEdit | null {
+    const all = spans(lines, starts);
+    const i = all.findIndex(b => b.start === line);
+    const j = lastLine === undefined ? i : all.findIndex(b => b.start === lastLine);
+    if (i < 0 || j < i) return null;
+    const t = !beforeLine ? all.length : all.findIndex(b => b.start === beforeLine);
+    if (t < 0 || (t >= i && t <= j + 1)) return null;
+    const body = (a: number, b: number): string[] => lines.slice(all[a].start - 1, all[b].end);
+    const moved = body(i, j);
+    if (t > j) {
+        // Down: what lay between goes first, the blocks follow it, with the gap they had before.
+        const gap = Array<string>(Math.max(all[j + 1].start - all[j].end - 1, 0)).fill('');
+        const mid = body(j + 1, t - 1);
+        return { from: all[i].start, to: all[t - 1].end, text: [...mid, ...gap, ...moved], at: all[i].start + mid.length + gap.length };
+    }
+    const gap = Array<string>(Math.max(all[i].start - all[i - 1].end - 1, 0)).fill('');
+    return { from: all[t].start, to: all[j].end, text: [...moved, ...gap, ...body(t, i - 1)], at: all[t].start };
+}
