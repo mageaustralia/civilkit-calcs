@@ -10,6 +10,7 @@ pub mod input;
 mod names;
 mod pyexport;
 mod tex;
+mod unitdef;
 
 pub use format::format;
 
@@ -700,6 +701,9 @@ impl<'a> Comp<'a> {
                 let r = self.raw(rest);
                 self.mark(idx, LineKind::Raw);
                 self.emit(r, idx);
+                continue;
+            }
+            if self.unit_def(&content, idx) {
                 continue;
             }
             if content.starts_with("'<!--{") && content.ends_with("-->") {

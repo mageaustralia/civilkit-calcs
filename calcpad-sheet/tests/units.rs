@@ -1,4 +1,4 @@
-//! Percent conversion, compiled and run by the engine.
+//! Percent conversion and a sheet's own units (`#unit`), compiled and run by the engine.
 
 use calcpad_sheet::compile;
 use serde_json::Value;
@@ -23,13 +23,18 @@ fn run(src: &str) -> (String, String, Vec<Value>) {
             _ => {}
         }
     }
-    let text = out.replace("&nbsp;", " ").split_whitespace().collect::<Vec<_>>().join(" ");
+    let text = out
+        .replace("&nbsp;", " ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
     (c.text, text, v["errors"].as_array().cloned().unwrap_or_default())
 }
 
 #[test]
 fn convert_to_percent() {
-    let (cp, text, errs) = run("<!--sheet-->\nr: 0.125 -> %\nu: 1/3 -> %\nw: 0.07\nx: w -> %\ny: 2.5‰ -> %\nz: 0.0123 -> ‰\n");
+    let (cp, text, errs) =
+        run("<!--sheet-->\nr: 0.125 -> %\nu: 1/3 -> %\nw: 0.07\nx: w -> %\ny: 2.5‰ -> %\nz: 0.0123 -> ‰\n");
     assert!(errs.is_empty(), "{errs:?}");
     assert!(cp.contains("r = 0.125|%"), "{cp}");
     assert!(cp.contains("z = 0.0123|‰"), "{cp}");
@@ -47,4 +52,45 @@ fn percent_input_round_trips() {
     assert!(errs.is_empty(), "{errs:?}");
     assert!(text.contains("25 kN"), "{text}");
     assert!(text.contains("= 25 %"), "{text}");
+}
+
+#[test]
+fn own_unit() {
+    let src = "<!--sheet-->\n#unit bag = 25 kg | cement bag\n#unit pallet = 40 bag\nload: 3 pallet -> t\nn: 1000 kg -> bag\nq: 2 bag/m² -> kg/m²\n";
+    let (cp, text, errs) = run(src);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(
+        cp.contains(".bag = 25 kg '<span class=\"sheet-note\">cement bag</span>"),
+        "{cp}"
+    );
+    assert!(cp.contains(".pallet = 40 bag"), "{cp}");
+    assert!(text.contains("bag = 25 kg cement bag"), "{text}");
+    assert!(text.contains("load = 3 pallet = 3 t"), "{text}");
+    assert!(text.contains("n = 1000 kg = 40 bag"), "{text}");
+    assert!(text.contains("= 50 kg ∕ m 2"), "{text}");
+}
+
+#[test]
+fn own_unit_errors() {
+    for (line, msg) in [
+        ("#unit ft2 = 1 ft", "letters and _ only"),
+        ("#unit bag", "#unit name = value"),
+        ("#unit bag =", "needs a value"),
+        ("#unit bag = 25 kg kg kg (", "number with units"),
+        ("#unit a = 1 m; b = 2 m", "one unit per line"),
+    ] {
+        let c = compile(&format!("<!--sheet-->\n{line}\n"));
+        assert!(
+            c.diagnostics.iter().any(|d| d.line == 1 && d.message.contains(msg)),
+            "{line}: {:?}",
+            c.diagnostics
+        );
+    }
+    // A built-in unit cannot be redefined: the engine says so on the line.
+    let (_, _, errs) = run("<!--sheet-->\n#unit kip = 4448 N\n");
+    assert!(!errs.is_empty());
+    // A heading and prose that start with the word are not unit lines.
+    let c = compile("<!--sheet-->\n# unit = weight\n#units of the sheet\n");
+    assert!(c.diagnostics.is_empty(), "{:?}", c.diagnostics);
+    assert!(!c.text.contains(".unit"), "{}", c.text);
 }

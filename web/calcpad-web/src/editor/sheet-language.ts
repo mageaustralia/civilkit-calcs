@@ -34,6 +34,7 @@ const monarch: monaco.languages.IMonarchLanguage = {
         root: [
             [/<!--sheet-->/, 'comment'],
             [/^\s*>>.*$/, 'type'],
+            [/^\s*#unit(?=\s)/, 'keyword'],
             [/^\s*```\s*python\s*$/, { token: 'type', next: '@pyFence', nextEmbedded: 'python' }],
             [/^\s*```\s*calcpad\s*$/, { token: 'type', next: '@calcpadFence' }],
             [/^\s*```.*$/, { token: 'string', next: '@codeFence' }],

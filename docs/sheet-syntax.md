@@ -85,6 +85,11 @@ f(x): x^2 + 1
 * **Conversion:** `-> unit` converts the result: `Ms: fy * Ze -> kN*m` (Calcpad's `|kN*m`). It
   must come last, before any note.
   `-> %` (or `-> ‰`) shows a ratio as a percentage: `util: Ed / Rd -> %` gives `69.07 %`.
+* **A unit of the sheet's own:** `#unit bag = 25 kg [| note]` defines the unit `bag` (the engine's
+  custom unit `.bag = 25 kg`), which later lines use after a number (`3 bag`) and after `->`. The
+  name is letters and `_` only; the value is an expression with units. A bad name or value is an
+  error on its line, and redefining a built-in unit is the engine's error. The line is not renamed,
+  and Format Document leaves it as written.
 * **Notes:** the first `|` outside brackets starts the note. `||` is the logical or. Use
   `abs(x)` for an absolute value.
 * **Several per line:** separate with `;`. A note belongs to the last one.

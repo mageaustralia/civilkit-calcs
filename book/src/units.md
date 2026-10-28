@@ -157,25 +157,39 @@ to keep it as a percentage.
 
 ## Your own units
 
-A unit is defined like a variable, with a dot in front of the name. A sheet defines it through a
-`>>` line:
+A sheet defines a unit of its own with a `#unit` line: the name, `=`, and its value in units
+the engine knows or in units defined above it. Later lines use it after a number and after `->`,
+like any other unit.
 
+<!-- expect: bag = 25 kg cement bag | load = 3 pallet = 3 t | n = 1000 kg = 40 bag -->
 ```sheet
->> .pace = 0.75m
-distance: 120 pace -> m
+#unit bag = 25 kg | cement bag
+#unit pallet = 40 bag
+load: 3 pallet -> t
+n: 1000 kg -> bag
+rate: 6 bag / 1 m³ -> kg/m³
 ```
 
 ```text
-pace = 0.75 m
-distance = 120 pace = 90 m
+bag = 25 kg   cement bag
+pallet = 40 bag
+load = 3 pallet = 3 t
+n = 1000 kg = 40 bag
+rate = 6 bag / 1 m³ = 150 kg/m³
 ```
+
+A unit name is letters and `_` only (`bag`, `ton_short`), with no digits; a name with a digit is an
+error on its line. The value can use the usual spellings (`m²`, `kN·m`) and can have a note after
+`|`. A built-in unit cannot be redefined: `#unit slug = 14.6 kg` is an error, because `slug` is
+already a unit. In the Calcpad language, and in a `>>` line of a sheet, the same unit is a line
+with a dot in front of the name: `.bag = 25kg`.
 
 Currency and information units are defined as dimensionless units, the first as 1 and the others
 as multiples:
 
 ```sheet
->> .USD = 1
->> .AUD = 0.65*USD
+#unit USD = 1
+#unit AUD = 0.65 USD
 price: 200 AUD -> USD
 ```
 
@@ -186,7 +200,6 @@ price = 200 AUD = 130 USD
 ```
 
 Two families of dimensionless custom units in one sheet share a dimension, so do not mix them.
-A built-in unit cannot be redefined: `.kip = 4448 N` (in a worksheet, or after `>>` in a sheet) is an error because `kip` exists.
 
 ## Units and names
 

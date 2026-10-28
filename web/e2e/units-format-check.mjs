@@ -1,8 +1,10 @@
-// Percentages in the app (book/src/units.md, "Percentages"),
+// Percentages and a sheet's own units in the app (book/src/units.md, "Percentages" and "Your own units"),
 // on a desktop window and on a phone.   node e2e/units-format-check.mjs [--url U]
 //
 //   1. `-> %` and `-> ‰` show a ratio as a percentage in the preview;
 //   2. a percent input shows its number and `%` in Input mode, and a changed value flows into the results in percent;
+//   3. `#unit` lines define units that later lines use after a number and after `->`;
+//   4. a bad `#unit` line is an error marker on its line, and the editor colours `#unit` as a keyword.
 import { chromium, devices } from 'playwright';
 
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
@@ -24,6 +26,13 @@ const INPUT = `<!--sheet-->
 rate: ? 12.5 % | rate
 F: rate * 200 kN
 twice: rate * 2 -> %
+`;
+const OWN = `<!--sheet-->
+# Own units check
+#unit bag = 25 kg | cement bag
+#unit pallet = 40 bag
+load: 3 pallet -> t
+n: 1000 kg -> bag
 `;
 
 const browser = await chromium.launch();
@@ -84,6 +93,28 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
         const dontSave = page.locator('.modal-backdrop button', { hasText: /^Don't Save$/ });
         if (await dontSave.waitFor({ timeout: 1500 }).then(() => true, () => false)) await dontSave.click();
     }
+
+    // 3. A sheet's own units.
+    await setText(OWN);
+    t = await until('Own units check', /n = 1000 kg = 40 bag/);
+    check(t !== '', `${name}: 1000 kg -> bag gives 40 bag`);
+    check(/bag = 25 kg cement bag/.test(t) && /pallet = 40 bag/.test(t), `${name}: the unit lines show their definitions and the note`);
+    check(/load = 3 pallet = 3 t/.test(t), `${name}: a unit defined from another converts (3 pallet = 3 t)`);
+
+    // 4. A bad unit line is marked, and #unit is coloured as a keyword.
+    await setText(OWN + '#unit bag2 = 3 kg\n');
+    let marks = [];
+    for (let i = 0; i < 40 && !marks.length; i++) {
+        marks = await page.evaluate(() => window.monaco.editor.getModelMarkers({}).filter((m) => /letters and _ only/.test(m.message)).map((m) => m.startLineNumber));
+        if (!marks.length) await page.waitForTimeout(250);
+    }
+    check(marks.includes(7), `${name}: a unit name with a digit is an error on its line (${JSON.stringify(marks)})`);
+    const kw = await page.evaluate(() => {
+        const model = window.calcpadActiveEditor.getModel();
+        const toks = window.monaco.editor.tokenize(model.getValue(), model.getLanguageId());
+        return toks[2]?.[0]?.type ?? '';
+    });
+    check(/keyword/.test(kw), `${name}: #unit is coloured as a keyword (${kw})`);
 
     check(errors.length === 0, `${name}: no page errors${errors[0] ? ': ' + errors[0] : ''}`);
     await ctx.close();
