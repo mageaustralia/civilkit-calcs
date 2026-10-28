@@ -44,14 +44,17 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
         await second.tap();
         await frame.locator('.ck-ins.on .ck-ins-btn').first().tap();
     } else {
-        const bb = await second.boundingBox();
-        await page.mouse.move(bb.x + bb.width / 2 + 100, bb.y - 2, { steps: 4 });
-        await page.mouse.move(bb.x + bb.width / 2, bb.y - 1, { steps: 2 });
-        await page.waitForTimeout(300);
-        const btns = frame.locator('.ck-ins-btn');
         let clicked = false;
-        for (let i = 0; i < await btns.count() && !clicked; i++) {
-            if (+await btns.nth(i).evaluate(e => getComputedStyle(e).opacity) === 1) { await btns.nth(i).click(); clicked = true; }
+        for (let attempt = 0; attempt < 4 && !clicked; attempt++) {
+            const bb = await second.boundingBox();
+            await page.mouse.move(bb.x + bb.width / 2 + 100 + attempt * 7, bb.y - 2, { steps: 4 });
+            await page.mouse.move(bb.x + bb.width / 2, bb.y - 1, { steps: 2 });
+            await frame.locator('.ck-ins.on .ck-ins-btn').first().waitFor({ timeout: 2000 }).catch(() => {});
+            await page.waitForTimeout(500);
+            const btns = frame.locator('.ck-ins-btn');
+            for (let i = 0; i < await btns.count() && !clicked; i++) {
+                if (+await btns.nth(i).evaluate(e => getComputedStyle(e).opacity) === 1) { await btns.nth(i).click(); clicked = true; }
+            }
         }
         check(clicked, `${name}: a + shows above the second heading`);
     }
