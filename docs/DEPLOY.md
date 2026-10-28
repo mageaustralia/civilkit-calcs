@@ -83,7 +83,10 @@ Deploy `pages-build-calcs` as the Pages project root, so the files are served un
 the poster images in `posters/`). Those files are committed and ship with every build. The page is written by
 `tools/make_whats_new.mjs` from `CHANGELOG.md` (every release) and `web/calcpad-web/whats-new/clips.json` (the clips of
 each version, with the sentence that describes each); run it again after a release entry or a manifest change, and
-`node e2e/whats-new-check.mjs` fails if the committed page is out of date.
+`node e2e/whats-new-check.mjs` fails if the committed page is out of date. Clips recorded before their release is cut go
+under the key `"Unreleased"` in `clips.json`: they are left off the page until then. When the release heading is added to the
+changelog, rename the key to the new version, record the clips so their posters land in `public/whats-new/posters/`, commit
+the posters and run the generator again.
 
 The clips themselves are short WebM (VP9) files with an H.264 MP4 fallback for Safari. They are **not committed** (they are
 ignored, like the guide's videos) and they are **not part of the GitHub Pages deploy**: the page works without them and shows the
