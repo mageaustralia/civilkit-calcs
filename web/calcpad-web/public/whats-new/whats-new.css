@@ -60,8 +60,12 @@ section.release time { color: var(--dim); font-size: 0.95rem; }
 @media (min-width: 52rem) { .clips.pair { grid-template-columns: 1fr 1fr; } }
 figure.clip { margin: 0; scroll-margin-top: 1rem; }
 figure.clip h3 { margin: 0 0 0.4rem; }
-figure.clip .frame { display: block; background: var(--soft); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+figure.clip .frame { position: relative; display: block; background: var(--soft); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 figure.clip video, figure.clip img { display: block; width: 100%; height: auto; }
+figure.clip .frame.can-play { cursor: pointer; }
+figure.clip .frame.can-play::after { content: "\25B6  Hover to play"; position: absolute; right: 0.6rem; bottom: 0.6rem; padding: 0.2rem 0.6rem; border-radius: 999px; background: rgba(0, 0, 0, 0.65); color: #fff; font-size: 0.8rem; pointer-events: none; }
+figure.clip .frame.playing::after { display: none; }
+@media (hover: none) { figure.clip .frame.can-play::after { content: "\25B6  Tap to play"; } }
 figure.clip.tall { max-width: 18rem; }
 figure.clip img.still { display: none; }
 figcaption { font-size: 0.95rem; color: var(--dim); margin-top: 0.5rem; }

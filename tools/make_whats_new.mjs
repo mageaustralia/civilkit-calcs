@@ -82,7 +82,7 @@ function clipHtml(c, first, pair) {
     const alt = `${c.title}: a still from the clip`;
     return `<figure class="clip${h > w ? ' tall' : ''}" id="clip-${esc(c.id)}">
 <h3>${esc(c.title)}</h3>
-<span class="frame"><video autoplay muted loop playsinline preload="${first ? 'metadata' : 'none'}" poster="posters/${esc(c.id)}.png" width="${w}" height="${h}" aria-label="${esc(c.title)}">
+<span class="frame" tabindex="0"><video muted loop playsinline preload="metadata" poster="posters/${esc(c.id)}.png" width="${w}" height="${h}" aria-label="${esc(c.title)}">
 <source src="clips/${esc(c.id)}.webm" type="video/webm">
 <source src="clips/${esc(c.id)}.mp4" type="video/mp4">
 <img src="posters/${esc(c.id)}.png" width="${w}" height="${h}" alt="${esc(alt)}">
@@ -151,6 +151,7 @@ export function buildPage(changelog, manifest) {
 <meta name="color-scheme" content="light dark">
 <link rel="canonical" href="${CANONICAL}">
 <link rel="stylesheet" href="whats-new.css">
+<script src="whats-new.js" defer></script>
 <link rel="icon" href="../icon-192.png" sizes="192x192">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CivilKit Calcs">

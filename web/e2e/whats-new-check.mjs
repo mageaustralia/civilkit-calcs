@@ -37,7 +37,7 @@ let ld = null;
 try { ld = JSON.parse(ldText); } catch { /* reported below */ }
 check(ld && ld['@type'] === 'CollectionPage' && ld.url === CANONICAL, 'JSON-LD parses as a CollectionPage with the page URL');
 check(ld && ld.mainEntity.itemListElement.length === releases.length && ld.mainEntity.itemListElement.every((e, i) => e.url === `${CANONICAL}#${anchor(releases[i].version)}`), `JSON-LD lists the ${releases.length} releases with their anchors`);
-check((html.match(/<script/g) ?? []).length === 1, 'no JavaScript: the only script is the JSON-LD');
+check((html.match(/<script/g) ?? []).length === 2 && html.includes('<script src="whats-new.js" defer></script>'), 'the only scripts are the JSON-LD and the same-folder hover-to-play script');
 
 // ---- the releases shown are the newest six ------------------------------------------------------------------------
 check(releases.length === RECENT, `the changelog has ${RECENT} releases to show`);
@@ -88,7 +88,7 @@ for (const c of clips) {
     if (rec) check(new RegExp(`id: '${c.id}'`).test(readFileSync(join(here, 'clips', rec), 'utf8')), `${c.id}: the recorder records this id`);
     const block = new RegExp(`<figure class="clip[^"]*" id="clip-${c.id}">[^]*?</figure>`).exec(html)?.[0] ?? '';
     check(!!block && block.includes(`poster="posters/${c.id}.png"`) && block.includes(`src="clips/${c.id}.webm"`) && block.includes(`src="clips/${c.id}.mp4"`), `${c.id}: on the page with its poster and both sources`);
-    check(/<video autoplay muted loop playsinline preload="(none|metadata)"/.test(block), `${c.id}: video is autoplay muted loop playsinline with preload none or metadata`);
+    check(/<video muted loop playsinline preload="metadata"/.test(block) && !block.includes('autoplay'), `${c.id}: video is muted loop playsinline, preloads metadata and does not autoplay (hover to play)`);
     check(sections.find((m) => m[1] === anchor(c.version))?.[2].includes(`id="clip-${c.id}"`) ?? false, `${c.id}: shown under ${c.version}`);
 }
 check([...html.matchAll(/<figure class="clip/g)].length === clips.length, 'the page has exactly the manifest clips');
