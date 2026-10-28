@@ -268,6 +268,7 @@ const PAL_MATRIX: Section[] = [
                     fn('Norms', ['mnorm(A)', 'mnorm_1(A)', 'mnorm_i(A)', 'mnorm_e(A)', 'cond(A)', 'cond_1(A)']),
                     fn('Solvers', ['lsolve(A; u)', 'msolve(A; B)']),
                     fn('Decompositions', ['eigenvals(S; 2)', 'eigenvecs(S; 2)', 'ceigenvals(A)', 'ceigenvecs(A)', 'cholesky(S)', 'lu(A)', 'qr(A)', 'svd(A)']),
+                    sec('Vibration', [['eigenvals(K; M)', 'eigenvals(K; M)', 'Eigenvalues of K x = λ M x (ω² for stiffness K and mass M)'], ['eigenvecs(K; M)', 'eigenvecs(K; M)', 'Mode shapes of K x = λ M x, one per row, xᵀ M x = 1']], { skip: 'needs a symmetric K and a positive definite M of the same size' }),
                 ];
 const PAL_LOGIC: Section[] = [
                     sec('Conditional', [['if', 'if(x > 1; 1; 0)', 'if(condition; then; else)'], ['switch', 'switch(x > 5; 1; x > 1; 2; 3)', 'switch(cond1; value1; cond2; value2; ...; default)']]),
@@ -305,6 +306,7 @@ const PAL_MLOOKUP: Section[] = [
 const PAL_MSOLVE: Section[] = [
                     fn('Solve', ['lsolve(A; u)', 'msolve(A; B)', 'clsolve(S; u)']),
                     fn('Decompose', ['eigenvals(S; 2)', 'eigenvecs(S; 2)', 'ceigenvals(A)', 'ceigenvecs(A)', 'cholesky(S)', 'lu(A)', 'qr(A)', 'svd(A)']),
+                    sec('Vibration', [['eigenvals(K; M)', 'eigenvals(K; M)', 'Eigenvalues of K x = λ M x (ω² for stiffness K and mass M)'], ['eigenvecs(K; M)', 'eigenvecs(K; M)', 'Mode shapes of K x = λ M x, one per row, xᵀ M x = 1']], { skip: 'needs a symmetric K and a positive definite M of the same size' }),
                     fn('Products', ['hprod(A; B)', 'fprod(A; B)', 'kprod(A; B)']),
                 ];
 const PAL_CALCULUS: Section[] = [lines('Sums and calculus', [

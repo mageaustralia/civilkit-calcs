@@ -401,7 +401,7 @@
    "folder": "Sheet syntax",
    "file": "sheet-samples/Shear frame natural frequencies.sheet",
    "upstream": "",
-   "description": "Natural frequencies and mode shapes of a two storey shear frame from the eigenvalues of the non-symmetric matrix M⁻¹K.",
+   "description": "Natural frequencies and mode shapes of a two storey shear frame from the generalized eigenvalue problem K φ = ω² M φ, eigenvals(K, M).",
    "codes": [],
    "ui": false,
    "scripts": false,

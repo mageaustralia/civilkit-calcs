@@ -4,6 +4,7 @@
 //! is the real or the complex one and dispatches on the function index.
 pub mod complex_calculator;
 mod general_eigen_calc;
+mod generalized_eigen_calc;
 pub mod matrix_calculator;
 pub mod out_of_scope_names;
 pub mod real_calculator;

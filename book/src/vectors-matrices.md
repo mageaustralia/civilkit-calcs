@@ -172,8 +172,44 @@ ang = atan2(row(C; 1); row(C; 2)) = [-63.43 63.43]
 In a Calcpad document with complex numbers switched on in Settings, `#phasor` shows every
 complex result as magnitude∠angle, and `#complex` switches back to a + bi.
 
+### Natural frequencies: K x = λ M x
+
+Give `eigenvals`, `eigenvecs` or `eigen` a second matrix and they solve the generalized problem
+K x = λ M x. With a stiffness matrix K and a mass matrix M, each λ is ω², the square of a natural
+circular frequency:
+
+<!-- expect: eigenvals(K; M) = [585.79 3414.21] | = 3.85 Hz | row(Φ; 1)) = 1 -->
+```sheet
+k: 20000 kN/m
+m: 10 t
+K: [2*k, -k; -k, k]
+M: [2*m, 0 t; 0 t, m]
+λ: eigenvals(K, M)
+f_1: sqrt(λ.1)/(2*π) -> Hz
+Phi: eigenvecs(K, M)
+m_1: dot(row(Phi, 1), M*row(Phi, 1))
+```
+
+```text
+λ = eigenvals(K; M) = [585.79 3414.21] s⁻²
+f_1 = 3.85 Hz
+Φ = eigenvecs(K; M) = |  0.158 0.224 | t^-0.5
+                      | -0.158 0.224 |
+m_1 = 1
+```
+
+K must be symmetric and M symmetric positive definite, both square and the same size; anything
+else stops with a message that says which matrix is wrong. The eigenvalues come in ascending order
+with the units of K/M (kN/m over t is s⁻²). Each mode shape is a row of `eigenvecs(K, M)`, scaled so
+that xᵀ M x = 1 and turned so that its largest component is positive; its units are those of
+M^-0.5, so the modal mass `m_1` above is exactly 1. Divide a row by one of its components to scale
+it to 1 at that point instead. Internally M is factored by Cholesky (M = L Lᵀ), the problem is
+turned into the symmetric one of L⁻¹ K L⁻ᵀ, solved with the symmetric solver, and transformed back.
+To keep only the lowest modes, take them from the result: `first(eigenvals(K, M), 3)`.
+
 The samples *Principal stresses* (a plane and a 3D stress tensor, checked with Mohr's circle) and
-*Shear frame natural frequencies* (the eigenvalues of M⁻¹K) use these functions.
+*Shear frame natural frequencies* (the frequencies and mode shapes of a two storey frame from
+`eigenvals(K, M)`) use these functions.
 
 ## Building vectors and matrices
 

@@ -1,6 +1,6 @@
 //! Port of Calculator/MatrixCalculator.cs.
 use super::vector_calculator::lookup_ci;
-use super::{general_eigen_calc, index_out_of_range, Calculator, POWER_OPERATOR_INDEX};
+use super::{general_eigen_calc, generalized_eigen_calc, index_out_of_range, Calculator, POWER_OPERATOR_INDEX};
 use crate::base_types::complex_value::ComplexValue;
 use crate::base_types::real_value::RealValue;
 use crate::base_types::value::Value;
@@ -522,6 +522,9 @@ pub fn evaluate_matrix_iterative_function(index: i64, a: &Value, b: &Value, tol:
             }
         }
         2..=4 => {
+            if let (Value::Matrix(k), Value::Matrix(m)) = (a, b) {
+                return generalized_eigen_calc::generalized_eigen(index, k, m, tol);
+            }
             let n = cs_int(b.as_real_checked(Items::Argument)?.d);
             let ma = match a {
                 Value::Matrix(m) if matches!(m.mtype(), MatrixType::Symmetric | MatrixType::Diagonal) => m.clone(),
