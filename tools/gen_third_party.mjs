@@ -23,12 +23,17 @@ const crates = [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
 
 // npm: production packages of the web workspace, from package-lock.json plus each package's own manifest.
 const lock = JSON.parse(readFileSync(join(root, 'web/package-lock.json'), 'utf8'));
+// Installed but kept out of the build: Mermaid's optional elk layout (EPL-2.0) is replaced by a stub (vite.config.ts).
+const NOT_SHIPPED = new Set(['elkjs']);
+// Packages whose manifest declares no licence, with the one in their LICENSE file.
+const LICENSE_FILE = { khroma: 'MIT' };
 const npm = [];
 for (const [path, info] of Object.entries(lock.packages)) {
     if (!path.includes('node_modules/') || info.dev || info.link) continue;
     const name = path.slice(path.lastIndexOf('node_modules/') + 'node_modules/'.length);
+    if (NOT_SHIPPED.has(name)) continue;
     const mf = join(root, 'web', path, 'package.json');
-    const lic = info.license ?? (existsSync(mf) ? JSON.parse(readFileSync(mf, 'utf8')).license : undefined) ?? 'UNKNOWN';
+    const lic = info.license ?? (existsSync(mf) ? JSON.parse(readFileSync(mf, 'utf8')).license : undefined) ?? LICENSE_FILE[name] ?? 'UNKNOWN';
     npm.push({ name, version: info.version, license: typeof lic === 'string' ? lic : JSON.stringify(lic) });
 }
 npm.sort((a, b) => a.name.localeCompare(b.name));

@@ -23,6 +23,7 @@ import { applyScriptPolicy } from './script-policy';
 import { compileSheet, isSheetRequest, remapErrors, remapHtml, sheetLine, withSheetCss } from './sheet';
 import type { SheetCompiled } from './sheet';
 import { hasTex, renderTex } from './sheet-tex';
+import { hasMermaid, renderMermaid } from './sheet-mermaid';
 import { findPythonBlocks, hasPythonBlock, pythonErrors, remapErrors as remapPythonErrors, remapPage, resolvePythonLines, substitute, type BlockResult, type EngineError } from './python-blocks';
 import { BLOCK_MS, LONG_BLOCK_MS, PythonRunner } from './python-runner';
 import { askLongerLimit, mayRunPython } from './python-consent';
@@ -517,6 +518,7 @@ export function installWasmTransport(): WasmTransport {
                 if (hasTex(html)) html = await renderTex(html);
             }
             if (py) html = resolvePythonLines(html, n => (sh ? sheetLine(sh.sheet, n) : n));
+            if (hasMermaid(html)) html = await renderMermaid(html);
             if (html.includes(UI_ASSETS_MARKER)) html = html.replace(UI_ASSETS_MARKER, await uiAssetsMarkup(base));
             if (transport.resolveFile) html = libraryImages(html, transport.resolveFile);
             // Plotly figures from a Python block: the page draws them (python-plotly.ts); Plotly.js comes through the script policy below.
