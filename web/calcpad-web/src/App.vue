@@ -1096,6 +1096,7 @@ const onLineEditRequest = ref<{
 import MathKeyboard from './editor/MathKeyboard.vue'
 import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
 import type { BlockOp } from './wasm/block-ops'
+import { withPageBreakMarks } from './wasm/page-break'
 import { pasteSource, peekClipboard, rememberedBlock } from './wasm/block-clipboard'
 import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
 import { INPUT_SLIDER_SCRIPT } from './wasm/input-slider'
@@ -2274,6 +2275,7 @@ function setPreviewHtml(groupId: string, html: string, scrollToLine?: number, do
   )
   out = injectPreviewConsole(out, groupId)
   out = injectUiPosition(out, groupId)
+  out = withPageBreakMarks(out)
   previewHtmlByGroup.set(groupId, html)
   setPreviewHtmlOutput(groupId, html)
   return commitToBuffer(groupId, out)

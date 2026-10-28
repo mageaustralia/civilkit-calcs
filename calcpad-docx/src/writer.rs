@@ -461,7 +461,7 @@ impl<'a> Writer<'a> {
                 return None;
             }
         }
-        Some(parent)
+        Some(with_page_breaks(el, parent))
     }
 
     /// `AppendChild`
@@ -816,6 +816,46 @@ fn cell_paragraph_props(justify: &'static str) -> N {
 }
 
 /// `IsHidden`
+/// The page breaks an element's inline style asks for, before and after it: `page-break-before: always`,
+/// `break-before: page` and the same for after (Calcpad's page break is `<div style="page-break-after:always">`).
+fn page_breaks(el: &Element) -> (bool, bool) {
+    let Some(style) = el.attr("style") else {
+        return (false, false);
+    };
+    let compact: String = style.to_ascii_lowercase().split_whitespace().collect();
+    let asks = |side: &str| {
+        ["always", "page"]
+            .iter()
+            .any(|v| compact.contains(&format!("page-break-{side}:{v}")))
+            || compact
+                .split(';')
+                .any(|d| d.strip_prefix(&format!("break-{side}:")) == Some("page"))
+    };
+    (asks("before"), asks("after"))
+}
+
+/// `parent` with a Word page break in front of it and/or after it, as the element's style asks. A run is left as it
+/// is: a break belongs between blocks.
+fn with_page_breaks(el: &Element, parent: N) -> N {
+    let (before, after) = page_breaks(el);
+    if !(before || after) || matches!(parent, N::Body(_) | N::R(..) | N::T(_) | N::Br) {
+        return parent;
+    }
+    let brk = || N::Raw("<w:br w:type=\"page\"/>".into());
+    let mut children = Vec::new();
+    if before {
+        children.push(brk());
+    }
+    children.push(parent);
+    if after {
+        children.push(brk());
+    }
+    N::Custom {
+        element: "div".into(),
+        children,
+    }
+}
+
 fn is_hidden(el: &Element) -> bool {
     if el.has_class("lineLink") || el.has_class("errorHeader") {
         return true;

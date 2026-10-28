@@ -76,7 +76,7 @@ It loads the first time you use it.
 
 Move the pointer between two rendered blocks and a dashed line appears with a **+** in the middle.
 Click the **+** for a menu of blocks to insert there: Math line, Text, Heading, List, Table, Plot,
-Condition or Python. The new block goes in front of the next block's source line, indented like it,
+Condition, Python or Page break (see [Page breaks](exporting.md#page-breaks)). The new block goes in front of the next block's source line, indented like it,
 and its first word is left selected in the editor so you can type over it. On a touch screen the
 **+** stays hidden until you tap a block, and then shows only in the two gaps beside it.
 

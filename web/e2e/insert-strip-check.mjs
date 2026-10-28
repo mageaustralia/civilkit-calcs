@@ -45,7 +45,7 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
     }
     phone ? await btn.tap() : await btn.click();
     await page.waitForSelector('.insert-menu');
-    check(await page.locator('.insert-menu button').count() === 8, `${name}: the menu lists eight blocks`);
+    check(await page.locator('.insert-menu button').count() === 9, `${name}: the menu lists nine blocks`);
     await page.locator('.insert-menu button', { hasText: 'Heading' }).click();
     const after = await page.evaluate(() => window.calcpadActiveEditor.getValue().split('\n'));
     const sel = await page.evaluate(() => { const e = window.calcpadActiveEditor; return e.getModel().getValueInRange(e.getSelection()); });

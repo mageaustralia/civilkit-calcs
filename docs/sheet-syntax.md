@@ -59,6 +59,13 @@ KaTeX, which is bundled with the app and loaded the first time a sheet has a for
 rendered page needs no script and the content security policy is unchanged. For Word and Excel
 a formula is written as its TeX source in italics.
 
+### Page breaks
+
+A prose line holding Calcpad's page break, `<div style="page-break-after:always"></div>`, passes through as
+the text line `'<div style="page-break-after:always"></div>`. Print PDF starts a new page after it, the Word
+writer writes a Word page break, and the preview draws it as a dashed line labelled "Page break" (screen only).
+The "+" menu between blocks and the ribbon's Page break button insert it. There is no other sheet form.
+
 ## Quantity lines
 
 ```
