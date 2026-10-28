@@ -12,3 +12,7 @@ node_modules/
 
 # book: recorded how-to videos are not committed
 /book/src/videos/*.mp4
+
+# What's new page: the recorded clips are not committed (see docs/DEPLOY.md)
+/web/calcpad-web/whats-new/clips/
+/web/calcpad-web/public/whats-new/clips/
