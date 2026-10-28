@@ -1058,6 +1058,16 @@ impl<'a> Comp<'a> {
                 }
             }
         }
+        // A slider range rides in the note as a hidden marker the page turns into a range control.
+        if let (false, false, Some(r)) = (plain, labelled, &inp.range) {
+            let step = r.step.as_deref().map(|s| format!(" data-step=\"{s}\"")).unwrap_or_default();
+            let lead = if note.is_some() { "" } else { " '" };
+            text.push_str(&format!(
+                "{lead}<span class=\"sheet-range\" hidden data-min=\"{}\" data-max=\"{}\"{step}></span>",
+                r.min.replace('\u{2212}', "-"),
+                r.max.replace('\u{2212}', "-")
+            ));
+        }
         if !plain && !self.form_open {
             self.close_form(idx);
             self.push_line("'<div class=\"sheet-form\">", idx);

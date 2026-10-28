@@ -89,6 +89,22 @@ Under each plot in the preview there is a row of chips: Log x, Log y, 1:1 (equal
 Copy data, PNG and SVG. Copy data puts the plotted values on the clipboard as tab-separated text,
 ready for a spreadsheet. The 3D plots have Copy data and PNG only.
 
+### Sliders on inputs
+
+Give a number input a range and Input mode shows a slider under its box:
+
+```sheet
+L: ? 6 m slider 2..12 step 0.5 | span
+w: ? 12 kN/m slider 0..30 | design load
+M: w * L^2 / 8 -> kN*m | maximum moment
+```
+
+Dragging the slider (or using the arrow keys, Home and End) fills the box and recalculates the
+results while you drag; typing in the box moves the slider. The numbers are in the unit of the
+default, the slider stops at the minimum and maximum, and `step` is the size of one stop (without it,
+about a hundredth of the range). A line without `slider` has no slider. On a phone the track is
+taller so a finger can use it. See [Templates with inputs](templates.md#sliders-for-number-inputs).
+
 ## The math keyboard
 
 The **Keyboard** item in the status bar opens an on-screen math keyboard with tabs for numbers and

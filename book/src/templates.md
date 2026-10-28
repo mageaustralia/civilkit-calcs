@@ -48,6 +48,25 @@ either way too: `phi: ? 0.9` is the input `φ`.
 | `k: ? (Low = 1, High = 2) \| load class` | Radio buttons | The value of the chosen option |
 | `ribs: ? on \| stiffeners fitted` | A checkbox | `1` when ticked, `0` when not |
 
+### Sliders for number inputs
+
+A number input can have a range, written after the default as `slider min..max`, with an optional
+`step`:
+
+```sheet
+L: ? 6 m slider 2..12 step 0.5 | span
+phi: ? 0.9 slider 0.5..1
+```
+
+In Input mode the box gets a slider under it. The two stay in step, and moving the slider
+recalculates the results. The range is plain numbers in the unit of the default (`2..12` here
+means 2 m to 12 m), the default must lie inside it, and the minimum must be below the maximum.
+Without `step` the slider moves in steps of about a hundredth of the range. The word `slider`
+keeps the line readable, avoids clashing with the `..` of plot ranges and with the unit
+spellings, and leaves a line without it exactly as it was. A slider belongs to a number: a
+drop-down, radio buttons or a checkbox with `slider` is an error on its line. In plain Calcpad
+(Convert to Calcpad, Show compiled) the range is not written, only the `#UI` line.
+
 ### Drop-downs and radio buttons
 
 A choice is a list of `label = value` entries between square brackets (a drop-down) or round

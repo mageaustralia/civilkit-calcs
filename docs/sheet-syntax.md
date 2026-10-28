@@ -206,6 +206,13 @@ first), radio buttons (the same options in round brackets) and a checkbox.
 
 * **A number** is the default, written as a number with an optional unit (`6 m`, `12 kN/m`, `0.9`).
   It is not an expression: `2*3 m` is an error on its line. The unit is shown after the box. Units may use the usual spellings: `m³`, `N/mm²`, `kN·m`, `kg/m³`, `m·s⁻¹`, `°`, `°C`, `%`, `µm` (they are written to the engine as `m^3`, `N/mm^2`, `kN*m` and so on). The engine's own `#UI` line takes only the `^` and `*` spellings, so use those in a `>>` line.
+* **A slider** is an optional range after the number: `L: ? 6 m slider 2..12 | span`, or with a step,
+  `slider 2..12 step 0.5`. Input mode shows a slider under the box, in step with it. The bounds and the step are plain
+  numbers in the unit of the default; the default must lie inside the range and the minimum must be below the maximum
+  (otherwise an error on the line). Without `step` a stop is about a hundredth of the range. The word `slider` keeps the
+  `..` from being read as anything else and a line without it is unchanged. Only a number takes one. The compiler writes the
+  same `#UI` line plus a hidden `sheet-range` marker (with `data-min`, `data-max`, `data-step`) after the note, which the
+  page turns into the slider; plain Calcpad output has no marker.
 * **A choice** is a list of `label = value`. The value is a number with an optional unit, as above, and
   it is what the name has when that option is chosen. Without a `*`, the first option is the one selected.
   A label with a comma, an equals sign or brackets is written in double quotes (`"Beam (A), long" = 1`);
