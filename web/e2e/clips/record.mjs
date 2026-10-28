@@ -28,7 +28,7 @@ const MAX_BYTES = 600 * 1000;
 const MAX_POSTER = 60 * 1000;
 
 function ffmpeg(args) {
-    const r = spawnSync('nice', ['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', ...args], { encoding: 'utf8' });
+    const r = spawnSync('nice', ['-n', '19', 'taskpolicy', '-b', 'ffmpeg', '-threads', '2', '-hide_banner', '-loglevel', 'error', '-y', ...args], { encoding: 'utf8' });
     if (r.status !== 0) throw new Error(`ffmpeg failed: ${r.stderr}`);
 }
 const size = (f) => statSync(f).size;
@@ -42,20 +42,20 @@ function encode(raw, spec, id) {
     filters.push(`scale=${width}:-2:flags=lanczos:in_range=pc:out_range=tv`, `fps=${fps}`);
     // Waits the recorder marked as dead time are cut out (times are relative to the start of the kept section).
     if (skips.length) filters.push(`select='not(${skips.map(([a, b]) => `between(t,${a.toFixed(3)},${b.toFixed(3)})`).join('+')})'`, `setpts=N/(${fps}*TB)`);
-    // A machine that is busy makes the app answer slowly; a clip longer than it should be is played faster (at most 2x).
+    // A machine that is busy makes the app answer slowly; a clip longer than it should be is played faster (at most 1.3x).
     if (speed > 1.01) filters.push(`setpts=PTS/${speed.toFixed(3)}`, `fps=${fps}`);
     const vf = filters.join(',');
     const input = ['-f', 'concat', '-safe', '0', '-i', raw];
     const webm = join(out, `${id}.webm`);
     let crfUsed = 0;
     for (const crf of [34, 37, 40, 44, 48]) {
-        ffmpeg([...input, '-vf', vf, '-an', '-c:v', 'libvpx-vp9', '-crf', String(crf), '-b:v', '0', '-row-mt', '1', '-deadline', 'good', '-cpu-used', '2', '-pix_fmt', 'yuv420p', webm]);
+        ffmpeg([...input, '-vf', vf, '-an', '-c:v', 'libvpx-vp9', '-crf', String(crf), '-b:v', '0', '-row-mt', '1', '-deadline', 'good', '-cpu-used', '2', '-pix_fmt', 'yuv420p', '-threads', '2', webm]);
         crfUsed = crf;
         if (size(webm) <= MAX_BYTES) break;
     }
     const mp4 = join(out, `${id}.mp4`);
     for (const crf of [30, 33, 36, 39, 42]) {
-        ffmpeg([...input, '-vf', vf, '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf), '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-movflags', '+faststart', mp4]);
+        ffmpeg([...input, '-vf', vf, '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf), '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-movflags', '+faststart', '-threads', '2', mp4]);
         if (size(mp4) <= MAX_BYTES) break;
     }
     return { webm, mp4, crfUsed };
@@ -139,16 +139,17 @@ for (const f of files) {
     const offset = 0;
     if (m.start == null || m.end == null) { console.log(`FAIL ${mod.id}: the recorder did not mark start and end`); failed++; continue; }
     // The clip opens on the first frame painted after the start mark, never on an older picture.
-    const fresh = frames.find((fr) => fr.t >= m.start && fr.t < m.end);
-    if (fresh) m.start = fresh.t;
+    // (A recorder that used rec.begin() has already waited for a picture newer than the settled state, so the last
+    // frame at or before the mark is the one to open on, even when the page is still and sends no new frames.)
+    if (!rec.began) { const fresh = frames.find((fr) => fr.t >= m.start && fr.t < m.end); if (fresh) m.start = fresh.t; }
     const skips = rec.skips.map(([a, b]) => [a + offset - m.start, b + offset - m.start]).filter(([a, b]) => b > 0 && a < m.end - m.start).map(([a, b]) => [Math.max(0, a), Math.min(m.end - m.start, b)]);
     const cut = skips.reduce((t, [a, b]) => t + (b - a), 0);
-    const speed = Math.min(2, Math.max(1, (m.end - m.start - cut) / 8.5));
+    const speed = Math.min(1.3, Math.max(1, (m.end - m.start - cut) / 8));
     const spec = { speed, start: m.start, dur: m.end - m.start, crop: process.env.CLIP_FULL ? null : (mod.crop ?? null), width: mod.width ?? 960, fps: mod.fps ?? 22, skips };
     // The frames from `start` to `end` as a concat list; each frame lasts until the next one arrives.
     const list = join(framesDir, 'list.txt');
     const inside = frames.filter((fr) => fr.t < m.end);
-    const k = Math.max(0, inside.findIndex((fr) => fr.t >= m.start));
+    const k = rec.began ? Math.max(0, inside.findLastIndex((fr) => fr.t <= m.start)) : Math.max(0, inside.findIndex((fr) => fr.t >= m.start));
     const used = inside.slice(k);
     if (!used.length) { console.log(`FAIL ${mod.id}: no frames in the marked section`); failed++; continue; }
     const rows = used.map((fr, i) => {

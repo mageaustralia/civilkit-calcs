@@ -31,21 +31,33 @@ export function makeRec(page, clock) {
         marks: {},
         mark(name) { rec.marks[name] = rec.now(); rec.lastStep = `mark ${name}`; },
         lastStep: null,
-        /** Starts the clip once the page has been still for a moment . */
+        /** Waits until the browser has painted and sent a frame newer than now (a busy machine paints late). */
+        async paintFresh() {
+            const asked = rec.now();
+            for (let i = 0; i < 100 && !(rec.lastFrameT >= asked); i++) {
+                await page.evaluate((k) => {
+                    // a small flip in the top left corner (above every crop) makes the browser paint and send a frame
+                    let d = document.getElementById('__clip_tick');
+                    if (!d) { d = document.createElement('div'); d.id = '__clip_tick'; d.style.cssText = 'position:fixed;left:0;top:0;width:3px;height:3px;pointer-events:none;z-index:2147483646'; document.documentElement.appendChild(d); }
+                    d.style.background = k ? '#000' : '#fff';
+                }, i % 2).catch(() => {});
+                await sleep(150);
+            }
+            await page.evaluate(() => document.getElementById('__clip_tick')?.remove()).catch(() => {});
+            if (!(rec.lastFrameT >= asked)) console.log('warn: no new frame arrived while waiting for a fresh picture');
+        },
+        /** Starts the clip once the page has been still for a moment and the browser has shown it. */
         async begin() {
             await settle(page);
             await sleep(2500);   // a busy machine paints late: stand still until the picture has caught up
-            // Make the page paint and wait for a captured frame newer than that, so the clip opens on the state it should.
-            const asked = rec.now();
-            for (let i = 0; i < 100 && !(rec.lastFrameT >= asked); i++) {
-                await page.evaluate((k) => window.__clipPtr?.(-40 + k, -40, false), i % 2).catch(() => {});
-                await sleep(150);
-            }
+            await rec.paintFresh();
             rec.mark('start');
+            rec.began = true;
         },
+        began: false,
         lastFrameT: 0,
-        /** Ends the clip. */
-        async finish() { await sleep(1500); rec.mark('end'); },
+        /** Ends the clip once the final state has been painted and sent (so it is not cut off on an older picture). */
+        async finish() { await settle(page); await sleep(700); await rec.paintFresh(); await sleep(200); rec.mark('end'); },
         /** Time spans (seconds on the page clock) to cut out of the clip: waits for a slow run to finish. */
         skips: [],
         /** Runs `fn` (a wait) and cuts what it took from the clip, keeping the first `keep` seconds so a click still shows. */
@@ -158,7 +170,7 @@ export async function openSample(rec, group, titleRe) {
     await page.click('[data-ribbon-btn=x-samples]');
     await page.waitForSelector('.cprs-s-group');
     await page.locator('.cprs-s-group', { hasText: group }).click();
-    await page.locator('.cprs-s-item', { hasText: titleRe }).dblclick();
+    await page.locator('.cprs-s-item', { hasText: titleRe }).first().dblclick();
     await page.waitForFunction(() => !document.querySelector('.cprs-s-group'), null, { timeout: 15000 }).catch(() => {});
 }
 
@@ -169,4 +181,14 @@ export async function settle(page, quiet = 400) {
         clear = (await page.locator('.preview-loading-overlay').count()) === 0 ? clear + 1 : 0;
         await sleep(100);
     }
+}
+
+/** Drags the divider left so the results pane gets most of the window (the sidebar is already hidden). */
+export async function widenResults(page) {
+    await page.mouse.move(702, 450);
+    await page.mouse.down();
+    await page.mouse.move(520, 450, { steps: 6 });
+    await page.mouse.move(360, 450, { steps: 6 });
+    await page.mouse.up();
+    await sleep(500);
 }

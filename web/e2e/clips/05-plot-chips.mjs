@@ -24,28 +24,28 @@ export default {
         const plot = await rec.centre((await frameWith(page, '.cprs-plotly .main-svg')).locator('.cprs-plotly').first());
         await rec.glide(plot.x + 120, plot.y + 60, 10);
         rec.mark('start');
-        await sleep(700);
-        await rec.glide(plot.x + 40, plot.y + 20, 500);
-        await sleep(300);
+        await sleep(400);
+        await rec.glide(plot.x + 40, plot.y + 20, 400);
+        await sleep(150);
         const toggle = async (label, want, ms) => {
             await rec.click(await chip(label), { ms });
             await rec.skip(async () => { for (let i = 0; i < 40 && (await axes()) !== want; i++) await sleep(150); });
             if ((await axes()) !== want) throw new Error(`${label} did not give ${want} (${await axes()})`);
         };
         await toggle('Log x', 'log/linear', 700);
-        await sleep(500);
+        await sleep(300);
         await toggle('Log y', 'log/log', 450);
         rec.mark('poster');
-        await sleep(1500);
+        await sleep(1000);
         // back to linear axes, then save the plot
         await toggle('Log x', 'linear/log', 450);
         await toggle('Log y', 'linear/linear', 250);
-        await sleep(400);
+        await sleep(200);
         const saved = page.waitForEvent('download', { timeout: 15000 }).catch(() => null);
         await rec.click(await chip('PNG'), { ms: 600 });
         const dl = await saved;
         if (!dl) throw new Error('the PNG chip did not download a file');
-        await sleep(1100);
+        await sleep(700);
         await rec.finish();
     },
 };
