@@ -52,6 +52,7 @@ import { attachAutoIndenter } from './editor/auto-indent';
 import { registerFormattingCommands, getParseMode } from './editor/formatting-commands';
 import { looksLikeLine, sheetInsert } from './wasm/sheet-insert';
 import { insertEdit, type InsertBlock } from './wasm/sheet-blocks';
+import { blockEdit, blockLineAfter, type BlockOp } from './wasm/block-ops';
 import { NEW_SHEET_TEXT, WELCOME_SHEET_TEXT } from './wasm/sheet-ui';
 import { registerFormatDocumentProvider } from './editor/format-document';
 import { setActiveDocumentKeyResolver, getActiveDocumentKey, type EditorBridge } from './editor/bridge';
@@ -1687,6 +1688,39 @@ async function bootstrap(): Promise<void> {
             ed.revealLineInCenterIfOutsideViewport(e.selectLine);
             ed.focus();
             return true;
+        },
+        blockOp: (groupId: string, starts: number[], line: number, op: BlockOp) => {
+            const ed = groups.get(groupId)?.editor;
+            const model = ed?.getModel();
+            if (!ed || !model) return false;
+            const lines = model.getLinesContent();
+            const e = blockEdit(lines, starts, line, op);
+            if (!e) return false;
+            const last = lines.length;
+            let range;
+            if (e.text.length) {
+                range = { startLineNumber: e.from, startColumn: 1, endLineNumber: e.to, endColumn: model.getLineMaxColumn(e.to) };
+            } else if (e.to < last) {
+                range = { startLineNumber: e.from, startColumn: 1, endLineNumber: e.to + 1, endColumn: 1 };
+            } else if (e.from > 1) {
+                // The last lines go, with the line break that led into them.
+                range = { startLineNumber: e.from - 1, startColumn: model.getLineMaxColumn(e.from - 1), endLineNumber: e.to, endColumn: model.getLineMaxColumn(e.to) };
+            } else {
+                range = { startLineNumber: 1, startColumn: 1, endLineNumber: last, endColumn: model.getLineMaxColumn(last) };
+            }
+            // Its own undo step, so Undo after a delete does not also take back the edit before it.
+            ed.pushUndoStop();
+            ed.executeEdits('block-' + op, [{ range, text: e.text.join('\n') }]);
+            ed.pushUndoStop();
+            const at = Math.min(blockLineAfter(lines, starts, line, op), model.getLineCount());
+            ed.setPosition({ lineNumber: at, column: 1 });
+            ed.revealLineInCenterIfOutsideViewport(at);
+            return true;
+        },
+        undo: (groupId: string) => {
+            const ed = groups.get(groupId)?.editor;
+            ed?.focus();
+            ed?.trigger('block-toast', 'undo', null);
         },
         replace: (groupId: string, from: number, to: number, text: string[]) => {
             const ed = groups.get(groupId)?.editor;

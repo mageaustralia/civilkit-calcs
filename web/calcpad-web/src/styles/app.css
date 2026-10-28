@@ -1262,6 +1262,28 @@ select option {
 .insert-glyph { flex: none; width: 28px; text-align: center; font-family: var(--vscode-editor-font-family, monospace); color: var(--ck-accent); }
 @media (hover: none) { .insert-menu button { height: 44px; font-size: 16px; } }
 
+/* The menu behind a block's grip is narrower; Undo after a block change sits at the bottom of the window. */
+.block-menu { width: 180px; }
+.block-toast {
+    position: fixed;
+    z-index: 60;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 8px 8px 16px;
+    background: var(--ck-raised);
+    color: var(--ck-text);
+    border: 1px solid var(--ck-line);
+    border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    font-size: 14px;
+}
+.block-toast button { height: 30px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--ck-accent-soft); color: var(--ck-accent); font: inherit; font-weight: 600; cursor: pointer; }
+.block-toast button:focus-visible { outline: 2px solid var(--ck-accent); outline-offset: 1px; }
+
 /* The docked math keyboard and its show button. */
 .dock-keys { flex: none; z-index: 5; padding-bottom: env(safe-area-inset-bottom); }
 /* Mouse devices: a floating panel at the bottom centre, so the editor and preview stay visible on both sides. */

@@ -531,6 +531,18 @@
         </button>
       </div>
     </template>
+    <!-- The grip at the left of a rendered block. -->
+    <template v-if="blockMenu">
+      <div class="insert-backdrop" @mousedown="closeBlockMenu" @touchstart.passive="closeBlockMenu"></div>
+      <div class="insert-menu block-menu" role="menu" aria-label="Block actions" :style="{ left: blockMenu.x + 'px', top: blockMenu.y + 'px' }" @keydown="onBlockMenuKey">
+        <button v-for="a in BLOCK_ACTIONS" :key="a.op" type="button" role="menuitem" @click="runBlockOp(a.op)">
+          <span class="insert-glyph" aria-hidden="true">{{ a.glyph }}</span>{{ a.label }}
+        </button>
+      </div>
+    </template>
+    <div v-if="blockToast" class="block-toast" role="status">
+      {{ blockToast.text }}<button type="button" @click="undoBlockOp">Undo</button>
+    </div>
     <!-- Double-click on prose written as Markdown (#md on): rich-text editing of that block. -->
     <div
       v-if="mdEdit"
@@ -1061,11 +1073,16 @@ const onLineEditRequest = ref<{
   isSheet?: (groupId: string) => boolean
   /** Inserts a block before source line `before` (0 appends); returns false if it could not. */
   insertBlock?: (groupId: string, before: number, block: InsertBlock) => boolean
+  /** Moves, copies or deletes the block that starts at `line` (`starts` are all block starts); returns false if it does not apply. */
+  blockOp?: (groupId: string, starts: number[], line: number, op: BlockOp) => boolean
+  /** One undo step in the group's editor. */
+  undo?: (groupId: string) => void
 } | null>(null)
 
 // Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
 import MathKeyboard from './editor/MathKeyboard.vue'
 import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
+import type { BlockOp } from './wasm/block-ops'
 import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
@@ -1279,6 +1296,58 @@ function openInsertMenu(groupId: string, frameId: string, data: Record<string, u
   void nextTick(() => document.querySelector<HTMLElement>('.insert-menu button')?.focus())
 }
 function closeInsertMenu(): void { insertMenu.value = null }
+
+// The grip at the left of a rendered block: move it, copy it or delete it (Undo is offered after a delete).
+interface BlockMenuState { x: number; y: number; groupId: string; line: number; starts: number[] }
+const blockMenu = ref<BlockMenuState | null>(null)
+const BLOCK_ACTIONS: { op: BlockOp; label: string; glyph: string }[] = [
+  { op: 'up', label: 'Move up', glyph: '\u2191' },
+  { op: 'down', label: 'Move down', glyph: '\u2193' },
+  { op: 'duplicate', label: 'Duplicate', glyph: '\u29c9' },
+  { op: 'delete', label: 'Delete', glyph: '\u00d7' },
+]
+function openBlockMenu(groupId: string, frameId: string, data: Record<string, unknown>): void {
+  const line = Number(data.line)
+  const iframe = frontFrame(frameId)
+  const starts = Array.isArray(data.starts) ? data.starts.map(Number).filter(n => Number.isInteger(n)) : []
+  if (!iframe || !Number.isInteger(line) || line < 1 || !starts.length) return
+  const r = (data.rect ?? {}) as Record<string, unknown>
+  const box = iframe.getBoundingClientRect()
+  const w = 180, h = BLOCK_ACTIONS.length * 40 + 12
+  const x = Math.max(8, Math.min(box.left + (Number(r.left) || 0), window.innerWidth - w - 8))
+  const below = box.top + (Number(r.top) || 0) + (Number(r.height) || 0) + 4
+  const y = below + h > window.innerHeight - 8 ? Math.max(8, box.top + (Number(r.top) || 0) - h - 4) : below
+  closeLineEdit()
+  closeInsertMenu()
+  blockMenu.value = { x, y, groupId, line, starts }
+  void nextTick(() => document.querySelector<HTMLElement>('.block-menu button')?.focus())
+}
+function closeBlockMenu(): void { blockMenu.value = null }
+const blockToast = ref<{ groupId: string; text: string } | null>(null)
+let blockToastTimer = 0
+function runBlockOp(op: BlockOp): void {
+  const m = blockMenu.value
+  blockMenu.value = null
+  if (!m || !onLineEditRequest.value?.blockOp?.(m.groupId, m.starts, m.line, op)) return
+  window.clearTimeout(blockToastTimer)
+  const text = { delete: 'Block deleted', duplicate: 'Block duplicated', up: 'Block moved up', down: 'Block moved down' }[op]
+  blockToast.value = { groupId: m.groupId, text }
+  blockToastTimer = window.setTimeout(() => { blockToast.value = null }, 6000)
+}
+function undoBlockOp(): void {
+  const t = blockToast.value
+  blockToast.value = null
+  window.clearTimeout(blockToastTimer)
+  if (t) onLineEditRequest.value?.undo?.(t.groupId)
+}
+function onBlockMenuKey(e: KeyboardEvent): void {
+  if (e.key === 'Escape') { e.preventDefault(); closeBlockMenu(); return }
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+  const items = Array.from(document.querySelectorAll<HTMLElement>('.block-menu button'))
+  const i = items.indexOf(document.activeElement as HTMLElement)
+  e.preventDefault()
+  items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus()
+}
 function runInsert(block: InsertBlock): void {
   const m = insertMenu.value
   insertMenu.value = null
@@ -1723,6 +1792,10 @@ function onPreviewWindowMessage(e: MessageEvent): void {
   }
   if (data.type === 'insertAt') {
     openInsertMenu(groupId, frameId, data)
+    return
+  }
+  if (data.type === 'blockMenu') {
+    openBlockMenu(groupId, frameId, data)
     return
   }
   if (data.type === 'plotChip') {
@@ -2257,6 +2330,10 @@ function injectLineLinks(
     "      + '.ck-ins-btn:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}'",
     // No hover on touch: handles stay hidden until a block is tapped, then only the gaps just above and below it show.
     "      + '@media (hover:none){.ck-ins{height:34px;margin-top:-17px}.ck-ins-btn{top:3px;width:28px;height:28px;margin-left:-14px;font-size:20px;line-height:24px}.ck-ins-line{top:17px}}'",
+    // A small grip at the left of each block (on hover, or after a tap) opens the block menu: move, duplicate, delete.
+    "      + '.ck-grip{position:absolute;width:22px;height:24px;padding:0;border:1px solid currentColor;border-radius:5px;background:Canvas;color:CanvasText;font:700 15px/20px system-ui,sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s}'",
+    "      + '.ck-grip.on{opacity:.75;pointer-events:auto}.ck-grip:hover,.ck-grip:focus-visible{opacity:1;pointer-events:auto}.ck-grip:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}'",
+    "      + '@media (hover:none){.ck-grip{width:30px;height:32px;font-size:18px;line-height:28px}}'",
     "      + '@media print{.ck-ins-layer{display:none}}';",
     "    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);",
     "    var layer = document.createElement('div'); layer.className = 'ck-ins-layer'; document.body.appendChild(layer);",
@@ -2270,11 +2347,11 @@ function injectLineLinks(
     "        var r = el.getBoundingClientRect();",
     "        var n = parseInt(el.getAttribute('data-source-line'), 10);",
     "        if (!r.height || isNaN(n)) continue;",
-    "        out.push({ line: n, top: r.top + window.pageYOffset, bottom: r.bottom + window.pageYOffset });",
+    "        out.push({ line: n, top: r.top + window.pageYOffset, bottom: r.bottom + window.pageYOffset, left: r.left + window.pageXOffset, full: !!((el.textContent || '').trim() || el.querySelector('img,svg,canvas,table,iframe')) });",
     "      }",
     "      return out;",
     "    }",
-    "    var gaps = [], tapY = null, hoverGap = null;",
+    "    var gaps = [], grips = [], tapY = null, hoverGap = null;",
     // On touch only the gaps around the last tap show; a rebuild (resize, late layout) puts them back.
     "    function mark() {",
     "      var above = null, below = null;",
@@ -2298,10 +2375,31 @@ function injectLineLinks(
     "      var l = document.createElement('div'); l.className = 'ck-ins-line';",
     "      g.appendChild(l); g.appendChild(b); layer.appendChild(g); g._y = y; gaps.push(g);",
     "    }",
+    "    function addGrip(b, starts) {",
+    "      var g = document.createElement('button'); g.type = 'button'; g.className = 'ck-grip'; g.textContent = '\\u22ee';",
+    "      g.title = 'Block actions'; g.setAttribute('aria-label', 'Block actions');",
+    "      g.style.top = Math.max(0, b.top) + 'px'; g.style.left = Math.max(2, b.left - 26) + 'px';",
+    "      g._top = b.top; g._bottom = b.bottom;",
+    "      g.addEventListener('click', function(e) {",
+    "        e.preventDefault(); e.stopPropagation();",
+    "        var r = g.getBoundingClientRect();",
+    "        try { window.parent.postMessage({ type: 'blockMenu', line: b.line, starts: starts, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, groupId: FRAME_ID }, '*'); } catch (_e) {}",
+    "      });",
+    "      layer.appendChild(g); grips.push(g);",
+    "    }",
+    "    var ptrY = null;",
+    "    function showGripAt(y) {",
+    "      ptrY = y;",
+    "      var hit = null;",
+    "      for (var i = 0; i < grips.length; i++) if (y !== null && y >= grips[i]._top && y <= grips[i]._bottom) hit = grips[i];",
+    "      for (var j = 0; j < grips.length; j++) grips[j].classList.toggle('on', grips[j] === hit);",
+    "    }",
     "    function build() {",
-    "      layer.textContent = ''; gaps = []; hoverGap = null;",
+    "      layer.textContent = ''; gaps = []; grips = []; hoverGap = null;",
     "      var bs = blocks();",
     "      if (!bs.length) return;",
+    "      var starts = bs.map(function(b) { return b.line; });",
+    "      for (var k = 0; k < bs.length; k++) if (bs[k].full) addGrip(bs[k], starts);",
     "      var lastY = -100;",
     "      for (var i = 0; i <= bs.length; i++) {",
     "        var prev = bs[i - 1], next = bs[i];",
@@ -2312,11 +2410,12 @@ function injectLineLinks(
     "        lastY = y;",
     "        add(y, next ? next.line : 0);",
     "      }",
-    "      mark();",
+    "      mark(); showGripAt(ptrY);",
     "    }",
     // With a mouse, the gap nearest the pointer (within 9px) shows its line and "+".
     "    if (window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches) {",
     "      document.addEventListener('mousemove', function(e) {",
+    "        showGripAt(e.pageY);",
     "        var hit = e.target.closest && e.target.closest('.ck-ins');",
     "        for (var i = 0; !hit && i < gaps.length; i++) if (Math.abs(gaps[i]._y - e.pageY) <= 9) hit = gaps[i];",
     "        if (hit === hoverGap) return;",
@@ -2327,7 +2426,7 @@ function injectLineLinks(
     "    if (window.matchMedia && matchMedia('(hover:none)').matches) {",
     "      document.addEventListener('click', function(e) {",
     "        if (e.target.closest && e.target.closest('.ck-ins')) return;",
-    "        tapY = e.pageY; mark();",
+    "        tapY = e.pageY; mark(); showGripAt(e.pageY);",
     "      });",
     "    }",
     "    var timer = 0;",
