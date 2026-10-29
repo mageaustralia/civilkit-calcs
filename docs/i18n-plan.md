@@ -714,7 +714,7 @@ numbers inside engine messages (arguments pass through as the engine wrote them,
 * `web/e2e/i18n-english-check.mjs`: 929 strings compared (10 ribbon tabs, the Settings dialog, its title and search texts,
   About, Shortcuts, the sidebar tabs, a palette, and 10 engine pages and error lists for five failing worksheets, in
   both normal and unwrapped view) with a snapshot from a build made before the move: identical.
-* `web/e2e/i18n-check.mjs`: 65 checks (picker, German, first-visit prompt for 11 browser languages, `?lang=`, block menu
+* `web/e2e/i18n-check.mjs`: 65 checks (picker, German, first-visit prompt for 8 browser languages, `?lang=`, block menu
   and toast, engine messages in German, Chinese fonts and caret, pseudo-language, precache).
 * The 30 existing browser checks that assert English text, plus the ribbon, layout, shortcuts and offline checks:
   all pass except `python-check.mjs`, which fails the same one check ("a wasm that does not match the glue is refused")
