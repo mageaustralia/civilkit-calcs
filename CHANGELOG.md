@@ -20,6 +20,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ### Changed
 - **Precache** - The service worker leaves out `learn/`, `sitemap.xml` and `robots.txt` as well as the What's new page, so crawlers and first visits get the static pages and never the app shell.
 
+### Fixed
+- **Clicking a diagram** - Clicking a Mermaid diagram or a code block in the preview now selects the whole block in the editor, instead of opening the one-line editor on its first line.
+
 ## [26.10.13] - 2026-10-29
 
 ### Added
