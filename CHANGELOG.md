@@ -11,6 +11,8 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+## [26.10.17] - 2026-10-30
+
 ### Added
 - **version.json** - Every build writes `/calcs/version.json` with its version, so pages that show the current release can read it instead of a number typed by hand.
 - **Embeddable calculators** - Adding `?embed=1&sample=<id>` to the app address shows one sample as a compact input form with live results, ready to put in an iframe. It stores nothing, sends nothing and links back to the full app.
@@ -19,6 +21,10 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 - **Try it on the calculator pages** - Each landing page with a sample has a live, lazily loaded sheet to try.
 - **MCP server** - A public, read-only MCP server for AI assistants at `https://civilkit.io/mcp` (its own Worker in `mcp/`) runs sheets and Calcpad worksheets in the app's engine, checks hand calculations, converts units and searches the guide, functions and samples. It is stateless and rate limited, and nothing is stored.
 - **MCP guide chapter** - A new chapter explains how to add the server to Claude Code and other clients, with its tools, limits and privacy; llms.txt lists the server and its tools.
+- **What's new clips** - Three more clips on the What's new page: quick convert to a formula, sorting a table by a column, and the embed view.
+
+### Fixed
+- **What's new clips in Chrome** - Five clips were encoded as full range video, which Chrome could not decode, so they never played. All 28 clips are now limited range, and a tap or hover on a poster starts a clip on touch screens and with a mouse.
 
 ## [26.10.16] - 2026-10-29
 
