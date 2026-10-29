@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gable frame thrust: pinned vs rigid ridge</title>
+<meta name="description" content="Horizontal thrust of a symmetric pitched roof frame for a pinned ridge and a rigid ridge, and why the common shortcut overstates it.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/gable-frame-thrust-calculator/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Gable frame thrust: pinned vs rigid ridge">
+<meta property="og:description" content="Horizontal thrust of a symmetric pitched roof frame for a pinned ridge and a rigid ridge, and why the common shortcut overstates it.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/gable-frame-thrust-calculator/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Gable frame thrust: pinned vs rigid ridge">
+<meta name="twitter:description" content="Horizontal thrust of a symmetric pitched roof frame for a pinned ridge and a rigid ridge, and why the common shortcut overstates it.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Calculators and guides",
+     "item": "https://civilkit.io/calcs/learn/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 4,
+     "name": "Gable frame thrust",
+     "item": "https://civilkit.io/calcs/learn/gable-frame-thrust-calculator/"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Why does a pitched roof push its supports out?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The rafters lean on each other at the ridge. Under vertical load each rafter tends to rotate about its foot, and unless the feet are tied the supports must resist a horizontal thrust."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is the V a / h shortcut safe?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "It overstates the thrust, at twice the pinned-ridge value for a uniform load, so it errs on the high side for the supports. It can still mislead a model check or a tie design. Use the formula for the joint you have."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How much larger is the thrust with a rigid ridge?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "With pinned feet and uniform stiffness, five quarters of the pinned value: here 48.62 kN against 38.9 kN."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it include wind?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. It covers a uniform vertical load only."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <a href="/calcs/learn/">Calculators and guides</a> / <span>Gable frame thrust</span></nav>
+<h1>Horizontal thrust of a gable frame</h1>
+<div class="lead">
+<p>A pitched roof frame pushes its supports outwards. How hard depends on the ridge: a pin carries no moment, a continuous ridge carries some, and the thrust differs between the two. This sheet works out the vertical reactions and the horizontal thrust for both cases from the roof loads, and shows why a common hand shortcut overstates the thrust.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=sheet-gable-frame-thrust">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>Loads on plan</h2>
+<p>The sample frame spans 9.8 m with a rise of 2.8 m to the ridge and a roof pitch of 30 degrees. It carries a strip of roof 4.35 m wide: a dead load of 1.2 kPa measured on the slope and a live load of 0.7 kPa on plan. The dead load is converted to plan area by dividing by the cosine of the pitch, then both become a line load on the frame. Results from the engine:</p>
+<table>
+<thead><tr><th>Quantity</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Dead load on plan</td><td><span class="v" data-run="base" data-key="g">1.39 kPa</span></td></tr>
+<tr><td>Line load on the frame</td><td><span class="v" data-run="base" data-key="w">9.07 kN/m</span></td></tr>
+<tr><td>Vertical reaction at each support</td><td><span class="v" data-run="base" data-key="V">44.46 kN</span></td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>Three thrusts</h2>
+<ul>
+<li><strong>The shortcut</strong> H = V a / h, with a the horizontal run of one rafter (half the span) and h the rise. It treats the whole reaction as acting at the ridge and ignores the load on the rafter.</li>
+<li><strong>Pinned ridge</strong>: moments about the ridge of one half give H = (V a - w a^2 / 2) / h, which is the same as w L^2 / (8 h).</li>
+<li><strong>Rigid ridge</strong>, pinned feet and the same stiffness along both rafters: H = 5 w a^2 / (8 h).</li>
+</ul>
+<table>
+<thead><tr><th>Quantity</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Shortcut, V a / h</td><td><span class="v" data-run="base" data-key="H_hand">77.8 kN</span></td></tr>
+<tr><td>Pinned ridge</td><td><span class="v" data-run="base" data-key="H_pin">38.9 kN</span></td></tr>
+<tr><td>Pinned ridge, in one line</td><td><span class="v" data-run="base" data-key="H_pin_check">38.9 kN</span></td></tr>
+<tr><td>Rigid ridge</td><td><span class="v" data-run="base" data-key="H_rigid">48.62 kN</span></td></tr>
+<tr><td>Hogging moment at a rigid ridge</td><td><span class="v" data-run="base" data-key="M_ridge">27.23 kN·m</span></td></tr>
+<tr><td>Rigid over pinned</td><td><span class="v" data-run="base" data-key="ratio">1.25</span></td></tr>
+</tbody>
+</table>
+<p>The shortcut gives exactly twice the pinned value, for any span and any uniform load, because it leaves out the moment of the load on the rafter. The rigid ridge gives five quarters of the pinned value, here a ratio of <span class="v" data-run="base" data-key="ratio">1.25</span>: the ridge moment it carries pushes the feet further apart.</p>
+</section>
+<section>
+<h2>Which one to use</h2>
+<p>The ridge as built decides. A joint with little moment capacity behaves close to a pin; a welded or haunched ridge is closer to the rigid case. When a frame model gives the rigid value but the joint is really a pin, release the moment at the ridge node in the model and the thrust drops to the pinned value. The member self weight is not in the loads above, so a model that includes it will show a little more, about two percent for this frame.</p>
+</section>
+<section>
+<h2>What this is, and is not</h2>
+<div class="note">
+<p><strong>This is a generic textbook calculation, not a design-code check.</strong> The frame is symmetric, with pinned feet and a uniform load on plan. The rigid case assumes the same stiffness along both rafters and ignores axial and shear deformation, and the self weight of the members is left out. There is no wind, no unbalanced load, no tie and no member check. It does not apply load factors, resistance factors or any limit from a design standard. If you need a code check, use the formulas your standard requires, and treat this sheet as a way to see the mechanics and to check hand calculations.</p>
+</div>
+</section>
+<section>
+<h2>The sheet source</h2>
+<p>The sample, with its decision diagram:</p>
+<pre><code># Gable frame: thrust at the supports
+
+A symmetric pitched roof frame under a uniform load. The vertical reactions are simple, but the horizontal
+thrust depends on what the ridge is: a pin carries no moment, a continuous (rigid) ridge carries some. Check
+which one the real joint is before trusting a thrust.
+
+```mermaid
+flowchart TD
+  A[Loads on plan: w] --&gt; B[Vertical reaction V = w L / 2]
+  B --&gt; C{Ridge joint?}
+  C -- pin --&gt; D[Moments about the ridge: H = V a - w a^2 / 2, divided by h]
+  C -- rigid --&gt; E[Two-pinned frame: H = 5 w a^2 / 8 h]
+  D --&gt; F[Compare with the model]
+  E --&gt; F
+```
+
+## Inputs
+L: 9.8 m | span between the supports
+h: 2.8 m | rise from the supports to the ridge
+trib: 4.35 m | tributary width of the frame
+g_s: 1.2 kPa | dead load per area of roof slope
+q: 0.7 kPa | live load per plan area
+pitch: 30 deg | roof pitch
+
+## Load on plan
+g: g_s / cos(pitch) | dead load converted to plan area
+w: (g + q) * trib -&gt; kN/m | line load on the frame, per metre of span
+a: L / 2 | horizontal run of one rafter
+
+## Vertical reactions
+V: w * L / 2 -&gt; kN | each support
+
+## Horizontal thrust
+H_hand: V * a / h -&gt; kN | V a / h: treats the whole reaction as acting at the ridge and ignores the load on the rafter
+H_pin: (V * a - w * a^2 / 2) / h -&gt; kN | pinned ridge: moments about the ridge of one half
+H_pin_check: w * L^2 / (8 * h) -&gt; kN | the same thing in one line
+H_rigid: 5 * w * a^2 / (8 * h) -&gt; kN | rigid ridge, pinned feet, constant stiffness along the rafters
+
+## What the rigid ridge does
+M_ridge: H_rigid * h - V * a + w * a^2 / 2 -&gt; kN*m | hogging moment at the ridge (zero for a pin)
+ratio: H_rigid / H_pin | the thrust is larger when the ridge resists moment
+
+The rigid case assumes the same stiffness along both rafters and ignores axial and shear deformation. Member
+self weight is not in the load above, so a model that includes it will show about two per cent more.
+If a pin is what is really built, release the moment at the ridge node in the model and the thrust drops to the pinned value.</code></pre>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>Why does a pitched roof push its supports out?</h3>
+<p>The rafters lean on each other at the ridge. Under vertical load each rafter tends to rotate about its foot, and unless the feet are tied the supports must resist a horizontal thrust.</p>
+<h3>Is the V a / h shortcut safe?</h3>
+<p>It overstates the thrust, at twice the pinned-ridge value for a uniform load, so it errs on the high side for the supports. It can still mislead a model check or a tie design. Use the formula for the joint you have.</p>
+<h3>How much larger is the thrust with a rigid ridge?</h3>
+<p>With pinned feet and uniform stiffness, five quarters of the pinned value: here <span class="v" data-run="base" data-key="H_rigid">48.62 kN</span> against <span class="v" data-run="base" data-key="H_pin">38.9 kN</span>.</p>
+<h3>Does it include wind?</h3>
+<p>No. It covers a uniform vertical load only.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/bending-moment-shear-force-diagram/">Moment and shear diagrams</a></li>
+<li><a href="/calcs/learn/shear-frame-natural-frequencies/">Shear frame frequencies</a></li>
+<li><a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a></li>
+<li><a href="/calcs/learn/retaining-wall-stability-calculator/">Retaining wall stability</a></li>
+<li><a href="/calcs/learn/">All calculators and guides</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=sheet-gable-frame-thrust">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

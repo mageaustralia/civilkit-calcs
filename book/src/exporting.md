@@ -113,4 +113,4 @@ The command-line front end of the engine converts a Calcpad worksheet to HTML, W
 `Cli input.cpd output.xlsx`. It is built from the same code. A sheet has to be compiled first
 (Convert to Calcpad, or the sheet compiler), because the command line reads Calcpad.
 
-**Related pages:** [Calculations instead of spreadsheets](https://civilkit.io/calcs/learn/excel-alternative-for-engineering-calculations/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
+**Related pages:** [Export to Word, Excel and PDF](https://civilkit.io/calcs/learn/export-calculations-to-word-excel-pdf/), [Calculations instead of spreadsheets](https://civilkit.io/calcs/learn/excel-alternative-for-engineering-calculations/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

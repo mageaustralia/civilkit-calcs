@@ -26,6 +26,11 @@ export function sourceOf(run) {
         let t = readSample(run.sample);
         // A Python fence runs only in the browser; the engine numbers quoted from such a sheet come from its other lines.
         if (run.dropPython) t = t.replace(/^```python[^\n]*\n[\s\S]*?^```[ \t]*\n?/gm, '');
+        for (const [from, to] of run.replace ?? []) {
+            if (!t.includes(from)) throw new Error(`${run.sample}: no text ${from}`);
+            t = t.replace(from, to);
+        }
+        if (run.append) t = t.trimEnd() + '\n\n' + run.append;
         for (const [name, line] of Object.entries(run.set ?? {})) {
             const re = new RegExp(`^${name}\\s*:\\s*\\?.*$`, 'm');
             if (!re.test(t)) throw new Error(`${run.sample}: no input line for ${name}`);
@@ -162,7 +167,7 @@ export function renderPage(page, runs) {
     const faq = page.faq.map(([q, a]) => [q, fill(a, page, runs)]);
     const video0 = page.video ? `<figure class="video">
 <video controls preload="none" width="960" height="540" aria-label="${esc(page.video.title)}" src="/calcs/guide/videos/${page.video.file}"></video>
-<figcaption>Video: ${esc(page.video.title)} (about 85 seconds). Read the chapter <a href="${guideHref(page.video.chapter)}">${esc(chapterTitle(page.video.chapter))}</a>.</figcaption>
+<figcaption>Video: ${esc(page.video.title)} (about ${page.video.seconds ?? 85} seconds). Read the chapter <a href="${guideHref(page.video.chapter)}">${esc(chapterTitle(page.video.chapter))}</a>.</figcaption>
 </figure>` : '';
     const body = page.sections.map(([h, html], i) => `<section>\n<h2>${esc(h)}</h2>\n${fill(html, page, runs)}\n</section>${i === 0 ? '\n' + video0 : ''}`).join('\n');
     const openLabel = page.openLabel ?? (page.open?.startsWith('template-') ? 'Open this template' : 'Open this sheet in Calcs');

@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shear frame natural frequencies and mode shapes</title>
+<meta name="description" content="Natural frequencies and mode shapes of a two storey shear frame from the generalised eigenvalue problem K phi = w^2 M phi, worked with units.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/shear-frame-natural-frequencies/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Shear frame natural frequencies and mode shapes">
+<meta property="og:description" content="Natural frequencies and mode shapes of a two storey shear frame from the generalised eigenvalue problem K phi = w^2 M phi, worked with units.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/shear-frame-natural-frequencies/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Shear frame natural frequencies and mode shapes">
+<meta name="twitter:description" content="Natural frequencies and mode shapes of a two storey shear frame from the generalised eigenvalue problem K phi = w^2 M phi, worked with units.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Calculators and guides",
+     "item": "https://civilkit.io/calcs/learn/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 4,
+     "name": "Shear frame frequencies",
+     "item": "https://civilkit.io/calcs/learn/shear-frame-natural-frequencies/"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "What is a shear frame?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "A frame model in which the floors are rigid and the columns bend in double curvature, so each storey acts as a lateral spring between two masses."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Why are there as many frequencies as storeys?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Each floor has one degree of freedom, its sideways movement, so a two storey frame has two modes."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What units does it need?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Any consistent ones, because the engine converts. Masses in tonnes and stiffnesses in kN/m give eigenvalues per second squared, and frequencies in Hz after dividing omega by 2 pi."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can it include damping or a time history?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Not this sheet. It finds frequencies and mode shapes only."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <a href="/calcs/learn/">Calculators and guides</a> / <span>Shear frame frequencies</span></nav>
+<h1>Natural frequencies of a shear frame</h1>
+<div class="lead">
+<p>A shear frame is the simplest model of a building swaying sideways: rigid floors, each with its mass, joined by storeys that each have a lateral stiffness. Its natural frequencies and mode shapes come from the generalised eigenvalue problem K phi = omega^2 M phi. This sheet solves it for a two storey frame in one function call, with the masses in tonnes and the stiffnesses in kN/m, and checks that the modes are orthogonal.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=sheet-shear-frame-frequencies">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>The model</h2>
+<p>The first floor has a mass of 30 t and the roof 20 t. The lower storey has a lateral stiffness of 40,000 kN/m and the upper one 30,000 kN/m. The stiffness matrix is K = [k1 + k2, -k2; -k2, k2] and the mass matrix is diagonal. With two arguments, <code>eigenvals(K, M)</code> solves the generalised problem directly: K must be symmetric and M symmetric positive definite. Each eigenvalue is omega^2 in the units of K over M, so kN/m divided by tonnes comes out per second squared without any conversion by hand.</p>
+</section>
+
+<section>
+<h2>Frequencies</h2>
+<p>The natural frequency is f = omega / (2 pi) and the period is its inverse. Results from the engine:</p>
+<table>
+<thead><tr><th>Quantity</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>First natural frequency</td><td><span class="v" data-run="base" data-key="f_1">3.97 Hz</span></td></tr>
+<tr><td>Second natural frequency</td><td><span class="v" data-run="base" data-key="f_2">9.02 Hz</span></td></tr>
+<tr><td>Fundamental period</td><td><span class="v" data-run="base" data-key="T_1">0.252 s</span></td></tr>
+</tbody>
+</table>
+</section>
+<section>
+<h2>Mode shapes</h2>
+<p><code>eigenvecs(K, M)</code> returns one mode per row, in the order of the frequencies, each scaled so that phi^T M phi = 1. The sheet scales them again so the roof moves 1. In the first mode the first floor then moves <span class="v" data-run="base" data-key="r_1">0.585</span> in the same direction: the whole frame sways one way. In the second it moves <span class="v" data-run="base" data-key="r_2">-1.14</span>: the floors move against each other.</p>
+<p>The modes are orthogonal through the mass matrix, so the product phi_1^T M phi_2 is zero; the sheet prints <span class="v" data-run="base" data-key="check">0 t</span>. That is a useful check that the matrices were entered correctly.</p>
+</section>
+<section>
+<h2>More storeys</h2>
+<p>Each extra floor adds a row and a column to K and M: K stays tridiagonal, with k_i + k_(i+1) on the diagonal and -k_(i+1) beside it, and M stays diagonal. The same two calls then give all the frequencies and modes. For many storeys, build the matrices in a loop rather than by hand.</p>
+</section>
+<section>
+<h2>What this is, and is not</h2>
+<div class="note">
+<p><strong>This is a generic textbook calculation, not a design-code check.</strong> The floors are rigid, the masses are lumped at the floors, there is no damping, and the storey stiffness is a number you supply (for example 12 E I / h^3 for each column fixed at both ends). There is no response spectrum, time history or seismic load calculation. It does not apply load factors, resistance factors or any limit from a design standard. If you need a code check, use the formulas your standard requires, and treat this sheet as a way to see the mechanics and to check hand calculations.</p>
+</div>
+</section>
+<section>
+<h2>The sheet source</h2>
+<p>The sample as it ships (this page adds two lines that pick out the first floor of each mode):</p>
+<pre><code># Shear frame natural frequencies
+
+A two storey shear frame has a lumped mass at each floor and a lateral stiffness per storey.
+Free vibration needs K φ = ω² M φ. Given both matrices, `eigenvals(K, M)` solves this
+generalized eigenvalue problem directly: K must be symmetric and M symmetric positive definite,
+and each eigenvalue is ω² in the units of K/M.
+
+m_1: 30 t
+m_2: 20 t
+k_1: 40000 kN/m
+k_2: 30000 kN/m
+
+K: [k_1 + k_2, -k_2; -k_2, k_2]
+M: [m_1, 0 t; 0 t, m_2]
+
+## Frequencies
+
+lambda: eigenvals(K, M)
+omega_1: sqrt(lambda.1)
+omega_2: sqrt(lambda.2)
+f_1: omega_1/(2*π) -&gt; Hz
+f_2: omega_2/(2*π) -&gt; Hz
+T_1: 1/f_1 -&gt; s
+
+## Mode shapes
+
+Each row of `eigenvecs(K, M)` is one mode, in the order of the frequencies, scaled so that
+φᵀ M φ = 1 (its units are t^-0.5). Scaled again so the roof moves 1:
+
+Phi: eigenvecs(K, M)
+phi_1: row(Phi, 1)/Phi.(1, 2)
+phi_2: row(Phi, 2)/Phi.(2, 2)
+
+The modes are orthogonal through the mass matrix, so this product is zero:
+
+check: dot(phi_1, M*phi_2)
+
+r_1: phi_1.1 | first floor, mode 1
+r_2: phi_2.1 | first floor, mode 2</code></pre>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>What is a shear frame?</h3>
+<p>A frame model in which the floors are rigid and the columns bend in double curvature, so each storey acts as a lateral spring between two masses.</p>
+<h3>Why are there as many frequencies as storeys?</h3>
+<p>Each floor has one degree of freedom, its sideways movement, so a two storey frame has two modes.</p>
+<h3>What units does it need?</h3>
+<p>Any consistent ones, because the engine converts. Masses in tonnes and stiffnesses in kN/m give eigenvalues per second squared, and frequencies in Hz after dividing omega by 2 pi.</p>
+<h3>Can it include damping or a time history?</h3>
+<p>Not this sheet. It finds frequencies and mode shapes only.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/principal-stress-calculator/">Principal stresses</a></li>
+<li><a href="/calcs/learn/section-principal-axes-calculator/">Principal axes of a section</a></li>
+<li><a href="/calcs/learn/gable-frame-thrust-calculator/">Gable frame thrust</a></li>
+<li><a href="/calcs/learn/engineering-calculations-with-units/">Calculations with units</a></li>
+<li><a href="/calcs/learn/">All calculators and guides</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=sheet-shear-frame-frequencies">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

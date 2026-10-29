@@ -15,6 +15,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 - **Calculators and guides hub** - A new page at `/calcs/learn/` lists every landing page, grouped as calculators, alternatives and guides, and a Calculators and guides button on the Resources tab opens it.
 - **Guide pages for search** - Every guide page has its own description, a canonical address without `.html`, sharing tags and a single h1. Build the guide with `book/build.sh`.
 - **App page details** - The app page has a description, a canonical address, sharing tags, structured data and a short summary with links for browsers without JavaScript.
+- **Eleven new landing pages** - Calculators for a cantilever, column buckling, moment and shear diagrams, principal stresses, principal axes, shear frame frequencies, gable frame thrust and concrete strength gain, and guides to the beam deflection formula, units and export. Each opens its sheet in the app, and every quoted number comes from the engine.
 - **Guide links** - The guide introduction has a Try it note, and the chapters on templates, plots, units, importing and exporting link the matching calculator pages.
 
 ### Changed

@@ -245,7 +245,7 @@ is saved as a `.sheet` file. In other browsers the file downloads. See
 * Draw the moment along the beam: [Plots](../plots.md).
 * Turn the sheet into a form you fill in: [Templates with inputs](../templates.md).
 
-**Related calculators:** [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
+**Related calculators:** [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/), [Cantilever beam](https://civilkit.io/calcs/learn/cantilever-beam-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
 
 ---
 
@@ -2682,7 +2682,7 @@ Use `clrunits` sparingly. A value without a unit is a value the engine can no lo
 A vector or matrix whose elements all carry the same unit shows the unit once after the
 bracket. See [Vectors and matrices](vectors-matrices.md).
 
-**Related calculators:** [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/), [Pipe flow, Darcy-Weisbach](https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
+**Related pages:** [Calculations with units](https://civilkit.io/calcs/learn/engineering-calculations-with-units/), [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/), [Pipe flow, Darcy-Weisbach](https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
 
 ---
 
@@ -2985,6 +2985,8 @@ You cannot write a unit after a bracket (`[1, 2] kN`). Put it on the elements.
 
 Add the files to the library first (File > Open, or drag them onto the page). The options for
 cell ranges and separators are in the [directive list](reference/functions.md#directives).
+
+**Related calculators:** [Principal stresses](https://civilkit.io/calcs/learn/principal-stress-calculator/), [Principal axes of a section](https://civilkit.io/calcs/learn/section-principal-axes-calculator/), [Shear frame frequencies](https://civilkit.io/calcs/learn/shear-frame-natural-frequencies/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
 
 ---
 
@@ -3795,7 +3797,7 @@ See [Exporting](exporting.md).
 For interactive charts, subplots, 3D surfaces and plots of computed arrays, use a Python block.
 See [Python blocks](python.md).
 
-**Related calculators:** [Pump operating point](https://civilkit.io/calcs/learn/pump-operating-point-calculator/), [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
+**Related calculators:** [Moment and shear diagrams](https://civilkit.io/calcs/learn/bending-moment-shear-force-diagram/), [Pump operating point](https://civilkit.io/calcs/learn/pump-operating-point-calculator/), [Concrete strength gain](https://civilkit.io/calcs/learn/concrete-strength-gain-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
 
 ---
 
@@ -5026,7 +5028,7 @@ A `'<!--civilkit: bind L = path -->` comment before an input can tie it to a qua
 structural model. The specification and the in-app marker exist; no model is connected yet, so
 typed values are used.
 
-**Related calculators:** [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/), [Retaining wall stability](https://civilkit.io/calcs/learn/retaining-wall-stability-calculator/), [Pad footing bearing pressure](https://civilkit.io/calcs/learn/pad-footing-bearing-pressure-calculator/), [Pipe flow, Darcy-Weisbach](https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/), [Pump operating point](https://civilkit.io/calcs/learn/pump-operating-point-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
+**Related calculators:** [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/), [Cantilever beam](https://civilkit.io/calcs/learn/cantilever-beam-calculator/), [Column buckling](https://civilkit.io/calcs/learn/column-buckling-calculator/), [Retaining wall stability](https://civilkit.io/calcs/learn/retaining-wall-stability-calculator/), [Pad footing bearing pressure](https://civilkit.io/calcs/learn/pad-footing-bearing-pressure-calculator/), [Pipe flow, Darcy-Weisbach](https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/), [Pump operating point](https://civilkit.io/calcs/learn/pump-operating-point-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
 
 ---
 
@@ -5157,6 +5159,8 @@ rather than a rounded guess, and a refusal is shown in words with the library's 
 * symbols are treated as positive real numbers, so `sqrt(x^2)` is `x`.
 
 For anything else, use the numeric tools: `$Root`, `$Area`, `$Slope`, `lsolve` and friends.
+
+**Related pages:** [The beam deflection formula, derived](https://civilkit.io/calcs/learn/beam-deflection-formula-derivation/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
 
 ---
 
@@ -5402,7 +5406,7 @@ The command-line front end of the engine converts a Calcpad worksheet to HTML, W
 `Cli input.cpd output.xlsx`. It is built from the same code. A sheet has to be compiled first
 (Convert to Calcpad, or the sheet compiler), because the command line reads Calcpad.
 
-**Related pages:** [Calculations instead of spreadsheets](https://civilkit.io/calcs/learn/excel-alternative-for-engineering-calculations/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
+**Related pages:** [Export to Word, Excel and PDF](https://civilkit.io/calcs/learn/export-calculations-to-word-excel-pdf/), [Calculations instead of spreadsheets](https://civilkit.io/calcs/learn/excel-alternative-for-engineering-calculations/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
 
 ---
 

@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Principal stress calculator for 2D and 3D stress</title>
+<meta name="description" content="Principal stresses and directions of a plane or 3D stress tensor from eigenvalues and eigenvectors, checked against Mohr's circle, with units.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/principal-stress-calculator/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Principal stress calculator for 2D and 3D stress">
+<meta property="og:description" content="Principal stresses and directions of a plane or 3D stress tensor from eigenvalues and eigenvectors, checked against Mohr's circle, with units.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/principal-stress-calculator/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Principal stress calculator for 2D and 3D stress">
+<meta name="twitter:description" content="Principal stresses and directions of a plane or 3D stress tensor from eigenvalues and eigenvectors, checked against Mohr's circle, with units.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Calculators and guides",
+     "item": "https://civilkit.io/calcs/learn/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 4,
+     "name": "Principal stresses",
+     "item": "https://civilkit.io/calcs/learn/principal-stress-calculator/"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "What are principal stresses?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The normal stresses on the planes through a point where the shear stress is zero. There are two in plane stress and three in 3D, and they are the largest and smallest normal stresses at that point."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How is the maximum shear stress found?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "In plane stress it is half the difference of the principal stresses, the radius of Mohr's circle. Here that is 65 MPa."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it handle units?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. The tensor is entered in MPa and the principal stresses come back in MPa. Enter the components in kPa or psi and the results follow."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Which way is the angle measured?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "From the x axis to the major principal direction, in degrees with the default angle setting. A direction has no sign, so an eigenvector and its negative describe the same axis."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <a href="/calcs/learn/">Calculators and guides</a> / <span>Principal stresses</span></nav>
+<h1>Principal stress calculator</h1>
+<div class="lead">
+<p>The principal stresses at a point are the normal stresses on the planes where the shear stress vanishes. Mathematically they are the eigenvalues of the stress tensor, and the principal directions are its eigenvectors. This sheet finds both with one function call each, for a plane stress state and for a general 3D one, with the stresses in MPa, and checks the plane result against Mohr's circle.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=sheet-principal-stresses">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>Plane stress</h2>
+<p>The stress tensor is written as a 2 by 2 matrix with units: S = [sigma_x, tau_xy; tau_xy, sigma_y]. The function <code>eigenvals(S)</code> returns the principal stresses in ascending order, so the major one is the second. <code>eigenvecs(S)</code> returns unit vectors along the principal directions, one per row in the same order. For sigma_x = 80 MPa, sigma_y = -40 MPa and tau_xy = 25 MPa, the engine gives:</p>
+<table>
+<thead><tr><th>Quantity</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Major principal stress</td><td><span class="v" data-run="base" data-key="sigma_1">85 MPa</span></td></tr>
+<tr><td>Minor principal stress</td><td><span class="v" data-run="base" data-key="sigma_2">-45 MPa</span></td></tr>
+<tr><td>Maximum in-plane shear stress</td><td><span class="v" data-run="base" data-key="tau_max">65 MPa</span></td></tr>
+<tr><td>Angle of the major direction from x (degrees)</td><td><span class="v" data-run="base" data-key="theta_p">11.31</span></td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>The Mohr's circle check</h2>
+<p>The same results by the classical construction: the circle's centre is the mean normal stress (sigma_x + sigma_y) / 2, its radius is R = sqrt(((sigma_x - sigma_y) / 2)^2 + tau_xy^2), the principal stresses are the centre plus and minus the radius, and the angle is atan(2 tau_xy / (sigma_x - sigma_y)) / 2.</p>
+<table>
+<thead><tr><th>Quantity</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Centre of the circle</td><td><span class="v" data-run="base" data-key="sigma_avg">20 MPa</span></td></tr>
+<tr><td>Radius R</td><td><span class="v" data-run="base" data-key="R">65 MPa</span></td></tr>
+<tr><td>Major principal stress from the circle</td><td><span class="v" data-run="base" data-key="sigma_1c">85 MPa</span></td></tr>
+<tr><td>Minor principal stress from the circle</td><td><span class="v" data-run="base" data-key="sigma_2c">-45 MPa</span></td></tr>
+<tr><td>Angle from the circle (degrees)</td><td><span class="v" data-run="base" data-key="theta_pc">11.31</span></td></tr>
+</tbody>
+</table>
+<p>The eigenvalue and the circle agree to the decimals shown, and the maximum shear stress is the radius of the circle.</p>
+</section>
+<section>
+<h2>A 3D stress state</h2>
+<p>For a general stress state the tensor is 3 by 3, and the same two calls work. With T = [60, 20, -10; 20, -30, 15; -10, 15, 40] MPa the three principal stresses are <span class="v" data-run="base" data-key="s_c">66.15 MPa</span>, <span class="v" data-run="base" data-key="s_b">41.72 MPa</span> and <span class="v" data-run="base" data-key="s_a">-37.87 MPa</span>. Mohr's circle has no simple 3D form, so the check here is an invariant: the trace of the tensor, <span class="v" data-run="base" data-key="I_1">70 MPa</span>, equals the sum of the principal stresses, <span class="v" data-run="base" data-key="I_1c">70 MPa</span>, as it must for any rotation of the axes.</p>
+</section>
+<section>
+<h2>Why eigenvalues give principal stresses</h2>
+<p>Rotating the axes changes the components of the stress tensor but not the state of stress. In the principal axes the tensor is diagonal: no shear, only normal stresses. Finding those axes is the eigenvalue problem of the matrix. Because the stress tensor is symmetric, its eigenvalues are real and its eigenvectors are at right angles to each other, which is why the principal planes are always perpendicular.</p>
+</section>
+<section>
+<h2>The sheet source</h2>
+<p>The sample as it ships (this page adds three lines that pick out the 3D principal stresses):</p>
+<pre><code># Principal stresses
+
+The stress state at a point is a symmetric tensor. Its eigenvalues are the principal
+stresses and its eigenvectors are the principal directions, so `eigenvals` and `eigenvecs`
+give both in one call each. Mohr's circle checks the result.
+
+## Plane stress
+
+sigma_x: 80 MPa
+sigma_y: -40 MPa
+tau_xy: 25 MPa
+
+S: [sigma_x, tau_xy; tau_xy, sigma_y]
+
+The eigenvalues come in ascending order, so the major principal stress is the last one.
+
+sigma_p: eigenvals(S)
+sigma_1: sigma_p.2
+sigma_2: sigma_p.1
+tau_max: (sigma_1 - sigma_2)/2
+
+Each row of `eigenvecs` is a unit vector along one principal direction, in the same order.
+The angle of the major direction from the x axis (a direction, so the sign of the vector does not matter):
+
+V: eigenvecs(S)
+theta_p: atan(V.(2, 2)/V.(2, 1))
+
+### Check with Mohr's circle
+
+sigma_avg: (sigma_x + sigma_y)/2
+R: sqrt(((sigma_x - sigma_y)/2)^2 + tau_xy^2) -&gt; MPa
+sigma_1c: sigma_avg + R
+sigma_2c: sigma_avg - R
+theta_pc: atan(2*tau_xy/(sigma_x - sigma_y))/2
+
+## A general 3D stress state
+
+T: [60 MPa, 20 MPa, -10 MPa; 20 MPa, -30 MPa, 15 MPa; -10 MPa, 15 MPa, 40 MPa]
+sigma_3D: eigenvals(T)
+N: eigenvecs(T)
+
+The sum of the principal stresses equals the first invariant, the trace of the tensor:
+
+I_1: trace(T)
+I_1c: sum(sigma_3D)
+
+s_a: sigma_3D.1 | smallest
+s_b: sigma_3D.2 | middle
+s_c: sigma_3D.3 | largest</code></pre>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>What are principal stresses?</h3>
+<p>The normal stresses on the planes through a point where the shear stress is zero. There are two in plane stress and three in 3D, and they are the largest and smallest normal stresses at that point.</p>
+<h3>How is the maximum shear stress found?</h3>
+<p>In plane stress it is half the difference of the principal stresses, the radius of Mohr's circle. Here that is <span class="v" data-run="base" data-key="tau_max">65 MPa</span>.</p>
+<h3>Does it handle units?</h3>
+<p>Yes. The tensor is entered in MPa and the principal stresses come back in MPa. Enter the components in kPa or psi and the results follow.</p>
+<h3>Which way is the angle measured?</h3>
+<p>From the x axis to the major principal direction, in degrees with the default angle setting. A direction has no sign, so an eigenvector and its negative describe the same axis.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/section-principal-axes-calculator/">Principal axes of a section</a></li>
+<li><a href="/calcs/learn/shear-frame-natural-frequencies/">Shear frame frequencies</a></li>
+<li><a href="/calcs/learn/engineering-calculations-with-units/">Calculations with units</a></li>
+<li><a href="/calcs/learn/cantilever-beam-calculator/">Cantilever beam</a></li>
+<li><a href="/calcs/learn/">All calculators and guides</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=sheet-principal-stresses">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

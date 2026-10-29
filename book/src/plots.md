@@ -133,4 +133,4 @@ See [Exporting](exporting.md).
 For interactive charts, subplots, 3D surfaces and plots of computed arrays, use a Python block.
 See [Python blocks](python.md).
 
-**Related calculators:** [Pump operating point](https://civilkit.io/calcs/learn/pump-operating-point-calculator/), [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
+**Related calculators:** [Moment and shear diagrams](https://civilkit.io/calcs/learn/bending-moment-shear-force-diagram/), [Pump operating point](https://civilkit.io/calcs/learn/pump-operating-point-calculator/), [Concrete strength gain](https://civilkit.io/calcs/learn/concrete-strength-gain-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

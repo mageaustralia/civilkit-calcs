@@ -294,3 +294,5 @@ You cannot write a unit after a bracket (`[1, 2] kN`). Put it on the elements.
 
 Add the files to the library first (File > Open, or drag them onto the page). The options for
 cell ranges and separators are in the [directive list](reference/functions.md#directives).
+
+**Related calculators:** [Principal stresses](https://civilkit.io/calcs/learn/principal-stress-calculator/), [Principal axes of a section](https://civilkit.io/calcs/learn/section-principal-axes-calculator/), [Shear frame frequencies](https://civilkit.io/calcs/learn/shear-frame-natural-frequencies/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

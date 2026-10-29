@@ -152,4 +152,4 @@ is saved as a `.sheet` file. In other browsers the file downloads. See
 * Draw the moment along the beam: [Plots](../plots.md).
 * Turn the sheet into a form you fill in: [Templates with inputs](../templates.md).
 
-**Related calculators:** [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
+**Related calculators:** [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/), [Cantilever beam](https://civilkit.io/calcs/learn/cantilever-beam-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

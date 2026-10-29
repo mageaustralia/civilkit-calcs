@@ -284,4 +284,4 @@ Use `clrunits` sparingly. A value without a unit is a value the engine can no lo
 A vector or matrix whose elements all carry the same unit shows the unit once after the
 bracket. See [Vectors and matrices](vectors-matrices.md).
 
-**Related calculators:** [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/), [Pipe flow, Darcy-Weisbach](https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
+**Related pages:** [Calculations with units](https://civilkit.io/calcs/learn/engineering-calculations-with-units/), [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/), [Pipe flow, Darcy-Weisbach](https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

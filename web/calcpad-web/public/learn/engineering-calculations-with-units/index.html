@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engineering calculations with units, SI and US</title>
+<meta name="description" content="Write calculations where every quantity carries a unit: SI and US customary units, prefixes, unit errors that catch mistakes, and your own units.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/engineering-calculations-with-units/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Engineering calculations with units, SI and US">
+<meta property="og:description" content="Write calculations where every quantity carries a unit: SI and US customary units, prefixes, unit errors that catch mistakes, and your own units.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/engineering-calculations-with-units/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Engineering calculations with units, SI and US">
+<meta name="twitter:description" content="Write calculations where every quantity carries a unit: SI and US customary units, prefixes, unit errors that catch mistakes, and your own units.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Calculators and guides",
+     "item": "https://civilkit.io/calcs/learn/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 4,
+     "name": "Calculations with units",
+     "item": "https://civilkit.io/calcs/learn/engineering-calculations-with-units/"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Does it convert between SI and US units?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Write the unit after the number and ask for the result in any compatible unit with an arrow. For example 2000 psi comes out as 13.79 MPa."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What happens if the units do not match?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The line stops with an error that names the units it could not combine, such as \"Inconsistent units\". Multiplying and dividing different units is fine."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I define my own units?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes, with a #unit line: a name, an equals sign and its value in known units."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How are ratios shown?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "As plain numbers. Add an arrow to % to show a ratio as a percentage; the value itself does not change."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <a href="/calcs/learn/">Calculators and guides</a> / <span>Calculations with units</span></nav>
+<h1>Engineering calculations with real units</h1>
+<div class="lead">
+<p>A spreadsheet stores a bare number and leaves the unit in a column heading. In a CivilKit Calcs sheet every quantity carries its unit: the engine multiplies and divides units, converts a result to the unit you ask for, and stops with a message when a formula adds a length to a time. This page shows how that works, with SI and US customary units, prefixes, percentages and units of your own.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=sheet-beam-bending">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>Attaching and converting units</h2>
+<p>Write the unit after the number, with or without a space. An arrow converts the result to the unit you choose:</p>
+<pre><code># Converting units
+
+a: 1.23 m + 35 cm + 12 mm -&gt; cm
+v: 10 m/s -&gt; km/h
+P: 2.5 kN / (50 mm * 200 mm) -&gt; MPa</code></pre>
+<p>The engine gives <span class="v" data-run="conv" data-key="a">159.2 cm</span>, <span class="v" data-run="conv" data-key="v">36 km/h</span> and <span class="v" data-run="conv" data-key="P">0.25 MPa</span>. Without the arrow, a sum comes out in the first unit it meets. Any SI prefix works on any SI unit that takes one, so kN, MPa, mm and µm need no definition.</p>
+</section>
+<figure class="video">
+<video controls preload="none" width="960" height="540" aria-label="Units and results" src="/calcs/guide/videos/02-units-and-results.mp4"></video>
+<figcaption>Video: Units and results (about 85 seconds). Read the chapter <a href="/calcs/guide/units">Units</a>.</figcaption>
+</figure>
+<section>
+<h2>US customary units</h2>
+<p>US customary units are built in and mix freely with SI ones:</p>
+<pre><code># US customary units
+
+F: 10 kip -&gt; kN
+p: 2000 psi -&gt; MPa
+H: 20 ft -&gt; m</code></pre>
+<p>The results are <span class="v" data-run="us" data-key="F">44.48 kN</span>, <span class="v" data-run="us" data-key="p">13.79 MPa</span> and <span class="v" data-run="us" data-key="H">6.1 m</span>. A few bare names mean different things in the US and UK systems, such as gal and ton; a setting picks one, and an explicit suffix such as gal_US makes a sheet independent of it.</p>
+</section>
+<section>
+<h2>Errors that catch mistakes</h2>
+<p>Multiplying and dividing different units is normal: a uniform load in kN/m times a span squared gives a moment. In the beam bending sample, 12 kN/m on a 6 m span comes out as <span class="v" data-run="beam" data-key="M_star">54 kN·m</span>, and the yield stress times the section modulus as a design capacity of <span class="v" data-run="beam" data-key="φMs">332.1 kN·m</span>, both in kN·m because the units said so. Adding units that do not match is a mistake, and the engine stops at it. A sheet with <code>len: x + t</code>, where x is in metres and t in seconds, reports:</p>
+<pre><code>Inconsistent units: "m + s".</code></pre>
+<p>A unit slip is one of the most common errors in hand calculations. Here it stops the sheet and names the line.</p>
+</section>
+<section>
+<h2>Percentages and units of your own</h2>
+<p>A ratio has no unit and comes out as a plain number. An arrow to % shows it as a percentage without changing its value: a utilisation of 245.25 kN over 355.1 kN shows as <span class="v" data-run="pct" data-key="util">69.07 %</span>.</p>
+<p>A <code>#unit</code> line defines a unit of your own from units the engine knows:</p>
+<pre><code># Units of your own
+
+#unit bag = 25 kg | cement bag
+#unit pallet = 40 bag
+load: 3 pallet -&gt; t
+n: 1000 kg -&gt; bag</code></pre>
+<p>Three pallets come out as <span class="v" data-run="own" data-key="load">3 t</span> and a tonne of cement as <span class="v" data-run="own" data-key="n">40 bag</span>. Currency can be defined the same way, as a dimensionless unit.</p>
+</section>
+<section>
+<h2>Where to find the units</h2>
+<p>There are about 400 built-in units: lengths, masses, forces, pressures, energy and power, temperatures, angles and electrical units among them. The Insert tab in the sidebar lists them by group, and the Math tab has a Units palette organised by dimension. The <a href="/calcs/guide/units">Units chapter of the guide</a> has the full rules, including temperatures and angles.</p>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>Does it convert between SI and US units?</h3>
+<p>Yes. Write the unit after the number and ask for the result in any compatible unit with an arrow. For example 2000 psi comes out as <span class="v" data-run="us" data-key="p">13.79 MPa</span>.</p>
+<h3>What happens if the units do not match?</h3>
+<p>The line stops with an error that names the units it could not combine, such as "Inconsistent units". Multiplying and dividing different units is fine.</p>
+<h3>Can I define my own units?</h3>
+<p>Yes, with a #unit line: a name, an equals sign and its value in known units.</p>
+<h3>How are ratios shown?</h3>
+<p>As plain numbers. Add an arrow to % to show a ratio as a percentage; the value itself does not change.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/export-calculations-to-word-excel-pdf/">Export to Word, Excel and PDF</a></li>
+<li><a href="/calcs/learn/excel-alternative-for-engineering-calculations/">Excel alternative</a></li>
+<li><a href="/calcs/learn/principal-stress-calculator/">Principal stresses</a></li>
+<li><a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a></li>
+<li><a href="/calcs/learn/">All calculators and guides</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=sheet-beam-bending">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

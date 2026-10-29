@@ -8,6 +8,8 @@ const V = {
     templates: { file: '05-templates-with-inputs.mp4', title: 'Templates with inputs', chapter: 'templates.md' },
     importing: { file: '06-import-a-worksheet.mp4', title: 'Import an existing worksheet', chapter: 'importing.md' },
     exporting: { file: '08-export-word-excel-pdf.mp4', title: 'Export a report to Word, Excel and PDF', chapter: 'exporting.md' },
+    units: { file: '02-units-and-results.mp4', title: 'Units and results', chapter: 'units.md', seconds: 85 },
+    symbolic: { file: '07-symbolic-beam-deflection.mp4', title: 'Symbolic maths for a beam deflection', chapter: 'symbolic.md', seconds: 90 },
 };
 
 /** A two-column table of "label, engine value" rows for one run. */
@@ -37,7 +39,7 @@ pages.push({
     h1: 'A free Mathcad alternative that runs in your browser',
     schema: ['software'],
     video: V.first,
-    related: ['mathcad-worksheet-converter', 'calcpad-online', 'excel-alternative-for-engineering-calculations', 'engineering-calculation-software-free'],
+    related: ['mathcad-worksheet-converter', 'calcpad-online', 'excel-alternative-for-engineering-calculations', 'export-calculations-to-word-excel-pdf', 'engineering-calculation-software-free'],
     runs: {
         m: { sheet: `# Beam moment
 
@@ -134,7 +136,7 @@ pages.push({
     h1: 'An Excel alternative for engineering calculations',
     schema: ['software'],
     video: V.exporting,
-    related: ['mathcad-alternative', 'calcpad-online', 'simply-supported-beam-calculator', 'engineering-calculation-software-free'],
+    related: ['mathcad-alternative', 'export-calculations-to-word-excel-pdf', 'engineering-calculations-with-units', 'simply-supported-beam-calculator', 'engineering-calculation-software-free'],
     runs: {
         s: { sheet: `# Bending stress
 
@@ -203,7 +205,7 @@ M: w * L^2 / 8 -> kN*m | maximum moment
 <li><a href="/calcs/learn/pipe-flow-darcy-weisbach-calculator/">Pipe flow calculator, Darcy-Weisbach</a>: velocity, Reynolds number, friction factor, head loss and pump power.</li>
 <li><a href="/calcs/learn/pump-operating-point-calculator/">Pump operating point calculator</a>: where a pump curve meets a pipeline curve, with both plotted.</li>
 </ul>
-<p>The app has two more templates, a cantilever with a tip load and a rectangular column slenderness check, and more than a hundred sample worksheets from the CalcpadCE project.</p>`],
+<p>More calculators, from a <a href="/calcs/learn/cantilever-beam-calculator/">cantilever</a> and <a href="/calcs/learn/column-buckling-calculator/">column buckling</a> to <a href="/calcs/learn/principal-stress-calculator/">principal stresses</a> and <a href="/calcs/learn/concrete-strength-gain-calculator/">concrete strength gain</a>, are listed in <a href="/calcs/learn/">Calculators and guides</a>. The app also has more than a hundred sample worksheets from the CalcpadCE project.</p>`],
         ['If you are coming from another tool', `<ul>
 <li><a href="/calcs/learn/mathcad-alternative/">Mathcad alternative</a>, and how to <a href="/calcs/learn/mathcad-worksheet-converter/">open Mathcad files without Mathcad</a>.</li>
 <li><a href="/calcs/learn/calcpad-online/">Calcpad worksheets in the browser</a>, if you already use the Calcpad language.</li>
@@ -243,7 +245,7 @@ pages.push({
     schema: [],
     open: 'template-simply-supported-beam',
     video: V.templates,
-    related: ['retaining-wall-stability-calculator', 'pad-footing-bearing-pressure-calculator', 'engineering-calculation-software-free', 'excel-alternative-for-engineering-calculations'],
+    related: ['cantilever-beam-calculator', 'bending-moment-shear-force-diagram', 'beam-deflection-formula-derivation', 'column-buckling-calculator', 'engineering-calculation-software-free'],
     howto: 'How to check a simply supported beam under a uniform load',
     runs: {
         base: { sample: BEAM },
@@ -297,7 +299,7 @@ pages.push({
     schema: [],
     open: 'template-retaining-wall-stability',
     video: V.templates,
-    related: ['pad-footing-bearing-pressure-calculator', 'simply-supported-beam-calculator', 'engineering-calculation-software-free', 'pump-operating-point-calculator'],
+    related: ['pad-footing-bearing-pressure-calculator', 'concrete-strength-gain-calculator', 'gable-frame-thrust-calculator', 'simply-supported-beam-calculator', 'engineering-calculation-software-free'],
     howto: 'How to check the stability of a cantilever retaining wall',
     runs: {
         base: { sample: WALL },
@@ -347,7 +349,7 @@ pages.push({
     schema: [],
     open: 'template-pad-footing-bearing',
     video: V.templates,
-    related: ['retaining-wall-stability-calculator', 'simply-supported-beam-calculator', 'engineering-calculation-software-free', 'excel-alternative-for-engineering-calculations'],
+    related: ['retaining-wall-stability-calculator', 'column-buckling-calculator', 'concrete-strength-gain-calculator', 'simply-supported-beam-calculator', 'engineering-calculation-software-free'],
     howto: 'How to check the bearing pressure under a pad footing',
     runs: {
         base: { sample: PAD },
@@ -557,5 +559,520 @@ pages.push({
         ['Does it keep my original file?', 'Yes. It reads the file and does not change it.'],
         ['Is my worksheet sent to a server?', 'No. It is converted in your browser. We checked the import code for network requests that carry the file and found none.'],
         ['Do the numbers match the original?', 'Constants are copied from the source file and the engine recomputes the rest. Check on your own files: do not assume they match.'],
+    ],
+});
+
+/* ------------------------------------------------------------------------------------------------ 11 cantilever */
+const CANT = 'Template cantilever tip load.sheet';
+pages.push({
+    slug: 'cantilever-beam-calculator',
+    label: 'Cantilever beam',
+    group: 'calculator',
+    area: 'structural',
+    title: 'Cantilever beam calculator: tip load and deflection',
+    description: 'Free cantilever calculator with units: moment, shear, bending stress, tip deflection and rotation for a point load at the free end, with a moment diagram.',
+    h1: 'Cantilever beam calculator with a tip load',
+    schema: [],
+    open: 'template-cantilever-tip-load',
+    video: V.templates,
+    related: ['simply-supported-beam-calculator', 'column-buckling-calculator', 'bending-moment-shear-force-diagram', 'beam-deflection-formula-derivation', 'engineering-calculations-with-units'],
+    howto: 'How to check a cantilever with a point load at the free end',
+    runs: {
+        base: { sample: CANT },
+        long: { sample: CANT, set: { L: 'L:     ? 4 m [0.5 .. 6 step 0.1] | length' } },
+        timber: { sample: CANT, set: { mat: 'mat:   ? [Structural steel = 1, Aluminium = 2, *Timber = 3] | material' } },
+    },
+    lead: `<p>This template checks a cantilever: a beam fixed at one end and free at the other, with a point load at the free end and, if you want it, the beam's own weight. It reports the moment and shear at the support, the bending stress, the tip deflection and rotation, and compares the stress and the deflection with limits. The section is a solid rectangle and the material comes from a drop-down. It opens as a fill-in form, with the length and the load as sliders.</p>`,
+    sections: [
+        ['What it computes', `<p>You give the length, the tip load, the width and depth of the section, the material, a deflection limit (the length over 90, 180 or 360) and whether to include the own weight. The sheet works out the section properties, adds the own weight as a uniform load, and reports the moment and shear at the fixed end, the bending stress, the tip deflection and rotation, and two utilisations, with a plain sentence under each saying whether it passes. A moment diagram is plotted along the length.</p>`],
+        ['The formulas', `<ul>
+<li>Section: A = b d, I = b d^3 / 12, Z = b d^2 / 6.</li>
+<li>Own weight w = density x A x g, when the box is ticked.</li>
+<li>Moment at the fixed end M = P L + w L^2 / 2. Shear at the fixed end V = P + w L.</li>
+<li>Bending stress sigma = M / Z.</li>
+<li>Tip deflection delta = P L^3 / (3 E I) + w L^4 / (8 E I). Tip rotation theta = P L^2 / (2 E I) + w L^3 / (6 E I), in radians.</li>
+<li>Limit = L / 90, 180 or 360. Utilisations: sigma / allowable stress, and delta / limit.</li>
+</ul>
+<p>The materials table holds structural steel, aluminium and timber, each with a modulus, an allowable bending stress and a density. A new material is one more entry in each list.</p>`],
+        ['Worked example', `<p>Defaults: a 2.5 m cantilever carrying 8 kN at the tip, a 100 mm by 200 mm section in structural steel (E = 200 GPa, allowable stress 165 MPa), a limit of L/90, own weight included. These are the values you get when you open the template. Results from the engine:</p>
+${tbl('base', [['Area A', 'A'], ['Second moment of area I', 'I'], ['Section modulus Z', 'Z'], ['Own weight w', 'w'], ['Moment at the fixed end', 'M_max'], ['Shear at the fixed end', 'V_max'], ['Bending stress', 'sigma'], ['Tip deflection', 'delta'], ['Tip rotation (radians)', 'theta'], ['Deflection limit', 'delta_lim'], ['Bending utilisation', 'util_b'], ['Deflection utilisation', 'util_d']])}
+<p>Both utilisations are well below 1, so the sheet prints "Bending: OK" and "Deflection: OK".</p>`],
+        ['Change the length or the material', `<p>With the length raised to 4 m the moment grows to [[long:M_max]] and the tip deflection to [[long:delta]]. Deflection grows with the cube of the length for the point load and with the fourth power for the own weight, so 60 percent more length gives more than four times the deflection. Both checks still pass, at [[long:util_b]] for bending and [[long:util_d]] for deflection.</p>
+<p>Back at 2.5 m, switching the material to timber gives a stress of [[timber:sigma]], a little lower than for steel because timber is lighter, against an allowable stress of only 12 MPa. The tip deflection is [[timber:delta]] against a limit of [[timber:delta_lim]]. The utilisations of [[timber:util_b]] and [[timber:util_d]] both fail, and the sheet says to enlarge the section or change the material.</p>`],
+        ['What this is, and is not', notCode('The cantilever is fully fixed at the support, the section is a solid rectangle, the load is one point load at the free end plus the optional own weight, and stress and deflection are compared with values you choose. There is no lateral torsional buckling, shear or connection check, and no load combination.')],
+        ['The sheet source', `<p>This is the template exactly as it ships. The lines with a question mark are the inputs; the length and the load show as sliders in Input mode.</p>
+{{code:base}}`],
+        ['How to use it', `<ol>
+${taskSteps('Length, load, section width and depth, material, deflection limit and own weight are the inputs.').map(([n, t]) => `<li><strong>${n}.</strong> ${t}</li>`).join('\n')}
+</ol>`],
+    ],
+    steps: taskSteps('Length, load, section width and depth, material, deflection limit and own weight are the inputs.'),
+    faq: [
+        ['What is the maximum moment in a cantilever with a tip load?', 'P L at the fixed end, where P is the load and L the length. With an own weight of w per metre it is P L + w L^2 / 2. The moment falls to zero at the free end.'],
+        ['What is the tip deflection formula?', 'P L^3 / (3 E I) for a point load at the free end, plus w L^4 / (8 E I) for a uniform load such as the own weight.'],
+        ['Can I use an I-section or a hollow section?', 'Yes, by editing the section lines: replace A, I and Z with the values of your section. The rest of the sheet uses those names.'],
+        ['Does it check the support or the connection?', 'No. It checks bending stress and deflection only. It is a textbook calculation, not a design-code check.'],
+        ['Can I save the result?', 'Yes. Use Report, then Print PDF, Word or Excel. The files use the values you entered.'],
+    ],
+});
+
+/* ------------------------------------------------------------------------------------------------ 12 column */
+const COL = 'Template column slenderness.sheet';
+const colK = (pick) => `k:    ? [${[['Pinned at both ends', 1], ['Fixed and pinned', 0.7], ['Fixed at both ends', 0.5], ['Fixed and free', 2]].map(([n, v]) => `${n === pick ? '*' : ''}${n} = ${v}`).join(', ')}] | end conditions`;
+pages.push({
+    slug: 'column-buckling-calculator',
+    label: 'Column buckling',
+    group: 'calculator',
+    area: 'structural',
+    title: 'Column buckling calculator: slenderness and Euler load',
+    description: 'Slenderness and buckling of a solid rectangular column: end conditions, the Euler or parabolic critical stress and the allowed load, as a form you can edit.',
+    h1: 'Column buckling and slenderness calculator',
+    schema: [],
+    open: 'template-column-slenderness',
+    video: V.templates,
+    related: ['cantilever-beam-calculator', 'section-principal-axes-calculator', 'simply-supported-beam-calculator', 'pad-footing-bearing-pressure-calculator'],
+    howto: 'How to check a rectangular column for buckling',
+    runs: {
+        base: { sample: COL },
+        fixed: { sample: COL, set: { k: colK('Fixed at both ends') } },
+        free: { sample: COL, set: { k: colK('Fixed and free') } },
+    },
+    lead: `<p>This template checks a solid rectangular column in compression for buckling. From the size, the length and the end conditions it works out the slenderness, decides whether the column buckles elastically or inelastically, and gives the critical stress, the critical load and the load allowed with a factor of safety. The end conditions and the material are drop-downs, so the effect of fixing an end is one click away.</p>`,
+    sections: [
+        ['What it computes', `<p>The inputs are the width and depth of the section, the length, the end conditions (pinned at both ends, fixed and pinned, fixed at both ends, or fixed and free), the material, the axial load and a factor of safety. The sheet reports the effective length, the smallest radius of gyration, the slenderness ratio and the transition slenderness, a sentence saying whether the column is short, intermediate or slender, the Euler stress and load, the critical stress and load, the allowed load and the utilisation.</p>`],
+        ['The formulas', `<ul>
+<li>Effective length L_e = k L, with k = 1, 0.7, 0.5 or 2 for the four end conditions.</li>
+<li>Smallest radius of gyration r = b_min / sqrt(12) for a solid rectangle, where b_min is the smaller side.</li>
+<li>Slenderness lambda = L_e / r. Transition slenderness lambda_c = pi sqrt(2 E / f_y).</li>
+<li>Above lambda_c the column buckles elastically (Euler): sigma_cr = pi^2 E / lambda^2, and the Euler load is P_E = pi^2 E I_min / L_e^2.</li>
+<li>At or below lambda_c the parabolic (Johnson) formula applies: sigma_cr = f_y (1 - f_y lambda^2 / (4 pi^2 E)).</li>
+<li>Critical load P_cr = sigma_cr A, allowed load P_allow = P_cr / FS, utilisation = N / P_allow.</li>
+</ul>
+<p>The two curves meet at lambda_c, where both give half the yield stress, so the critical stress never jumps. A slenderness of 50 or less is reported as short, where crushing is likely to govern.</p>`],
+        ['Worked example', `<p>Defaults: a 60 mm by 100 mm steel bar (E = 200 GPa, yield stress 250 MPa), 2.4 m long and pinned at both ends, carrying 100 kN with a factor of safety of 2. Results from the engine:</p>
+${tbl('base', [['Area A', 'A'], ['Smaller second moment of area', 'I_min'], ['Radius of gyration r', 'r'], ['Effective length', 'L_e'], ['Slenderness', 'lambda'], ['Transition slenderness', 'lambda_c'], ['Euler stress', 'sigma_E'], ['Critical stress', 'sigma_cr'], ['Critical load', 'P_cr'], ['Allowed load', 'P_allow'], ['Utilisation', 'util']])}
+<p>The slenderness of [[base:lambda]] is above the transition value of [[base:lambda_c]], so the column is slender and the Euler formula governs. The allowed load of [[base:P_allow]] is well above the 100 kN applied, and the sheet prints OK.</p>`],
+        ['Change the end conditions', `<p>Fixing both ends halves the effective length to [[fixed:L_e]]. The slenderness drops to [[fixed:lambda]], below the transition, so the sheet switches to the parabolic formula: the critical stress is [[fixed:sigma_cr]] instead of the Euler value of [[fixed:sigma_E]], which would be above the yield stress. The allowed load rises to [[fixed:P_allow]].</p>
+<p>A column fixed at the base and free at the top, like a post or a flagpole, doubles the effective length to [[free:L_e]] instead. The slenderness becomes [[free:lambda]], the allowed load falls to [[free:P_allow]], and the utilisation of [[free:util]] fails, so the sheet suggests a bigger section, a shorter column or fixed ends.</p>`],
+        ['What this is, and is not', notCode('The column is a solid rectangle, straight and loaded through its centroid, and it buckles about its weaker axis. The material values are round examples. There is no allowance for initial crookedness, eccentric load, residual stress or bending combined with compression, and the parabolic curve is a classical textbook transition, not a column curve from any standard.')],
+        ['The sheet source', `<p>This is the template exactly as it ships. The lines with a question mark are the inputs.</p>
+{{code:base}}`],
+        ['How to use it', `<ol>
+${taskSteps('Size, length, end conditions, material, axial load and factor of safety are the inputs.').map(([n, t]) => `<li><strong>${n}.</strong> ${t}</li>`).join('\n')}
+</ol>`],
+    ],
+    steps: taskSteps('Size, length, end conditions, material, axial load and factor of safety are the inputs.'),
+    faq: [
+        ['What is the Euler buckling load?', 'The axial load at which a perfectly straight, elastic column buckles: P_E = pi^2 E I / L_e^2, with L_e the effective length. Real columns fail below it, which is why the sheet divides by a factor of safety and uses the parabolic formula for stockier columns.'],
+        ['Which effective length factors does it use?', '1 for pinned at both ends, 0.7 for fixed and pinned, 0.5 for fixed at both ends and 2 for fixed at the base and free at the top. These are the theoretical values; edit the list if you use others.'],
+        ['Why does it switch between two formulas?', 'For a stocky column the Euler stress would exceed the yield stress. Below the transition slenderness the parabolic formula gives a critical stress that never exceeds yield and meets the Euler curve at half the yield stress.'],
+        ['Can I use a hollow or I-section?', 'Edit the section lines: give A, the smaller second moment of area and the radius of gyration of your section. The rest of the sheet uses those names.'],
+        ['Is it a design-code check?', 'No. It is a textbook calculation and names no standard.'],
+    ],
+});
+
+/* ------------------------------------------------------------------------------------------------ 13 deflection derivation */
+pages.push({
+    slug: 'beam-deflection-formula-derivation',
+    label: 'Beam deflection formula, derived',
+    group: 'guide',
+    title: 'Beam deflection formula 5wL^4/384EI, derived',
+    description: 'Derive the midspan deflection of a simply supported beam under a uniform load step by step with symbolic integration, then check it against a plotted curve.',
+    h1: 'Deriving the simply supported beam deflection formula',
+    schema: [],
+    open: 'sheet-beam-deflection-symbolic',
+    video: V.symbolic,
+    related: ['simply-supported-beam-calculator', 'cantilever-beam-calculator', 'bending-moment-shear-force-diagram', 'engineering-calculations-with-units'],
+    runs: {
+        base: { sample: 'Beam deflection derived symbolically.sheet' },
+    },
+    lead: `<p>Every structural engineer knows that a simply supported beam under a uniform load deflects 5 w L^4 / (384 E I) at midspan. This page derives that formula from the bending equation in four exact steps with the Symbolic dialog of CivilKit Calcs, then puts numbers in and lets the engine check that the formula and the derived deflection curve agree.</p>`,
+    sections: [
+        ['The starting point', `<p>The beam has span L, uniform load w and bending stiffness E I. Taking moments about a support, the bending moment at a distance x is M(x) = w L x / 2 - w x^2 / 2. With the deflection y measured in the direction of the load, the bending equation is E I y'' = -M(x). Integrating twice gives the deflection curve, and the two supports fix the two constants of integration.</p>`],
+        ['The four steps', `<ol>
+<li><strong>Integrate</strong> -(w L x / 2 - w x^2 / 2) / (E I) with respect to x. The dialog returns the slope, -L w x^2 / (4 E I) + w x^3 / (6 E I), with no constant: add C1 yourself.</li>
+<li><strong>Integrate</strong> again, giving -L w x^3 / (12 E I) + w x^4 / (24 E I) + C1 x, and add C2.</li>
+<li>The supports give y(0) = 0 and y(L) = 0. <strong>Solve</strong> those two equations for C1 and C2: C1 = L^3 w / (24 E I) and C2 = 0.</li>
+<li><strong>Substitute</strong> x = L / 2 into the curve and simplify: 5 L^4 w / (384 E I).</li>
+</ol>
+<p>Each result is exact: fractions stay fractions and symbols stay symbols, so there is no rounding to hide a slip. The dialog also differentiates and evaluates, so the slope at a support or the deflection for given numbers can be checked on the spot.</p>`],
+        ['Numbers, and a check', `<p>The sheet then puts in w = 12 kN/m, L = 6 m, E = 200 GPa and I = 250,000,000 mm^4, and computes the deflection twice: once from the formula, once from the curve of step 3 evaluated at midspan. Results from the engine:</p>
+${tbl('base', [['Midspan deflection from the formula', 'delta'], ['The derived curve at midspan', 'y_mid'], ['Ratio of the two', 'ratio']])}
+<p>The ratio is [[base:ratio]], so the derivation and the textbook formula agree. The sheet also plots the curve along the span, with its sign flipped so the beam sags downward on the page.</p>`],
+        ['What the dialog can and cannot do', `<p>The symbolic side is deliberately small. It simplifies, expands, factors, differentiates, integrates a small class of integrands, solves one equation of degree 1 or 2 or a linear system of up to four unknowns, and substitutes. It knows sin, cos, ln, exp and sqrt, has no complex numbers and treats symbols as positive real numbers. A result that does not fit its exact arithmetic is refused with a message rather than rounded.</p>
+<p>The same four steps apply to any load whose bending moment is a polynomial in x: change M(x) and the support conditions. A cantilever fixed at x = 0, for example, has y(0) = 0 and y'(0) = 0. For anything beyond the dialog, use the numerical tools of the engine: root finding, numerical integration and linear solvers.</p>`],
+        ['The sheet source', `<p>The sample sheet holds the steps as typeset formulas and the check as quantity lines. Open it with the button on this page to see it calculated.</p>
+{{code:base}}`],
+    ],
+    steps: null,
+    faq: [
+        ['Where does 5/384 come from?', 'From integrating the bending equation twice and applying the support conditions. The curve is y(x) = w x (L^3 - 2 L x^2 + x^3) / (24 E I), and at x = L/2 that is 5 w L^4 / (384 E I).'],
+        ['What is the slope at the supports?', 'w L^3 / (24 E I), the value of C1: the derivative of the curve at x = 0.'],
+        ['Does the Symbolic dialog need an internet connection?', 'No. It loads the first time you run it and then works offline, like the rest of the app.'],
+        ['Can I put the derived formula into a calculation?', 'Yes. Insert into worksheet writes the result as a typeset formula or as a quantity line, which the engine calculates once every symbol has a value.'],
+    ],
+});
+
+/* ------------------------------------------------------------------------------------------------ 14 moment and shear diagrams */
+pages.push({
+    slug: 'bending-moment-shear-force-diagram',
+    label: 'Moment and shear diagrams',
+    group: 'calculator',
+    area: 'structural',
+    title: 'Bending moment and shear force diagrams, plotted',
+    description: 'Plot bending moment and shear force along a simply supported beam from a moment function, worked out at sixths of the span in a loop, with real units.',
+    h1: 'Bending moment and shear force diagrams',
+    schema: [],
+    open: 'diagram-moment-chart',
+    video: { ...V.plots, seconds: 80 },
+    related: ['simply-supported-beam-calculator', 'cantilever-beam-calculator', 'beam-deflection-formula-derivation', 'gable-frame-thrust-calculator'],
+    runs: {
+        base: { sample: 'Diagram moment and shear chart.sheet' },
+        pts: { sheet: `# Moment and shear at points
+
+L: 6 m
+w: 12 kN/m
+M(x): w * x * (L - x) / 2
+V(x): w * (L / 2 - x)
+M_0: M(0 m) -> kN*m
+M_1: M(1 m) -> kN*m
+M_2: M(2 m) -> kN*m
+M_3: M(3 m) -> kN*m
+V_0: V(0 m) -> kN
+V_1: V(1 m) -> kN
+V_2: V(2 m) -> kN
+V_3: V(3 m) -> kN
+` },
+        plot: { sample: 'Plot.sheet' },
+    },
+    lead: `<p>A bending moment diagram and a shear force diagram show how the internal forces vary along a beam. In a calculation sheet you write the moment and the shear as functions of the position x, and the page tabulates them and draws them. This page does it for a simply supported beam under a uniform load in two ways: a loop that works out values at sixths of the span with their units, and a plot line that draws the curve.</p>`,
+    sections: [
+        ['The functions', `<p>For a simply supported span L under a uniform load w:</p>
+<ul>
+<li>Bending moment M(x) = w x (L - x) / 2: a parabola, zero at both supports and largest at midspan, where it is w L^2 / 8.</li>
+<li>Shear force V(x) = w (L / 2 - x): a straight line from w L / 2 at the left support to minus that at the right.</li>
+</ul>
+<p>The shear is the slope of the moment, so it passes through zero exactly where the moment peaks.</p>`],
+        ['Values along the span', `<p>With L = 6 m and w = 12 kN/m, the engine gives these values for the first half of the span. The second half mirrors it: the moment is symmetric and the shear changes sign.</p>
+<table>
+<thead><tr><th>x</th><th>Bending moment M</th><th>Shear force V</th></tr></thead>
+<tbody>
+<tr><td>0 m (support)</td><td>[[pts:M_0]]</td><td>[[pts:V_0]]</td></tr>
+<tr><td>1 m</td><td>[[pts:M_1]]</td><td>[[pts:V_1]]</td></tr>
+<tr><td>2 m</td><td>[[pts:M_2]]</td><td>[[pts:V_2]]</td></tr>
+<tr><td>3 m (midspan)</td><td>[[pts:M_3]]</td><td>[[pts:V_3]]</td></tr>
+</tbody>
+</table>
+<p>The sample sheet writes the two functions once and works through the span in a loop, printing the moment and the shear at each sixth with units, then draws the moments as an XY chart and plots the moment curve from the function:</p>
+{{code:base}}
+<p>The bars and the line of the XY chart are typed into the diagram text, so they do not follow a change of span or load. The loop values and the plot do, because they are calculated from the functions.</p>`],
+        ['A plot from one line', `<p>The shortest form is a plot line. This sheet uses plain numbers rather than units, defines the moment and plots it over the span:</p>
+{{code:plot}}
+<p>It reports a peak moment of [[plot:Mmax]] (in kN·m, because the numbers are in kN and m) and draws the parabola. Plots are drawn in the page, so changing L or w redraws the curve at once.</p>`],
+        ['Other beams and loads', `<p>Change the functions to change the beam. A cantilever with a point load P at its free end has M(x) = P (L - x), measured from the fixed end; the <a href="/calcs/learn/cantilever-beam-calculator/">cantilever calculator</a> plots exactly that. Several loads on one span add up: write the moment of each and plot their sum. A point load part way along the span needs a moment function that changes at the load, which a sheet can write with a condition.</p>
+<p>These sheets draw the diagrams of the functions you write; they do not analyse a structure. For a continuous beam or a frame, find the moments with an analysis first. The samples include a three-span beam solved by the stiffness method in a Python block, with its diagrams drawn by an interactive chart.</p>`],
+    ],
+    steps: null,
+    faq: [
+        ['What is the maximum bending moment of a simply supported beam with a uniform load?', 'w L^2 / 8 at midspan. For a 6 m span under 12 kN/m that is [[pts:M_3]].'],
+        ['Where is the shear force zero?', 'At midspan for a symmetric load, which is where the moment is largest. In general the moment peaks where the shear changes sign.'],
+        ['Can I plot the shear as well as the moment?', 'Yes. Add a second plot line for V(x) under the first.'],
+        ['Do the diagrams follow a change of span or load?', 'The loop values and the plot do, because they are calculated from the functions. The bars of the XY chart in the sample are typed in, so update them by hand or leave the chart out.'],
+    ],
+});
+
+/* ------------------------------------------------------------------------------------------------ 15 principal stresses */
+pages.push({
+    slug: 'principal-stress-calculator',
+    label: 'Principal stresses',
+    group: 'calculator',
+    area: 'structural',
+    title: 'Principal stress calculator for 2D and 3D stress',
+    description: "Principal stresses and directions of a plane or 3D stress tensor from eigenvalues and eigenvectors, checked against Mohr's circle, with units.",
+    h1: 'Principal stress calculator',
+    schema: [],
+    open: 'sheet-principal-stresses',
+    related: ['section-principal-axes-calculator', 'shear-frame-natural-frequencies', 'engineering-calculations-with-units', 'cantilever-beam-calculator'],
+    runs: {
+        base: { sample: 'Principal stresses.sheet', append: 's_a: sigma_3D.1 | smallest\ns_b: sigma_3D.2 | middle\ns_c: sigma_3D.3 | largest\n' },
+    },
+    lead: `<p>The principal stresses at a point are the normal stresses on the planes where the shear stress vanishes. Mathematically they are the eigenvalues of the stress tensor, and the principal directions are its eigenvectors. This sheet finds both with one function call each, for a plane stress state and for a general 3D one, with the stresses in MPa, and checks the plane result against Mohr's circle.</p>`,
+    sections: [
+        ['Plane stress', `<p>The stress tensor is written as a 2 by 2 matrix with units: S = [sigma_x, tau_xy; tau_xy, sigma_y]. The function <code>eigenvals(S)</code> returns the principal stresses in ascending order, so the major one is the second. <code>eigenvecs(S)</code> returns unit vectors along the principal directions, one per row in the same order. For sigma_x = 80 MPa, sigma_y = -40 MPa and tau_xy = 25 MPa, the engine gives:</p>
+${tbl('base', [['Major principal stress', 'sigma_1'], ['Minor principal stress', 'sigma_2'], ['Maximum in-plane shear stress', 'tau_max'], ['Angle of the major direction from x (degrees)', 'theta_p']])}`],
+        ["The Mohr's circle check", `<p>The same results by the classical construction: the circle's centre is the mean normal stress (sigma_x + sigma_y) / 2, its radius is R = sqrt(((sigma_x - sigma_y) / 2)^2 + tau_xy^2), the principal stresses are the centre plus and minus the radius, and the angle is atan(2 tau_xy / (sigma_x - sigma_y)) / 2.</p>
+${tbl('base', [['Centre of the circle', 'sigma_avg'], ['Radius R', 'R'], ['Major principal stress from the circle', 'sigma_1c'], ['Minor principal stress from the circle', 'sigma_2c'], ['Angle from the circle (degrees)', 'theta_pc']])}
+<p>The eigenvalue and the circle agree to the decimals shown, and the maximum shear stress is the radius of the circle.</p>`],
+        ['A 3D stress state', `<p>For a general stress state the tensor is 3 by 3, and the same two calls work. With T = [60, 20, -10; 20, -30, 15; -10, 15, 40] MPa the three principal stresses are [[base:s_c]], [[base:s_b]] and [[base:s_a]]. Mohr's circle has no simple 3D form, so the check here is an invariant: the trace of the tensor, [[base:I_1]], equals the sum of the principal stresses, [[base:I_1c]], as it must for any rotation of the axes.</p>`],
+        ['Why eigenvalues give principal stresses', `<p>Rotating the axes changes the components of the stress tensor but not the state of stress. In the principal axes the tensor is diagonal: no shear, only normal stresses. Finding those axes is the eigenvalue problem of the matrix. Because the stress tensor is symmetric, its eigenvalues are real and its eigenvectors are at right angles to each other, which is why the principal planes are always perpendicular.</p>`],
+        ['The sheet source', `<p>The sample as it ships (this page adds three lines that pick out the 3D principal stresses):</p>
+{{code:base}}`],
+    ],
+    steps: null,
+    faq: [
+        ['What are principal stresses?', 'The normal stresses on the planes through a point where the shear stress is zero. There are two in plane stress and three in 3D, and they are the largest and smallest normal stresses at that point.'],
+        ['How is the maximum shear stress found?', "In plane stress it is half the difference of the principal stresses, the radius of Mohr's circle. Here that is [[base:tau_max]]."],
+        ['Does it handle units?', 'Yes. The tensor is entered in MPa and the principal stresses come back in MPa. Enter the components in kPa or psi and the results follow.'],
+        ['Which way is the angle measured?', 'From the x axis to the major principal direction, in degrees with the default angle setting. A direction has no sign, so an eigenvector and its negative describe the same axis.'],
+    ],
+});
+
+/* ------------------------------------------------------------------------------------------------ 16 principal axes */
+pages.push({
+    slug: 'section-principal-axes-calculator',
+    label: 'Principal axes of a section',
+    group: 'calculator',
+    area: 'structural',
+    title: 'Principal axes of an unsymmetric section, calculated',
+    description: 'Strong and weak axes of an unsymmetric cross-section from the second moments of area by eigenvalues, checked against the closed-form result.',
+    h1: 'Principal axes of a cross-section',
+    schema: [],
+    open: 'sheet-principal-axes',
+    related: ['principal-stress-calculator', 'column-buckling-calculator', 'cantilever-beam-calculator', 'simply-supported-beam-calculator'],
+    runs: {
+        base: { sample: 'Principal axes of a section.sheet', append: 'I_sum: I_1 + I_2 -> mm^4 | the trace after rotation\nI_xy_sum: Ixx + Iyy -> mm^4 | the trace before rotation\n' },
+    },
+    lead: `<p>For a symmetric section the principal axes are its axes of symmetry. For an angle, a Z-section or any other unsymmetric shape they are rotated, and a beam loaded about its geometric axes bends about both. This sheet finds the strong and weak axes from the three second moments of area, Ixx, Iyy and Ixy, as the eigenvalues and eigenvectors of a 2 by 2 matrix, and checks them against the closed-form result.</p>`,
+    sections: [
+        ['The idea', `<p>The second moments of area about the centroidal x and y axes form a symmetric matrix, [Ixx, Ixy; Ixy, Iyy]. Its eigenvalues are the principal second moments: the largest (the strong axis) and the smallest (the weak axis) values over every rotation of the axes. Its eigenvectors point along those axes. It is the same mathematics as <a href="/calcs/learn/principal-stress-calculator/">principal stresses</a>, which is why the two sheets look alike.</p>`],
+        ['Worked example', `<p>The sample takes Ixx = 8.2 x 10^6 mm^4, Iyy = 3.1 x 10^6 mm^4 and a product of inertia Ixy = -2.4 x 10^6 mm^4. Results from the engine:</p>
+${tbl('base', [['Strong axis, I1', 'I_1'], ['Weak axis, I2', 'I_2'], ['Angle from the eigenvector (degrees)', 'theta_p'], ['Mean of Ixx and Iyy', 'I_avg'], ['Radius R', 'R'], ['I1 by the closed form', 'I_1c'], ['I2 by the closed form', 'I_2c']])}
+<p>The closed form is the mean plus and minus R, with R = sqrt(((Ixx - Iyy) / 2)^2 + Ixy^2), and it agrees with the eigenvalues. A second check: the sum I1 + I2 is [[base:I_sum]], equal to Ixx + Iyy, [[base:I_xy_sum]], because the trace of the matrix does not change when the axes rotate.</p>`],
+        ['Signs and conventions', `<p>The sign of the product of inertia depends on the quadrants the section occupies and on the convention your textbook uses for it, and the matrix can be written with +Ixy or -Ixy. The principal values are the same either way; only the sign of the angle changes. Check the direction of the strong axis on a sketch of the section before you use it.</p>`],
+        ['Using the result', `<p>Resolve a bending moment into components about the two principal axes: each component bends the section about its own axis only, and the stresses from the two add. For buckling, the weak axis governs: a column check should use I2, not the smaller of Ixx and Iyy, which for an unsymmetric section is larger than I2. The <a href="/calcs/learn/column-buckling-calculator/">column buckling calculator</a> uses the smaller second moment of a rectangle; for another shape, give it I2.</p>`],
+        ['The sheet source', `<p>The sample as it ships (this page adds two lines for the trace check):</p>
+{{code:base}}`],
+    ],
+    steps: null,
+    faq: [
+        ['What is the product of inertia?', 'Ixy is the integral of x y over the area, about the centroid. It is zero when either axis is an axis of symmetry, which is why symmetric sections need no rotation.'],
+        ['Why do I1 and I2 add up to Ixx + Iyy?', 'The trace of the matrix is invariant under rotation of the axes. It is a quick check on any result.'],
+        ['Can it compute Ixx, Iyy and Ixy from a shape?', 'Not this sheet: it starts from the three values. Work them out from the parts of the section, each part with its own values plus the parallel axis terms, in lines above it, or take them from a section table.'],
+        ['Which axis buckles first?', 'The weak principal axis, with the smaller principal second moment I2.'],
+    ],
+});
+
+/* ------------------------------------------------------------------------------------------------ 17 shear frame */
+pages.push({
+    slug: 'shear-frame-natural-frequencies',
+    label: 'Shear frame frequencies',
+    group: 'calculator',
+    area: 'structural',
+    title: 'Shear frame natural frequencies and mode shapes',
+    description: 'Natural frequencies and mode shapes of a two storey shear frame from the generalised eigenvalue problem K phi = w^2 M phi, worked with units.',
+    h1: 'Natural frequencies of a shear frame',
+    schema: [],
+    open: 'sheet-shear-frame-frequencies',
+    related: ['principal-stress-calculator', 'section-principal-axes-calculator', 'gable-frame-thrust-calculator', 'engineering-calculations-with-units'],
+    runs: {
+        base: { sample: 'Shear frame natural frequencies.sheet', append: 'r_1: phi_1.1 | first floor, mode 1\nr_2: phi_2.1 | first floor, mode 2\n' },
+    },
+    lead: `<p>A shear frame is the simplest model of a building swaying sideways: rigid floors, each with its mass, joined by storeys that each have a lateral stiffness. Its natural frequencies and mode shapes come from the generalised eigenvalue problem K phi = omega^2 M phi. This sheet solves it for a two storey frame in one function call, with the masses in tonnes and the stiffnesses in kN/m, and checks that the modes are orthogonal.</p>`,
+    sections: [
+        ['The model', `<p>The first floor has a mass of 30 t and the roof 20 t. The lower storey has a lateral stiffness of 40,000 kN/m and the upper one 30,000 kN/m. The stiffness matrix is K = [k1 + k2, -k2; -k2, k2] and the mass matrix is diagonal. With two arguments, <code>eigenvals(K, M)</code> solves the generalised problem directly: K must be symmetric and M symmetric positive definite. Each eigenvalue is omega^2 in the units of K over M, so kN/m divided by tonnes comes out per second squared without any conversion by hand.</p>`],
+        ['Frequencies', `<p>The natural frequency is f = omega / (2 pi) and the period is its inverse. Results from the engine:</p>
+${tbl('base', [['First natural frequency', 'f_1'], ['Second natural frequency', 'f_2'], ['Fundamental period', 'T_1']])}`],
+        ['Mode shapes', `<p><code>eigenvecs(K, M)</code> returns one mode per row, in the order of the frequencies, each scaled so that phi^T M phi = 1. The sheet scales them again so the roof moves 1. In the first mode the first floor then moves [[base:r_1]] in the same direction: the whole frame sways one way. In the second it moves [[base:r_2]]: the floors move against each other.</p>
+<p>The modes are orthogonal through the mass matrix, so the product phi_1^T M phi_2 is zero; the sheet prints [[base:check]]. That is a useful check that the matrices were entered correctly.</p>`],
+        ['More storeys', `<p>Each extra floor adds a row and a column to K and M: K stays tridiagonal, with k_i + k_(i+1) on the diagonal and -k_(i+1) beside it, and M stays diagonal. The same two calls then give all the frequencies and modes. For many storeys, build the matrices in a loop rather than by hand.</p>`],
+        ['What this is, and is not', notCode('The floors are rigid, the masses are lumped at the floors, there is no damping, and the storey stiffness is a number you supply (for example 12 E I / h^3 for each column fixed at both ends). There is no response spectrum, time history or seismic load calculation.')],
+        ['The sheet source', `<p>The sample as it ships (this page adds two lines that pick out the first floor of each mode):</p>
+{{code:base}}`],
+    ],
+    steps: null,
+    faq: [
+        ['What is a shear frame?', 'A frame model in which the floors are rigid and the columns bend in double curvature, so each storey acts as a lateral spring between two masses.'],
+        ['Why are there as many frequencies as storeys?', 'Each floor has one degree of freedom, its sideways movement, so a two storey frame has two modes.'],
+        ['What units does it need?', 'Any consistent ones, because the engine converts. Masses in tonnes and stiffnesses in kN/m give eigenvalues per second squared, and frequencies in Hz after dividing omega by 2 pi.'],
+        ['Can it include damping or a time history?', 'Not this sheet. It finds frequencies and mode shapes only.'],
+    ],
+});
+
+/* ------------------------------------------------------------------------------------------------ 18 gable frame */
+pages.push({
+    slug: 'gable-frame-thrust-calculator',
+    label: 'Gable frame thrust',
+    group: 'calculator',
+    area: 'structural',
+    title: 'Gable frame thrust: pinned vs rigid ridge',
+    description: 'Horizontal thrust of a symmetric pitched roof frame for a pinned ridge and a rigid ridge, and why the common shortcut overstates it.',
+    h1: 'Horizontal thrust of a gable frame',
+    schema: [],
+    open: 'sheet-gable-frame-thrust',
+    related: ['bending-moment-shear-force-diagram', 'shear-frame-natural-frequencies', 'simply-supported-beam-calculator', 'retaining-wall-stability-calculator'],
+    runs: {
+        base: { sample: 'Gable frame thrust.sheet' },
+    },
+    lead: `<p>A pitched roof frame pushes its supports outwards. How hard depends on the ridge: a pin carries no moment, a continuous ridge carries some, and the thrust differs between the two. This sheet works out the vertical reactions and the horizontal thrust for both cases from the roof loads, and shows why a common hand shortcut overstates the thrust.</p>`,
+    sections: [
+        ['Loads on plan', `<p>The sample frame spans 9.8 m with a rise of 2.8 m to the ridge and a roof pitch of 30 degrees. It carries a strip of roof 4.35 m wide: a dead load of 1.2 kPa measured on the slope and a live load of 0.7 kPa on plan. The dead load is converted to plan area by dividing by the cosine of the pitch, then both become a line load on the frame. Results from the engine:</p>
+${tbl('base', [['Dead load on plan', 'g'], ['Line load on the frame', 'w'], ['Vertical reaction at each support', 'V']])}`],
+        ['Three thrusts', `<ul>
+<li><strong>The shortcut</strong> H = V a / h, with a the horizontal run of one rafter (half the span) and h the rise. It treats the whole reaction as acting at the ridge and ignores the load on the rafter.</li>
+<li><strong>Pinned ridge</strong>: moments about the ridge of one half give H = (V a - w a^2 / 2) / h, which is the same as w L^2 / (8 h).</li>
+<li><strong>Rigid ridge</strong>, pinned feet and the same stiffness along both rafters: H = 5 w a^2 / (8 h).</li>
+</ul>
+${tbl('base', [['Shortcut, V a / h', 'H_hand'], ['Pinned ridge', 'H_pin'], ['Pinned ridge, in one line', 'H_pin_check'], ['Rigid ridge', 'H_rigid'], ['Hogging moment at a rigid ridge', 'M_ridge'], ['Rigid over pinned', 'ratio']])}
+<p>The shortcut gives exactly twice the pinned value, for any span and any uniform load, because it leaves out the moment of the load on the rafter. The rigid ridge gives five quarters of the pinned value, here a ratio of [[base:ratio]]: the ridge moment it carries pushes the feet further apart.</p>`],
+        ['Which one to use', `<p>The ridge as built decides. A joint with little moment capacity behaves close to a pin; a welded or haunched ridge is closer to the rigid case. When a frame model gives the rigid value but the joint is really a pin, release the moment at the ridge node in the model and the thrust drops to the pinned value. The member self weight is not in the loads above, so a model that includes it will show a little more, about two percent for this frame.</p>`],
+        ['What this is, and is not', notCode('The frame is symmetric, with pinned feet and a uniform load on plan. The rigid case assumes the same stiffness along both rafters and ignores axial and shear deformation, and the self weight of the members is left out. There is no wind, no unbalanced load, no tie and no member check.')],
+        ['The sheet source', `<p>The sample, with its decision diagram:</p>
+{{code:base}}`],
+    ],
+    steps: null,
+    faq: [
+        ['Why does a pitched roof push its supports out?', 'The rafters lean on each other at the ridge. Under vertical load each rafter tends to rotate about its foot, and unless the feet are tied the supports must resist a horizontal thrust.'],
+        ['Is the V a / h shortcut safe?', 'It overstates the thrust, at twice the pinned-ridge value for a uniform load, so it errs on the high side for the supports. It can still mislead a model check or a tie design. Use the formula for the joint you have.'],
+        ['How much larger is the thrust with a rigid ridge?', 'With pinned feet and uniform stiffness, five quarters of the pinned value: here [[base:H_rigid]] against [[base:H_pin]].'],
+        ['Does it include wind?', 'No. It covers a uniform vertical load only.'],
+    ],
+});
+
+/* ------------------------------------------------------------------------------------------------ 19 concrete strength */
+const CONC = 'Diagram concrete strength timeline.sheet';
+pages.push({
+    slug: 'concrete-strength-gain-calculator',
+    label: 'Concrete strength gain',
+    group: 'calculator',
+    area: 'materials',
+    title: 'Concrete strength gain calculator, 1 to 28 days',
+    description: 'Strength of concrete at ages from 1 to 28 days from a common strength gain formula, listed on a timeline and plotted. Edit the 28-day strength.',
+    h1: 'Concrete strength gain with age',
+    schema: [],
+    open: 'diagram-concrete-strength',
+    related: ['pad-footing-bearing-pressure-calculator', 'retaining-wall-stability-calculator', 'column-buckling-calculator', 'engineering-calculations-with-units'],
+    runs: {
+        base: { sample: CONC },
+        c40: { sample: CONC, replace: [['f_28: 32 MPa', 'f_28: 40 MPa']] },
+    },
+    lead: `<p>Concrete gains strength quickly in its first days and slowly after that. Site decisions such as stripping edge forms, stressing a slab or removing props depend on the strength at an early age. This sheet estimates it at 1, 3, 7, 14 and 28 days from a common formula for moist-cured concrete, lists the ages on a timeline and plots the curve.</p>`,
+    sections: [
+        ['The formula', `<p>The strength at an age of t days is f(t) = f_28 t / (4 + 0.85 t), where f_28 is the specified strength at 28 days. The two constants set how fast the strength rises. At 28 days the formula gives 28 / 27.8, about 1.007 times f_28, so the 28 day line reads a little above the specified strength, and the curve keeps rising slowly after that.</p>
+<p>The constants describe moist-cured concrete with a normal rate of strength gain. Other cements and other curing have other constants: put yours in the formula line.</p>`],
+        ['Worked example', `<p>For a mix with f_28 = 32 MPa the engine gives:</p>
+${tbl('base', [['1 day', 'f_1'], ['3 days', 'f_3'], ['7 days', 'f_7'], ['14 days', 'f_14'], ['28 days', 'f_28c']], ['Age', 'Estimated strength'])}
+<p>About 70 percent of the specified strength is reached at 7 days and close to 90 percent at 14.</p>`],
+        ['A stronger mix', `<p>With f_28 = 40 MPa the values scale in proportion: [[c40:f_3]] at 3 days, [[c40:f_7]] at 7 days and [[c40:f_28c]] at 28. The formula is linear in f_28, so every age keeps the same fraction of the specified strength whatever the mix.</p>`],
+        ['The timeline and the plot', `<p>The sample lists the ages on a timeline diagram with an example of what each strength might allow on site: stripping edge forms, light foot traffic, stressing, removing props. Those strengths are typed into the diagram text, so they do not follow a change of f_28; edit the timeline when you change the mix. The plot line under it draws the formula itself, so it always matches the numbers above.</p>`],
+        ['What this is, and is not', notCode('The formula is an empirical estimate of the mean strength gain of moist-cured concrete at normal temperatures, not a prediction for your mix: cement type, temperature, curing and admixtures all change the rate, and the activities on the timeline are examples, not limits. Decisions such as stripping or stressing should rest on test results and on the strength your specification requires.')],
+        ['The sheet source', `{{code:base}}`],
+    ],
+    steps: null,
+    faq: [
+        ['How strong is concrete after 7 days?', 'By this formula about 70 percent of the 28 day strength: [[base:f_7]] for a 32 MPa mix.'],
+        ['Why is the 28 day value slightly above the specified strength?', 'The formula gives 28 / (4 + 0.85 x 28), about 1.007 times f_28, at 28 days. It is a fitted curve, not a definition.'],
+        ['Can I use different constants?', 'Yes. Edit the f(t) line. The two constants control how quickly the strength rises.'],
+        ['Does it account for temperature?', 'No. It assumes normal curing temperatures. Cold weather slows the gain considerably.'],
+    ],
+});
+
+/* ------------------------------------------------------------------------------------------------ 20 export */
+const BEND = 'Beam bending.sheet';
+pages.push({
+    slug: 'export-calculations-to-word-excel-pdf',
+    label: 'Export to Word, Excel and PDF',
+    group: 'guide',
+    title: 'Export engineering calculations to Word, Excel and PDF',
+    description: 'Turn a calculation into a Word report with real equations, an Excel workbook with native charts, or a PDF, from the browser. What each format keeps.',
+    h1: 'Export calculations to Word, Excel and PDF',
+    schema: [],
+    open: 'sheet-beam-bending',
+    video: V.exporting,
+    related: ['excel-alternative-for-engineering-calculations', 'engineering-calculations-with-units', 'mathcad-alternative', 'simply-supported-beam-calculator'],
+    runs: {
+        base: { sample: BEND },
+    },
+    lead: `<p>A calculation is only finished when someone else can read it. CivilKit Calcs turns a calculated sheet into a Word document with real equations, an Excel workbook with the workings and native charts, a PDF through the print dialog, or a standalone HTML page. Every file is written in the browser, from the same calculated report you see on screen, and it works offline.</p>`,
+    sections: [
+        ['Where the exports are', `<p>The <strong>Document</strong> tab has buttons for Print PDF, Word, Excel and Export. The File menu has Print PDF, Export and Export Excel. The Export dialog lists the views you can export (Report, Preview, Input form, Unwrapped), each with its own Save PDF, Save Word and Save HTML buttons, and a list of the plots that downloads each one as an image, or all of them as a ZIP. Report is the usual choice: it applies the values entered in an input form.</p>`],
+        ['An example to try', `<p>The beam bending sample is a short check with units:</p>
+{{code:base}}
+<p>The report shows a moment of [[base:M_star]], a design capacity of [[base:φMs]] and a utilisation of [[base:utilisation]], with the formulas, the substituted numbers and an OK line. Open it with the button on this page and export it to each format to compare.</p>`],
+        ['Word', `<ul>
+<li>Equations are real Word equations (Office Math): fractions, subscripts, sums, matrices and units, editable in the document.</li>
+<li>Headings, paragraphs, lists, links and tables keep their form.</li>
+<li>Plots and other drawings are pictures, stored as PNG with the SVG kept beside it.</li>
+<li>A formula typeset with LaTeX in a sheet appears as its TeX source in italics, not as a Word equation.</li>
+<li>An interactive chart cannot be carried, and a paragraph stands in its place. A matplotlib-style figure from a Python block is carried as a picture.</li>
+</ul>
+<p>The Word file has been checked in LibreOffice, not in Microsoft Word.</p>`],
+        ['Excel', `<p>The workbook mirrors the calculation. The Report sheet holds the report in document order, with every equation as a row: description, name, expression, expression with the numbers put in, value and unit. A Variables sheet lists every variable with its last value and unit, each vector or matrix gets a sheet of its own, an Inputs sheet holds the values from input fields, and a Plot data sheet holds the points of every plot. Each plot becomes a native XY chart on the Report sheet, pointing at the plot data, so you can edit it.</p>
+<p>The cells hold calculated values with the expressions as text, not live formulas, so changing a cell does not recalculate the rest. The workbook opens in LibreOffice and a Python reader; it has not been tried in Microsoft Excel.</p>`],
+        ['PDF and HTML', `<p><strong>Print PDF</strong> opens the browser's print dialog on the report: choose Save as PDF. The page size, orientation and margins come from the PDF settings. A page break line starts a new page, in the PDF and in Word; the + menu between blocks and the Document tab both insert one.</p>
+<p><strong>Save HTML</strong> writes a standalone page with the report, its styles, fonts and pictures. An exported input form is static: it shows the controls, but nothing recalculates behind them.</p>`],
+    ],
+    steps: null,
+    faq: [
+        ['Are the Word equations editable?', 'Yes. They are native Word equations, not pictures. A formula typed in LaTeX in a sheet is the exception: it appears as its TeX source.'],
+        ['Does the Excel workbook recalculate?', 'No. The cells hold calculated values with the expressions as text. Change the inputs in the sheet and export again.'],
+        ['Is my calculation uploaded to make the files?', 'No. The Word and Excel writers run in the page and work offline once they have loaded.'],
+        ['Which view should I export?', 'Report, usually. It applies the values entered in an input form.'],
+    ],
+});
+
+/* ------------------------------------------------------------------------------------------------ 21 units */
+pages.push({
+    slug: 'engineering-calculations-with-units',
+    label: 'Calculations with units',
+    group: 'guide',
+    title: 'Engineering calculations with units, SI and US',
+    description: 'Write calculations where every quantity carries a unit: SI and US customary units, prefixes, unit errors that catch mistakes, and your own units.',
+    h1: 'Engineering calculations with real units',
+    schema: [],
+    open: 'sheet-beam-bending',
+    video: V.units,
+    related: ['export-calculations-to-word-excel-pdf', 'excel-alternative-for-engineering-calculations', 'principal-stress-calculator', 'simply-supported-beam-calculator'],
+    runs: {
+        conv: { sheet: `# Converting units
+
+a: 1.23 m + 35 cm + 12 mm -> cm
+v: 10 m/s -> km/h
+P: 2.5 kN / (50 mm * 200 mm) -> MPa
+` },
+        us: { sheet: `# US customary units
+
+F: 10 kip -> kN
+p: 2000 psi -> MPa
+H: 20 ft -> m
+` },
+        beam: { sample: BEND },
+        pct: { sheet: `# A ratio as a percentage
+
+Ed: 245.25 kN
+Rd: 355.1 kN
+ratio: Ed / Rd
+util: ratio -> %
+` },
+        own: { sheet: `# Units of your own
+
+#unit bag = 25 kg | cement bag
+#unit pallet = 40 bag
+load: 3 pallet -> t
+n: 1000 kg -> bag
+` },
+    },
+    lead: `<p>A spreadsheet stores a bare number and leaves the unit in a column heading. In a CivilKit Calcs sheet every quantity carries its unit: the engine multiplies and divides units, converts a result to the unit you ask for, and stops with a message when a formula adds a length to a time. This page shows how that works, with SI and US customary units, prefixes, percentages and units of your own.</p>`,
+    sections: [
+        ['Attaching and converting units', `<p>Write the unit after the number, with or without a space. An arrow converts the result to the unit you choose:</p>
+{{code:conv}}
+<p>The engine gives [[conv:a]], [[conv:v]] and [[conv:P]]. Without the arrow, a sum comes out in the first unit it meets. Any SI prefix works on any SI unit that takes one, so kN, MPa, mm and µm need no definition.</p>`],
+        ['US customary units', `<p>US customary units are built in and mix freely with SI ones:</p>
+{{code:us}}
+<p>The results are [[us:F]], [[us:p]] and [[us:H]]. A few bare names mean different things in the US and UK systems, such as gal and ton; a setting picks one, and an explicit suffix such as gal_US makes a sheet independent of it.</p>`],
+        ['Errors that catch mistakes', `<p>Multiplying and dividing different units is normal: a uniform load in kN/m times a span squared gives a moment. In the beam bending sample, 12 kN/m on a 6 m span comes out as [[beam:M_star]], and the yield stress times the section modulus as a design capacity of [[beam:φMs]], both in kN·m because the units said so. Adding units that do not match is a mistake, and the engine stops at it. A sheet with <code>len: x + t</code>, where x is in metres and t in seconds, reports:</p>
+<pre><code>Inconsistent units: "m + s".</code></pre>
+<p>A unit slip is one of the most common errors in hand calculations. Here it stops the sheet and names the line.</p>`],
+        ['Percentages and units of your own', `<p>A ratio has no unit and comes out as a plain number. An arrow to % shows it as a percentage without changing its value: a utilisation of 245.25 kN over 355.1 kN shows as [[pct:util]].</p>
+<p>A <code>#unit</code> line defines a unit of your own from units the engine knows:</p>
+{{code:own}}
+<p>Three pallets come out as [[own:load]] and a tonne of cement as [[own:n]]. Currency can be defined the same way, as a dimensionless unit.</p>`],
+        ['Where to find the units', `<p>There are about 400 built-in units: lengths, masses, forces, pressures, energy and power, temperatures, angles and electrical units among them. The Insert tab in the sidebar lists them by group, and the Math tab has a Units palette organised by dimension. The <a href="/calcs/guide/units">Units chapter of the guide</a> has the full rules, including temperatures and angles.</p>`],
+    ],
+    steps: null,
+    faq: [
+        ['Does it convert between SI and US units?', 'Yes. Write the unit after the number and ask for the result in any compatible unit with an arrow. For example 2000 psi comes out as [[us:p]].'],
+        ['What happens if the units do not match?', 'The line stops with an error that names the units it could not combine, such as "Inconsistent units". Multiplying and dividing different units is fine.'],
+        ['Can I define my own units?', 'Yes, with a #unit line: a name, an equals sign and its value in known units.'],
+        ['How are ratios shown?', 'As plain numbers. Add an arrow to % to show a ratio as a percentage; the value itself does not change.'],
     ],
 });

@@ -122,3 +122,5 @@ rather than a rounded guess, and a refusal is shown in words with the library's 
 * symbols are treated as positive real numbers, so `sqrt(x^2)` is `x`.
 
 For anything else, use the numeric tools: `$Root`, `$Area`, `$Slope`, `lsolve` and friends.
+
+**Related pages:** [The beam deflection formula, derived](https://civilkit.io/calcs/learn/beam-deflection-formula-derivation/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
