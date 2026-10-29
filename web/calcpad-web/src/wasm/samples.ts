@@ -130,6 +130,22 @@ export class SamplesBrowser {
         this.selected = null;
     }
 
+    /**
+     * Opens the sample named by `key` (the `?sample=` address parameter): its id, with or without the leading
+     * `template-`, its title, or its file name, ignoring case. Returns false when nothing matches.
+     */
+    async openByKey(key: string): Promise<boolean> {
+        const k = key.trim().toLowerCase();
+        if (!k) return false;
+        const m = await loadManifest();
+        const same = (v: string) => v.toLowerCase() === k;
+        const s = m.samples.find((x) => same(x.id) || same(x.id.replace(/^template-/, '')) || same(x.title)
+            || same(x.file.replace(/^.*\//, '')) || same(x.file.replace(/^.*\//, '').replace(/\.[^.]+$/, '')));
+        if (!s) return false;
+        await this.openSample(s);
+        return true;
+    }
+
     /** Opens `sample` as a new untitled worksheet and puts its files into the library. */
     async openSample(sample: Sample): Promise<void> {
         const text = opened(new TextDecoder().decode(await bytes(sample.file)).replace(/^﻿/, ''));
