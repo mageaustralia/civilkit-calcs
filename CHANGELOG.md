@@ -11,6 +11,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- **llms.txt** - `/calcs/llms.txt` indexes the guide for language models and other tools, and `/calcs/llms-full.txt` is the whole guide in one file. Both are written by `tools/make_llms_txt.mjs`.
+
 ## [26.10.14] - 2026-10-29
 
 ### Added
