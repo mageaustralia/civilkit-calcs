@@ -379,6 +379,76 @@
    "read": false,
    "python": true,
    "assets": []
+  },
+  {
+   "id": "sheet-principal-stresses",
+   "title": "Principal stresses",
+   "group": "Sheet syntax",
+   "folder": "Sheet syntax",
+   "file": "sheet-samples/Principal stresses.sheet",
+   "upstream": "",
+   "description": "Principal stresses and directions of a plane and a 3D stress tensor from eigenvals and eigenvecs, checked with Mohr's circle.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "assets": []
+  },
+  {
+   "id": "sheet-shear-frame-frequencies",
+   "title": "Shear frame natural frequencies",
+   "group": "Sheet syntax",
+   "folder": "Sheet syntax",
+   "file": "sheet-samples/Shear frame natural frequencies.sheet",
+   "upstream": "",
+   "description": "Natural frequencies and mode shapes of a two storey shear frame from the generalized eigenvalue problem K φ = ω² M φ, eigenvals(K, M).",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "assets": []
+  },
+  {
+   "id": "sheet-mermaid-design-flow",
+   "title": "Design check as a flow diagram",
+   "group": "Sheet syntax",
+   "folder": "Sheet syntax",
+   "file": "sheet-samples/Mermaid design flow.sheet",
+   "upstream": "",
+   "description": "A Mermaid flow diagram of a beam check next to the calculation that follows the same steps.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "assets": []
+  },
+  {
+   "id": "sheet-mermaid-load-path",
+   "title": "Load path and tributary loads",
+   "group": "Sheet syntax",
+   "folder": "Sheet syntax",
+   "file": "sheet-samples/Mermaid load path.sheet",
+   "upstream": "",
+   "description": "A Mermaid diagram of the load path from slab to soil, with the loads worked out at each level.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "assets": []
+  },
+  {
+   "id": "sheet-principal-axes",
+   "title": "Principal axes of a section",
+   "group": "Sheet syntax",
+   "folder": "Sheet syntax",
+   "file": "sheet-samples/Principal axes of a section.sheet",
+   "upstream": "",
+   "description": "Strong and weak axes of an unsymmetric section from eigenvals and eigenvecs, checked against the closed form.",
+   "codes": [],
+   "ui": false,
+   "scripts": false,
+   "read": false,
+   "assets": []
   }
  ]
 }
