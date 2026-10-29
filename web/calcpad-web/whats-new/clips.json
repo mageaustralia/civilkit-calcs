@@ -1,4 +1,24 @@
 {
+  "26.10.15": [
+    {
+      "id": "diagrams-menu",
+      "title": "Diagrams menu on the ribbon",
+      "blurb": "The Plots tab is now Plots & Diagrams. Its Diagrams button, in the new Figures group, lists starter diagrams of each common engineering kind; here Flowchart inserts a design check as its own block, drawn in the results and ready to edit, and Undo takes it out again.",
+      "recorder": "23-diagrams-menu"
+    },
+    {
+      "id": "diagram-samples",
+      "title": "Samples that pair a diagram with the numbers",
+      "blurb": "The Samples dialog opens the new Gable frame thrust sheet, with its decision diagram beside the pinned and rigid ridge calculations, and then the Sankey sheet that traces the power through a pump.",
+      "recorder": "24-diagram-samples"
+    },
+    {
+      "id": "ribbon-groups",
+      "title": "A ribbon that follows the work",
+      "blurb": "Calculation now sits straight after Matrices/Tables, then Plots & Diagrams, Text Formatting, Document and Resources. Each tab's groups are regrouped to match, such as Check on Calculation and View, Panels and Help on Resources.",
+      "recorder": "25-ribbon-groups"
+    }
+  ],
   "26.10.13": [
     {
       "id": "block-grip-menu",
