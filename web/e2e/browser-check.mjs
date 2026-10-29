@@ -138,6 +138,8 @@ await context.addInitScript(() => {
     }));
 });
 const page = await context.newPage();
+// The page asks before it is left with unsaved changes (the check reloads a dirty document): leave.
+page.on('dialog', d => { if (d.type() === 'beforeunload') void d.accept(); });
 const pageErrors = [];
 page.on('pageerror', (e) => (examplePageErrors ?? pageErrors).push(e.message));
 const consoleLines = [];
@@ -689,6 +691,7 @@ const reportGroup = page.locator('.export-group').filter({ has: page.locator('.e
 // A persistent handler: with only waitForEvent('dialog') the alert stayed open and the click hung.
 const dialogs = [];
 page.on('dialog', (d) => {
+    if (d.type() === 'beforeunload') return; // answered above
     dialogs.push(d.message());
     void d.dismiss();
 });
