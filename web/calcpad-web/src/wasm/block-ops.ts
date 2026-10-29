@@ -11,12 +11,28 @@ interface Span { start: number; end: number }
 
 const blank = (s: string | undefined): boolean => s === undefined || s.trim() === '';
 
+// The preview draws nothing for hidden code (`>> #hide` runs, loops, ifs), so it reports no block for it. Such a run, set
+// apart by a blank line, is a block of its own here: the block above does not own it, and a move swaps with it instead of
+// jumping over code that later blocks depend on. A fence or $$ pair is kept whole.
+const CODE_LINE = /^(>>|for\s|if\s|while\s|else\b|elif\s)/;
+
+function codeRuns(lines: string[]): number[] {
+    const out: number[] = [];
+    let fence = false;
+    lines.forEach((l, i) => {
+        const t = l.trim();
+        if (/^(```|~~~)/.test(t) || t === '$$') fence = !fence;
+        else if (!fence && CODE_LINE.test(t) && (i === 0 || blank(lines[i - 1]))) out.push(i + 1);
+    });
+    return out;
+}
+
 function spans(lines: string[], starts: number[]): Span[] {
     // A blank source line renders as an empty block of its own; it is spacing, not a block.
     // A run of disabled lines is one block, whether or not the preview reported its lines (it draws nothing for them).
     const off = (n: number): boolean => n >= 1 && n <= lines.length && blockDisabled(lines, n);
     const runs = lines.map((_l, i) => i + 1).filter(n => off(n) && !off(n - 1));
-    const s = [...new Set([...starts, ...runs])].filter(n => Number.isInteger(n) && n >= 1 && n <= lines.length && !blank(lines[n - 1]) && !(off(n) && off(n - 1))).sort((a, b) => a - b);
+    const s = [...new Set([...starts, ...runs, ...codeRuns(lines)])].filter(n => Number.isInteger(n) && n >= 1 && n <= lines.length && !blank(lines[n - 1]) && !(off(n) && off(n - 1))).sort((a, b) => a - b);
     return s.map((start, i) => {
         let end = (i + 1 < s.length ? s[i + 1] : lines.length + 1) - 1;
         while (end > start && blank(lines[end - 1])) end--;
@@ -32,7 +48,8 @@ export function blockEdit(lines: string[], starts: number[], line: number, op: B
     if (i < 0) return null;
     const cur = all[i];
     const body = (b: Span): string[] => lines.slice(b.start - 1, b.end);
-    const gap = (a: Span, b: Span): string[] => Array<string>(Math.max(b.start - a.end - 1, 0)).fill('');
+    // What lies between two blocks stays between them: blank lines, and any hidden code the preview draws nothing for.
+    const gap = (a: Span, b: Span): string[] => lines.slice(a.end, Math.max(b.start - 1, a.end));
     if (op === 'up' || op === 'down') {
         const other = all[op === 'up' ? i - 1 : i + 1];
         if (!other) return null;
@@ -51,10 +68,13 @@ export function blockEdit(lines: string[], starts: number[], line: number, op: B
         while (add.length && blank(add[add.length - 1])) add.pop();
         return add.length ? { from: cur.end, to: cur.end, text: [lines[cur.end - 1], '', ...add] } : null;
     }
-    const next = all[i + 1];
-    if (next) return { from: cur.start, to: next.start - 1, text: [] };
-    const prev = all[i - 1];
-    return { from: prev ? prev.end + 1 : cur.start, to: lines.length, text: [] };
+    // Delete the block and the blank lines after it; the last thing in the text takes the blank lines before it instead.
+    let after = cur.end;
+    while (after < lines.length && blank(lines[after])) after++;
+    if (after < lines.length) return { from: cur.start, to: after, text: [] };
+    let from = cur.start;
+    while (from > 1 && blank(lines[from - 2])) from--;
+    return { from: all[i - 1] ? from : cur.start, to: lines.length, text: [] };
 }
 
 /** The source text of the block that starts at `line`, or null for an unknown line (Copy and Cut). */
@@ -152,10 +172,10 @@ export function moveBlockTo(lines: string[], starts: number[], line: number, bef
     const moved = body(i, j);
     if (t > j) {
         // Down: what lay between goes first, the blocks follow it, with the gap they had before.
-        const gap = Array<string>(Math.max(all[j + 1].start - all[j].end - 1, 0)).fill('');
+        const gap = lines.slice(all[j].end, Math.max(all[j + 1].start - 1, all[j].end));
         const mid = body(j + 1, t - 1);
         return { from: all[i].start, to: all[t - 1].end, text: [...mid, ...gap, ...moved], at: all[i].start + mid.length + gap.length };
     }
-    const gap = Array<string>(Math.max(all[i].start - all[i - 1].end - 1, 0)).fill('');
+    const gap = lines.slice(all[i - 1].end, Math.max(all[i].start - 1, all[i - 1].end));
     return { from: all[t].start, to: all[j].end, text: [...moved, ...gap, ...body(t, i - 1)], at: all[t].start };
 }

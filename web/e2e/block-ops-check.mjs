@@ -21,6 +21,16 @@ check(eq(run(doc, starts, 8, 'delete'), ['# T', '', 'a: 1 m', '', 'b: 2 m', 'c: 
 check(eq(run(['only'], [1], 1, 'delete'), []), 'delete the only block');
 check(eq(run(doc, [1, 2, 3, 4, 5, 6, 7, 8, 9], 3, 'down'), run(doc, starts, 3, 'down')), 'blank lines the preview reports as empty blocks are not blocks');
 check(eq(run(['a', '', 'b', '', ''], [1, 3], 3, 'down'), null), 'trailing blank lines are not a block');
+// Hidden code the preview draws nothing for (a `>> #hide` run with a loop) is not part of the block above it.
+const hid = ['n: 5', '', 'quantity: 1 m | note', '', '>> #hide', '>> a = vector(n + 1)', 'for k in 0..n:', '    >> a.(k + 1) = k', '>> #show', '', 'coefficients: a'];
+const hidStarts = [1, 3, 11];
+check(eq(run(hid, hidStarts, 3, 'delete'), ['n: 5', '', '>> #hide', '>> a = vector(n + 1)', 'for k in 0..n:', '    >> a.(k + 1) = k', '>> #show', '', 'coefficients: a']), 'delete leaves the hidden code below the block alone');
+check(eq(run(hid, hidStarts, 3, 'duplicate'), ['n: 5', '', 'quantity: 1 m | note', '', 'quantity: 1 m | note', '', '>> #hide', '>> a = vector(n + 1)', 'for k in 0..n:', '    >> a.(k + 1) = k', '>> #show', '', 'coefficients: a']), 'duplicate copies only the block, not the hidden code below it');
+check(blockText(hid, hidStarts, 3) === 'quantity: 1 m | note', 'copy reads only the block, not the hidden code below it');
+check(eq(run(['a', '```', 'x', '', 'y', '```', 'b'], [1, 2, 7], 2, 'delete'), ['a', 'b']), 'a blank line inside a fence stays in the block');
+check(eq(run(hid, hidStarts, 3, 'down'), ['n: 5', '', '>> #hide', '>> a = vector(n + 1)', 'for k in 0..n:', '    >> a.(k + 1) = k', '>> #show', '', 'quantity: 1 m | note', '', 'coefficients: a']), 'move down swaps with the hidden code, never jumping over it');
+check(eq(run(hid, hidStarts, 11, 'up'), ['n: 5', '', 'quantity: 1 m | note', '', 'coefficients: a', '', '>> #hide', '>> a = vector(n + 1)', 'for k in 0..n:', '    >> a.(k + 1) = k', '>> #show']), 'a block moves above the hidden code before it, one step at a time');
+check(moveBlockTo(hid, hidStarts, 3, 11) !== null && apply(hid, moveBlockTo(hid, hidStarts, 3, 11)).length === hid.length, 'dragging a block past hidden code keeps every line of it');
 // Cut, copy, paste below.
 check(blockText(doc, starts, 5) === 'b: 2 m' && blockText(['x', 'y', '', 'z'], [1, 4], 1) === 'x\ny' && blockText(doc, starts, 4) === null, 'copy reads the block source (the whole span, null for an unknown line)');
 check(run(doc, starts, 3, 'copy') === null, 'copy changes nothing');
