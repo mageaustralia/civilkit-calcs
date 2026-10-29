@@ -106,6 +106,18 @@ Before a release, with the guide built: `node web/e2e/seo-check.mjs` (titles, de
 breadcrumbs, sitemap and llms.txt URL forms, and every internal link of the landing pages, the hub, What's new and the
 guide) and, after a `CALCS_BASE=/calcs/` build, `node web/e2e/learn-check.mjs`.
 
+## Interface languages
+
+The app's interface strings live in `web/calcpad-web/src/i18n/en.json` (the English source) and the draft catalogues in
+`web/calcpad-web/translations/<lang>.json` (Spanish, Portuguese, French, German, Chinese; machine drafts, see its README).
+The build publishes them as `i18n/<lang>.json`; they are fetched when a language is used and are not in the install precache.
+Before a release: `node tools/i18n/check.mjs` (coverage, missing and unused keys, placeholder mismatches; `--write` updates
+`en.json` after a UI string or a ribbon or setting definition changes), `node web/e2e/i18n-unit-check.mjs` (no browser), and
+against a build `node web/e2e/i18n-english-check.mjs --dist web/calcpad-web/dist` (the converted pieces still render the same
+English; `--record` re-takes the snapshot from a build made before a deliberate wording change) and
+`node web/e2e/i18n-check.mjs --dist web/calcpad-web/dist` (the picker, the first-visit prompt, German and Chinese in a browser).
+`docs/i18n-plan.md` has the plan and the status.
+
 ## llms.txt
 
 `https://civilkit.io/calcs/llms.txt` is an index of the guide for language models and other tools (one line per chapter, the

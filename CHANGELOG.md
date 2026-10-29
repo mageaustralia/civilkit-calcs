@@ -11,6 +11,10 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- **Interface language** - Settings has a new Language section that switches the ribbon, the Settings dialog, About, Keyboard shortcuts and the block menu between English, Spanish, Portuguese, French, German and Chinese (Simplified), and `?lang=fr` (also `es-ES`, `pt-BR`, `de` and `zh-Hans`) picks a language for one page view. A browser set to one of these languages is asked once whether to switch, and either answer is remembered. The translations are machine drafts that no native speaker has reviewed yet, anything not yet translated shows in English, and worksheets, units and formulas are never translated.
+- **Engine messages in your language** - A calculation error can be shown in the interface language where its message has been translated; the others stay English.
+
 ## [26.10.16] - 2026-10-29
 
 ### Added

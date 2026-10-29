@@ -1,9 +1,11 @@
 # Multilingual support: survey and plan
 
-Status: plan only. Nothing in this document is built. The counts come from reading the code on the `main` branch (the
-number-format work on the unreleased `locale` branch is read but not part of these counts). Where a number is a
-heuristic count, it says so; the first task of phase 0 replaces every heuristic count with an exact one from an
-extraction script.
+Status: the survey and plan below were written first; the owner's decisions of 2026-10-29 follow them in the next section
+and narrow the scope to the app. Phases 0 and 2 are built locally and a first slice of phase 1 is converted, English only
+and not released. Section 8 says exactly what is done, what remains and what the checks showed. The counts in sections 1
+to 7 come from reading the code on the `main` branch (the number-format work on the unreleased `locale` branch is read but
+not part of these counts). Where a number is a heuristic count it says so; `node tools/i18n/check.mjs` now gives the exact
+counts for everything that has moved into the translator.
 
 ## Decisions already taken
 
@@ -15,6 +17,30 @@ extraction script.
   always means the same thing in every language, so files stay portable and the engine and its tests do not change.
 * Number display (1,5 versus 1.5, digit grouping) is the `locale` branch's job (`docs/localisation.md` and
   `web/calcpad-web/src/wasm/number-format.ts` on that branch). This plan builds on it and does not redo it.
+
+## Owner decisions of 2026-10-29
+
+These answer the open questions in section 7 and override the plan where they differ.
+
+* **Languages.** Spanish for Spain (`es-ES`), Portuguese for Brazil (`pt-BR`), French (`fr`), German (`de`, formal address)
+  and Chinese Simplified (`zh-Hans`). Traditional Chinese is not planned now (a Traditional browser setting gets English).
+* **Translator and reviewer.** The translator is Claude. There is no native reviewer yet. Every catalogue is therefore a
+  machine draft that no native speaker has read, and no engineer who works in that language has checked the technical terms.
+  This is stated in `web/calcpad-web/translations/README.md`, in the `_meta` block of each catalogue (the check fails if a
+  catalogue claims otherwise without a named reviewer) and in the Language help text of Settings. A reviewer's name goes in
+  `_meta.reviewed_by` when there is one; the publication gate in section 4.2 is not met until then, which is why nothing
+  ships in this run.
+* **App only for now.** No translated landing pages, guide, sitemaps, llms files or router work: phases 5, 6 and 7 of the
+  task list and all of section 3 are set aside (kept as the design for later). What's new and all other site content stay
+  English. Chinese guide search is moot.
+* **Desktop host excluded.** `services/tauri-bridge.ts` and the desktop build stay English; the translator is not started
+  there and the picker is not offered.
+* **Partial coverage ships.** A language does not need every key: a missing key shows its English (per key, never an
+  empty string).
+* **First visit: ask, never switch by itself.** If the browser's first language is one we serve and no choice is stored,
+  a small dismissible prompt offers the switch (written in that language and in English). Either answer, and closing the
+  prompt, is remembered (closing counts as "Keep English"). Settings has a Language picker and `?lang=xx` overrides the language
+  for that page view only and stores nothing.
 
 ## 1. Inventory
 
@@ -596,6 +622,11 @@ on (suggest Spanish and German first or the two with reviewers ready); phases 4 
 
 ## 7. Open questions for the owner
 
+Answered on 2026-10-29 (see the decisions above): 1 (Brazilian Portuguese), 2 (Spain Spanish), 3 (Claude translates and
+reviews; no native reviewer yet), 4 (Traditional Chinese not now), 6 and 7 (not needed: app only, What's new stays English),
+8 (partial coverage ships, English per key), 9 (ask, do not auto-switch), 10 (moot), 11 (desktop excluded). Open: 5 (localised
+slugs, only if landing pages are translated later).
+
 1. Portuguese: Brazilian only (`pt-BR`), or neutral `pt` with a note for Portugal? Affects the hreflang value and the glossary.
 2. Spanish: neutral Latin American or Spain? (`es` alone cannot serve both engineering vocabularies well.) One catalogue with a
    regional glossary note is assumed.
@@ -613,3 +644,74 @@ on (suggest Spanish and German first or the two with reviewers ready); phases 4 
    picks a language (safer for people who keep a non-English OS but work in English)?
 10. Chinese guide search: disable, or accept whole-word-only?
 11. Should the desktop host (`tauri-bridge.ts`, 38 strings) be included? It is excluded from these counts.
+
+## 8. Status (2026-10-29, branch `i18n`, local only)
+
+Nothing here is released, pushed or deployed. English output is unchanged: `web/e2e/i18n-english-check.mjs` compares the
+converted pieces with a snapshot taken from a build made before the strings moved.
+
+### Built
+
+* **The translator** (`web/calcpad-web/src/i18n/index.ts`, about 200 lines): `t()` with typed keys (`Key` is generated from
+  `en.json`), `tn()` plurals by `Intl.PluralRules` with suffix keys, `tHtml()` with escaped parameters, `td()` for keys built at
+  run time (the English is the fallback), a reactive language, detection, storage (`calcpad-language`), `?lang=`, the
+  `lang` attribute, and the hidden pseudo-language `?lang=xx`. English is bundled (`en.json`); the other catalogues are
+  `translations/<lang>.json`, published by `i18n-plugin.ts` as `i18n/<lang>.json`, fetched on demand and left out of the
+  install precache (`pwa-plugin.ts`; a changed catalogue still renews the cache name). The shared frontend package gets
+  its translator through `calcpad-frontend/src/i18n-hook.ts` (English fallback, so other hosts are unchanged).
+* **Language setting and first-visit prompt** (`LanguageSettings.vue`, `LanguagePrompt.vue`, `prompt.ts`): the picker is the
+  first section of the Settings dialog; the prompt is mounted only when there is something to offer.
+* **Check script** (`tools/i18n/check.mjs`; `npm run i18n`, `i18n:report`, `i18n:write` in `web/`): coverage per language and
+  area, keys used in code but missing from `en.json`, unused keys, English that differs from the code or the data,
+  parameters a call does not pass, orphan keys in a translation, placeholder and markup mismatches, plural sets without
+  `_other`, dashes and local paths, and the `_meta` honesty rule. Missing translations are reported, not errors.
+* **Engine message codes.** `MathParserException` carries `code` and `args`; 130 of the 137 constructors of `exceptions.rs` (the ones that
+  were one message from the catalogue, 128 distinct codes; `InvalidNumber` calls `InvalidLiteral`) are now `MathParserException::coded("<constant name>", ...)` with the same English
+  text as before. With `"messageCodes": true` in the request, the wasm layer records each coded message and the "Error in ..."
+  frame around it, wraps that text in the page as `<ck-msg code args>` and adds `code` and `args` to the entries of `errors`.
+  The web edge (`i18n/engine-messages.ts`, called from the engine client in `transport.ts`) removes the wrapper for English,
+  so the page is byte for byte what the engine wrote before, or swaps in `msg.<code>` of the active language. Collecting is
+  off unless asked for, so the CLI and every Rust test see no change.
+* **Draft catalogues** for `es-ES`, `pt-BR`, `fr`, `de` and `zh-Hans`: all 686 interface keys that have moved into the
+  translator, plus 11 of the 130 engine entries (nine common messages and the two "Error in" frames): 697 of 816 keys, 85.4
+  percent each. The other 119 engine messages show English.
+* **CJK**: system faces with Han glyphs are named in the interface and editor font stacks (`:lang(zh-Hans)` for the
+  interface), no font is downloaded. A Chinese comment, the caret and the preview were checked in a screenshot and by a
+  caret measurement.
+
+### Converted so far (of the heuristic 1,300 strings in section 1.1)
+
+* Ribbon: every tab name, group name, quick-bar and button label and tooltip, the popover section headings of the
+  hand-picked palettes, and the filter, loading and "no match" texts (`ribbon-data.ts` stays plain English data; keys are
+  derived by `ribbon-i18n.ts`). Not converted: the title text of the individual palette entries, and the headings and
+  entries that come from the snippet library.
+* Settings dialog: all of `CalcpadSettingsTab.vue` except the validation messages shown on an invalid number
+  (`rangeMessage`), the definitions it shows (math, plot, PDF, log level: labels, help, options), the search placeholder, the
+  new Language section and all of `LibrariesSettings.vue`. The dialog title and its Close button, and the sidebar tab names, in
+  `CalcpadApp.vue`.
+* About and Keyboard shortcuts dialogs; the block menu, its aria label and the block toasts with Undo in `App.vue`.
+* The first-visit prompt and the Language section (new text).
+
+### Remaining
+
+Most of the app: the rest of `App.vue` (about 100 strings), `main.ts` (welcome page, Monaco actions), the File menu and
+the dialogs in `web-files.ts`, `symbolic.ts`, `worksheet-import.ts`, `samples.ts`, `MathKeyboard.vue`,
+`MdBlockEditor.vue`, `plot-chips.ts`, `rename.ts`, `palette.ts`, `completions.ts`, `diagram-starters.ts`, the notices in
+`transport.ts`, and in the frontend package the Metadata, Export, Variables, Insert, Files, TOC, Errors and Formatting tabs,
+the message bridge and the settings validation text. Engine side: the 7 constructors that join a word to a message
+(`MustBeScalar` and the like), the roughly 200 messages that are not in the catalogue, the linter's 66 codes (they have codes
+but not separate arguments), the snippet descriptions, and the Word and Excel report words. Pluralised UI text (`tn`) has unit
+tests but no production call site yet, because none of the converted strings is plural. Phases 4 (content overlays) and the
+numbers inside engine messages (arguments pass through as the engine wrote them, not through the number format) are open.
+
+### Merging with the `locale` branch
+
+`locale` is not merged and was not changed. This work is arranged so that it merges cleanly:
+`CalcpadSettingsTab.vue` gets the same `settingsFirstSections` lines as `locale` (identical text, so git merges them as
+one); the one conflict is expected in `wasm/setup.ts`, where both branches add a line `settingsFirstSections: [...]`:
+resolve it as `settingsFirstSections: [NumberFormatSettings, LanguageSettings]` and add both imports. `transport.ts`,
+`ribbon-data.ts` (which `locale` reformats) and `main.ts` are touched in different places; if `ribbon-data.ts` conflicts,
+take `locale`'s text, since this branch does not edit that file. After the merge, run `node tools/i18n/check.mjs`: if
+`locale` adds UI text of its own (`NumberFormatSettings.vue` has English strings), convert them the same way
+(`t('settings.numberFormat...')`) and the check lists them as missing from `en.json` until then. The language and the
+number format stay separate choices, as in section 2.5.
