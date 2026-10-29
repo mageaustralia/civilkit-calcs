@@ -11,6 +11,7 @@ import { copyFileSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync }
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { installPointer, makeRec, openApp } from './lib.mjs';
+import { MAX_BYTES, MP4_CRFS, WEBM_CRFS, mp4Args, webmArgs } from '../../../tools/normalize_clips.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
@@ -24,7 +25,6 @@ mkdirSync(posters, { recursive: true });
 const tmp = join(out, '.raw');
 mkdirSync(tmp, { recursive: true });
 
-const MAX_BYTES = 600 * 1000;
 const MAX_POSTER = 60 * 1000;
 
 function ffmpeg(args) {
@@ -38,8 +38,9 @@ function encode(raw, spec, id) {
     const { crop, width, fps, skips, speed } = spec;
     const filters = [];
     if (crop) filters.push(`crop=${crop.w}:${crop.h}:${crop.x}:${crop.y}`);
-    // JPEG frames are full range; players expect limited range yuv420p (Safari in particular).
-    filters.push(`scale=${width}:-2:flags=lanczos:in_range=pc:out_range=tv`, `fps=${fps}`);
+    // JPEG frames are full range; players expect limited range yuv420p, flagged as such: a VP9 stream flagged full
+    // range does not decode in Chromium's software decoder. Square pixels. (The rules: tools/normalize_clips.mjs.)
+    filters.push(`scale=${width}:-2:flags=lanczos:in_range=pc:out_range=tv`, 'setsar=1', `fps=${fps}`);
     // Waits the recorder marked as dead time are cut out (times are relative to the start of the kept section).
     if (skips.length) filters.push(`select='not(${skips.map(([a, b]) => `between(t,${a.toFixed(3)},${b.toFixed(3)})`).join('+')})'`, `setpts=N/(${fps}*TB)`);
     // A machine that is busy makes the app answer slowly; a clip longer than it should be is played faster (at most 1.3x).
@@ -48,14 +49,14 @@ function encode(raw, spec, id) {
     const input = ['-f', 'concat', '-safe', '0', '-i', raw];
     const webm = join(out, `${id}.webm`);
     let crfUsed = 0;
-    for (const crf of [34, 37, 40, 44, 48]) {
-        ffmpeg([...input, '-vf', vf, '-an', '-c:v', 'libvpx-vp9', '-crf', String(crf), '-b:v', '0', '-row-mt', '1', '-deadline', 'good', '-cpu-used', '2', '-pix_fmt', 'yuv420p', '-threads', '2', webm]);
+    for (const crf of WEBM_CRFS) {
+        ffmpeg([...input, '-vf', vf, ...webmArgs(crf, fps), '-threads', '2', webm]);
         crfUsed = crf;
         if (size(webm) <= MAX_BYTES) break;
     }
     const mp4 = join(out, `${id}.mp4`);
-    for (const crf of [30, 33, 36, 39, 42]) {
-        ffmpeg([...input, '-vf', vf, '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf), '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-movflags', '+faststart', '-threads', '2', mp4]);
+    for (const crf of MP4_CRFS) {
+        ffmpeg([...input, '-vf', vf, ...mp4Args(crf, fps), '-threads', '2', mp4]);
         if (size(mp4) <= MAX_BYTES) break;
     }
     return { webm, mp4, crfUsed };

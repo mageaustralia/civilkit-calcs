@@ -140,6 +140,31 @@ This writes `<id>.webm`, `<id>.mp4` and `<id>.png` for each clip, and refreshes 
 before using them: each recorder cuts out the waits, but a slow machine can still leave a re-run on screen. Each clip should
 stay under 600 KB; the recorder raises the compression until it does.
 
+Every clip follows the same encoding rules, kept in one place, `tools/normalize_clips.mjs` (the recorder imports its ffmpeg
+arguments from there):
+
+- `yuv420p` in **limited range, flagged as such** (`scale=...:in_range=pc:out_range=tv`, `-color_range tv`,
+  `-colorspace bt470bg`). A VP9 stream flagged full range fails in Chromium's software VP9 decoder with
+  `PIPELINE_ERROR_DECODE` before the first frame; the decode error does not fall back to the MP4 `<source>`, so the clip never
+  plays in Chrome. Five clips of 26.10.10 to 26.10.12 were encoded that way and are re-encoded since.
+- square pixels (`setsar=1`), a constant frame rate (`fps=`), timestamps from 0;
+- a keyframe every second (`-g` equal to the frame rate);
+- WebM: `libvpx-vp9 -crf 34.. -b:v 0 -row-mt 1 -deadline good -cpu-used 2 -cues_to_front 1` (the index at the front);
+- MP4: `libx264 -preset slow -profile:v high -crf 30.. -movflags +faststart` (the moov atom at the front);
+- at most 600 KB per file, the CRF raised step by step until it fits.
+
+To check a folder of clips, or bring older clips to these rules (a file that only breaks container rules is remuxed without
+re-encoding; one with full-range or non-yuv420p pixels is re-encoded from itself, as the raw recordings are not kept):
+
+```sh
+node tools/normalize_clips.mjs --check DIR                 # lists each file, exits 1 if one breaks a rule
+node tools/normalize_clips.mjs --in DIR --out FIXED_DIR    # [--only id,id] [--reencode]
+cd web && node e2e/whats-new-browser-check.mjs --clips FIXED_DIR   # every clip plays, loops, and plays on hover, focus and tap
+```
+
+The page script `whats-new.js` also falls back to the MP4 by hand when the WebM gives a decode error and the browser plays
+H.264, so a bad WebM shows the MP4 instead of the poster; headless Chromium has no H.264, so the check above still fails on it.
+
 For the Cloudflare deploy only, copy the clips next to the page after the build and before publishing:
 
 ```sh
