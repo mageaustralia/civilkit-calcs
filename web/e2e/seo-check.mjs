@@ -52,6 +52,8 @@ const videoNames = new Set(readdirSync(join(repo, 'book', 'videos')).filter((f) 
 const isFile = (p) => existsSync(p) && statSync(p).isFile();
 /** null if a site path under /calcs/ (with an optional query) resolves, else the reason. canonicalOnly: guide links must be extensionless. */
 function resolvesPath(path, query, { canonicalOnly = true } = {}) {
+    // The MCP endpoint is a Worker of its own at the root of the host, not a file of this build.
+    if (path === '/mcp') return null;
     if (!path.startsWith('/calcs/')) return `not under /calcs/: ${path}`;
     const rel = path.slice('/calcs/'.length);
     if (rel === '') {

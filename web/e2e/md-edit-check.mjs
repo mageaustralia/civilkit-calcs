@@ -53,7 +53,9 @@ console.log('  tagged lines:', lines.join(' | '));
 check(fr && await fr.evaluate(() => !!document.querySelector('sub') && !!document.querySelector('sup')), 'f~c~ and x^2^ render as subscript and superscript');
 
 // 1. Double-click the paragraph: the rich-text editor opens with the block's text.
-const geo = () => fr.evaluate(() => { const r = n => document.querySelector(`[data-source-line="${n}"]`).getBoundingClientRect(); return { top: Math.round(r(3).top), left: Math.round(r(3).left), next: Math.round(r(7).top) }; });
+// The preview keeps a front and a back frame and swaps them after each render: measure the front one each time.
+const front = async () => { for (let i = 0; i < 40; i++) { const h = await page.locator('iframe.preview-frame:not(.preview-frame-back)').first().elementHandle().catch(() => null); const f = h ? await h.contentFrame() : null; if (f && await f.evaluate(() => !!document.querySelector('[data-source-line]')).catch(() => false)) return f; await page.waitForTimeout(250); } return fr; };
+const geo = async () => (await front()).evaluate(() => { const r = n => document.querySelector(`[data-source-line="${n}"]`).getBoundingClientRect(); return { top: Math.round(r(3).top), left: Math.round(r(3).left), next: Math.round(r(7).top) }; });
 const g0 = await geo();
 await fr.locator('[data-source-line="5"]').first().dblclick();
 await page.waitForSelector('.md-edit .ProseMirror', { timeout: 15000 });
@@ -67,7 +69,7 @@ await page.screenshot({ path: join(process.env.TMPDIR ?? '/tmp', 'md-edit-open.p
 // The editor opens in place of the text, and the preview makes room for it.
 await page.waitForTimeout(500);
 const eb = await page.locator('.md-edit').boundingBox();
-const fb = await page.locator('iframe').evaluateAll(l => l.filter(f => f.getBoundingClientRect().width > 0).map(f => { const r = f.getBoundingClientRect(); return { left: r.left, top: r.top }; })[0]);
+const fb = await page.locator('iframe.preview-frame:not(.preview-frame-back)').evaluateAll(l => l.filter(f => f.getBoundingClientRect().width > 0).map(f => { const r = f.getBoundingClientRect(); return { left: r.left, top: r.top }; })[0]);
 check(Math.abs(eb.y - (fb.top + g0.top)) < 3 && Math.abs(eb.x - (fb.left + g0.left)) < 3, `the editor opens over the rendered text (editor ${Math.round(eb.x)},${Math.round(eb.y)} vs text ${Math.round(fb.left + g0.left)},${Math.round(fb.top + g0.top)})`);
 const g1 = await geo();
 check(fb.top + g1.next >= eb.y + eb.height - 2 && g1.next > g0.next, `the rest of the page starts below the editor, not under it (next line at ${Math.round(fb.top + g1.next)}, editor ends ${Math.round(eb.y + eb.height)})`);
