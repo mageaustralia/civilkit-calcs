@@ -12,7 +12,10 @@
     "build:wasm": "sh ../tools/build_wasm.sh",
     "build": "npm run build -w calcpad-frontend && npm run build -w calcpad-web",
     "dev": "npm run dev -w calcpad-web",
-    "preview": "npm run preview -w calcpad-web"
+    "preview": "npm run preview -w calcpad-web",
+    "i18n": "node ../tools/i18n/check.mjs",
+    "i18n:report": "node ../tools/i18n/check.mjs --report",
+    "i18n:write": "node ../tools/i18n/check.mjs --write"
   },
   "devDependencies": {
     "playwright": "^1.49.1"
