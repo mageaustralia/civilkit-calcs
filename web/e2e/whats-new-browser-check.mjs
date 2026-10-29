@@ -1,7 +1,8 @@
 // The What's new page in a real browser, without and with the clip files.
 //   node e2e/whats-new-browser-check.mjs [--clips DIR] [--shots DIR] [--port 4195]
 // Serves calcpad-web/public (so the page is at /whats-new/). Without clips the page must look right from the posters
-// alone; with them (--clips, the folder record.mjs wrote) every <video> must play, advance and loop.
+// alone; with them (--clips, the folder record.mjs wrote) every <video> must play, advance and loop, and the hover-to-play
+// script must play every clip on hover, keyboard focus and tap, one at a time.
 import { createServer } from 'node:http';
 import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
@@ -112,6 +113,7 @@ if (clipsDir) {
         // loops: seek near the end and watch the time wrap round
         const wrapped = await page.evaluate(async (s) => {
             const v = document.querySelector(s);
+            if (!Number.isFinite(v.duration)) return { wrap: false, moving: false, ended: v.ended };   // did not load
             if (v.paused) await v.play().catch(() => {});
             v.currentTime = Math.max(0, v.duration - 0.6);
             let prev = v.currentTime, wrap = false;
@@ -124,12 +126,76 @@ if (clipsDir) {
         check(wrapped.wrap && wrapped.moving && !wrapped.ended, `${id}: loops (time wraps to the start and keeps playing)`);
     }
     await ctx.close();
+
+    // The hover-to-play script, the way a visitor uses it: every clip, not only the first, with several on screen.
+    const state = (pg) => pg.$$eval('figure.clip', (fs) => fs.map((f) => { const v = f.querySelector('video'); return { id: f.id.replace(/^clip-/, ''), t: v.currentTime, paused: v.paused, err: v.error ? v.error.code : 0, src: v.currentSrc.split('/').pop(), rs: v.readyState, ns: v.networkState, cls: f.querySelector('.frame').className }; }));
+    const wait = (pg, ms) => pg.waitForTimeout(ms);
+    {
+        const hc = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+        const pg = await hc.newPage();
+        const errs = [];
+        pg.on('pageerror', (e) => errs.push(String(e)));
+        await pg.goto(url, { waitUntil: 'load' });
+        // 4+ clips on screen; no smooth scrolling, which would carry a clip out from under the pointer after the hover
+        await pg.addStyleTag({ content: 'html { scroll-behavior: auto !important } main { max-width: none } .clips { grid-template-columns: repeat(4, 1fr) !important }' });
+        await wait(pg, 1500);
+        const bad = [];
+        let most = 0;
+        for (const id of ids) {
+            const fr = pg.locator(`#clip-${id} .frame`);
+            await fr.scrollIntoViewIfNeeded();
+            most = Math.max(most, await pg.$$eval('figure.clip .frame', (fs) => fs.filter((f) => { const r = f.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; }).length));
+            await fr.hover();
+            let s = [];
+            for (let i = 0; i < 80; i++) { await wait(pg, 100); s = await state(pg); if (s.find((x) => x.id === id).t > 0.5) break; }
+            const me = s.find((x) => x.id === id), others = s.filter((x) => !x.paused && x.id !== id);
+            if (!(me.t > 0.5 && !me.paused && !others.length)) bad.push(`${id} (t ${me.t.toFixed(2)}, ${me.src}, error ${me.err}, ${others.length} others playing, ${JSON.stringify(me)})`);
+        }
+        check(!bad.length && most >= 4, `hover: each of the ${ids.length} clips plays while the pointer is on it, one at a time (${most} on screen)${bad.length ? ': ' + bad.join('; ') : ''}`);
+        await pg.mouse.move(1, 1);
+        await wait(pg, 300);
+        check((await state(pg)).every((x) => x.paused && x.t === 0), 'hover: the pointer leaving stops the clip and goes back to its poster');
+        await pg.locator('figure.clip .frame').nth(1).focus();
+        await wait(pg, 1500);
+        let s = await state(pg);
+        check(!s[1].paused && s[1].t > 0.3 && s.filter((x) => !x.paused).length === 1, 'keyboard: focus plays the clip');
+        await pg.keyboard.press('Enter');
+        await wait(pg, 300);
+        s = await state(pg);
+        check(s[1].paused, 'keyboard: Enter stops it again');
+        check(errs.length === 0, `hover: no page errors${errs[0] ? ': ' + errs[0] : ''}`);
+        await hc.close();
+    }
+    {
+        const tc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+        const pg = await tc.newPage();
+        await pg.goto(url, { waitUntil: 'load' });
+        await wait(pg, 1500);
+        const bad = [];
+        for (const id of ids) {
+            const fr = pg.locator(`#clip-${id} .frame`);
+            await fr.scrollIntoViewIfNeeded();
+            await fr.tap();
+            let s = [];
+            for (let i = 0; i < 80; i++) { await wait(pg, 100); s = await state(pg); if (s.find((x) => x.id === id).t > 0.5) break; }
+            const me = s.find((x) => x.id === id);
+            if (!(me.t > 0.5 && !me.paused && s.filter((x) => !x.paused).length === 1)) bad.push(`${id} (t ${me.t.toFixed(2)}, error ${me.err})`);
+        }
+        check(!bad.length, `tap: a tap plays each of the ${ids.length} clips and stops the one before${bad.length ? ': ' + bad.join('; ') : ''}`);
+        await pg.locator(`#clip-${ids[ids.length - 1]} .frame`).tap();
+        await wait(pg, 300);
+        check((await state(pg)).every((x) => x.paused), 'tap: a second tap stops it');
+        await tc.close();
+    }
     // reduced motion: the still replaces the video
     const rm = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
     const p = await rm.newPage();
     await p.goto(url);
     const vis = await p.evaluate(() => ({ v: [...document.querySelectorAll('video')].every((x) => getComputedStyle(x).display === 'none'), s: [...document.querySelectorAll('img.still')].every((x) => getComputedStyle(x).display !== 'none') }));
     check(vis.v && vis.s, 'reduced motion: the videos are hidden and the stills shown');
+    await p.locator('figure.clip .frame').first().dispatchEvent('pointerenter', { pointerType: 'mouse' });
+    await p.waitForTimeout(800);
+    check(await p.$$eval('video', (vs) => vs.every((v) => v.paused)), 'reduced motion: hovering a clip does not play it');
     await rm.close();
 }
 await browser.close();
