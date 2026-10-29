@@ -1,0 +1,46 @@
+<!--sheet-->
+# Requirements traceability for a floor beam
+
+The requirement diagram ties each requirement to the check that satisfies it. The checks follow,
+so a reviewer can go from a requirement to its number.
+
+```mermaid
+requirementDiagram
+  requirement strength {
+    id: R1
+    text: Design moment within capacity
+    risk: high
+    verifymethod: analysis
+  }
+  requirement serviceability {
+    id: R2
+    text: Deflection within span over 300
+    risk: medium
+    verifymethod: analysis
+  }
+  element bending_check {
+    type: sheet check
+  }
+  element deflection_check {
+    type: sheet check
+  }
+  bending_check - satisfies -> strength
+  deflection_check - satisfies -> serviceability
+```
+
+## Inputs
+L: 6 m | span
+w: 10 kN/m | design load
+w_s: 6.5 kN/m | service load
+E: 200000 MPa | elastic modulus
+I: 85000000 mm⁴ | second moment of area
+phiMs: 140 kN*m | design capacity of the section
+
+## R1: strength
+Mstar: w * L^2 / 8 -> kN*m | design moment
+if Mstar <= phiMs: "R1 met." else: "R1 not met."
+
+## R2: serviceability
+delta: 5 * w_s * L^4 / (384 * E * I) -> mm | midspan deflection
+delta_lim: L / 300 -> mm | limit
+if delta <= delta_lim: "R2 met." else: "R2 not met."

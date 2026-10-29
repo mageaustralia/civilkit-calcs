@@ -1,0 +1,46 @@
+<!--sheet-->
+# Gable frame: thrust at the supports
+
+A symmetric pitched roof frame under a uniform load. The vertical reactions are simple, but the horizontal
+thrust depends on what the ridge is: a pin carries no moment, a continuous (rigid) ridge carries some. Check
+which one the real joint is before trusting a thrust.
+
+```mermaid
+flowchart TD
+  A[Loads on plan: w] --> B[Vertical reaction V = w L / 2]
+  B --> C{Ridge joint?}
+  C -- pin --> D[Moments about the ridge: H = V a - w a^2 / 2, divided by h]
+  C -- rigid --> E[Two-pinned frame: H = 5 w a^2 / 8 h]
+  D --> F[Compare with the model]
+  E --> F
+```
+
+## Inputs
+L: 9.8 m | span between the supports
+h: 2.8 m | rise from the supports to the ridge
+trib: 4.35 m | tributary width of the frame
+g_s: 1.2 kPa | dead load per area of roof slope
+q: 0.7 kPa | live load per plan area
+pitch: 30 deg | roof pitch
+
+## Load on plan
+g: g_s / cos(pitch) | dead load converted to plan area
+w: (g + q) * trib -> kN/m | line load on the frame, per metre of span
+a: L / 2 | horizontal run of one rafter
+
+## Vertical reactions
+V: w * L / 2 -> kN | each support
+
+## Horizontal thrust
+H_hand: V * a / h -> kN | V a / h: treats the whole reaction as acting at the ridge and ignores the load on the rafter
+H_pin: (V * a - w * a^2 / 2) / h -> kN | pinned ridge: moments about the ridge of one half
+H_pin_check: w * L^2 / (8 * h) -> kN | the same thing in one line
+H_rigid: 5 * w * a^2 / (8 * h) -> kN | rigid ridge, pinned feet, constant stiffness along the rafters
+
+## What the rigid ridge does
+M_ridge: H_rigid * h - V * a + w * a^2 / 2 -> kN*m | hogging moment at the ridge (zero for a pin)
+ratio: H_rigid / H_pin | the thrust is larger when the ridge resists moment
+
+The rigid case assumes the same stiffness along both rafters and ignores axial and shear deformation. Member
+self weight is not in the load above, so a model that includes it will show about two per cent more.
+If a pin is what is really built, release the moment at the ridge node in the model and the thrust drops to the pinned value.

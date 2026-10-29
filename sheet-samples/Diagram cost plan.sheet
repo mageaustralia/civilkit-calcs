@@ -1,0 +1,32 @@
+<!--sheet-->
+# Cost plan of a small building
+
+A treemap draws each item as a rectangle whose area is its cost, nested inside its group. The
+sheet adds up the groups and works out the share of the structure. Costs are in thousands.
+
+```mermaid
+treemap
+"Building"
+    "Structure"
+        "Foundations": 120
+        "Frame": 310
+        "Floors": 260
+    "Envelope"
+        "Facade": 280
+        "Roof": 90
+    "Services"
+        "Mechanical": 220
+        "Electrical": 150
+        "Hydraulic": 80
+```
+
+## Groups
+C_structure: 120 + 310 + 260 | structure
+C_envelope: 280 + 90 | envelope
+C_services: 220 + 150 + 80 | services
+C_total: C_structure + C_envelope + C_services | total
+
+## Shares
+s_structure: C_structure / C_total -> % | structure
+s_envelope: C_envelope / C_total -> % | envelope
+s_services: C_services / C_total -> % | services

@@ -1,0 +1,32 @@
+<!--sheet-->
+# Design brief for a footbridge
+
+A mind map gathers the brief on one page. The key numbers in it are worked out under the map.
+
+```mermaid
+mindmap
+  root((Footbridge))
+    Geometry
+      Span 24 m
+      Clear width 2.5 m
+    Loads
+      Crowd 5 kPa
+      Deck 3 kPa
+    Limits
+      Deflection L/360
+      Frequency above 3 Hz
+    Site
+      Creek crossing
+      Crane access one side
+```
+
+## Geometry and loads
+L: 24 m | span
+b: 2.5 m | clear width
+q: 5 kPa | crowd load
+g_d: 3 kPa | deck and parapets
+
+## Key numbers
+w: (1.2 * g_d + 1.5 * q) * b -> kN/m | design line load
+Mstar: w * L^2 / 8 -> kN*m | design moment
+delta_lim: L / 360 -> mm | deflection limit

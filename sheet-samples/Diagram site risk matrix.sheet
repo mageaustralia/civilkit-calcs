@@ -1,0 +1,35 @@
+<!--sheet-->
+# Site risk matrix
+
+Each risk is scored for likelihood and consequence from 1 to 5. The rating is their product, and
+the position in the quadrant chart is the score scaled to the range 0 to 1 (score / 5 - 0.1).
+
+## Scores
+L_1: 2; C_1: 5 | trench collapse
+L_2: 1; C_2: 4 | crane overturning
+L_3: 4; C_3: 2 | late concrete supply
+L_4: 5; C_4: 3 | wet weather on earthworks
+
+## Ratings
+R_1: L_1 * C_1 | trench collapse
+R_2: L_2 * C_2 | crane overturning
+R_3: L_3 * C_3 | late concrete supply
+R_4: L_4 * C_4 | wet weather on earthworks
+x_4: L_4 / 5 - 0.1; y_4: C_4 / 5 - 0.1 | position of the highest rating
+
+if max(R_1, R_2, R_3, R_4) >= 12: "A risk rates 12 or more: it needs a control before work starts." else: "No risk rates 12 or more."
+
+```mermaid
+quadrantChart
+  title Site risks
+  x-axis Unlikely --> Likely
+  y-axis Minor --> Severe
+  quadrant-1 Control first
+  quadrant-2 Plan for it
+  quadrant-3 Accept
+  quadrant-4 Monitor
+  Trench collapse: [0.3, 0.9]
+  Crane overturning: [0.1, 0.7]
+  Late concrete: [0.7, 0.3]
+  Wet weather: [0.9, 0.5]
+```

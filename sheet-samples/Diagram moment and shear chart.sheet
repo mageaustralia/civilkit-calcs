@@ -1,0 +1,29 @@
+<!--sheet-->
+# Moment and shear along a beam
+
+A simply supported beam under a uniform load. The loop works out the moment and the shear at
+seven points, and the moments are typed into the XY chart, as bars and as a line through them.
+A plot of the moment drawn by the sheet follows for comparison.
+
+## Inputs
+L: 6 m | span
+w: 12 kN/m | uniform load
+
+## At sixths of the span
+M(x): w * x * (L - x) / 2
+V(x): w * (L / 2 - x)
+for i in 0..6:
+    x: i * L / 6
+    M_x: M(x) -> kN*m
+    V_x: V(x) -> kN
+
+```mermaid
+xychart-beta
+  title "Bending moment at sixths of the span"
+  x-axis "x, m" [0, 1, 2, 3, 4, 5, 6]
+  y-axis "M, kN.m" 0 --> 60
+  bar [0, 30, 48, 54, 48, 30, 0]
+  line [0, 30, 48, 54, 48, 30, 0]
+```
+
+plot M(x * 1 m) for x in 0..6
