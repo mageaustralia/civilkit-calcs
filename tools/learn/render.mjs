@@ -172,9 +172,8 @@ export function tryIt(page) {
     return `
 <section class="try" id="try-it">
 <h2>Try it</h2>
-<p>Change the inputs and the results recalculate in your browser. <a href="/calcs/embed/">Embed it on your own site</a>.</p>
 <iframe class="embed" src="/calcs/?embed=1&amp;sample=${esc(page.open)}" width="100%" height="${EMBED_HEIGHT}" loading="lazy" title="${esc(LABEL[page.slug])}: live sheet" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
-<p class="fallback"><a href="/calcs/?sample=${esc(page.open)}">Open the sheet in Calcs</a> if the live sheet does not show.</p>
+<p class="fallback"><a href="/calcs/?sample=${esc(page.open)}">Open the sheet in Calcs</a> or <a href="/calcs/embed/">embed it</a>.</p>
 </section>`;
 }
 /** The height of an embedded sheet on the landing pages, in pixels (fixed, so nothing moves while it loads). */

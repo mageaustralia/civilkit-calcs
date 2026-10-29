@@ -16,7 +16,7 @@ as an input form and its live results, for an iframe on another site or on our o
   `src/main.ts` otherwise. The embed never loads Monaco, the ribbon, the tabs, the suite bar or the update notice, and it
   never registers the service worker. The two dynamic imports live in two exported functions: written as one if/else,
   the bundler merged their preload lists and an embed preloaded the whole app (about 1 MB gzipped). The embed's style
-  sheets are imported `?inline` for the same reason. The embed chunk is about 15 KB (6 KB gzipped) plus the shared
+  sheets are imported `?inline` for the same reason. The embed chunk is about 20 KB (8 KB gzipped, its styles included) plus the shared
   settings chunk and the wasm.
 * **The same calculation path.** `installWasmTransport()` answers `/api/calcpad/convert` in the page exactly as for the
   app's preview: sheet compile, engine in a worker, TeX, Mermaid, the dark theme styles, the script policy. The results
