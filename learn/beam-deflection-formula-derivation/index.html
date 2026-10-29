@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beam deflection formula 5wL^4/384EI, derived</title>
+<meta name="description" content="Derive the midspan deflection of a simply supported beam under a uniform load step by step with symbolic integration, then check it against a plotted curve.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/beam-deflection-formula-derivation/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Beam deflection formula 5wL^4/384EI, derived">
+<meta property="og:description" content="Derive the midspan deflection of a simply supported beam under a uniform load step by step with symbolic integration, then check it against a plotted curve.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/beam-deflection-formula-derivation/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Beam deflection formula 5wL^4/384EI, derived">
+<meta name="twitter:description" content="Derive the midspan deflection of a simply supported beam under a uniform load step by step with symbolic integration, then check it against a plotted curve.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Calculators and guides",
+     "item": "https://civilkit.io/calcs/learn/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 4,
+     "name": "Beam deflection formula, derived",
+     "item": "https://civilkit.io/calcs/learn/beam-deflection-formula-derivation/"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Where does 5/384 come from?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "From integrating the bending equation twice and applying the support conditions. The curve is y(x) = w x (L^3 - 2 L x^2 + x^3) / (24 E I), and at x = L/2 that is 5 w L^4 / (384 E I)."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What is the slope at the supports?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "w L^3 / (24 E I), the value of C1: the derivative of the curve at x = 0."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does the Symbolic dialog need an internet connection?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. It loads the first time you run it and then works offline, like the rest of the app."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I put the derived formula into a calculation?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Insert into worksheet writes the result as a typeset formula or as a quantity line, which the engine calculates once every symbol has a value."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <a href="/calcs/learn/">Calculators and guides</a> / <span>Beam deflection formula, derived</span></nav>
+<h1>Deriving the simply supported beam deflection formula</h1>
+<div class="lead">
+<p>Every structural engineer knows that a simply supported beam under a uniform load deflects 5 w L^4 / (384 E I) at midspan. This page derives that formula from the bending equation in four exact steps with the Symbolic dialog of CivilKit Calcs, then puts numbers in and lets the engine check that the formula and the derived deflection curve agree.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=sheet-beam-deflection-symbolic">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>The starting point</h2>
+<p>The beam has span L, uniform load w and bending stiffness E I. Taking moments about a support, the bending moment at a distance x is M(x) = w L x / 2 - w x^2 / 2. With the deflection y measured in the direction of the load, the bending equation is E I y'' = -M(x). Integrating twice gives the deflection curve, and the two supports fix the two constants of integration.</p>
+</section>
+<figure class="video">
+<video controls preload="none" width="960" height="540" aria-label="Symbolic maths for a beam deflection" src="/calcs/guide/videos/07-symbolic-beam-deflection.mp4"></video>
+<figcaption>Video: Symbolic maths for a beam deflection (about 90 seconds). Read the chapter <a href="/calcs/guide/symbolic">Symbolic maths</a>.</figcaption>
+</figure>
+<section>
+<h2>The four steps</h2>
+<ol>
+<li><strong>Integrate</strong> -(w L x / 2 - w x^2 / 2) / (E I) with respect to x. The dialog returns the slope, -L w x^2 / (4 E I) + w x^3 / (6 E I), with no constant: add C1 yourself.</li>
+<li><strong>Integrate</strong> again, giving -L w x^3 / (12 E I) + w x^4 / (24 E I) + C1 x, and add C2.</li>
+<li>The supports give y(0) = 0 and y(L) = 0. <strong>Solve</strong> those two equations for C1 and C2: C1 = L^3 w / (24 E I) and C2 = 0.</li>
+<li><strong>Substitute</strong> x = L / 2 into the curve and simplify: 5 L^4 w / (384 E I).</li>
+</ol>
+<p>Each result is exact: fractions stay fractions and symbols stay symbols, so there is no rounding to hide a slip. The dialog also differentiates and evaluates, so the slope at a support or the deflection for given numbers can be checked on the spot.</p>
+</section>
+<section>
+<h2>Numbers, and a check</h2>
+<p>The sheet then puts in w = 12 kN/m, L = 6 m, E = 200 GPa and I = 250,000,000 mm^4, and computes the deflection twice: once from the formula, once from the curve of step 3 evaluated at midspan. Results from the engine:</p>
+<table>
+<thead><tr><th>Quantity</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Midspan deflection from the formula</td><td><span class="v" data-run="base" data-key="delta">4.05 mm</span></td></tr>
+<tr><td>The derived curve at midspan</td><td><span class="v" data-run="base" data-key="y_mid">4.05 mm</span></td></tr>
+<tr><td>Ratio of the two</td><td><span class="v" data-run="base" data-key="ratio">1</span></td></tr>
+</tbody>
+</table>
+<p>The ratio is <span class="v" data-run="base" data-key="ratio">1</span>, so the derivation and the textbook formula agree. The sheet also plots the curve along the span, with its sign flipped so the beam sags downward on the page.</p>
+</section>
+<section>
+<h2>What the dialog can and cannot do</h2>
+<p>The symbolic side is deliberately small. It simplifies, expands, factors, differentiates, integrates a small class of integrands, solves one equation of degree 1 or 2 or a linear system of up to four unknowns, and substitutes. It knows sin, cos, ln, exp and sqrt, has no complex numbers and treats symbols as positive real numbers. A result that does not fit its exact arithmetic is refused with a message rather than rounded.</p>
+<p>The same four steps apply to any load whose bending moment is a polynomial in x: change M(x) and the support conditions. A cantilever fixed at x = 0, for example, has y(0) = 0 and y'(0) = 0. For anything beyond the dialog, use the numerical tools of the engine: root finding, numerical integration and linear solvers.</p>
+</section>
+<section>
+<h2>The sheet source</h2>
+<p>The sample sheet holds the steps as typeset formulas and the check as quantity lines. Open it with the button on this page to see it calculated.</p>
+<pre><code># Beam deflection derived symbolically
+
+The midspan deflection of a simply supported beam, worked out with the **Symbolic** dialog (Functions, then Symbolic). Each step below is an exact result from the dialog. The numbers come in at the end, so the derived formula can be checked against the engine.
+
+## Step 1: integrate the bending equation
+
+Take $y$ in the direction of the load, so $E I \, \dfrac{d^2 y}{dx^2} = -M(x)$ with $M(x) = \dfrac{w L x}{2} - \dfrac{w x^2}{2}$. Operation **integrate** with respect to $x$, adding a constant after each integration, gives
+
+$$y(x) = -\frac{L w x^3}{12 E I} + \frac{w x^4}{24 E I} + C_1 x + C_2$$
+
+## Step 2: boundary conditions
+
+The beam sits on supports at both ends, so $y(0) = 0$ and $y(L) = 0$. Operation **solve** on those two equations for $C_1$ and $C_2$ gives
+
+$$C_1 = \frac{L^3 w}{24 E I} \qquad C_2 = 0$$
+
+## Step 3: midspan
+
+Operation **substitute** $x = L/2$, then **simplify**, gives
+
+$$y\left(\frac{L}{2}\right) = \frac{5 L^4 w}{384 E I}$$
+
+## Numbers
+
+w: 12 kN/m | design load
+L: 6 m | span
+E: 200 GPa | modulus of elasticity
+I: 250000000 mm^4 | second moment of area
+delta: 5 * w * L^4 / (384 * E * I) -&gt; mm | midspan deflection from the formula
+
+## Check against the derived deflection curve
+
+y(x): -L * w * x^3 / (12 * E * I) + w * x^4 / (24 * E * I) + L^3 * w * x / (24 * E * I) | the curve from step 2 with its constants
+y_mid: y(L / 2) -&gt; mm | the curve at midspan
+ratio: y_mid / delta | 1 when the formula and the curve agree
+
+plot -y(x * 1 m) / (1 mm) for x in 0..L / (1 m)</code></pre>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>Where does 5/384 come from?</h3>
+<p>From integrating the bending equation twice and applying the support conditions. The curve is y(x) = w x (L^3 - 2 L x^2 + x^3) / (24 E I), and at x = L/2 that is 5 w L^4 / (384 E I).</p>
+<h3>What is the slope at the supports?</h3>
+<p>w L^3 / (24 E I), the value of C1: the derivative of the curve at x = 0.</p>
+<h3>Does the Symbolic dialog need an internet connection?</h3>
+<p>No. It loads the first time you run it and then works offline, like the rest of the app.</p>
+<h3>Can I put the derived formula into a calculation?</h3>
+<p>Yes. Insert into worksheet writes the result as a typeset formula or as a quantity line, which the engine calculates once every symbol has a value.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a></li>
+<li><a href="/calcs/learn/cantilever-beam-calculator/">Cantilever beam</a></li>
+<li><a href="/calcs/learn/bending-moment-shear-force-diagram/">Moment and shear diagrams</a></li>
+<li><a href="/calcs/learn/engineering-calculations-with-units/">Calculations with units</a></li>
+<li><a href="/calcs/learn/">All calculators and guides</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=sheet-beam-deflection-symbolic">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

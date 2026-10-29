@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete strength gain calculator, 1 to 28 days</title>
+<meta name="description" content="Strength of concrete at ages from 1 to 28 days from a common strength gain formula, listed on a timeline and plotted. Edit the 28-day strength.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/concrete-strength-gain-calculator/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Concrete strength gain calculator, 1 to 28 days">
+<meta property="og:description" content="Strength of concrete at ages from 1 to 28 days from a common strength gain formula, listed on a timeline and plotted. Edit the 28-day strength.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/concrete-strength-gain-calculator/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Concrete strength gain calculator, 1 to 28 days">
+<meta name="twitter:description" content="Strength of concrete at ages from 1 to 28 days from a common strength gain formula, listed on a timeline and plotted. Edit the 28-day strength.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Calculators and guides",
+     "item": "https://civilkit.io/calcs/learn/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 4,
+     "name": "Concrete strength gain",
+     "item": "https://civilkit.io/calcs/learn/concrete-strength-gain-calculator/"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "How strong is concrete after 7 days?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "By this formula about 70 percent of the 28 day strength: 22.51 MPa for a 32 MPa mix."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Why is the 28 day value slightly above the specified strength?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The formula gives 28 / (4 + 0.85 x 28), about 1.007 times f_28, at 28 days. It is a fitted curve, not a definition."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I use different constants?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Edit the f(t) line. The two constants control how quickly the strength rises."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it account for temperature?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. It assumes normal curing temperatures. Cold weather slows the gain considerably."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <a href="/calcs/learn/">Calculators and guides</a> / <span>Concrete strength gain</span></nav>
+<h1>Concrete strength gain with age</h1>
+<div class="lead">
+<p>Concrete gains strength quickly in its first days and slowly after that. Site decisions such as stripping edge forms, stressing a slab or removing props depend on the strength at an early age. This sheet estimates it at 1, 3, 7, 14 and 28 days from a common formula for moist-cured concrete, lists the ages on a timeline and plots the curve.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=diagram-concrete-strength">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>The formula</h2>
+<p>The strength at an age of t days is f(t) = f_28 t / (4 + 0.85 t), where f_28 is the specified strength at 28 days. The two constants set how fast the strength rises. At 28 days the formula gives 28 / 27.8, about 1.007 times f_28, so the 28 day line reads a little above the specified strength, and the curve keeps rising slowly after that.</p>
+<p>The constants describe moist-cured concrete with a normal rate of strength gain. Other cements and other curing have other constants: put yours in the formula line.</p>
+</section>
+
+<section>
+<h2>Worked example</h2>
+<p>For a mix with f_28 = 32 MPa the engine gives:</p>
+<table>
+<thead><tr><th>Age</th><th>Estimated strength</th></tr></thead>
+<tbody>
+<tr><td>1 day</td><td><span class="v" data-run="base" data-key="f_1">6.6 MPa</span></td></tr>
+<tr><td>3 days</td><td><span class="v" data-run="base" data-key="f_3">14.66 MPa</span></td></tr>
+<tr><td>7 days</td><td><span class="v" data-run="base" data-key="f_7">22.51 MPa</span></td></tr>
+<tr><td>14 days</td><td><span class="v" data-run="base" data-key="f_14">28.18 MPa</span></td></tr>
+<tr><td>28 days</td><td><span class="v" data-run="base" data-key="f_28c">32.23 MPa</span></td></tr>
+</tbody>
+</table>
+<p>About 70 percent of the specified strength is reached at 7 days and close to 90 percent at 14.</p>
+</section>
+<section>
+<h2>A stronger mix</h2>
+<p>With f_28 = 40 MPa the values scale in proportion: <span class="v" data-run="c40" data-key="f_3">18.32 MPa</span> at 3 days, <span class="v" data-run="c40" data-key="f_7">28.14 MPa</span> at 7 days and <span class="v" data-run="c40" data-key="f_28c">40.29 MPa</span> at 28. The formula is linear in f_28, so every age keeps the same fraction of the specified strength whatever the mix.</p>
+</section>
+<section>
+<h2>The timeline and the plot</h2>
+<p>The sample lists the ages on a timeline diagram with an example of what each strength might allow on site: stripping edge forms, light foot traffic, stressing, removing props. Those strengths are typed into the diagram text, so they do not follow a change of f_28; edit the timeline when you change the mix. The plot line under it draws the formula itself, so it always matches the numbers above.</p>
+</section>
+<section>
+<h2>What this is, and is not</h2>
+<div class="note">
+<p><strong>This is a generic textbook calculation, not a design-code check.</strong> The formula is an empirical estimate of the mean strength gain of moist-cured concrete at normal temperatures, not a prediction for your mix: cement type, temperature, curing and admixtures all change the rate, and the activities on the timeline are examples, not limits. Decisions such as stripping or stressing should rest on test results and on the strength your specification requires. It does not apply load factors, resistance factors or any limit from a design standard. If you need a code check, use the formulas your standard requires, and treat this sheet as a way to see the mechanics and to check hand calculations.</p>
+</div>
+</section>
+<section>
+<h2>The sheet source</h2>
+<pre><code># Concrete strength gain
+
+A common estimate of the strength of moist-cured concrete at an age of t days is
+$f(t) = f_{28} \cdot t / (4 + 0.85\,t)$. The sheet works it out at the ages that matter on site,
+and the timeline lists them with what each one allows.
+
+f_28: 32 MPa | specified strength at 28 days
+f(t): f_28 * t / (4 + 0.85 * t)
+f_1: f(1) | 1 day
+f_3: f(3) | 3 days
+f_7: f(7) | 7 days
+f_14: f(14) | 14 days
+f_28c: f(28) | 28 days
+
+```mermaid
+timeline
+  title Strength of a 32 MPa mix
+  Day 1 : 6.6 MPa : strip edge forms
+  Day 3 : 14.7 MPa : light foot traffic
+  Day 7 : 22.5 MPa : stress the slab
+  Day 14 : 28.2 MPa : backprop removed
+  Day 28 : 32.2 MPa : specified strength
+```
+
+plot f(t) / 1 MPa for t in 0..28</code></pre>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>How strong is concrete after 7 days?</h3>
+<p>By this formula about 70 percent of the 28 day strength: <span class="v" data-run="base" data-key="f_7">22.51 MPa</span> for a 32 MPa mix.</p>
+<h3>Why is the 28 day value slightly above the specified strength?</h3>
+<p>The formula gives 28 / (4 + 0.85 x 28), about 1.007 times f_28, at 28 days. It is a fitted curve, not a definition.</p>
+<h3>Can I use different constants?</h3>
+<p>Yes. Edit the f(t) line. The two constants control how quickly the strength rises.</p>
+<h3>Does it account for temperature?</h3>
+<p>No. It assumes normal curing temperatures. Cold weather slows the gain considerably.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/pad-footing-bearing-pressure-calculator/">Pad footing bearing pressure</a></li>
+<li><a href="/calcs/learn/retaining-wall-stability-calculator/">Retaining wall stability</a></li>
+<li><a href="/calcs/learn/column-buckling-calculator/">Column buckling</a></li>
+<li><a href="/calcs/learn/engineering-calculations-with-units/">Calculations with units</a></li>
+<li><a href="/calcs/learn/">All calculators and guides</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=diagram-concrete-strength">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

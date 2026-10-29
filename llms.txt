@@ -13,70 +13,84 @@ The whole guide in one file: https://civilkit.io/calcs/llms-full.txt
 
 ## Guide
 
-- [Introduction](https://civilkit.io/calcs/guide/introduction.html): CivilKit Calcs is an engineering calculation sheet that runs in your browser.
+- [Introduction](https://civilkit.io/calcs/guide/): CivilKit Calcs is an engineering calculation sheet that runs in your browser.
 
 ## Getting started
 
-- [Your first sheet in five minutes](https://civilkit.io/calcs/guide/getting-started/first-sheet.html): This walk-through builds a bending check for a simply supported beam.
-- [The screen](https://civilkit.io/calcs/guide/getting-started/screen.html): The window has five parts.
-- [Saving, opening and working offline](https://civilkit.io/calcs/guide/getting-started/saving.html): The File button at the top left of the ribbon opens a menu.
+- [Your first sheet in five minutes](https://civilkit.io/calcs/guide/getting-started/first-sheet): This walk-through builds a bending check for a simply supported beam.
+- [The screen](https://civilkit.io/calcs/guide/getting-started/screen): The window has five parts.
+- [Saving, opening and working offline](https://civilkit.io/calcs/guide/getting-started/saving): The File button at the top left of the ribbon opens a menu.
 
 ## Writing calculations
 
-- [The sheet format](https://civilkit.io/calcs/guide/sheet/index.html): A sheet is a calculation written the way you would explain it to a colleague: Markdown prose, plain name: value lines, and LaTeX where you want a typeset formula.
-- [Quantities, units and notes](https://civilkit.io/calcs/guide/sheet/quantities.html): A quantity line defines a name.
-- [Prose, LaTeX and tables](https://civilkit.io/calcs/guide/sheet/prose.html): Anything that is not one of the line kinds is Markdown prose.
-- [Diagrams](https://civilkit.io/calcs/guide/sheet/diagrams.html): A diagram is written as text in a fenced block tagged mermaid, and the results draw it.
-- [Folding sections and key results](https://civilkit.io/calcs/guide/sheet/sections.html): A long calculation has a few numbers the reader came for and a lot of working that leads to them.
-- [Conditions and loops](https://civilkit.io/calcs/guide/sheet/flow.html): The branches are a quoted text or quantities.
-- [Functions](https://civilkit.io/calcs/guide/sheet/functions.html): A line with an argument list defines a function.
-- [Mixing in Calcpad, Show compiled and errors](https://civilkit.io/calcs/guide/sheet/passthrough.html): Every feature of the Calcpad language stays reachable from a sheet.
-- [The Calcpad language](https://civilkit.io/calcs/guide/calcpad/index.html): The sheet format is a front end.
-- [Directives and commands](https://civilkit.io/calcs/guide/calcpad/directives.html): A directive starts with # and controls the flow of the worksheet.
-- [Input forms with #UI](https://civilkit.io/calcs/guide/calcpad/ui-inputs.html): In a sheet, most inputs do not need it.
-- [Units](https://civilkit.io/calcs/guide/units.html): Units are part of the value.
-- [Vectors and matrices](https://civilkit.io/calcs/guide/vectors-matrices.html): In a sheet, a bracket makes a vector or a matrix.
-- [Function and command reference](https://civilkit.io/calcs/guide/reference/functions.html): This page is generated from the editor's own snippet library (book/gen-reference.py), so it lists what the Insert tab and the ribbon offer.
+- [The sheet format](https://civilkit.io/calcs/guide/sheet/): A sheet is a calculation written the way you would explain it to a colleague: Markdown prose, plain name: value lines, and LaTeX where you want a typeset formula.
+- [Quantities, units and notes](https://civilkit.io/calcs/guide/sheet/quantities): A quantity line defines a name.
+- [Prose, LaTeX and tables](https://civilkit.io/calcs/guide/sheet/prose): Anything that is not one of the line kinds is Markdown prose.
+- [Diagrams](https://civilkit.io/calcs/guide/sheet/diagrams): A diagram is written as text in a fenced block tagged mermaid, and the results draw it.
+- [Folding sections and key results](https://civilkit.io/calcs/guide/sheet/sections): A long calculation has a few numbers the reader came for and a lot of working that leads to them.
+- [Conditions and loops](https://civilkit.io/calcs/guide/sheet/flow): The branches are a quoted text or quantities.
+- [Functions](https://civilkit.io/calcs/guide/sheet/functions): A line with an argument list defines a function.
+- [Mixing in Calcpad, Show compiled and errors](https://civilkit.io/calcs/guide/sheet/passthrough): Every feature of the Calcpad language stays reachable from a sheet.
+- [The Calcpad language](https://civilkit.io/calcs/guide/calcpad/): The sheet format is a front end.
+- [Directives and commands](https://civilkit.io/calcs/guide/calcpad/directives): A directive starts with # and controls the flow of the worksheet.
+- [Input forms with #UI](https://civilkit.io/calcs/guide/calcpad/ui-inputs): In a sheet, most inputs do not need it.
+- [Units](https://civilkit.io/calcs/guide/units): Units are part of the value.
+- [Vectors and matrices](https://civilkit.io/calcs/guide/vectors-matrices): In a sheet, a bracket makes a vector or a matrix.
+- [Function and command reference](https://civilkit.io/calcs/guide/reference/functions): This page is generated from the editor's own snippet library (book/gen-reference.py), so it lists what the Insert tab and the ribbon offer.
 
 ## Plots and Python
 
-- [Plots](https://civilkit.io/calcs/guide/plots.html): There are three ways to draw: the plot line of the sheet format, the Calcpad $Plot and $Map commands, and Python blocks, which are covered in Python blocks.
-- [Python blocks](https://civilkit.io/calcs/guide/python.html): A sheet can hold small Python programs.
+- [Plots](https://civilkit.io/calcs/guide/plots): There are three ways to draw: the plot line of the sheet format, the Calcpad $Plot and $Map commands, and Python blocks, which are covered in Python blocks.
+- [Python blocks](https://civilkit.io/calcs/guide/python): A sheet can hold small Python programs.
 
 ## Tools
 
-- [Templates with inputs](https://civilkit.io/calcs/guide/templates.html): A template is a calculation that you fill in rather than edit.
-- [Symbolic maths](https://civilkit.io/calcs/guide/symbolic.html): The calculation engine is numeric: it gives you numbers.
-- [Importing worksheets](https://civilkit.io/calcs/guide/importing.html): The worksheet importer converts worksheet files from a spreadsheet-like calculation format, with text, equations, plots and pictures placed freely on a page (files ending .xmcd and .mcdx), into a new Calcpad worksheet that this engine calcu
-- [Exporting](https://civilkit.io/calcs/guide/exporting.html): A calculated sheet leaves the page in four ways: a PDF through the print dialog, a Word document, an Excel workbook and standalone HTML.
-- [Editing](https://civilkit.io/calcs/guide/editing.html): There are two places to edit: the source on the left and, in the results, the page itself.
+- [Templates with inputs](https://civilkit.io/calcs/guide/templates): A template is a calculation that you fill in rather than edit.
+- [Symbolic maths](https://civilkit.io/calcs/guide/symbolic): The calculation engine is numeric: it gives you numbers.
+- [Importing worksheets](https://civilkit.io/calcs/guide/importing): The worksheet importer converts worksheet files from a spreadsheet-like calculation format, with text, equations, plots and pictures placed freely on a page (files ending .xmcd and .mcdx), into a new Calcpad worksheet that this engine calcu
+- [Exporting](https://civilkit.io/calcs/guide/exporting): A calculated sheet leaves the page in four ways: a PDF through the print dialog, a Word document, an Excel workbook and standalone HTML.
+- [Editing](https://civilkit.io/calcs/guide/editing): There are two places to edit: the source on the left and, in the results, the page itself.
 
 ## More
 
-- [Samples tour](https://civilkit.io/calcs/guide/samples.html): The Samples browser (File > Samples..., or the Resources tab) lists 151 worksheets, with groups, a search box and a preview.
-- [Troubleshooting and FAQ](https://civilkit.io/calcs/guide/troubleshooting.html): An error appears in the results where the line would, as a red paragraph, in the Errors dialog, and as an underline in the editor.
+- [Samples tour](https://civilkit.io/calcs/guide/samples): The Samples browser (File > Samples..., or the Resources tab) lists 151 worksheets, with groups, a search box and a preview.
+- [Troubleshooting and FAQ](https://civilkit.io/calcs/guide/troubleshooting): An error appears in the results where the line would, as a red paragraph, in the Errors dialog, and as an underline in the editor.
 
 ## Appendices
 
-- [Keyboard shortcuts](https://civilkit.io/calcs/guide/appendix/shortcuts.html): On a Mac use Cmd where this page says Ctrl.
-- [Deviations from CalcpadCE](https://civilkit.io/calcs/guide/appendix/deviations.html): CivilKit Calcs reproduces CalcpadCE's output exactly unless a behaviour is listed in the project's DEVIATIONS.md.
-- [Credits and licences](https://civilkit.io/calcs/guide/appendix/credits.html): CivilKit Calcs is built on CalcpadCE, the MIT-licensed continuation of Calcpad by Nedelcho Ganchovski (Proektsoft) and contributors.
+- [Keyboard shortcuts](https://civilkit.io/calcs/guide/appendix/shortcuts): On a Mac use Cmd where this page says Ctrl.
+- [Deviations from CalcpadCE](https://civilkit.io/calcs/guide/appendix/deviations): CivilKit Calcs reproduces CalcpadCE's output exactly unless a behaviour is listed in the project's DEVIATIONS.md.
+- [Credits and licences](https://civilkit.io/calcs/guide/appendix/credits): CivilKit Calcs is built on CalcpadCE, the MIT-licensed continuation of Calcpad by Nedelcho Ganchovski (Proektsoft) and contributors.
 
 ## Task pages
 
-- [Calcpad online: run Calcpad worksheets in a browser](https://civilkit.io/calcs/learn/calcpad-online/): CivilKit Calcs runs the Calcpad worksheet language in your browser on a Rust engine compiled to WebAssembly. Free, open source, installable and offline.
+All of them, grouped by purpose: [Calculators and guides](https://civilkit.io/calcs/learn/)
+
+- [Beam deflection formula 5wL^4/384EI, derived](https://civilkit.io/calcs/learn/beam-deflection-formula-derivation/): Derive the midspan deflection of a simply supported beam under a uniform load step by step with symbolic integration, then check it against a plotted curve.
+- [Bending moment and shear force diagrams, plotted](https://civilkit.io/calcs/learn/bending-moment-shear-force-diagram/): Plot bending moment and shear force along a simply supported beam from a moment function, worked out at sixths of the span in a loop, with real units.
+- [Open Calcpad .cpd files in your browser, offline](https://civilkit.io/calcs/learn/calcpad-online/): Open and run Calcpad .cpd worksheets in your browser, offline, on an open source Rust engine. Edit, plot, import and export to Word, Excel or PDF.
+- [Cantilever beam calculator: tip load and deflection](https://civilkit.io/calcs/learn/cantilever-beam-calculator/): Free cantilever calculator with units: moment, shear, bending stress, tip deflection and rotation for a point load at the free end, with a moment diagram.
+- [Column buckling calculator: slenderness and Euler load](https://civilkit.io/calcs/learn/column-buckling-calculator/): Slenderness and buckling of a solid rectangular column: end conditions, the Euler or parabolic critical stress and the allowed load, as a form you can edit.
+- [Concrete strength gain calculator, 1 to 28 days](https://civilkit.io/calcs/learn/concrete-strength-gain-calculator/): Strength of concrete at ages from 1 to 28 days from a common strength gain formula, listed on a timeline and plotted. Edit the 28-day strength.
 - [Free engineering calculation software in the browser](https://civilkit.io/calcs/learn/engineering-calculation-software-free/): A free browser tool for engineering calculations with units: templates for beams, walls, footings, pipes and pumps, plots, and Word, Excel and PDF export.
+- [Engineering calculations with units, SI and US](https://civilkit.io/calcs/learn/engineering-calculations-with-units/): Write calculations where every quantity carries a unit: SI and US customary units, prefixes, unit errors that catch mistakes, and your own units.
 - [Excel alternative for engineering calculations](https://civilkit.io/calcs/learn/excel-alternative-for-engineering-calculations/): Write engineering calculations with units and readable formulas instead of cell references, see the workings, and export to Word, PDF and Excel.
+- [Export engineering calculations to Word, Excel and PDF](https://civilkit.io/calcs/learn/export-calculations-to-word-excel-pdf/): Turn a calculation into a Word report with real equations, an Excel workbook with native charts, or a PDF, from the browser. What each format keeps.
+- [Gable frame thrust: pinned vs rigid ridge](https://civilkit.io/calcs/learn/gable-frame-thrust-calculator/): Horizontal thrust of a symmetric pitched roof frame for a pinned ridge and a rigid ridge, and why the common shortcut overstates it.
 - [Free Mathcad alternative that runs in your browser](https://civilkit.io/calcs/learn/mathcad-alternative/): A free, open source engineering calculation sheet for the browser: real units, plots, Word and Excel export, offline use, and a Mathcad worksheet importer.
-- [Mathcad worksheet converter: import .xmcd and .mcdx](https://civilkit.io/calcs/learn/mathcad-worksheet-converter/): Import Mathcad .xmcd and .mcdx worksheets into a browser calculation sheet. What converts, what shows as a gap, and why your file is not uploaded.
+- [Open .xmcd and .mcdx files without Mathcad, free](https://civilkit.io/calcs/learn/mathcad-worksheet-converter/): Open Mathcad .xmcd and .mcdx worksheets without Mathcad: they convert to a live calculation sheet in your browser, and nothing is uploaded.
 - [Pad footing bearing pressure calculator](https://civilkit.io/calcs/learn/pad-footing-bearing-pressure-calculator/): Free pad footing calculator: bearing pressure under a column load and moment, eccentricity, uplift and the check against an allowable soil pressure.
 - [Pipe flow calculator: Darcy-Weisbach head loss](https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/): Free pipe friction loss calculator: velocity, Reynolds number, friction factor, Darcy-Weisbach head loss, pump head and power for water in a full pipe.
+- [Principal stress calculator for 2D and 3D stress](https://civilkit.io/calcs/learn/principal-stress-calculator/): Principal stresses and directions of a plane or 3D stress tensor from eigenvalues and eigenvectors, checked against Mohr's circle, with units.
 - [Pump operating point calculator: pump vs system curve](https://civilkit.io/calcs/learn/pump-operating-point-calculator/): Free calculator for the operating point of a pump on a pipeline: where the pump curve meets the system curve, with a table of heads and both curves plotted.
 - [Retaining wall stability calculator](https://civilkit.io/calcs/learn/retaining-wall-stability-calculator/): Free retaining wall calculator: active earth thrust, overturning and sliding safety factors and base pressure for a cantilever wall, with units.
+- [Principal axes of an unsymmetric section, calculated](https://civilkit.io/calcs/learn/section-principal-axes-calculator/): Strong and weak axes of an unsymmetric cross-section from the second moments of area by eigenvalues, checked against the closed-form result.
+- [Shear frame natural frequencies and mode shapes](https://civilkit.io/calcs/learn/shear-frame-natural-frequencies/): Natural frequencies and mode shapes of a two storey shear frame from the generalised eigenvalue problem K phi = w^2 M phi, worked with units.
 - [Simply supported beam calculator with units](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/): Free beam calculator: moment, shear, bending stress and deflection of a simply supported I-beam under a uniform load, with a moment diagram. Opens as a form.
 
 ## Optional
 
 - [App](https://civilkit.io/calcs/): open the calculator
+- [Product page](https://civilkit.io/calc/): what CivilKit Calcs is and does
 - [What's new](https://civilkit.io/calcs/whats-new/): release notes with short clips
 - [Source code and issues](https://github.com/mageaustralia/civilkit-calcs)

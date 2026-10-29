@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bending moment and shear force diagrams, plotted</title>
+<meta name="description" content="Plot bending moment and shear force along a simply supported beam from a moment function, worked out at sixths of the span in a loop, with real units.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/bending-moment-shear-force-diagram/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Bending moment and shear force diagrams, plotted">
+<meta property="og:description" content="Plot bending moment and shear force along a simply supported beam from a moment function, worked out at sixths of the span in a loop, with real units.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/bending-moment-shear-force-diagram/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Bending moment and shear force diagrams, plotted">
+<meta name="twitter:description" content="Plot bending moment and shear force along a simply supported beam from a moment function, worked out at sixths of the span in a loop, with real units.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Calculators and guides",
+     "item": "https://civilkit.io/calcs/learn/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 4,
+     "name": "Moment and shear diagrams",
+     "item": "https://civilkit.io/calcs/learn/bending-moment-shear-force-diagram/"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "What is the maximum bending moment of a simply supported beam with a uniform load?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "w L^2 / 8 at midspan. For a 6 m span under 12 kN/m that is 54 kN·m."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Where is the shear force zero?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "At midspan for a symmetric load, which is where the moment is largest. In general the moment peaks where the shear changes sign."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I plot the shear as well as the moment?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Add a second plot line for V(x) under the first."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Do the diagrams follow a change of span or load?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The loop values and the plot do, because they are calculated from the functions. The bars of the XY chart in the sample are typed in, so update them by hand or leave the chart out."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <a href="/calcs/learn/">Calculators and guides</a> / <span>Moment and shear diagrams</span></nav>
+<h1>Bending moment and shear force diagrams</h1>
+<div class="lead">
+<p>A bending moment diagram and a shear force diagram show how the internal forces vary along a beam. In a calculation sheet you write the moment and the shear as functions of the position x, and the page tabulates them and draws them. This page does it for a simply supported beam under a uniform load in two ways: a loop that works out values at sixths of the span with their units, and a plot line that draws the curve.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=diagram-moment-chart">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>The functions</h2>
+<p>For a simply supported span L under a uniform load w:</p>
+<ul>
+<li>Bending moment M(x) = w x (L - x) / 2: a parabola, zero at both supports and largest at midspan, where it is w L^2 / 8.</li>
+<li>Shear force V(x) = w (L / 2 - x): a straight line from w L / 2 at the left support to minus that at the right.</li>
+</ul>
+<p>The shear is the slope of the moment, so it passes through zero exactly where the moment peaks.</p>
+</section>
+<figure class="video">
+<video controls preload="none" width="960" height="540" aria-label="Plots in the sheet format" src="/calcs/guide/videos/03-plots-in-sheets.mp4"></video>
+<figcaption>Video: Plots in the sheet format (about 80 seconds). Read the chapter <a href="/calcs/guide/plots">Plots</a>.</figcaption>
+</figure>
+<section>
+<h2>Values along the span</h2>
+<p>With L = 6 m and w = 12 kN/m, the engine gives these values for the first half of the span. The second half mirrors it: the moment is symmetric and the shear changes sign.</p>
+<table>
+<thead><tr><th>x</th><th>Bending moment M</th><th>Shear force V</th></tr></thead>
+<tbody>
+<tr><td>0 m (support)</td><td><span class="v" data-run="pts" data-key="M_0">0 kN·m</span></td><td><span class="v" data-run="pts" data-key="V_0">36 kN</span></td></tr>
+<tr><td>1 m</td><td><span class="v" data-run="pts" data-key="M_1">30 kN·m</span></td><td><span class="v" data-run="pts" data-key="V_1">24 kN</span></td></tr>
+<tr><td>2 m</td><td><span class="v" data-run="pts" data-key="M_2">48 kN·m</span></td><td><span class="v" data-run="pts" data-key="V_2">12 kN</span></td></tr>
+<tr><td>3 m (midspan)</td><td><span class="v" data-run="pts" data-key="M_3">54 kN·m</span></td><td><span class="v" data-run="pts" data-key="V_3">0 kN</span></td></tr>
+</tbody>
+</table>
+<p>The sample sheet writes the two functions once and works through the span in a loop, printing the moment and the shear at each sixth with units, then draws the moments as an XY chart and plots the moment curve from the function:</p>
+<pre><code># Moment and shear along a beam
+
+A simply supported beam under a uniform load. The loop works out the moment and the shear at
+seven points, and the moments are typed into the XY chart, as bars and as a line through them.
+A plot of the moment drawn by the sheet follows for comparison.
+
+## Inputs
+L: 6 m | span
+w: 12 kN/m | uniform load
+
+## At sixths of the span
+M(x): w * x * (L - x) / 2
+V(x): w * (L / 2 - x)
+for i in 0..6:
+    x: i * L / 6
+    M_x: M(x) -&gt; kN*m
+    V_x: V(x) -&gt; kN
+
+```mermaid
+xychart-beta
+  title &quot;Bending moment at sixths of the span&quot;
+  x-axis &quot;x, m&quot; [0, 1, 2, 3, 4, 5, 6]
+  y-axis &quot;M, kN.m&quot; 0 --&gt; 60
+  bar [0, 30, 48, 54, 48, 30, 0]
+  line [0, 30, 48, 54, 48, 30, 0]
+```
+
+plot M(x * 1 m) for x in 0..6</code></pre>
+<p>The bars and the line of the XY chart are typed into the diagram text, so they do not follow a change of span or load. The loop values and the plot do, because they are calculated from the functions.</p>
+</section>
+<section>
+<h2>A plot from one line</h2>
+<p>The shortest form is a plot line. This sheet uses plain numbers rather than units, defines the moment and plots it over the span:</p>
+<pre><code># Bending moment diagram
+
+A simply supported beam of span $L$ under a uniform load $w$.
+
+L: 6; w: 12
+M(x): w * x * (L - x) / 2
+Mmax: M(L / 2)
+
+plot M(x) for x in 0..L</code></pre>
+<p>It reports a peak moment of <span class="v" data-run="plot" data-key="Mmax">54</span> (in kN·m, because the numbers are in kN and m) and draws the parabola. Plots are drawn in the page, so changing L or w redraws the curve at once.</p>
+</section>
+<section>
+<h2>Other beams and loads</h2>
+<p>Change the functions to change the beam. A cantilever with a point load P at its free end has M(x) = P (L - x), measured from the fixed end; the <a href="/calcs/learn/cantilever-beam-calculator/">cantilever calculator</a> plots exactly that. Several loads on one span add up: write the moment of each and plot their sum. A point load part way along the span needs a moment function that changes at the load, which a sheet can write with a condition.</p>
+<p>These sheets draw the diagrams of the functions you write; they do not analyse a structure. For a continuous beam or a frame, find the moments with an analysis first. The samples include a three-span beam solved by the stiffness method in a Python block, with its diagrams drawn by an interactive chart.</p>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>What is the maximum bending moment of a simply supported beam with a uniform load?</h3>
+<p>w L^2 / 8 at midspan. For a 6 m span under 12 kN/m that is <span class="v" data-run="pts" data-key="M_3">54 kN·m</span>.</p>
+<h3>Where is the shear force zero?</h3>
+<p>At midspan for a symmetric load, which is where the moment is largest. In general the moment peaks where the shear changes sign.</p>
+<h3>Can I plot the shear as well as the moment?</h3>
+<p>Yes. Add a second plot line for V(x) under the first.</p>
+<h3>Do the diagrams follow a change of span or load?</h3>
+<p>The loop values and the plot do, because they are calculated from the functions. The bars of the XY chart in the sample are typed in, so update them by hand or leave the chart out.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a></li>
+<li><a href="/calcs/learn/cantilever-beam-calculator/">Cantilever beam</a></li>
+<li><a href="/calcs/learn/beam-deflection-formula-derivation/">Beam deflection formula, derived</a></li>
+<li><a href="/calcs/learn/gable-frame-thrust-calculator/">Gable frame thrust</a></li>
+<li><a href="/calcs/learn/">All calculators and guides</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=diagram-moment-chart">Open this sheet in Calcs</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

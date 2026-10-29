@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Column buckling calculator: slenderness and Euler load</title>
+<meta name="description" content="Slenderness and buckling of a solid rectangular column: end conditions, the Euler or parabolic critical stress and the allowed load, as a form you can edit.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/column-buckling-calculator/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Column buckling calculator: slenderness and Euler load">
+<meta property="og:description" content="Slenderness and buckling of a solid rectangular column: end conditions, the Euler or parabolic critical stress and the allowed load, as a form you can edit.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/column-buckling-calculator/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Column buckling calculator: slenderness and Euler load">
+<meta name="twitter:description" content="Slenderness and buckling of a solid rectangular column: end conditions, the Euler or parabolic critical stress and the allowed load, as a form you can edit.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Calculators and guides",
+     "item": "https://civilkit.io/calcs/learn/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 4,
+     "name": "Column buckling",
+     "item": "https://civilkit.io/calcs/learn/column-buckling-calculator/"
+    }
+   ]
+  },
+  {
+   "@type": "HowTo",
+   "name": "How to check a rectangular column for buckling",
+   "description": "Slenderness and buckling of a solid rectangular column: end conditions, the Euler or parabolic critical stress and the allowed load, as a form you can edit.",
+   "step": [
+    {
+     "@type": "HowToStep",
+     "position": 1,
+     "name": "Open the template",
+     "text": "Choose Open this template on this page. The sheet opens in a new tab of CivilKit Calcs, with the inputs set to the values used on this page."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 2,
+     "name": "Switch to Input mode",
+     "text": "In the results bar choose Input. The input lines become boxes, lists, buttons and ticks."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 3,
+     "name": "Enter your values",
+     "text": "Change the inputs to your own. Size, length, end conditions, material, axial load and factor of safety are the inputs. Every change recalculates the whole page."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 4,
+     "name": "Read and export the result",
+     "text": "Read the results and the OK or not OK lines under them. Use Report, then Print PDF, Word or Excel, to keep the calculation with its workings."
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "What is the Euler buckling load?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The axial load at which a perfectly straight, elastic column buckles: P_E = pi^2 E I / L_e^2, with L_e the effective length. Real columns fail below it, which is why the sheet divides by a factor of safety and uses the parabolic formula for stockier columns."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Which effective length factors does it use?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "1 for pinned at both ends, 0.7 for fixed and pinned, 0.5 for fixed at both ends and 2 for fixed at the base and free at the top. These are the theoretical values; edit the list if you use others."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Why does it switch between two formulas?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "For a stocky column the Euler stress would exceed the yield stress. Below the transition slenderness the parabolic formula gives a critical stress that never exceeds yield and meets the Euler curve at half the yield stress."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I use a hollow or I-section?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Edit the section lines: give A, the smaller second moment of area and the radius of gyration of your section. The rest of the sheet uses those names."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is it a design-code check?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. It is a textbook calculation and names no standard."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <a href="/calcs/learn/">Calculators and guides</a> / <span>Column buckling</span></nav>
+<h1>Column buckling and slenderness calculator</h1>
+<div class="lead">
+<p>This template checks a solid rectangular column in compression for buckling. From the size, the length and the end conditions it works out the slenderness, decides whether the column buckles elastically or inelastically, and gives the critical stress, the critical load and the load allowed with a factor of safety. The end conditions and the material are drop-downs, so the effect of fixing an end is one click away.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=template-column-slenderness">Open this template</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>What it computes</h2>
+<p>The inputs are the width and depth of the section, the length, the end conditions (pinned at both ends, fixed and pinned, fixed at both ends, or fixed and free), the material, the axial load and a factor of safety. The sheet reports the effective length, the smallest radius of gyration, the slenderness ratio and the transition slenderness, a sentence saying whether the column is short, intermediate or slender, the Euler stress and load, the critical stress and load, the allowed load and the utilisation.</p>
+</section>
+<figure class="video">
+<video controls preload="none" width="960" height="540" aria-label="Templates with inputs" src="/calcs/guide/videos/05-templates-with-inputs.mp4"></video>
+<figcaption>Video: Templates with inputs (about 85 seconds). Read the chapter <a href="/calcs/guide/templates">Templates with inputs</a>.</figcaption>
+</figure>
+<section>
+<h2>The formulas</h2>
+<ul>
+<li>Effective length L_e = k L, with k = 1, 0.7, 0.5 or 2 for the four end conditions.</li>
+<li>Smallest radius of gyration r = b_min / sqrt(12) for a solid rectangle, where b_min is the smaller side.</li>
+<li>Slenderness lambda = L_e / r. Transition slenderness lambda_c = pi sqrt(2 E / f_y).</li>
+<li>Above lambda_c the column buckles elastically (Euler): sigma_cr = pi^2 E / lambda^2, and the Euler load is P_E = pi^2 E I_min / L_e^2.</li>
+<li>At or below lambda_c the parabolic (Johnson) formula applies: sigma_cr = f_y (1 - f_y lambda^2 / (4 pi^2 E)).</li>
+<li>Critical load P_cr = sigma_cr A, allowed load P_allow = P_cr / FS, utilisation = N / P_allow.</li>
+</ul>
+<p>The two curves meet at lambda_c, where both give half the yield stress, so the critical stress never jumps. A slenderness of 50 or less is reported as short, where crushing is likely to govern.</p>
+</section>
+<section>
+<h2>Worked example</h2>
+<p>Defaults: a 60 mm by 100 mm steel bar (E = 200 GPa, yield stress 250 MPa), 2.4 m long and pinned at both ends, carrying 100 kN with a factor of safety of 2. Results from the engine:</p>
+<table>
+<thead><tr><th>Quantity</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Area A</td><td><span class="v" data-run="base" data-key="A">60 cm²</span></td></tr>
+<tr><td>Smaller second moment of area</td><td><span class="v" data-run="base" data-key="I_min">180 cm⁴</span></td></tr>
+<tr><td>Radius of gyration r</td><td><span class="v" data-run="base" data-key="r">17.32 mm</span></td></tr>
+<tr><td>Effective length</td><td><span class="v" data-run="base" data-key="L_e">2.4 m</span></td></tr>
+<tr><td>Slenderness</td><td><span class="v" data-run="base" data-key="lambda">138.56</span></td></tr>
+<tr><td>Transition slenderness</td><td><span class="v" data-run="base" data-key="lambda_c">125.66</span></td></tr>
+<tr><td>Euler stress</td><td><span class="v" data-run="base" data-key="sigma_E">102.81 MPa</span></td></tr>
+<tr><td>Critical stress</td><td><span class="v" data-run="base" data-key="sigma_cr">102.81 MPa</span></td></tr>
+<tr><td>Critical load</td><td><span class="v" data-run="base" data-key="P_cr">616.85 kN</span></td></tr>
+<tr><td>Allowed load</td><td><span class="v" data-run="base" data-key="P_allow">308.43 kN</span></td></tr>
+<tr><td>Utilisation</td><td><span class="v" data-run="base" data-key="util">0.324</span></td></tr>
+</tbody>
+</table>
+<p>The slenderness of <span class="v" data-run="base" data-key="lambda">138.56</span> is above the transition value of <span class="v" data-run="base" data-key="lambda_c">125.66</span>, so the column is slender and the Euler formula governs. The allowed load of <span class="v" data-run="base" data-key="P_allow">308.43 kN</span> is well above the 100 kN applied, and the sheet prints OK.</p>
+</section>
+<section>
+<h2>Change the end conditions</h2>
+<p>Fixing both ends halves the effective length to <span class="v" data-run="fixed" data-key="L_e">1.2 m</span>. The slenderness drops to <span class="v" data-run="fixed" data-key="lambda">69.28</span>, below the transition, so the sheet switches to the parabolic formula: the critical stress is <span class="v" data-run="fixed" data-key="sigma_cr">212 MPa</span> instead of the Euler value of <span class="v" data-run="fixed" data-key="sigma_E">411.23 MPa</span>, which would be above the yield stress. The allowed load rises to <span class="v" data-run="fixed" data-key="P_allow">636.01 kN</span>.</p>
+<p>A column fixed at the base and free at the top, like a post or a flagpole, doubles the effective length to <span class="v" data-run="free" data-key="L_e">4.8 m</span> instead. The slenderness becomes <span class="v" data-run="free" data-key="lambda">277.13</span>, the allowed load falls to <span class="v" data-run="free" data-key="P_allow">77.11 kN</span>, and the utilisation of <span class="v" data-run="free" data-key="util">1.3</span> fails, so the sheet suggests a bigger section, a shorter column or fixed ends.</p>
+</section>
+<section>
+<h2>What this is, and is not</h2>
+<div class="note">
+<p><strong>This is a generic textbook calculation, not a design-code check.</strong> The column is a solid rectangle, straight and loaded through its centroid, and it buckles about its weaker axis. The material values are round examples. There is no allowance for initial crookedness, eccentric load, residual stress or bending combined with compression, and the parabolic curve is a classical textbook transition, not a column curve from any standard. It does not apply load factors, resistance factors or any limit from a design standard. If you need a code check, use the formulas your standard requires, and treat this sheet as a way to see the mechanics and to check hand calculations.</p>
+</div>
+</section>
+<section>
+<h2>The sheet source</h2>
+<p>This is the template exactly as it ships. The lines with a question mark are the inputs.</p>
+<pre><code># Rectangular column: slenderness and buckling
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. A solid
+rectangular column of length $L$ with an effective length factor $k$ has a slenderness
+$\lambda = k L / r$, where $r = b_{min}/\sqrt{12}$ is the smallest radius of gyration. Above the
+transition slenderness $\lambda_c = \pi \sqrt{2E/f_y}$ the column buckles elastically (Euler),
+$\sigma_{cr} = \pi^2 E / \lambda^2$. Below it the parabolic (Johnson) formula applies,
+$\sigma_{cr} = f_y \left(1 - f_y \lambda^2 / (4 \pi^2 E)\right)$. The load that is allowed is
+$\sigma_{cr} A$ divided by a factor of safety.
+
+## Inputs
+b:    ? 60 mm | section width
+d:    ? 100 mm | section depth
+L:    ? 2.4 m | column length
+k:    ? [Pinned at both ends = 1, Fixed and pinned = 0.7, Fixed at both ends = 0.5, Fixed and free = 2] | end conditions
+mat:  ? [Structural steel = 1, Aluminium = 2, Timber = 3] | material
+N:    ? 100 kN | axial load
+FS:   ? 2 | factor of safety
+
+## Material properties
+E_tab:  [200 GPa, 70 GPa, 11 GPa] | modulus of elasticity
+fy_tab: [250 MPa, 160 MPa, 24 MPa] | yield strength, or crushing strength for timber
+E:  E_tab.mat -&gt; GPa
+f_y: fy_tab.mat -&gt; MPa
+
+if mat == 1: &quot;The material is structural steel.&quot;
+if mat == 2: &quot;The material is aluminium.&quot;
+if mat == 3: &quot;The material is timber.&quot;
+
+## Section
+A:   b * d -&gt; cm^2 | area
+b_min: min(b, d) | smaller side
+I_min: max(b, d) * b_min^3 / 12 -&gt; cm^4 | smaller second moment of area
+r:   b_min / sqrt(12) -&gt; mm | smallest radius of gyration
+
+## Slenderness
+L_e:      k * L -&gt; m | effective length
+lambda:   L_e / r | slenderness ratio
+lambda_c: π * sqrt(2 * E / f_y) | transition slenderness
+
+if lambda &lt;= 50:
+    The column is short: crushing is likely to govern rather than buckling.
+else if lambda &lt;= lambda_c:
+    The column is intermediate: it buckles inelastically and the parabolic formula applies.
+else:
+    The column is slender: it buckles elastically and the Euler formula applies.
+
+## Buckling resistance
+sigma_E: π^2 * E / lambda^2 -&gt; MPa | elastic (Euler) buckling stress
+P_E:     π^2 * E * I_min / L_e^2 -&gt; kN | elastic (Euler) buckling load
+
+if lambda &lt;= lambda_c:
+    sigma_cr: f_y * (1 - f_y * lambda^2 / (4 * π^2 * E)) -&gt; MPa | critical stress, parabolic formula
+else:
+    sigma_cr: sigma_E | critical stress, Euler formula
+
+P_cr:    sigma_cr * A -&gt; kN | critical load
+P_allow: P_cr / FS -&gt; kN | allowed load
+util:    N / P_allow | utilisation
+
+if util &lt;= 1: &quot;OK: the applied load is within the allowed load.&quot; else: &quot;Fails: the applied load exceeds the allowed load. Enlarge the section, shorten the column or fix its ends.&quot;</code></pre>
+</section>
+<section>
+<h2>How to use it</h2>
+<ol>
+<li><strong>Open the template.</strong> Choose <strong>Open this template</strong> on this page. The sheet opens in a new tab of CivilKit Calcs, with the inputs set to the values used on this page.</li>
+<li><strong>Switch to Input mode.</strong> In the results bar choose <strong>Input</strong>. The input lines become boxes, lists, buttons and ticks.</li>
+<li><strong>Enter your values.</strong> Change the inputs to your own. Size, length, end conditions, material, axial load and factor of safety are the inputs. Every change recalculates the whole page.</li>
+<li><strong>Read and export the result.</strong> Read the results and the OK or not OK lines under them. Use <strong>Report</strong>, then Print PDF, Word or Excel, to keep the calculation with its workings.</li>
+</ol>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>What is the Euler buckling load?</h3>
+<p>The axial load at which a perfectly straight, elastic column buckles: P_E = pi^2 E I / L_e^2, with L_e the effective length. Real columns fail below it, which is why the sheet divides by a factor of safety and uses the parabolic formula for stockier columns.</p>
+<h3>Which effective length factors does it use?</h3>
+<p>1 for pinned at both ends, 0.7 for fixed and pinned, 0.5 for fixed at both ends and 2 for fixed at the base and free at the top. These are the theoretical values; edit the list if you use others.</p>
+<h3>Why does it switch between two formulas?</h3>
+<p>For a stocky column the Euler stress would exceed the yield stress. Below the transition slenderness the parabolic formula gives a critical stress that never exceeds yield and meets the Euler curve at half the yield stress.</p>
+<h3>Can I use a hollow or I-section?</h3>
+<p>Edit the section lines: give A, the smaller second moment of area and the radius of gyration of your section. The rest of the sheet uses those names.</p>
+<h3>Is it a design-code check?</h3>
+<p>No. It is a textbook calculation and names no standard.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/cantilever-beam-calculator/">Cantilever beam</a></li>
+<li><a href="/calcs/learn/section-principal-axes-calculator/">Principal axes of a section</a></li>
+<li><a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a></li>
+<li><a href="/calcs/learn/pad-footing-bearing-pressure-calculator/">Pad footing bearing pressure</a></li>
+<li><a href="/calcs/learn/">All calculators and guides</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=template-column-slenderness">Open this template</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

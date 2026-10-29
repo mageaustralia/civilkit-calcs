@@ -1,37 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://civilkit.io/calcs/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/</loc></url>
   <url><loc>https://civilkit.io/calcs/whats-new/</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/getting-started/first-sheet.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/getting-started/screen.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/getting-started/saving.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/sheet/index.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/sheet/quantities.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/sheet/prose.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/sheet/diagrams.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/sheet/sections.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/sheet/flow.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/sheet/functions.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/sheet/passthrough.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/calcpad/index.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/calcpad/directives.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/calcpad/ui-inputs.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/units.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/vectors-matrices.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/reference/functions.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/plots.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/python.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/templates.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/symbolic.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/importing.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/exporting.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/editing.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/samples.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/troubleshooting.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/appendix/shortcuts.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/appendix/deviations.html</loc></url>
-  <url><loc>https://civilkit.io/calcs/guide/appendix/credits.html</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/getting-started/first-sheet</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/getting-started/screen</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/getting-started/saving</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/sheet/</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/sheet/quantities</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/sheet/prose</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/sheet/diagrams</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/sheet/sections</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/sheet/flow</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/sheet/functions</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/sheet/passthrough</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/calcpad/</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/calcpad/directives</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/calcpad/ui-inputs</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/units</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/vectors-matrices</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/reference/functions</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/plots</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/python</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/templates</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/symbolic</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/importing</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/exporting</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/editing</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/samples</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/troubleshooting</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/appendix/shortcuts</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/appendix/deviations</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/appendix/credits</loc></url>
   <url><loc>https://civilkit.io/calcs/learn/mathcad-alternative/</loc></url>
   <url><loc>https://civilkit.io/calcs/learn/calcpad-online/</loc></url>
   <url><loc>https://civilkit.io/calcs/learn/excel-alternative-for-engineering-calculations/</loc></url>
@@ -42,4 +43,15 @@
   <url><loc>https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/</loc></url>
   <url><loc>https://civilkit.io/calcs/learn/pump-operating-point-calculator/</loc></url>
   <url><loc>https://civilkit.io/calcs/learn/mathcad-worksheet-converter/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/cantilever-beam-calculator/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/column-buckling-calculator/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/beam-deflection-formula-derivation/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/bending-moment-shear-force-diagram/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/principal-stress-calculator/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/section-principal-axes-calculator/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/shear-frame-natural-frequencies/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/gable-frame-thrust-calculator/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/concrete-strength-gain-calculator/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/export-calculations-to-word-excel-pdf/</loc></url>
+  <url><loc>https://civilkit.io/calcs/learn/engineering-calculations-with-units/</loc></url>
 </urlset>

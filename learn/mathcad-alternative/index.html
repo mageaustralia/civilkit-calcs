@@ -30,12 +30,24 @@
     {
      "@type": "ListItem",
      "position": 1,
-     "name": "CivilKit Calcs",
-     "item": "https://civilkit.io/calcs/"
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
     },
     {
      "@type": "ListItem",
      "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Calculators and guides",
+     "item": "https://civilkit.io/calcs/learn/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 4,
      "name": "Mathcad alternative",
      "item": "https://civilkit.io/calcs/learn/mathcad-alternative/"
     }
@@ -44,11 +56,12 @@
   {
    "@type": "SoftwareApplication",
    "name": "CivilKit Calcs",
-   "url": "https://civilkit.io/calcs/",
+   "url": "https://civilkit.io/calc/",
    "description": "A free, open source engineering calculation sheet that runs in the browser. Real units, plots, input forms, Word, Excel and PDF export, offline use.",
-   "applicationCategory": "BusinessApplication",
+   "applicationCategory": "EngineeringApplication",
    "applicationSubCategory": "Engineering calculation",
-   "operatingSystem": "Any operating system with a modern web browser",
+   "operatingSystem": "Any",
+   "browserRequirements": "A current web browser with WebAssembly",
    "isAccessibleForFree": true,
    "license": "https://opensource.org/license/mit",
    "offers": {
@@ -109,21 +122,23 @@
 <body>
 <a class="skip" href="#main">Skip to the content</a>
 <header class="site">
-<a class="brand" href="/calcs/">CivilKit Calcs</a>
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
 <nav aria-label="Site">
-<a href="/calcs/">Open the app</a>
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
 <a href="/calcs/guide/">User guide</a>
-<a href="/calcs/learn/engineering-calculation-software-free/">All pages</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
 </nav>
 </header>
 <main id="main">
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/calcs/">CivilKit Calcs</a> / <span>Mathcad alternative</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <a href="/calcs/learn/">Calculators and guides</a> / <span>Mathcad alternative</span></nav>
 <h1>A free Mathcad alternative that runs in your browser</h1>
 <div class="lead">
 <p>If you search for a Mathcad alternative you probably want four things: formulas that read like maths, real units that are checked, a report you can hand to someone, and no licence to renew. CivilKit Calcs is a calculation sheet that does those four in a browser tab. It is free, open source (MIT) and it keeps working offline once it has loaded.</p>
 <p>It is not a clone. It works differently from Mathcad in a few ways that matter, and this page says which, so you can decide before you spend an afternoon on it.</p>
 </div>
-<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+<p class="cta"><a class="button" href="/calcs/">Open Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
 <section>
 <h2>What a calculation looks like</h2>
 <p>You write the calculation as plain text. A quantity has a name, a value or formula, an optional unit to show it in, and a note after a bar:</p>
@@ -137,7 +152,7 @@ M: w * L^2 / 8 -&gt; kN*m | maximum moment</code></pre>
 </section>
 <figure class="video">
 <video controls preload="none" width="960" height="540" aria-label="Your first calculation" src="/calcs/guide/videos/01-first-calculation.mp4"></video>
-<figcaption>Video: Your first calculation (about 85 seconds). <a href="/calcs/guide/getting-started/first-sheet.html">Read the chapter</a>.</figcaption>
+<figcaption>Video: Your first calculation (about 85 seconds). Read the chapter <a href="/calcs/guide/getting-started/first-sheet">Your first sheet in five minutes</a>.</figcaption>
 </figure>
 <section>
 <h2>What you get that Mathcad users usually ask for</h2>
@@ -180,16 +195,19 @@ M: w * L^2 / 8 -&gt; kN*m | maximum moment</code></pre>
 <section class="related">
 <h2>Related pages</h2>
 <ul>
-<li><a href="/calcs/learn/mathcad-worksheet-converter/">Mathcad worksheet converter</a></li>
-<li><a href="/calcs/learn/calcpad-online/">Calcpad online</a></li>
+<li><a href="/calcs/learn/mathcad-worksheet-converter/">Open Mathcad files</a></li>
+<li><a href="/calcs/learn/calcpad-online/">Calcpad worksheets in the browser</a></li>
 <li><a href="/calcs/learn/excel-alternative-for-engineering-calculations/">Excel alternative</a></li>
+<li><a href="/calcs/learn/export-calculations-to-word-excel-pdf/">Export to Word, Excel and PDF</a></li>
 <li><a href="/calcs/learn/engineering-calculation-software-free/">Free calculation software</a></li>
+<li><a href="/calcs/learn/">All calculators and guides</a></li>
 </ul>
 </section>
-<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+<p class="cta"><a class="button" href="/calcs/">Open Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
 </main>
 <footer class="site">
-<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. Source: <a href="https://github.com/mageaustralia/civilkit-calcs">github.com/mageaustralia/civilkit-calcs</a>. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
 <p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
 </footer>
 </body>

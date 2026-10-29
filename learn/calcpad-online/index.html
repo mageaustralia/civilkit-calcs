@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Calcpad online: run Calcpad worksheets in a browser</title>
-<meta name="description" content="CivilKit Calcs runs the Calcpad worksheet language in your browser on a Rust engine compiled to WebAssembly. Free, open source, installable and offline.">
+<title>Open Calcpad .cpd files in your browser, offline</title>
+<meta name="description" content="Open and run Calcpad .cpd worksheets in your browser, offline, on an open source Rust engine. Edit, plot, import and export to Word, Excel or PDF.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="color-scheme" content="light dark">
 <link rel="canonical" href="https://civilkit.io/calcs/learn/calcpad-online/">
@@ -12,13 +12,13 @@
 <link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CivilKit Calcs">
-<meta property="og:title" content="Calcpad online: run Calcpad worksheets in a browser">
-<meta property="og:description" content="CivilKit Calcs runs the Calcpad worksheet language in your browser on a Rust engine compiled to WebAssembly. Free, open source, installable and offline.">
+<meta property="og:title" content="Open Calcpad .cpd files in your browser, offline">
+<meta property="og:description" content="Open and run Calcpad .cpd worksheets in your browser, offline, on an open source Rust engine. Edit, plot, import and export to Word, Excel or PDF.">
 <meta property="og:url" content="https://civilkit.io/calcs/learn/calcpad-online/">
 <meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Calcpad online: run Calcpad worksheets in a browser">
-<meta name="twitter:description" content="CivilKit Calcs runs the Calcpad worksheet language in your browser on a Rust engine compiled to WebAssembly. Free, open source, installable and offline.">
+<meta name="twitter:title" content="Open Calcpad .cpd files in your browser, offline">
+<meta name="twitter:description" content="Open and run Calcpad .cpd worksheets in your browser, offline, on an open source Rust engine. Edit, plot, import and export to Word, Excel or PDF.">
 <meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
 <script type="application/ld+json">
 {
@@ -30,13 +30,25 @@
     {
      "@type": "ListItem",
      "position": 1,
-     "name": "CivilKit Calcs",
-     "item": "https://civilkit.io/calcs/"
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
     },
     {
      "@type": "ListItem",
      "position": 2,
-     "name": "Calcpad online",
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Calculators and guides",
+     "item": "https://civilkit.io/calcs/learn/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 4,
+     "name": "Calcpad worksheets in the browser",
      "item": "https://civilkit.io/calcs/learn/calcpad-online/"
     }
    ]
@@ -44,11 +56,12 @@
   {
    "@type": "SoftwareApplication",
    "name": "CivilKit Calcs",
-   "url": "https://civilkit.io/calcs/",
+   "url": "https://civilkit.io/calc/",
    "description": "A free, open source engineering calculation sheet that runs in the browser. Real units, plots, input forms, Word, Excel and PDF export, offline use.",
-   "applicationCategory": "BusinessApplication",
+   "applicationCategory": "EngineeringApplication",
    "applicationSubCategory": "Engineering calculation",
-   "operatingSystem": "Any operating system with a modern web browser",
+   "operatingSystem": "Any",
+   "browserRequirements": "A current web browser with WebAssembly",
    "isAccessibleForFree": true,
    "license": "https://opensource.org/license/mit",
    "offers": {
@@ -62,10 +75,10 @@
    "mainEntity": [
     {
      "@type": "Question",
-     "name": "Is this the official Calcpad?",
+     "name": "Is this the official Calcpad online version?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "No. It is an independent derivative of CalcpadCE, the MIT licensed community edition, with the engine rewritten in Rust. It is not made or endorsed by the Calcpad authors."
+      "text": "No. The Calcpad authors publish their own online version. This is an independent derivative of CalcpadCE, the MIT licensed community edition, with the engine rewritten in Rust. It is not made or endorsed by the Calcpad authors."
      }
     },
     {
@@ -99,6 +112,14 @@
       "@type": "Answer",
       "text": "Yes, after a first visit. Plotly charts, which load a script from a CDN, need to have been loaded once while online."
      }
+    },
+    {
+     "@type": "Question",
+     "name": "Can it open compiled .cpdz files?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. Compiled .cpdz worksheets are not supported. Open the .cpd source instead."
+     }
     }
    ]
   }
@@ -109,24 +130,26 @@
 <body>
 <a class="skip" href="#main">Skip to the content</a>
 <header class="site">
-<a class="brand" href="/calcs/">CivilKit Calcs</a>
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
 <nav aria-label="Site">
-<a href="/calcs/">Open the app</a>
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
 <a href="/calcs/guide/">User guide</a>
-<a href="/calcs/learn/engineering-calculation-software-free/">All pages</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
 </nav>
 </header>
 <main id="main">
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/calcs/">CivilKit Calcs</a> / <span>Calcpad online</span></nav>
-<h1>Calcpad online: the Calcpad language in your browser</h1>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <a href="/calcs/learn/">Calculators and guides</a> / <span>Calcpad worksheets in the browser</span></nav>
+<h1>Run Calcpad worksheets in your browser, offline</h1>
 <div class="lead">
-<p>Calcpad is a calculator and report writer by Nedelcho Ganchovski (Proektsoft) in which you write equations with units and get a formatted document. Its community edition, CalcpadCE, is MIT licensed. CivilKit Calcs is a derivative of CalcpadCE: the same worksheet language, with the calculation engine rewritten in Rust and compiled to WebAssembly, so it runs in a browser tab with nothing to install.</p>
-<p>It is not affiliated with the Calcpad authors. Their work is the foundation, and the credit and licence travel with the code.</p>
+<p>Calcpad is a calculator and report writer by Nedelcho Ganchovski (Proektsoft): you write equations with units and get a formatted document. Its authors offer an official online version on their own site, and that is the place to go for Calcpad itself. This page is about something else. CivilKit Calcs is an independent, open source derivative of CalcpadCE, the MIT licensed community edition, and it opens your <code>.cpd</code> worksheets in a browser tab and runs them there, with no server and, once it has loaded, no connection.</p>
+<p>The worksheet language is the same. The calculation engine was rewritten in Rust and compiled to WebAssembly, so the arithmetic happens on your own computer. It is not affiliated with the Calcpad authors: their work is the foundation, and the credit and licence travel with the code.</p>
 </div>
-<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+<p class="cta"><a class="button" href="/calcs/">Open Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
 <section>
-<h2>Run a Calcpad worksheet in the browser</h2>
-<p>Open the app, paste a worksheet or use File, then Open, and the page calculates it. A worksheet like this one is ordinary Calcpad:</p>
+<h2>Open a .cpd worksheet</h2>
+<p>Open the app and use File, then Open, drag a <code>.cpd</code> file onto the page, or paste the text into a new Calcpad tab. The page calculates it straight away. A worksheet like this one is ordinary Calcpad:</p>
 <pre><code>'Right triangle
 a = 3m
 b = 4m
@@ -135,8 +158,12 @@ c = sqrt(a^2 + b^2)</code></pre>
 </section>
 <figure class="video">
 <video controls preload="none" width="960" height="540" aria-label="Your first calculation" src="/calcs/guide/videos/01-first-calculation.mp4"></video>
-<figcaption>Video: Your first calculation (about 85 seconds). <a href="/calcs/guide/getting-started/first-sheet.html">Read the chapter</a>.</figcaption>
+<figcaption>Video: Your first calculation (about 85 seconds). Read the chapter <a href="/calcs/guide/getting-started/first-sheet">Your first sheet in five minutes</a>.</figcaption>
 </figure>
+<section>
+<h2>Offline, and on your own computer</h2>
+<p>The first visit loads the app; after that a service worker keeps a copy, so the page opens and calculates with no network at all. You can install it from the browser as an app on a desktop or a phone. Worksheets are kept in the browser's own library or saved to your disk as ordinary <code>.cpd</code> text files, and nothing you calculate is sent anywhere. That makes it a practical way to read and check a colleague's worksheet on a machine where you cannot install software.</p>
+</section>
 <section>
 <h2>What was rebuilt, and what was kept</h2>
 <ul>
@@ -152,9 +179,9 @@ c = sqrt(a^2 + b^2)</code></pre>
 <p>Not supported: raster plots from the original's graphics library, the project and library path roots, and compiled <code>.cpdz</code> worksheets. The project is early, so if you depend on an unusual corner of the language, run your worksheet and compare the output before you switch.</p>
 </section>
 <section>
-<h2>What it adds: the sheet format and templates</h2>
-<p>On top of the Calcpad language there is a lighter way to write, called the sheet format: Markdown prose, <code>name: expression -> unit | note</code> lines and LaTeX. A sheet compiles to Calcpad and runs on the same engine, and you can always see the Calcpad it becomes with Show compiled.</p>
-<p>A <code>?</code> in front of a value makes it an input, so a sheet becomes a fill-in template. See the <a href="/calcs/learn/simply-supported-beam-calculator/">beam calculator</a> for a worked one.</p>
+<h2>Beyond the worksheet: sheets, imports and exports</h2>
+<p>On top of the Calcpad language there is a lighter way to write, called the sheet format: Markdown prose, <code>name: expression -> unit | note</code> lines and LaTeX. A sheet compiles to Calcpad and runs on the same engine, and you can always see the Calcpad it becomes with Show compiled. A <code>?</code> in front of a value makes it an input, so a sheet becomes a fill-in template; the <a href="/calcs/learn/simply-supported-beam-calculator/">beam calculator</a> is a worked one.</p>
+<p>The same page can <a href="/calcs/learn/mathcad-worksheet-converter/">import worksheets from another calculation tool</a> and export any worksheet to Word with real equations, to Excel with native charts, or to PDF.</p>
 </section>
 <section>
 <h2>Credit and licence</h2>
@@ -162,8 +189,8 @@ c = sqrt(a^2 + b^2)</code></pre>
 </section>
 <section class="faq">
 <h2>Questions</h2>
-<h3>Is this the official Calcpad?</h3>
-<p>No. It is an independent derivative of CalcpadCE, the MIT licensed community edition, with the engine rewritten in Rust. It is not made or endorsed by the Calcpad authors.</p>
+<h3>Is this the official Calcpad online version?</h3>
+<p>No. The Calcpad authors publish their own online version. This is an independent derivative of CalcpadCE, the MIT licensed community edition, with the engine rewritten in Rust. It is not made or endorsed by the Calcpad authors.</p>
 <h3>Do I have to install anything?</h3>
 <p>No. Open the page in a current browser. You can install it as an app from the browser if you want it on the desktop or a phone.</p>
 <h3>Can I open my existing .cpd files?</h3>
@@ -172,6 +199,8 @@ c = sqrt(a^2 + b^2)</code></pre>
 <p>No. The engine runs in the page. There is no calculation server.</p>
 <h3>Does it work offline?</h3>
 <p>Yes, after a first visit. Plotly charts, which load a script from a CDN, need to have been loaded once while online.</p>
+<h3>Can it open compiled .cpdz files?</h3>
+<p>No. Compiled <code>.cpdz</code> worksheets are not supported. Open the <code>.cpd</code> source instead.</p>
 </section>
 <section class="related">
 <h2>Related pages</h2>
@@ -180,12 +209,14 @@ c = sqrt(a^2 + b^2)</code></pre>
 <li><a href="/calcs/learn/excel-alternative-for-engineering-calculations/">Excel alternative</a></li>
 <li><a href="/calcs/learn/engineering-calculation-software-free/">Free calculation software</a></li>
 <li><a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a></li>
+<li><a href="/calcs/learn/">All calculators and guides</a></li>
 </ul>
 </section>
-<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+<p class="cta"><a class="button" href="/calcs/">Open Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
 </main>
 <footer class="site">
-<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. Source: <a href="https://github.com/mageaustralia/civilkit-calcs">github.com/mageaustralia/civilkit-calcs</a>. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
 <p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
 </footer>
 </body>
