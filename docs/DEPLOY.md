@@ -106,6 +106,15 @@ Before a release, with the guide built: `node web/e2e/seo-check.mjs` (titles, de
 breadcrumbs, sitemap and llms.txt URL forms, and every internal link of the landing pages, the hub, What's new and the
 guide) and, after a `CALCS_BASE=/calcs/` build, `node web/e2e/learn-check.mjs`.
 
+## Embed page and loader
+
+`/calcs/embed/` (`public/embed/index.html`) is written by `node tools/make_learn_pages.mjs` with the landing pages
+(`tools/learn/embed.mjs`) and checked by its `--check` and by `node web/e2e/seo-check.mjs`. `public/embed.js` is a plain
+file, served at `/calcs/embed.js`; keep it under 3 KB. The app shell serves embeds (`/calcs/?embed=1&sample=<id>`), so
+`_headers` must not add `X-Frame-Options` or a `frame-ancestors` rule to `/calcs/`. After a `CALCS_BASE=/` build,
+`node web/e2e/embed-check.mjs` checks the embed, its messages, the loader and that an embed stores nothing. Design
+notes: docs/embedding.md.
+
 ## llms.txt
 
 `https://civilkit.io/calcs/llms.txt` is an index of the guide for language models and other tools (one line per chapter, the

@@ -1,4 +1,6 @@
 # Cloudflare Pages headers for the build under /calcs/ (see docs/DEPLOY.md).
+# No X-Frame-Options or frame-ancestors for /calcs/: the app shell serves embeds (?embed=1) that any site may frame
+# (docs/embedding.md). A rule here cannot match a query string, so one would restrict the whole app.
 /calcs/assets/*
   Cache-Control: public, max-age=31536000, immutable
 /calcs/wasm/*.wasm

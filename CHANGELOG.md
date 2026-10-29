@@ -11,6 +11,12 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- **Embeddable calculators** - Adding `?embed=1&sample=<id>` to the app address shows one sample as a compact input form with live results, ready to put in an iframe. It stores nothing, sends nothing and links back with Open in CivilKit Calcs.
+- **Embed page and loader** - A new page at `/calcs/embed/` gives a copy and paste snippet for each calculator, and `/calcs/embed.js` places the frames and fits their height.
+- **Embed messages** - A host page can set inputs and read results with `postMessage`, and every value it sends is checked against the sheet's inputs and slider bounds.
+- **Try it on the calculator pages** - Each landing page with a sample has a live, lazily loaded sheet to try.
+
 ## [26.10.16] - 2026-10-29
 
 ### Added

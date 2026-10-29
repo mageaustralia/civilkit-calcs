@@ -107,6 +107,8 @@ with `civilkit-calcs-engine = "0.1"` in `Cargo.toml`. The crates have their own 
   [caskit/README.md](caskit/README.md) and [docs/caskit.md](docs/caskit.md).
 * **Changelog:** a button on the Resources tab and a link in About open
   [CHANGELOG.md](CHANGELOG.md) on GitHub.
+* **Embeds:** `/calcs/?embed=1&sample=<id>` shows one sample as an input form with live results for an
+  iframe on any site, with a small loader script and a postMessage API (`/calcs/embed/`, docs/embedding.md).
 * **Known deviations** from CalcpadCE's behaviour are listed one by one, with the test that pins
   each, in [DEVIATIONS.md](DEVIATIONS.md). Not supported: raster (SkiaSharp) plots,
   `#ProjectPath`/`#LibraryPath` path roots, and compiled `.cpdz` worksheets.
@@ -202,6 +204,7 @@ node e2e/ribbon-check.mjs --url http://127.0.0.1:4173/ --lint
 node e2e/verify-ribbon-snippets.mjs --cli ../target/release/Cli
 node e2e/import-check.mjs         # Import worksheet: a synthetic .xmcd and .mcdx, pictures, toggles, error paths, drop, save, exports
 node e2e/symbolic-check.mjs       # Symbolic dialog: each operation, typeset results, errors, insert into a worksheet and a sheet, themes, phone width
+node e2e/embed-check.mjs          # ?embed=1: form and results, postMessage API, embed.js on another origin, no stored state (CALCS_BASE=/ build)
 node ../tools/set_version.mjs --check
 ```
 
