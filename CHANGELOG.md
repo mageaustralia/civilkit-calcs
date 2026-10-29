@@ -11,6 +11,8 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+## [26.10.15] - 2026-10-29
+
 ### Added
 - **Diagram gallery** - The Diagrams chapter of the guide now has a small example to copy for every kind of Mermaid diagram the app draws, from flow charts and Gantt charts to Sankey, radar and railroad diagrams, and lists the one kind that is not available (ZenUML).
 - **Diagrams menu** - The ribbon tab Plots is now Plots & Diagrams, with a Diagrams menu that inserts a short starter diagram of each common engineering kind, ready to edit, so no Mermaid syntax is needed to begin.

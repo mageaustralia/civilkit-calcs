@@ -39,84 +39,90 @@
    {
     "@type": "ListItem",
     "position": 1,
+    "name": "CivilKit Calcs 26.10.15",
+    "url": "https://civilkit.io/calcs/whats-new/#v26-10-15"
+   },
+   {
+    "@type": "ListItem",
+    "position": 2,
     "name": "CivilKit Calcs 26.10.14",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-14"
    },
    {
     "@type": "ListItem",
-    "position": 2,
+    "position": 3,
     "name": "CivilKit Calcs 26.10.13",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-13"
    },
    {
     "@type": "ListItem",
-    "position": 3,
+    "position": 4,
     "name": "CivilKit Calcs 26.10.12",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-12"
    },
    {
     "@type": "ListItem",
-    "position": 4,
+    "position": 5,
     "name": "CivilKit Calcs 26.10.11",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-11"
    },
    {
     "@type": "ListItem",
-    "position": 5,
+    "position": 6,
     "name": "CivilKit Calcs 26.10.10",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-10"
    },
    {
     "@type": "ListItem",
-    "position": 6,
+    "position": 7,
     "name": "CivilKit Calcs 26.10.9",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-9"
    },
    {
     "@type": "ListItem",
-    "position": 7,
+    "position": 8,
     "name": "CivilKit Calcs 26.10.8",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-8"
    },
    {
     "@type": "ListItem",
-    "position": 8,
+    "position": 9,
     "name": "CivilKit Calcs 26.10.7",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-7"
    },
    {
     "@type": "ListItem",
-    "position": 9,
+    "position": 10,
     "name": "CivilKit Calcs 26.10.6",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-6"
    },
    {
     "@type": "ListItem",
-    "position": 10,
+    "position": 11,
     "name": "CivilKit Calcs 26.10.5",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-5"
    },
    {
     "@type": "ListItem",
-    "position": 11,
+    "position": 12,
     "name": "CivilKit Calcs 26.10.4",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-4"
    },
    {
     "@type": "ListItem",
-    "position": 12,
+    "position": 13,
     "name": "CivilKit Calcs 26.10.3",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-3"
    },
    {
     "@type": "ListItem",
-    "position": 13,
+    "position": 14,
     "name": "CivilKit Calcs 26.10.2",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-2"
    },
    {
     "@type": "ListItem",
-    "position": 14,
+    "position": 15,
     "name": "CivilKit Calcs 26.10.1",
     "url": "https://civilkit.io/calcs/whats-new/#v26-10-1"
    }
@@ -144,6 +150,7 @@
 </div>
 <nav aria-label="Releases">
 <ul class="jump">
+<li><a href="#v26-10-15">26.10.15</a></li>
 <li><a href="#v26-10-14">26.10.14</a></li>
 <li><a href="#v26-10-13">26.10.13</a></li>
 <li><a href="#v26-10-12">26.10.12</a></li>
@@ -160,6 +167,45 @@
 <li><a href="#v26-10-1">26.10.1</a></li>
 </ul>
 </nav>
+<section class="release" id="v26-10-15" aria-labelledby="v26-10-15-h">
+<header>
+<h2 id="v26-10-15-h">26.10.15</h2>
+<time datetime="2026-10-29">29 October 2026</time>
+</header>
+
+<div class="changes">
+<h3>Release notes</h3>
+<h4>Added</h4>
+<ul>
+<li><strong>Diagram gallery</strong> - The Diagrams chapter of the guide now has a small example to copy for every kind of Mermaid diagram the app draws, from flow charts and Gantt charts to Sankey, radar and railroad diagrams, and lists the one kind that is not available (ZenUML).</li>
+<li><strong>Diagrams menu</strong> - The ribbon tab Plots is now Plots &amp; Diagrams, with a Diagrams menu that inserts a short starter diagram of each common engineering kind, ready to edit, so no Mermaid syntax is needed to begin.</li>
+<li><strong>Diagram samples</strong> - Twelve new sample sheets pair a diagram with the numbers behind it: state, sequence, Gantt, pie, treemap, quadrant, XY, Sankey, mind map, requirement, timeline and class diagrams.</li>
+<li><strong>Gable frame thrust sample</strong> - A worked sheet for the horizontal thrust of a pitched roof frame: pinned ridge, rigid ridge, and the shortcut that overstates it, with a decision diagram.</li>
+<li><strong>llms.txt</strong> - <code>/calcs/llms.txt</code> indexes the guide for language models and other tools, and <code>/calcs/llms-full.txt</code> is the whole guide in one file. Both are written by <code>tools/make_llms_txt.mjs</code>.</li>
+</ul>
+<h4>Changed</h4>
+<ul>
+<li><strong>Plots and diagrams</strong> - The Samples group Plots is now Plots and diagrams, and the two Mermaid samples moved there from Sheet syntax.</li>
+<li><strong>Figures group</strong> - Image moves from the plot options into a Figures group next to Diagrams, and the Diagrams button has a flowchart icon.</li>
+<li><strong>Ribbon order</strong> - The Calculation tab now comes straight after Matrices/Tables, so the tabs follow the work: write, calculate, plot, format, document.</li>
+<li><strong>Ribbon fits</strong> - The tab strip fits a window down to about 900 px wide, and the Text Formatting and Resources tabs fit a 1300 px window, with small buttons where a tab was too wide.</li>
+<li><strong>Ribbon groups</strong> - Document groups run Import, Tidy, Page, Report, then Save and export; Variables and Errors form a Check group on Calculation; Resources has View, Panels and Help groups.</li>
+<li><strong>One data grid</strong> - Data grid is on Input/Output only, and the Input mode button there is now Input form, as on the Calculation tab.</li>
+<li><strong>Ribbon icons</strong> - Buttons that shared an icon with a different button have their own, such as Hyperbolic, Determinant, Show results, Errors, Tidy text and Changelog.</li>
+<li><strong>Ribbon tooltips</strong> - Every ribbon button says what it inserts or does, with the typed form where it teaches syntax, and shortcuts read Cmd on a Mac.</li>
+<li><strong>Menu labels</strong> - Menus use sentence case and three dots for items that ask for more, the sidebar tab TOC is now Contents, and the editor menu says Calculate and Show Line in Results.</li>
+<li><strong>Samples groups</strong> - Sample groups are in sentence case, Plots and diagrams comes before 3D plots, and the dialog&#39;s subtitle names the sheet samples as well as the classic examples.</li>
+<li><strong>Phone targets</strong> - On a phone the quick-access buttons, the ribbon tabs and the small ribbon buttons are taller and easier to tap.</li>
+<li><strong>Block menu marks</strong> - Paste has the same mark in the insert menu and the block menu, and Page break no longer shares the Copy mark.</li>
+</ul>
+<h4>Fixed</h4>
+<ul>
+<li><strong>Shortcut hints</strong> - Tooltips, the File menu and the Shortcuts list no longer name keys the browser keeps for itself, such as Ctrl+N, Ctrl+O and F5.</li>
+<li><strong>Metadata in sheets</strong> - The editor menu no longer offers Edit Metadata Properties in a sheet, where it wrote a classic comment line.</li>
+</ul>
+<p class="more"><a href="https://github.com/mageaustralia/civilkit-calcs/releases/tag/v26.10.15">Release notes on GitHub</a></p>
+</div>
+</section>
 <section class="release" id="v26-10-14" aria-labelledby="v26-10-14-h">
 <header>
 <h2 id="v26-10-14-h">26.10.14</h2>

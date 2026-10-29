@@ -1,6 +1,6 @@
 {
   "name": "calcpad-web",
-  "version": "26.10.14",
+  "version": "26.10.15",
   "private": true,
   "description": "CivilKit Calcs web app - Monaco + Vue sidebar powered by calcpad-frontend",
   "author": "CivilKit Calcs contributors, CalcpadCE Contributors",
