@@ -1098,7 +1098,6 @@ import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
 import type { BlockOp } from './wasm/block-ops'
 import { pasteSource, peekClipboard, rememberedBlock } from './wasm/block-clipboard'
 import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
-import { INPUT_SLIDER_SCRIPT } from './wasm/input-slider'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
@@ -1307,10 +1306,13 @@ function openInsertMenu(groupId: string, frameId: string, data: Record<string, u
   if (!iframe || !Number.isInteger(before) || before < 0) return
   const r = (data.rect ?? {}) as Record<string, unknown>
   const box = iframe.getBoundingClientRect()
-  const w = 220, h = INSERT_BLOCKS.length * 40 + 12
+  // One row per block and one for Paste; touch rows are taller. A menu taller than the window scrolls (app.css).
+  const rowH = window.matchMedia('(hover: none)').matches ? 46 : 40
+  const w = 220, h = Math.min((INSERT_BLOCKS.length + 1) * rowH + 12, window.innerHeight - 16)
   const x = Math.max(8, Math.min(box.left + (Number(r.left) || 0), window.innerWidth - w - 8))
   const below = box.top + (Number(r.top) || 0) + (Number(r.height) || 0) + 4
-  const y = below + h > window.innerHeight - 8 ? Math.max(8, box.top + (Number(r.top) || 0) - h - 4) : below
+  const placed = below + h > window.innerHeight - 8 ? box.top + (Number(r.top) || 0) - h - 4 : below
+  const y = Math.max(8, Math.min(placed, window.innerHeight - h - 8))
   closeLineEdit()
   insertMenu.value = { x, y, groupId, before }
   pasteText.value = rememberedBlock()
@@ -2690,8 +2692,6 @@ function injectLineLinks(
     ] : []),
     // Chips under each plot: log x / y, 1:1, copy data, save PNG / SVG (see plot-chips.ts).
     ...(lineLinks ? [PLOT_CHIPS_SCRIPT] : []),
-    // A slider beside a number input with a range (Input mode only; see input-slider.ts).
-    ...(lineLinks ? [] : [INPUT_SLIDER_SCRIPT]),
     ...(lineLinks ? [
     "  function hideAllLineLinks() {",
     "    document.querySelectorAll('.lineLink').forEach(function(l) { l.style.display = 'none'; });",

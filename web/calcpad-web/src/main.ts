@@ -36,7 +36,6 @@ import { registerSemanticTokensProvider } from './editor/semantic-tokens';
 import { setupDiagnostics } from './editor/diagnostics';
 import { registerCompletionProvider } from './editor/completions';
 import { attachProseToolbar } from './editor/prose-toolbar-monaco';
-import { attachSheetSuggest } from './editor/sheet-suggest';
 import { attachEditorNav, gotoSymbolByName, renameSymbolByName } from './editor/nav';
 import { setValuesFetcher } from './editor/nav/values';
 import { registerIncludeCompletionProvider } from './editor/include-completions';
@@ -923,7 +922,6 @@ async function bootstrap(): Promise<void> {
         attachOperatorReplacer(ed);
         attachAutoIndenter(ed);
         attachProseToolbar(ed);
-        attachSheetSuggest(ed);
         registerFormattingCommands(ed, editorBridge);
         // Ctrl/Cmd+Shift+K deletes the sheet block that holds the caret (Monaco's own binding deletes the line, which stays for other files);
         // Ctrl/Cmd+Shift+/ disables it or, on a disabled block, enables it again.

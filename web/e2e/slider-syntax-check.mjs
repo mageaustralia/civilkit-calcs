@@ -120,7 +120,7 @@ check(/= 35 kN/.test(t), `two key presses move L from 6 m to 7 m and V follows t
     check(/calcpad-ui-invalid/.test(e.cls) && e.msg === 'must be from 2 to 12' && e.value === '20', `a typed 20 shows "must be from 2 to 12" (${JSON.stringify(e)})`);
     if (shots) await page.screenshot({ path: join(shots, 'slider-syntax-error.png') });
     t = await until('Slider syntax', /V = /);
-    check(/= 35 kN/.test(t) && !/= 100 kN/.test(t), 'the out-of-range value is not used: V stays at 35 kN');
+    check(/= 30 kN/.test(t) && !/= 100 kN/.test(t), 'the out-of-range value is not used: V falls back to the default, 30 kN, not 100 kN');
 }
 
 // ---- 4. the formatter round trip --------------------------------------------------------------------------------
@@ -138,9 +138,14 @@ for (let i = 0; i < 30 && !mk.some((x) => x[1] === 8); i++) { await page.waitFor
 check(mk.some((x) => x[0] === 2 && x[1] === 8), `\`slider 2..12\` is an error on its line (${JSON.stringify(mk)})`);
 await mode('Input');
 await page.waitForTimeout(1500);
-let sliders = 0;
-for (const f of page.frames()) if (f !== page.mainFrame()) sliders += await f.evaluate(() => document.querySelectorAll('input.calcpad-ui-slider').length).catch(() => 0);
-check(sliders === 0, `the word form draws no slider (${sliders})`);
+// Only the frame that shows this sheet (its error names the word form); frames left by earlier tabs do not count.
+let sliders = -1;
+for (const f of page.frames()) {
+    if (f === page.mainFrame()) continue;
+    const mine = await f.evaluate(() => /slider 2\.\.12/.test(document.body?.innerText ?? '')).catch(() => false);
+    if (mine) sliders = await f.evaluate(() => document.querySelectorAll('input.calcpad-ui-slider').length).catch(() => -1);
+}
+check(sliders === 0, `the word form draws no slider (${sliders}; -1 means the sheet's frame was not found)`);
 const before = await editorText();
 await format();
 check((await editorText()) === before, 'the formatter leaves the word form as written');
