@@ -1,6 +1,6 @@
 # Samples tour
 
-The **Samples** browser (File > Samples..., or the Resources tab) lists 133 worksheets, with
+The **Samples** browser (File > Samples..., or the Resources tab) lists 138 worksheets, with
 groups, a search box and a preview. Opening a sample puts it in a new tab, where you can change it
 freely: nothing you do changes the original. A sample that has input fields carries an **input form**
 tag. The Samples browser never runs a sample's Python; its preview shows the source, and opening the
@@ -12,7 +12,7 @@ Written in the sheet format. They are listed first.
 
 | Group | What is in it |
 | --- | --- |
-| Sheet syntax (11) | Beam bending, a short column, a floor-load table with vectors and matrices, a moment diagram with a plot, LaTeX prose, mixing with raw Calcpad and loops, beam and cantilever deflection, a three-span beam explorer with Python and Plotly, a beam deflection derived with the Symbolic dialog, polynomial roots. |
+| Sheet syntax (16) | Beam bending, a short column, a floor-load table with vectors and matrices, a moment diagram with a plot, LaTeX prose, mixing with raw Calcpad and loops, beam and cantilever deflection, a three-span beam explorer with Python and Plotly, a beam deflection derived with the Symbolic dialog, polynomial roots, principal stresses, natural frequencies of a shear frame, principal axes of a section, and two sheets with diagrams drawn from text: **Design check as a flow diagram** and **Load path and tributary loads**. |
 | 3D plots (5) | A plate deflection surface, a column interaction surface, a space frame in 3D lines, a mode-shape explorer with a dropdown, a 3D bar chart of footing reactions. |
 | Templates (7) | Sheets with input forms: a simply supported beam check, a cantilever with a tip load, rectangular column slenderness, a pad footing bearing pressure check, pipe flow, a retaining wall (sliding and overturning) and a pump and pipeline operating point. Each carries the **input form** tag. See [Templates with inputs](templates.md). |
 | Plots (2) | A plot gallery of implicit curves, functions and polylines on a grid, and an animated beam with a moving load (Play, Pause, a slider). |
@@ -45,6 +45,8 @@ Good places to start:
   and change the span.
 * **Beam bending with real units** (sheet) and **Bending moment diagram** (sheet), the shortest
   complete sheets.
+* **Design check as a flow diagram** and **Load path and tributary loads** (sheets), to see a
+  diagram written as text next to the calculation it describes. See [Diagrams](sheet/diagrams.md).
 * **Matrix** worksheets, for a tour of the vector and matrix functions.
 * **Beam Explorer: Plotly from Python**, for the Python and Plotly route.
 

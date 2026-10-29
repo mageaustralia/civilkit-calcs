@@ -66,6 +66,8 @@ the text line `'<div style="page-break-after:always"></div>`. Print PDF starts a
 writer writes a Word page break, and the preview draws it as a dashed line labelled "Page break" (screen only).
 The "+" menu between blocks and the ribbon's Page break button insert it. There is no other sheet form.
 
+### Diagrams
+
 A fenced code block tagged `mermaid` (in prose, or in a `#markdown` block of a Calcpad worksheet)
 is drawn as a diagram. The app swaps the rendered fence for the SVG that Mermaid draws, with SVG
 text labels; Mermaid is bundled as separate chunks, loaded the first time a page has a diagram,
@@ -73,6 +75,11 @@ and precached by the service worker. The page gets markup and styles only, so th
 security policy is unchanged, and the HTML and PDF reports carry the drawing. Word export shows
 the source. Diagrams use the dagre layout (`layout: elk` is not shipped). A fence Mermaid cannot
 parse stays as code, followed by the reason.
+
+The user guide's chapter on diagrams (`book/src/sheet/diagrams.md`) starts from three small
+examples (a flow chart, a sequence and a state diagram) and gives tips. The samples **Design check
+as a flow diagram** and **Load path and tributary loads** (Sheet syntax group) show a diagram next
+to the calculation it describes.
 
 ## Quantity lines
 

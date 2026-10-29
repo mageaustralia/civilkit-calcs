@@ -13,6 +13,7 @@
 - [The sheet format](sheet/index.md)
   - [Quantities, units and notes](sheet/quantities.md)
   - [Prose, LaTeX and tables](sheet/prose.md)
+  - [Diagrams](sheet/diagrams.md)
   - [Folding sections and key results](sheet/sections.md)
   - [Conditions and loops](sheet/flow.md)
   - [Functions](sheet/functions.md)

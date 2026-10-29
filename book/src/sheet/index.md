@@ -53,6 +53,7 @@ Every line of a sheet is one of these.
 | Block | `for i in 1..5:` with an indented body | [Conditions and loops](flow.md) |
 | Plot | `plot M(x) for x in 0..L` | [Plots](../plots.md) |
 | Python | a fenced `python` block | [Python blocks](../python.md) |
+| Diagram | a fenced `mermaid` block | [Diagrams](diagrams.md) |
 | Calcpad | a line starting with `>>`, or a `calcpad` fence | [Mixing in Calcpad](passthrough.md) |
 
 A line that looks like a quantity but is really prose (`Note: see the drawing`) is prose, because
