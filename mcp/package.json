@@ -1,0 +1,23 @@
+{
+  "name": "civilkit-calcs-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "CivilKit Calcs remote MCP server (Cloudflare Worker at https://civilkit.io/mcp)",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "pretest": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs && node test/e2e.mjs",
+    "test:unit": "node --test test/*.test.mjs",
+    "test:e2e": "node test/e2e.mjs",
+    "dev": "node scripts/build.mjs && wrangler dev --local --port 8787",
+    "size": "node scripts/build.mjs && wrangler deploy --dry-run --outdir dist"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "wrangler": "4.150.0"
+  }
+}

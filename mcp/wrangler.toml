@@ -1,0 +1,54 @@
+# CivilKit Calcs MCP server: a Worker of its own, on the routes civilkit.io/mcp and civilkit.io/mcp/*.
+# More specific than the site Worker's catch-all civilkit.io/*, so these routes win; nothing else on the zone changes.
+# Deploy checklist and rollback: docs/mcp.md. Run `npm run build` first (it fills src/generated).
+name = "civilkit-calcs-mcp"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+# account_id = "<your-account-id>"   # or set CLOUDFLARE_ACCOUNT_ID when deploying
+workers_dev = false
+preview_urls = false
+
+routes = [
+  { pattern = "civilkit.io/mcp", zone_name = "civilkit.io" },
+  { pattern = "civilkit.io/mcp/*", zone_name = "civilkit.io" },
+]
+
+# The engine cannot be interrupted once it runs; this is the hard stop for a calculation that loops (Workers Paid;
+# the Free plan's 10 ms is too little for the engine). The samples take 2 to 30 ms.
+[limits]
+cpu_ms = 5000
+
+# Per-IP limits (the key is the client address). namespace_id is any positive integer unique in the account.
+# Keep src/page.js RATE_LIMITS in step (test/page.test.mjs checks it).
+[[ratelimits]]
+name = "REQUEST_LIMITER"
+namespace_id = "7101"
+simple = { limit = 120, period = 60 }
+
+[[ratelimits]]
+name = "EVAL_LIMITER"
+namespace_id = "7102"
+simple = { limit = 30, period = 60 }
+
+# No request bodies are logged (the code never logs them); Workers Logs stays off so not even metadata is kept.
+[observability]
+enabled = false
+
+# For test/e2e.mjs only: a low calculation limit (8 a minute) to see the limiter answer.
+[env.e2e]
+name = "civilkit-calcs-mcp-e2e"
+workers_dev = false
+routes = []
+
+[env.e2e.limits]
+cpu_ms = 5000
+
+[[env.e2e.ratelimits]]
+name = "REQUEST_LIMITER"
+namespace_id = "7201"
+simple = { limit = 120, period = 60 }
+
+[[env.e2e.ratelimits]]
+name = "EVAL_LIMITER"
+namespace_id = "7202"
+simple = { limit = 8, period = 60 }

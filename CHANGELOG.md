@@ -16,6 +16,8 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 - **Embed page and loader** - A new page at `/calcs/embed/` gives a copy and paste snippet for each calculator, and `/calcs/embed.js` places the frames and fits their height.
 - **Embed messages** - A host page can set inputs and read results with `postMessage`, and every value it sends is checked against the sheet's inputs and slider bounds.
 - **Try it on the calculator pages** - Each landing page with a sample has a live, lazily loaded sheet to try.
+- **MCP server** - A public, read-only MCP server for AI assistants at `https://civilkit.io/mcp` (its own Worker in `mcp/`) runs sheets and Calcpad worksheets in the app's engine, checks hand calculations, converts units and searches the guide, functions and samples. It is stateless and rate limited, and nothing is stored.
+- **MCP guide chapter** - A new chapter explains how to add the server to Claude Code and other clients, with its tools, limits and privacy; llms.txt lists the server and its tools.
 
 ## [26.10.16] - 2026-10-29
 

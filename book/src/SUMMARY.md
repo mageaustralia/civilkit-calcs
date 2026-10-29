@@ -38,6 +38,7 @@
 - [Exporting](exporting.md)
 - [Editing](editing.md)
 - [Embedding a calculator](embedding.md)
+- [Using it from an AI assistant (MCP)](mcp.md)
 
 # More
 
