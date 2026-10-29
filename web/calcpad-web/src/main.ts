@@ -11,7 +11,7 @@ import { MessageBridge } from './services/message-bridge';
 import type { TauriServerManager } from './services/server-manager';
 import { WorkspaceStateStore, isResultMode, type ResultMode, type WorkspaceLayout } from './services/workspace-state';
 import { buildApiSettings } from 'calcpad-frontend/types/settings';
-import { ConnectionMonitor, setLogLevel, coerceLogLevel, stripCpdSnippetWrapper } from 'calcpad-frontend';
+import { ConnectionMonitor, setTranslator, setLogLevel, coerceLogLevel, stripCpdSnippetWrapper } from 'calcpad-frontend';
 import {
     findMetadataCommentBlock,
     serializeMetadataComment,
@@ -65,6 +65,8 @@ import type { TabManager } from './tabs/tab-manager';
 import { toDisplayLogLevel } from 'calcpad-frontend';
 import type { UiControl, CalcpadLogLevel, DisplayLogLevel } from 'calcpad-frontend';
 import { mountSuiteBar } from './suitebar';
+import { initLanguage, td } from './i18n';
+import { mountLanguagePrompt } from './i18n/prompt';
 import './styles/civilkit-tokens.css';
 import './editor/vscode-variables.css';
 import 'calcpad-frontend/vue/styles/base.css';
@@ -307,6 +309,14 @@ async function bootstrap(): Promise<void> {
 
     // Initialize the platform messaging (reads VITE_PLATFORM='web')
     initMessaging();
+
+    // The interface language (src/i18n): ?lang=, then the stored choice, else English. Its catalogue is loaded before the
+    // first render. The desktop host stays English. A browser language we can serve gets a prompt, never a silent switch.
+    if (!isTauri) {
+        setTranslator(td);
+        await initLanguage();
+        mountLanguagePrompt();
+    }
 
     // The base message bridge's handleGoToLine looks up the editor via
     // window.monaco (matches the vscode-webview convention). Expose it here so
