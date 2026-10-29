@@ -17,6 +17,8 @@ export default defineConfig(() => ({
         pwaPlugin(),
         // The version in the page head: <meta name="version">.
         { name: 'app-version-meta', transformIndexHtml: (html: string) => html.replaceAll('__APP_VERSION__', resolveVersion()) },
+        // version.json beside index.html: the version of this build, for pages that show the current release (the suite site reads it).
+        { name: 'version-json', apply: 'build' as const, generateBundle() { this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ name: 'CivilKit Calcs', version: resolveVersion() }) + '\n' }); } },
     ],
     define: {
         'import.meta.env.VITE_APP_VERSION': JSON.stringify(resolveVersion()),
