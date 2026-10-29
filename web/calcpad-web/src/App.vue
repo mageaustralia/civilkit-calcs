@@ -537,18 +537,18 @@
     <!-- The grip at the left of a rendered block. -->
     <template v-if="blockMenu">
       <div class="insert-backdrop" @mousedown="closeBlockMenu" @touchstart.passive="closeBlockMenu"></div>
-      <div class="insert-menu block-menu" role="menu" aria-label="Block actions" :style="{ left: blockMenu.x + 'px', top: blockMenu.y + 'px' }" @keydown="onBlockMenuKey">
+      <div class="insert-menu block-menu" role="menu" :aria-label="t('app.block.menuLabel')" :style="{ left: blockMenu.x + 'px', top: blockMenu.y + 'px' }" @keydown="onBlockMenuKey">
         <button v-for="a in blockActions" :key="a.op" type="button" role="menuitem" @click="runBlockOp(a.op)">
-          <span class="insert-glyph" aria-hidden="true">{{ a.glyph }}</span>{{ a.label }}
+          <span class="insert-glyph" aria-hidden="true">{{ a.glyph }}</span>{{ blockLabel(a.op) }}
         </button>
         <template v-if="blockMenu.heading">
-          <button type="button" role="menuitem" @click="collapseAllSections(true)"><span class="insert-glyph" aria-hidden="true">▸</span>Collapse all</button>
-          <button type="button" role="menuitem" @click="collapseAllSections(false)"><span class="insert-glyph" aria-hidden="true">▾</span>Expand all</button>
+          <button type="button" role="menuitem" @click="collapseAllSections(true)"><span class="insert-glyph" aria-hidden="true">▸</span>{{ t('app.block.collapseAll') }}</button>
+          <button type="button" role="menuitem" @click="collapseAllSections(false)"><span class="insert-glyph" aria-hidden="true">▾</span>{{ t('app.block.expandAll') }}</button>
         </template>
       </div>
     </template>
     <div v-if="blockToast" class="block-toast" role="status">
-      {{ blockToast.text }}<button v-if="blockToast.undo" type="button" @click="undoBlockOp">Undo</button>
+      {{ blockToast.text }}<button v-if="blockToast.undo" type="button" @click="undoBlockOp">{{ t('app.toast.undo') }}</button>
     </div>
     <!-- Double-click on prose written as Markdown (#md on): rich-text editing of that block. -->
     <div
@@ -1097,6 +1097,7 @@ const onLineEditRequest = ref<{
 // Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
 import MathKeyboard from './editor/MathKeyboard.vue'
 import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
+import { t } from './i18n'
 import { injectTableSort, type TableSortState } from './wasm/table-sort'
 import type { BlockOp } from './wasm/block-ops'
 import { withPageBreakMarks } from './wasm/page-break'
@@ -1339,6 +1340,13 @@ const BLOCK_ACTIONS: { op: BlockOp; label: string; glyph: string }[] = [
   { op: 'delete', label: 'Delete', glyph: '\u00d7' },
 ]
 // A block that is already commented out offers Enable in place of Disable.
+// The menu entries by operation; the labels come from the catalogue.
+const BLOCK_LABELS: Record<string, () => string> = {
+  up: () => t('app.block.up'), down: () => t('app.block.down'), duplicate: () => t('app.block.duplicate'), cut: () => t('app.block.cut'),
+  copy: () => t('app.block.copy'), paste: () => t('app.block.paste'), disable: () => t('app.block.disable'), delete: () => t('app.block.delete'),
+  enable: () => t('app.block.enable'),
+}
+const blockLabel = (op: string): string => BLOCK_LABELS[op]()
 const blockActions = computed(() => BLOCK_ACTIONS.map(a => (a.op === 'disable' && blockMenu.value?.disabled ? { op: 'enable' as BlockOp, label: 'Enable', glyph: '\u2299' } : a)))
 function openBlockMenu(groupId: string, frameId: string, data: Record<string, unknown>): void {
   const line = Number(data.line)
@@ -1364,18 +1372,18 @@ function runBlockOp(op: BlockOp): void {
   blockMenu.value = null
   if (m) void doBlockOp(m.groupId, m.starts, m.line, op)
 }
-const BLOCK_TOASTS: Record<BlockOp, string> = {
-  delete: 'Block deleted', duplicate: 'Block duplicated', up: 'Block moved up', down: 'Block moved down',
-  cut: 'Block cut', copy: 'Block copied', paste: 'Block pasted',
-  disable: 'Block disabled: hidden from the preview, kept in the sheet as comment lines',
-  enable: 'Block enabled',
+const BLOCK_TOASTS: Record<BlockOp, () => string> = {
+  delete: () => t('app.toast.deleted'), duplicate: () => t('app.toast.duplicated'), up: () => t('app.toast.movedUp'), down: () => t('app.toast.movedDown'),
+  cut: () => t('app.toast.cut'), copy: () => t('app.toast.copied'), paste: () => t('app.toast.pasted'),
+  disable: () => t('app.toast.disabled'),
+  enable: () => t('app.toast.enabled'),
 }
 async function doBlockOp(groupId: string, starts: number[], line: number, op: BlockOp): Promise<void> {
   const req = onLineEditRequest.value
   const clip = op === 'paste' ? await pasteSource() : undefined
   if (!req?.blockOp?.(groupId, starts, line, op, clip)) return
   window.clearTimeout(blockToastTimer)
-  blockToast.value = { groupId, text: BLOCK_TOASTS[op], undo: op !== 'copy' }
+  blockToast.value = { groupId, text: BLOCK_TOASTS[op](), undo: op !== 'copy' }
   blockToastTimer = window.setTimeout(() => { blockToast.value = null }, 6000)
 }
 // The latest block starts each preview reported, for the keyboard shortcuts (the caret has no grip to start from).
@@ -1410,7 +1418,7 @@ function onBlockMove(groupId: string, data: Record<string, unknown>): void {
   if (!starts.length || !Number.isInteger(line) || !Number.isInteger(before) || !Number.isInteger(last)) return
   if (!onLineEditRequest.value?.moveBlock?.(groupId, starts, line, before, last)) return
   window.clearTimeout(blockToastTimer)
-  blockToast.value = { groupId, text: 'Block moved', undo: true }
+  blockToast.value = { groupId, text: t('app.toast.moved'), undo: true }
   blockToastTimer = window.setTimeout(() => { blockToast.value = null }, 6000)
 }
 function undoBlockOp(): void {

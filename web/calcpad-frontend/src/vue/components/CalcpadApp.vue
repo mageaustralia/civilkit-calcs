@@ -93,11 +93,11 @@
       :class="{ unavailable: tabUnavailable(shown(pane)), 'as-dialog': dialogTab && paneIndex === 0 }"
       :inert="tabUnavailable(shown(pane))"
       :role="dialogTab && paneIndex === 0 ? 'dialog' : undefined"
-      :aria-label="dialogTab && paneIndex === 0 ? DIALOG_TITLES[dialogTab] : undefined"
+      :aria-label="dialogTab && paneIndex === 0 ? dialogTitle(dialogTab) : undefined"
     >
       <div v-if="dialogTab && paneIndex === 0" class="cpd-dialog-head">
-        <span>{{ DIALOG_TITLES[dialogTab] }}</span>
-        <button type="button" aria-label="Close" title="Close (Esc)" @click="closeDialog">&#x2715;</button>
+        <span>{{ dialogTitle(dialogTab) }}</span>
+        <button type="button" :aria-label="tr('sidebar.dialog.close', {}, 'Close')" :title="tr('sidebar.dialog.closeTip', {}, 'Close (Esc)')" @click="closeDialog">&#x2715;</button>
       </div>
       <CalcpadInsertTab
         v-if="shown(pane) === 'insert'"
@@ -243,6 +243,7 @@ import type { CalcpadError, ExportVariant } from '../../types/api'
 import type { WriteMode } from '../../types/settings'
 import { coerceWriteMode } from '../../types/settings'
 import { DEFAULT_PDF_SETTINGS } from '../types'
+import { t as tr } from '../../i18n-hook'
 import {
   DEFAULT_PREVIEW_SIZE_MB, MIN_PREVIEW_SIZE_MB,
   DEFAULT_CONSOLE_MESSAGES_PER_DOCUMENT, MIN_CONSOLE_MESSAGES_PER_DOCUMENT,
@@ -331,14 +332,14 @@ const uiControls = ref<UiControl[] | null>(null)
 
 const tabs = computed<Tab[]>(() => {
   const base: Tab[] = [
-    { id: 'insert', label: 'Insert' },
-    { id: 'toc', label: 'Contents' },
-    { id: 'variables', label: 'Variables' }
+    { id: 'insert', label: tr('sidebar.tab.insert', {}, 'Insert') },
+    { id: 'toc', label: tr('sidebar.tab.contents', {}, 'Contents') },
+    { id: 'variables', label: tr('sidebar.tab.variables', {}, 'Variables') }
   ]
   // The metadata comment editor is driven by editor cursor tracking, available
   // in the VS Code webview and the desktop app (both host a real editor).
   if (props.versionConfig.isVSCode || props.versionConfig.isDesktop) {
-    base.push({ id: 'metadata', label: 'Properties' })
+    base.push({ id: 'metadata', label: tr('sidebar.tab.properties', {}, 'Properties') })
   }
   return base
 })
@@ -439,6 +440,16 @@ const hideSidebar = () => {
 
 // Settings, Export, Errors and Prettify are dialogs; the three sidebar tabs are Insert, Contents and Variables.
 const DIALOG_TITLES: Record<string, string> = { settings: 'Settings', export: 'Export', errors: 'Errors and warnings', formatting: 'Prettify' }
+/** The title of a dialog, in the shown language. */
+const dialogTitle = (id: string): string => {
+  switch (id) {
+    case 'settings': return tr('sidebar.dialog.settings', {}, 'Settings')
+    case 'export': return tr('sidebar.dialog.export', {}, 'Export')
+    case 'errors': return tr('sidebar.dialog.errors', {}, 'Errors and warnings')
+    case 'formatting': return tr('sidebar.dialog.formatting', {}, 'Prettify')
+    default: return DIALOG_TITLES[id] ?? ''
+  }
+}
 const dialogTab = ref<string | null>(null)
 const shown = (pane: Pane): string => dialogTab.value ?? pane.activeTab
 const closeDialog = () => { dialogTab.value = null }

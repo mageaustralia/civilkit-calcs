@@ -3,17 +3,16 @@
   <section class="settings-section cprs-libraries">
     <h3 class="section-header" @click="open = !open">
       <span class="expand-icon" :class="{ collapsed: !open }">&#x25BC;</span>
-      Libraries
+      {{ t('settings.libraries.title') }}
     </h3>
     <div v-show="open" class="section-body">
       <p class="cprs-hint">
-        Worksheet scripts may load only these files, each from its exact address and checked
-        against its hash. Anything else is blocked and the preview names it.
+        {{ t('settings.libraries.hint') }}
       </p>
       <div v-for="lib in libs" :key="lib.id" class="cprs-lib" :data-library="lib.id">
         <div class="cprs-lib-head">
           <span><b>{{ lib.name }}</b> {{ lib.version }}</span>
-          <button class="btn cprs-remove" @click="remove(lib.id)">Remove</button>
+          <button class="btn cprs-remove" @click="remove(lib.id)">{{ t('settings.libraries.remove') }}</button>
         </div>
         <div v-for="f in lib.files" :key="f.url" class="cprs-file">
           <code class="cprs-url">{{ f.url }}</code>
@@ -21,28 +20,28 @@
         </div>
       </div>
       <div v-if="removed.length" class="cprs-removed">
-        <div class="cprs-sub">Removed</div>
+        <div class="cprs-sub">{{ t('settings.libraries.removed') }}</div>
         <div v-for="lib in removed" :key="lib.id" class="cprs-lib-head">
           <span>{{ lib.name }} {{ lib.version }}</span>
-          <button class="btn cprs-restore" @click="restore(lib.id)">Restore</button>
+          <button class="btn cprs-restore" @click="restore(lib.id)">{{ t('settings.libraries.restore') }}</button>
         </div>
       </div>
       <div class="cprs-add">
-        <div class="cprs-sub">Add library</div>
+        <div class="cprs-sub">{{ t('settings.libraries.add') }}</div>
         <div class="cprs-row">
           <input v-model="url" class="cprs-url-input" type="url" placeholder="https://cdn.jsdelivr.net/npm/name@1.2.3/dist/name.min.js" />
-          <button class="btn cprs-fetch" :disabled="busy || !url.trim()" @click="fetchFile">Fetch</button>
+          <button class="btn cprs-fetch" :disabled="busy || !url.trim()" @click="fetchFile">{{ t('settings.libraries.fetch') }}</button>
         </div>
         <p v-if="error" class="cprs-error">{{ error }}</p>
         <div v-if="pending" class="cprs-pending">
-          <div>Size: <span class="cprs-size">{{ pending.size.toLocaleString() }}</span> bytes</div>
-          <div>Hash: <code class="cprs-hash cprs-new-hash">{{ pending.integrity }}</code></div>
-          <label>Name <input v-model="pending.name" class="cprs-name" /></label>
-          <label>Version <input v-model="pending.version" class="cprs-version" /></label>
-          <label><input v-model="pending.module" type="checkbox" /> ES module</label>
+          <div v-html="tHtml('settings.libraries.size', { size: pending.size.toLocaleString() })"></div>
+          <div v-html="tHtml('settings.libraries.hash', { hash: pending.integrity })"></div>
+          <label>{{ t('settings.libraries.name') }} <input v-model="pending.name" class="cprs-name" /></label>
+          <label>{{ t('settings.libraries.version') }} <input v-model="pending.version" class="cprs-version" /></label>
+          <label><input v-model="pending.module" type="checkbox" /> {{ t('settings.libraries.esModule') }}</label>
           <div class="cprs-row">
-            <button class="btn cprs-confirm" :disabled="!pending.name.trim()" @click="confirmAdd">Add to the list</button>
-            <button class="btn cprs-cancel" @click="pending = null">Cancel</button>
+            <button class="btn cprs-confirm" :disabled="!pending.name.trim()" @click="confirmAdd">{{ t('settings.libraries.confirm') }}</button>
+            <button class="btn cprs-cancel" @click="pending = null">{{ t('settings.libraries.cancel') }}</button>
           </div>
         </div>
       </div>
@@ -52,6 +51,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from 'vue'
+import { t, tHtml } from '../i18n'
 import {
   addLibrary, guessNameVersion, libraries, onLibrariesChanged, removeLibrary, removedBuiltins,
   restoreLibrary, sriHash, type ScriptLibrary,
@@ -89,21 +89,21 @@ async function fetchFile() {
   try {
     parsed = new URL(u)
   } catch {
-    error.value = 'Enter the full address of one file, starting with https://.'
+    error.value = t('settings.libraries.errAddress')
     return
   }
   if (parsed.protocol !== 'https:') {
-    error.value = 'Only https:// addresses can be added.'
+    error.value = t('settings.libraries.errHttps')
     return
   }
   if (parsed.pathname.endsWith('/')) {
-    error.value = 'Enter the address of one file, not a folder or a whole site.'
+    error.value = t('settings.libraries.errFolder')
     return
   }
   busy.value = true
   try {
     const res = await fetch(u, { credentials: 'omit', cache: 'no-store' })
-    if (!res.ok) throw new Error(`the server answered ${res.status}`)
+    if (!res.ok) throw new Error(t('settings.libraries.errStatus', { status: res.status }))
     const bytes = await res.arrayBuffer()
     const { name, version } = guessNameVersion(u)
     pending.value = {
@@ -115,8 +115,7 @@ async function fetchFile() {
       module: /\+esm$|\.mjs$/.test(parsed.pathname),
     }
   } catch (e) {
-    error.value = `Could not fetch the file (${e instanceof Error ? e.message : String(e)}). `
-      + 'The site must allow cross-origin requests, which public CDNs do.'
+    error.value = t('settings.libraries.errFetch', { reason: e instanceof Error ? e.message : String(e) })
   } finally {
     busy.value = false
   }
