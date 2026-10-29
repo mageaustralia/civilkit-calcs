@@ -28,12 +28,22 @@ Laguerre polynomial roots.sheet|false|d03cbde200ae5db6
 Laguerre polynomial roots.sheet|true|1b3f6ba2c39cc54b
 Loads table.sheet|false|663d74fbc46d9687
 Loads table.sheet|true|19122b3c4cc6b78f
+Mermaid design flow.sheet|false|ab897f963bb0d4c4
+Mermaid design flow.sheet|true|63939661025f492e
+Mermaid load path.sheet|false|de6de5f07554b10d
+Mermaid load path.sheet|true|f9b770fe6de3d7af
 Mixing with Calcpad.sheet|false|46d90eb28ff8835a
 Mixing with Calcpad.sheet|true|88b27e7df56a066d
 Plot gallery implicit curves.sheet|false|6df03be9c77abd14
 Plot gallery implicit curves.sheet|true|cf40277b8b6f6899
 Plot.sheet|false|2ae5dea050da795d
 Plot.sheet|true|d64a05265f0eeb2f
+Principal axes of a section.sheet|false|a19a245fb41cd60b
+Principal axes of a section.sheet|true|e9065d94140749fb
+Principal stresses.sheet|false|8c3da85d420155bc
+Principal stresses.sheet|true|8c3da85d420155bc
+Shear frame natural frequencies.sheet|false|2de9b5a0b3967171
+Shear frame natural frequencies.sheet|true|2de9b5a0b3967171
 Template cantilever tip load.sheet|false|71b9f7116eb77424
 Template cantilever tip load.sheet|true|c79ad222c74c0734
 Template column slenderness.sheet|false|7817bbe525e62707
