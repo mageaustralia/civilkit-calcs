@@ -115,7 +115,7 @@ const files = [pagePath, join(PAGE_DIR, 'whats-new.css'), MANIFEST, join(repo, '
 const w = (...parts) => parts.join('');
 const BAD = [
     [new RegExp('\\u2014'), 'an em-dash'],
-    [/\/Users\/|\/Volumes\/|\/private\/tmp|\/home\/[a-z]/, 'a local path'],
+    [new RegExp(`/${w('Us', 'ers')}/|/${w('Vol', 'umes')}/|/${w('pri', 'vate')}/${w('t', 'mp')}|/${w('ho', 'me')}/[a-z]`), 'a local path'],
     [new RegExp(`${w('space', 'gass')}|${w('sg', 'rebuild')}|${w('fem', '-core')}|${w('civilkit', '-studio')}`, 'i'), 'an internal project name'],
     [new RegExp(`@${w('mageaustralia', '\\.com\\.au')}|${w('mcamp', 'bell')}`, 'i'), 'a work email'],
     [new RegExp(`${w('math', 'cad')}|${w('mat', 'lab')}|${w('mathe', 'matica')}|\\b${w('ma', 'ple')}\\b|${w('s', 'math')}`, 'i'), 'a competitor name'],

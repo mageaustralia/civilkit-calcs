@@ -36,7 +36,8 @@ import { registerSemanticTokensProvider } from './editor/semantic-tokens';
 import { setupDiagnostics } from './editor/diagnostics';
 import { registerCompletionProvider } from './editor/completions';
 import { attachProseToolbar } from './editor/prose-toolbar-monaco';
-import { attachSheetSuggest } from './editor/sheet-suggest';
+import { attachEditorNav, gotoSymbolByName, renameSymbolByName } from './editor/nav';
+import { setValuesFetcher } from './editor/nav/values';
 import { registerIncludeCompletionProvider } from './editor/include-completions';
 import { registerHoverProvider } from './editor/hover';
 import { registerLegacyInputFix } from './editor/legacy-input-fix';
@@ -44,13 +45,13 @@ import {
     registerDefinitionProvider,
     registerIncludeLinkProvider,
     registerReferenceProvider,
-    registerRenameProvider,
     type IncludeFileOpener,
     type IncludeUriResolver,
 } from './editor/references';
 import { attachQuickTyper } from './editor/quick-type';
 import { attachOperatorReplacer } from './editor/operator-replacer';
 import { attachAutoIndenter } from './editor/auto-indent';
+import { attachToFormula } from './editor/to-formula-monaco';
 import { registerFormattingCommands, getParseMode } from './editor/formatting-commands';
 import { looksLikeLine, sheetInsert } from './wasm/sheet-insert';
 import { insertEdit, type InsertBlock } from './wasm/sheet-blocks';
@@ -68,6 +69,7 @@ import './styles/civilkit-tokens.css';
 import './editor/vscode-variables.css';
 import 'calcpad-frontend/vue/styles/base.css';
 import './styles/app.css';
+import './styles/editor-nav.css';
 applyEarlyTheme();
 mountSuiteBar();
 
@@ -77,6 +79,8 @@ import './editor/workers';
 import { installWasmTransport } from './wasm/transport';
 import { installWebFiles, webExtensions } from './wasm/setup';
 import { mountRibbon } from './wasm/ribbon';
+import type { WebFiles } from './wasm/web-files';
+import { installBeforeUnloadGuard, titleWithUnsavedMark } from './services/unsaved-guard';
 
 /** Runtime check: are we running inside a Tauri webview? */
 const isTauri = typeof (window as any).__TAURI_INTERNALS__ !== 'undefined';
@@ -361,6 +365,24 @@ async function bootstrap(): Promise<void> {
     const getFileContext = 'buildFileContext' in activeBridge
         ? (content: string) => (activeBridge as any).buildFileContext(content)
         : undefined;
+    // Rename everywhere (F2), the variable palette (Ctrl+;) and the Variables tab's actions share this.
+    const navCtx = { bridge: editorBridge, getFileContext };
+    // The values the editor shows next to names: one calculation of the active worksheet with its
+    // variables recorded. Only the web transport answers it; where it does not, no values are shown.
+    setValuesFetcher(async (content, sourceFilePath) => {
+        try {
+            const res = await fetch(`${window.location.origin}/api/calcpad/values`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, settings: buildApiSettings(activeBridge.getSettings()), sourceFilePath }),
+            });
+            if (!res.ok) return null;
+            const body = await res.json() as { variables?: { name: string; value: string; unit: string; input: boolean }[] };
+            return body.variables ?? null;
+        } catch {
+            return null;
+        }
+    });
 
     function docKeyFor(group: EditorGroup): string {
         return `tab:${group.tabs.activeId ?? 'none'}`;
@@ -871,9 +893,9 @@ async function bootstrap(): Promise<void> {
         // Extra windows are numbered from their `main-N` label so they can be told apart in
         // the taskbar; the main window, and the single-window case, stay unmarked.
         const suffix = isPrimaryWindow ? '' : ` (${windowLabel.slice('main-'.length)})`;
-        const title = active?.title
+        const title = titleWithUnsavedMark(active?.title
             ? `${active.title} - CivilKit Calcs ${appVersion}${suffix}`
-            : `CivilKit Calcs ${appVersion}${suffix}`;
+            : `CivilKit Calcs ${appVersion}${suffix}`, !!active?.dirty);
         document.title = title;
         setNativeTitle?.(title);
     }
@@ -898,11 +920,12 @@ async function bootstrap(): Promise<void> {
             });
         }
 
+        group.disposables.push(...attachEditorNav(ed, navCtx));
         attachQuickTyper(ed, editorBridge);
         attachOperatorReplacer(ed);
+        attachToFormula(ed);
         attachAutoIndenter(ed);
         attachProseToolbar(ed);
-        attachSheetSuggest(ed, editorBridge);
         registerFormattingCommands(ed, editorBridge);
         // Ctrl/Cmd+Shift+K deletes the sheet block that holds the caret (Monaco's own binding deletes the line, which stays for other files);
         // Ctrl/Cmd+Shift+/ disables it or, on a disabled block, enables it again.
@@ -1300,7 +1323,6 @@ async function bootstrap(): Promise<void> {
     registerDefinitionProvider(editorBridge, getFileContext, resolveIncludeUri);
     registerIncludeLinkProvider(resolveIncludeUri);
     registerReferenceProvider(editorBridge, getFileContext, openIncludeFile);
-    registerRenameProvider(editorBridge, getFileContext);
     registerFormatDocumentProvider(editorBridge);
 
     window.addEventListener('message', (e: MessageEvent) => {
@@ -1342,6 +1364,14 @@ async function bootstrap(): Promise<void> {
     }
 
     // Wire the bridge's insertText handler to the active editor.
+    // The Variables tab's context menu: rename a name everywhere, or go to where it is defined.
+    activeBridge.onSymbolAction = (action, name) => {
+        if (action === 'rename') void renameSymbolByName(editor, navCtx, name);
+        else void gotoSymbolByName(editor, navCtx, name).then(found => {
+            if (!found) appInstance.appendOutput('info', `"${name}" is not defined in this document.`);
+        });
+    };
+
     activeBridge.onInsertText = (text: string) => {
         const selection = editor.getSelection();
         if (selection) {
@@ -1642,8 +1672,25 @@ async function bootstrap(): Promise<void> {
     };
 
     // ---- Tab-strip user actions (dispatched by group id) ----
-    // The Tauri branch overrides the close handlers with save-prompt-aware
-    // versions; on web there's nothing to save, so a plain close is correct.
+    // The Tauri branch overrides the close handlers with its own save-prompt-aware
+    // versions; the web ones below ask through webConfirmClose.
+    let webFiles: WebFiles | null = null;
+
+    /** Web: offer Save before closing a tab whose changes would otherwise be lost. */
+    async function webConfirmClose(g: EditorGroup, id: string): Promise<boolean> {
+        if (!g.tabs.isDirty(id) || !g.tabs.isLastReference(id)) return true;
+        if (activeGroup !== g) setActiveGroup(g);
+        if (g.tabs.activeId !== id) g.tabs.activate(id);
+        const choice = await confirmThreeWay({
+            title: 'Unsaved changes',
+            message: `Save changes to ${g.tabs.getTitle(id) ?? 'this document'} before closing?`,
+            yesLabel: 'Save',
+            noLabel: "Don't Save",
+        });
+        if (choice === 'cancel') return false;
+        if (choice === 'yes') return !!await webFiles?.save();
+        return true;
+    }
     async function activateTab(groupId: string, id: string): Promise<void> {
         const g = groups.get(groupId);
         if (!g) return;
@@ -1654,9 +1701,10 @@ async function bootstrap(): Promise<void> {
     }
 
     appInstance.onTabActivate = (groupId: string, id: string) => { void activateTab(groupId, id); };
-    appInstance.onTabCloseRequest = (groupId: string, id: string) => {
+    appInstance.onTabCloseRequest = async (groupId: string, id: string) => {
         const g = groups.get(groupId);
         if (!g) return;
+        if (!await webConfirmClose(g, id)) return;
         g.tabs.close(id);
         void handleEmptyGroup(g);
     };
@@ -1792,17 +1840,22 @@ async function bootstrap(): Promise<void> {
             }]);
         },
     };
-    appInstance.onTabCloseOthersRequest = (groupId: string, id: string) => {
+    appInstance.onTabCloseOthersRequest = async (groupId: string, id: string) => {
         const g = groups.get(groupId);
         if (!g) return;
         for (const t of g.tabs.all) {
-            if (t.id !== id) g.tabs.close(t.id);
+            if (t.id === id) continue;
+            if (!await webConfirmClose(g, t.id)) return;
+            g.tabs.close(t.id);
         }
     };
-    appInstance.onTabCloseAllRequest = (groupId: string) => {
+    appInstance.onTabCloseAllRequest = async (groupId: string) => {
         const g = groups.get(groupId);
         if (!g) return;
-        for (const t of g.tabs.all) g.tabs.close(t.id);
+        for (const t of g.tabs.all) {
+            if (!await webConfirmClose(g, t.id)) break;
+            g.tabs.close(t.id);
+        }
         void handleEmptyGroup(g);
     };
 
@@ -2001,7 +2054,9 @@ async function bootstrap(): Promise<void> {
     appInstance.onRunRequest = () => { void runRefresh(); };
 
     // calcpad-rs: open, save, recent files, print and the #include/#read library in the browser.
-    if (!isTauri) mountRibbon(installWebFiles((window as any).calcpadEngine, { tabs: () => (window as any).calcpadTabs, appendOutput: (l, m) => appInstance.appendOutput(l, m), bridge: activeBridge, showSidebarTab: (id: string) => sidebarInstance.switchTab?.(id) }), { app: appInstance, bridge: activeBridge, showSidebarTab: (id: string) => sidebarInstance.switchTab?.(id) });
+    if (!isTauri) mountRibbon(webFiles = installWebFiles((window as any).calcpadEngine, { tabs: () => (window as any).calcpadTabs, appendOutput: (l, m) => appInstance.appendOutput(l, m), bridge: activeBridge, showSidebarTab: (id: string) => sidebarInstance.switchTab?.(id) }), { app: appInstance, bridge: activeBridge, showSidebarTab: (id: string) => sidebarInstance.switchTab?.(id) });
+    // The browser keeps no copy of unsaved text across a reload, so ask before the page goes.
+    if (!isTauri) installBeforeUnloadGuard(() => [...groups.values()].some(g => g.tabs.anyDirty()));
 
     // Tauri-specific: native menu clicks + file operations
     if (isTauri && tauriBridge) {

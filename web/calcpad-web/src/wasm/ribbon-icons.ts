@@ -61,6 +61,7 @@ export const ICONS_BIG: Record<string, string> = {
     grid: tile('<path class="w" d="M8 8h16v14H8zM8 13h16M8 18h16M13 8v14M19 8v14" stroke-width="1.600"/>'),
     // input and output
     entry: '<rect class="h" x="3" y="9" width="26" height="14" rx="3"/><path class="l" d="M3 19h26v1a3 3 0 01-3 3H6a3 3 0 01-3-3z"/><rect class="o" x="3" y="9" width="26" height="14" rx="3"/>' + a('M10 12h2v8h-2z') + w('M15 16h9') ,
+    slider: '<rect class="h" x="3" y="13" width="26" height="6" rx="3"/><rect class="o" x="3" y="13" width="26" height="6" rx="3"/><circle class="m" cx="20" cy="16" r="6"/><circle class="o" cx="20" cy="16" r="6"/>' + a('M20 13.500v5'),
     dropdown: '<rect class="h" x="3" y="6" width="26" height="9" rx="3"/><rect class="m" x="3" y="17" width="26" height="9" rx="3" opacity=".7"/><rect class="o" x="3" y="6" width="26" height="9" rx="3"/><rect class="o" x="3" y="17" width="26" height="9" rx="3"/>' + a('M20 9.500h6l-3 3.500z') + w('M7 10.500h8M7 21.500h10'),
     radio: '<circle class="h" cx="16" cy="16" r="12"/><path class="l" d="M4 16a12 12 0 0024 0z" opacity=".6"/><circle class="o" cx="16" cy="16" r="12"/><circle class="m" cx="16" cy="16" r="5.500"/><circle class="o" cx="16" cy="16" r="5.500"/>',
     checkbox: tile('<rect class="h" x="8" y="8" width="16" height="14" rx="2"/>' + '<path class="a" d="M10 14.500l4 4 8-9" fill="none" stroke="var(--rb-ic-acc)" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"/>'),
@@ -84,6 +85,7 @@ export const ICONS_BIG: Record<string, string> = {
     hr: tile(w('M8 15h16') + '<path class="x" d="M9 9h14M9 21h14" opacity=".6"/>'),
     page: page('', w('M7 16h19') ),
     olist: tile(w('M14 9h10M14 15h10M14 21h10') + t(9, 12, 6, '1') + t(9, 18, 6, '2') + t(9, 24, 6, '3')),
+    star: '<path class="h" d="M16 4l3.600 7.300 8 1.200-5.800 5.600 1.400 8L16 22.300 8.800 26.100l1.400-8L4.400 12.500l8-1.200z"/><path class="o" d="M16 4l3.600 7.300 8 1.200-5.800 5.600 1.400 8L16 22.300 8.800 26.100l1.400-8L4.400 12.500l8-1.200z"/>',
     fold: tile(w('M8 9h16M8 15h8M8 21h16') + a('M20 12l4 3-4 3z')),
     // calculation, files
     run: '<path class="l" d="M8 7l19 10-19 11z"/><path class="m" d="M8 5l19 10L8 25z"/><path class="h" d="M8 5l19 10-19 3z"/><path class="o" d="M8 5l19 10L8 25z"/>',
@@ -157,6 +159,7 @@ export const ICONS_SMALL: Record<string, string> = {
     copy: '<rect x="8" y="8" width="12" height="12"/><path d="M16 8V4H4v12h4"/>',
     paste: '<rect x="5" y="5" width="14" height="16"/><path d="M9 5V3h6v2M9 11h6M9 15h6"/>',
     entry: '<rect x="3" y="8" width="18" height="8" rx="1"/><path d="M7 12h5"/>',
+    slider: '<path d="M3 12h18"/><circle cx="14" cy="12" r="3.5"/>',
     dropdown: '<rect x="3" y="6" width="18" height="6" rx="1"/><path d="M15 8l2 2 2-2M3 16h18M3 20h18"/>',
     radio: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>',
     checkbox: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12l3 3 5-6"/>',
@@ -190,6 +193,7 @@ export const ICONS_SMALL: Record<string, string> = {
     keyboard: '<rect x="2" y="6" width="20" height="12" rx="1"/><path d="M6 10h1M10 10h1M14 10h1M18 10h1M7 14h10"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>',
     link: '<path d="M10 14a4 4 0 005 0l3-3a4 4 0 00-5-5l-1 1M14 10a4 4 0 00-5 0l-3 3a4 4 0 005 5l1-1"/>',
+    star: '<path d="M12 3l2.700 5.500 6 .9-4.400 4.200 1 6L12 16.800 6.700 19.600l1-6L3.300 9.400l6-.9z"/>',
     fold: '<path d="M4 6h16M4 12h8M4 18h16M16 10l3 3-3 3"/>',
     complex: '<path d="M4 20V8l8 12V8M16 20l4-12"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',

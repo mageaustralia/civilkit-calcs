@@ -1,0 +1,46 @@
+<!--sheet-->
+# Principal stresses
+
+The stress state at a point is a symmetric tensor. Its eigenvalues are the principal
+stresses and its eigenvectors are the principal directions, so `eigenvals` and `eigenvecs`
+give both in one call each. Mohr's circle checks the result.
+
+## Plane stress
+
+sigma_x: 80 MPa
+sigma_y: -40 MPa
+tau_xy: 25 MPa
+
+S: [sigma_x, tau_xy; tau_xy, sigma_y]
+
+The eigenvalues come in ascending order, so the major principal stress is the last one.
+
+sigma_p: eigenvals(S)
+sigma_1: sigma_p.2
+sigma_2: sigma_p.1
+tau_max: (sigma_1 - sigma_2)/2
+
+Each row of `eigenvecs` is a unit vector along one principal direction, in the same order.
+The angle of the major direction from the x axis (a direction, so the sign of the vector does not matter):
+
+V: eigenvecs(S)
+theta_p: atan(V.(2, 2)/V.(2, 1))
+
+### Check with Mohr's circle
+
+sigma_avg: (sigma_x + sigma_y)/2
+R: sqrt(((sigma_x - sigma_y)/2)^2 + tau_xy^2) -> MPa
+sigma_1c: sigma_avg + R
+sigma_2c: sigma_avg - R
+theta_pc: atan(2*tau_xy/(sigma_x - sigma_y))/2
+
+## A general 3D stress state
+
+T: [60 MPa, 20 MPa, -10 MPa; 20 MPa, -30 MPa, 15 MPa; -10 MPa, 15 MPa, 40 MPa]
+sigma_3D: eigenvals(T)
+N: eigenvecs(T)
+
+The sum of the principal stresses equals the first invariant, the trace of the tensor:
+
+I_1: trace(T)
+I_1c: sum(sigma_3D)

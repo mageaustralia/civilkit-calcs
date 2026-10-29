@@ -267,7 +267,8 @@ const PAL_MATRIX: Section[] = [
                     fn('Properties', ['det(A)', 'rank(A)', 'trace(A)', 'transp(A)', 'adj(A)', 'cofactor(A)', 'inverse(A)']),
                     fn('Norms', ['mnorm(A)', 'mnorm_1(A)', 'mnorm_i(A)', 'mnorm_e(A)', 'cond(A)', 'cond_1(A)']),
                     fn('Solvers', ['lsolve(A; u)', 'msolve(A; B)']),
-                    fn('Decompositions', ['eigenvals(S; 2)', 'eigenvecs(S; 2)', 'cholesky(S)', 'lu(A)', 'qr(A)', 'svd(A)']),
+                    fn('Decompositions', ['eigenvals(S; 2)', 'eigenvecs(S; 2)', 'ceigenvals(A)', 'ceigenvecs(A)', 'cholesky(S)', 'lu(A)', 'qr(A)', 'svd(A)']),
+                    sec('Vibration', [['eigenvals(K; M)', 'eigenvals(K; M)', 'Eigenvalues of K x = λ M x (ω² for stiffness K and mass M)'], ['eigenvecs(K; M)', 'eigenvecs(K; M)', 'Mode shapes of K x = λ M x, one per row, xᵀ M x = 1']], { skip: 'needs a symmetric K and a positive definite M of the same size' }),
                 ];
 const PAL_LOGIC: Section[] = [
                     sec('Conditional', [['if', 'if(x > 1; 1; 0)', 'if(condition; then; else)'], ['switch', 'switch(x > 5; 1; x > 1; 2; 3)', 'switch(cond1; value1; cond2; value2; ...; default)']]),
@@ -304,7 +305,8 @@ const PAL_MLOOKUP: Section[] = [
                 ];
 const PAL_MSOLVE: Section[] = [
                     fn('Solve', ['lsolve(A; u)', 'msolve(A; B)', 'clsolve(S; u)']),
-                    fn('Decompose', ['eigenvals(S; 2)', 'eigenvecs(S; 2)', 'cholesky(S)', 'lu(A)', 'qr(A)', 'svd(A)']),
+                    fn('Decompose', ['eigenvals(S; 2)', 'eigenvecs(S; 2)', 'ceigenvals(A)', 'ceigenvecs(A)', 'cholesky(S)', 'lu(A)', 'qr(A)', 'svd(A)']),
+                    sec('Vibration', [['eigenvals(K; M)', 'eigenvals(K; M)', 'Eigenvalues of K x = λ M x (ω² for stiffness K and mass M)'], ['eigenvecs(K; M)', 'eigenvecs(K; M)', 'Mode shapes of K x = λ M x, one per row, xᵀ M x = 1']], { skip: 'needs a symmetric K and a positive definite M of the same size' }),
                     fn('Products', ['hprod(A; B)', 'fprod(A; B)', 'kprod(A; B)']),
                 ];
 const PAL_CALCULUS: Section[] = [lines('Sums and calculus', [
@@ -363,6 +365,7 @@ export const RIBBON: RibbonTab[] = [
         id: 'io', label: 'Input/Output', groups: [
             { name: 'Input fields', buttons: [
                 big('u-entry', 'Entry', 'entry', 'An input box for a number', { text: '#UI L = 10m\n', line: true, sheet: 'L: ? 10 m | span\n' }),
+                big('u-slider', 'Slider', 'slider', 'A number with bounds, drawn as a slider with a box beside it', { text: '#UI {"min": 0, "max": 20, "step": 0.5} L = 10m\n', line: true, sheet: 'L: ? 10 m [0 .. 20 step 0.5] | span\n' }),
                 big('u-dropdown', 'Dropdown', 'dropdown', 'A drop-down list of choices', { text: '#UI {"type": "dropdown", "keys": ["Low", "Medium", "High"], "values": ["1", "2", "3"]} grade = 1\n', line: true, sheet: 'grade: ? [Low = 1, Medium = 2, High = 3] | grade\n' }),
                 big('u-radio', 'Radio', 'radio', 'A group of radio buttons', { text: '#UI {"type": "radio", "keys": ["Steel", "Concrete"], "values": ["200GPa", "25GPa"]} E = 200GPa\n', line: true, sheet: 'E: ? (Steel = 200 GPa, Concrete = 25 GPa) | material\n' }),
                 big('u-check', 'Checkbox', 'checkbox', 'A checkbox (1 or 0)', { text: '#UI {"type": "checkbox"} useSteel = 1\n', line: true, sheet: 'useSteel: ? on | use steel\n' }),
@@ -488,12 +491,13 @@ export const RIBBON: RibbonTab[] = [
                 big('tf-p', 'Paragraph', 'text', 'A paragraph', { text: '<p>{sel}</p>', test: "'{}" }),
                 big('tf-br', 'Line break', 'br', 'A line break', { text: '<br/>', test: "'a {} b" }),
                 big('tf-hr', 'Rule', 'hr', 'A horizontal rule', { text: "'<hr/>\n", line: true, sheet: '---\n' }),
-                big('tf-page', 'Page break', 'page', 'Start a new page when printing', { text: "'<div style=\"page-break-after:always\"></div>\n", line: true }),
+                big('tf-page', 'Page break', 'page', 'Start a new page when printing and in the Word file', { text: "'<div style=\"page-break-after:always\"></div>\n", line: true, sheet: '<div style="page-break-after:always"></div>\n' }),
             ] },
             { name: 'Lists', buttons: [
                 big('tf-ul', 'Bullets', 'list', 'A bulleted list', { text: "'<ul><li>First</li><li>Second</li></ul>\n", line: true, sheet: '- First\n- Second\n' }),
                 big('tf-ol', 'Numbered', 'olist', 'A numbered list', { text: "'<ol><li>First</li><li>Second</li></ol>\n", line: true, sheet: '1. First\n2. Second\n' }),
-                big('tf-fold', 'Fold', 'fold', 'A section that folds in the report', { text: "'<div class=\"fold\">\n'<b>Heading</b> (click to unfold)\n'<p>Content</p>\n'</div>\n", line: true }),
+                big('tf-fold', 'Fold', 'fold', 'A section that folds in the report; in a sheet a heading marked {collapse}', { text: "'<div class=\"fold\">\n'<b>Heading</b> (click to unfold)\n'<p>Content</p>\n'</div>\n", line: true, sheet: '## Workings {collapse}\n' }),
+                big('tf-key', 'Key results', 'star', 'A list of the lines marked {key} above it (sheets): important inputs and results', { text: '"Key results\n', line: true, sheet: '## Key results\n{key results}\n' }),
             ] },
             { name: 'Library', buttons: [
                 more('a-html', 'More HTML', 'source', 'Every HTML snippet', 'html'),
@@ -543,7 +547,7 @@ export const RIBBON: RibbonTab[] = [
             { name: 'Page', buttons: [
                 action('d-saveas', 'Save As', 'saveas', 'Save As', 'saveas'),
                 action('d-pdfsettings', 'Header and footer', 'settings', 'Page numbers, date and title for PDF export (Settings dialog)', 'settings'),
-                big('d-pagebreak', 'Page break', 'page', 'Start a new page when printing', { text: "'<div style=\"page-break-after:always\"></div>\n", line: true }),
+                big('d-pagebreak', 'Page break', 'page', 'Start a new page when printing and in the Word file', { text: "'<div style=\"page-break-after:always\"></div>\n", line: true, sheet: '<div style="page-break-after:always"></div>\n' }),
             ] },
             { name: 'Report', buttons: [
                 action('d-report', 'Report', 'report', 'The print layout', 'mode:report'),

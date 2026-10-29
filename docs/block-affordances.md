@@ -17,7 +17,7 @@ plain functions in `web/calcpad-web/src/wasm/block-ops.ts` and `sheet-blocks.ts`
 | F4 | Delete with an Undo toast | Built with F2a (one undo step; the toast calls the editor's undo) |
 | F5 | Cut, copy and paste a block, turn a block off | Built |
 | F6 | On-screen math keyboard | Built (26.10.12) |
-| F7 | Slider for an input line | Built (`slider MIN..MAX [step S]` on a `? ` line) |
+| F7 | Slider for an input line | Built (`[MIN .. MAX step S]` after the default on a `? ` line) |
 
 ## Rules these follow
 
@@ -35,6 +35,7 @@ plain functions in `web/calcpad-web/src/wasm/block-ops.ts` and `sheet-blocks.ts`
 - `web/e2e/block-ops-check.mjs`: the line arithmetic (move, duplicate, delete, and blank lines reported as empty blocks).
 - `web/e2e/block-menu-check.mjs`: the grip, its menu and the Undo toast, on a desktop and a phone-sized window.
 - `web/e2e/insert-strip-check.mjs`: the strip and its menu.
+- `web/e2e/table-sort-check.mjs`: sorting a table, the sort kept over a re-render, and source order when printing.
 
 ## Not planned
 

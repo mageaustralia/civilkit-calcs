@@ -1,0 +1,29 @@
+<!--sheet-->
+# Design check as a flow diagram
+
+A diagram can sit beside the numbers it describes. The fence below is drawn from its text, so
+editing the steps redraws it. The calculation under it follows the same steps.
+
+```mermaid
+flowchart TD
+  A[Loads: w and span L] --> B[Design moment M*]
+  B --> C[Section capacity phi Ms]
+  C --> D{M* <= phi Ms?}
+  D -- yes --> E[Section passes]
+  D -- no --> F[Increase the section]
+  F --> C
+```
+
+## Inputs
+L: 6 m | span
+w: 12 kN/m | design uniform load
+fy: 300 MPa | yield strength
+Ze: 1.23e6 mm³ | effective section modulus
+phi: 0.9 | capacity factor
+
+## Steps
+Mstar: w * L^2 / 8 -> kN*m | design moment
+phiMs: phi * fy * Ze -> kN*m | design capacity
+utilisation: Mstar / phiMs -> % | ratio of action to capacity
+
+if utilisation <= 100 %: "OK: the section passes." else: "Fails: increase the section."

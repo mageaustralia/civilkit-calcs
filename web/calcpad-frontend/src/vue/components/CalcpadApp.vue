@@ -169,6 +169,7 @@
         :variables-data="variablesData"
         :loading="variablesLoading"
         @insert-text="handleInsertText"
+        @symbol-action="handleSymbolAction"
       />
       <CalcpadFormattingTab
         v-else-if="shown(pane) === 'formatting'"
@@ -539,6 +540,10 @@ const handleInsertText = (text: string) => {
     type: 'insertText',
     text
   })
+}
+
+const handleSymbolAction = (action: 'rename' | 'goto', name: string) => {
+  postMessage({ type: 'symbolAction', action, name })
 }
 
 const handleInsertImage = () => {

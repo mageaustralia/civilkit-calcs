@@ -26,6 +26,8 @@ export default defineConfig(() => ({
     resolve: {
         alias: {
             'calcpad-frontend': path.resolve(__dirname, '../calcpad-frontend/src'),
+            // Mermaid's optional elk layout (EPL-2.0) is left out of the build (src/wasm/elk-stub.ts).
+            'elkjs/lib/elk.bundled.js': path.resolve(__dirname, 'src/wasm/elk-stub.ts'),
         },
     },
     build: {

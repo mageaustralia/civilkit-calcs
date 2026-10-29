@@ -118,6 +118,7 @@ export abstract class BaseMessageBridge {
     protected settings: CalcpadSettings;
     protected _onInsertText: ((text: string) => void) | null = null;
     protected _onGoToLine: ((line: number) => boolean) | null = null;
+    protected _onSymbolAction: ((action: 'rename' | 'goto', name: string) => void) | null = null;
     protected quickPick: QuickPickFn | null = null;
     private _uiOverridesProvider: (() => Record<string, string> | undefined) | null = null;
     private _uiControlsProvider: (() => UiControl[] | null) | null = null;
@@ -157,6 +158,11 @@ export abstract class BaseMessageBridge {
 
     set onInsertText(handler: (text: string) => void) {
         this._onInsertText = handler;
+    }
+
+    /** Host hook for the Variables tab's context menu: rename a name everywhere, or go to its definition. */
+    set onSymbolAction(handler: (action: 'rename' | 'goto', name: string) => void) {
+        this._onSymbolAction = handler;
     }
 
     /**
@@ -284,6 +290,11 @@ export abstract class BaseMessageBridge {
                 break;
             case 'insertText':
                 if (this._onInsertText) this._onInsertText(message.text);
+                break;
+            case 'symbolAction':
+                if (this._onSymbolAction && (message.action === 'rename' || message.action === 'goto') && typeof message.name === 'string') {
+                    this._onSymbolAction(message.action, message.name);
+                }
                 break;
             case 'insertImage':
                 this.handleInsertImage();

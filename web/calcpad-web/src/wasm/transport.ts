@@ -11,6 +11,7 @@
 //   snippets
 //   docx                                    calcpad-docx-wasm (Word export, loaded on demand)
 //   xlsx                                    calcpad-rs's own: the variables as an Excel workbook
+//   values                                  the variables of a worksheet and what they come to (editor details, palette)
 //   sheets                                  a request whose content is a sheet (sheet.ts) is compiled to
 //                                           Calcpad first, and line numbers in the answer are mapped back
 //   cpdz, portable, log-level, pdf          501: these need Calcpad.Server. PDF is printed by
@@ -23,6 +24,7 @@ import { applyScriptPolicy } from './script-policy';
 import { compileSheet, isSheetRequest, remapErrors, remapHtml, sheetLine, withSheetCss } from './sheet';
 import type { SheetCompiled } from './sheet';
 import { hasTex, renderTex } from './sheet-tex';
+import { hasMermaid, renderMermaid } from './sheet-mermaid';
 import { findPythonBlocks, hasPythonBlock, pythonErrors, remapErrors as remapPythonErrors, remapPage, resolvePythonLines, substitute, type BlockResult, type EngineError } from './python-blocks';
 import { BLOCK_MS, LONG_BLOCK_MS, PythonRunner } from './python-runner';
 import { askLongerLimit, mayRunPython } from './python-consent';
@@ -517,6 +519,7 @@ export function installWasmTransport(): WasmTransport {
                 if (hasTex(html)) html = await renderTex(html);
             }
             if (py) html = resolvePythonLines(html, n => (sh ? sheetLine(sh.sheet, n) : n));
+            if (hasMermaid(html)) html = await renderMermaid(html);
             if (html.includes(UI_ASSETS_MARKER)) html = html.replace(UI_ASSETS_MARKER, await uiAssetsMarkup(base));
             if (transport.resolveFile) html = libraryImages(html, transport.resolveFile);
             // Plotly figures from a Python block: the page draws them (python-plotly.ts); Plotly.js comes through the script policy below.
@@ -562,6 +565,28 @@ export function installWasmTransport(): WasmTransport {
                 status: 200,
                 headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
             });
+        }
+        if (endpoint === 'values' && method === 'POST') {
+            // What the worksheet's variables come to, for the editor's completion details and the
+            // quick-recall palette: one calculation with the variables recorded (the rows of the
+            // Excel export's "Variables" and "Inputs" sheets). Python blocks are not run for it.
+            if (body == null || body === '') return new Response('Invalid JSON', { status: 400 });
+            await head;
+            const shV = await sheetBody(body);
+            const request = JSON.parse(shV?.body ?? body) as Record<string, unknown>;
+            request.exportXlsx = true;
+            request.enableUi = false;
+            request.includeLineAnchors = false;
+            request.write = false;
+            const out = JSON.parse(await engine.convert(JSON.stringify(request), false, signal)) as {
+                status?: number; error?: string; xlsxSheets?: { name: string; rows: string[][] }[];
+            };
+            if (out.status) return new Response(out.error ?? '', { status: out.status });
+            const sheets = out.xlsxSheets ?? [];
+            const inputs = new Set((sheets.find(x => x.name === 'Inputs')?.rows ?? []).slice(1).map(r => r[0]));
+            const variables = (sheets.find(x => x.name === 'Variables')?.rows ?? []).slice(1)
+                .map(r => ({ name: r[0], value: r[1], unit: r[2] ?? '', input: inputs.has(r[0]) }));
+            return Response.json({ variables });
         }
         if (endpoint === 'xlsx' && method === 'POST') {
             // calcpad-rs's own export (DEVIATIONS D7): the worksheet as a "Report" sheet with its

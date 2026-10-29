@@ -7,8 +7,8 @@ and, if wanted, its own weight $w$. At the fixed end $M = P L + w L^2 / 2$ and
 $V = P + w L$, and the tip deflection is $\delta = P L^3 / (3 E I) + w L^4 / (8 E I)$.
 
 ## Inputs
-L:     ? 2.5 m | length
-P:     ? 8 kN | point load at the free end
+L:     ? 2.5 m [0.5 .. 6 step 0.1] | length
+P:     ? 8 kN [1 .. 100 step 1] | point load at the free end
 b:     ? 100 mm | section width
 d:     ? 200 mm | section depth
 mat:   ? [Structural steel = 1, Aluminium = 2, Timber = 3] | material

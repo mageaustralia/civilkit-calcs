@@ -17,6 +17,8 @@ export const INSERT_BLOCKS: InsertBlock[] = [
     { id: 'quantity', label: 'Math line', title: 'A quantity with units: name: value unit | note', glyph: '=x', text: 'quantity: 1 m | note', select: 'quantity' },
     { id: 'text', label: 'Text', title: 'A paragraph of text (Markdown)', glyph: 'T', text: 'Write some text here.', select: 'Write some text here.' },
     { id: 'heading', label: 'Heading', title: 'A section heading', glyph: 'H', text: '## Heading', select: 'Heading' },
+    { id: 'collapse', label: 'Folding section', title: 'A heading whose section can be folded away in the preview and the report', glyph: '\u25b8', text: '## Workings {collapse}', select: 'Workings' },
+    { id: 'keyresults', label: 'Key results', title: 'A list of the lines marked {key} above it', glyph: '\u2605', text: '## Key results\n{key results}', select: 'Key results' },
     { id: 'list', label: 'List', title: 'A bulleted list', glyph: '•', text: '- first item\n- second item', select: 'first item' },
     { id: 'table', label: 'Table', title: 'A table (Markdown pipes)', glyph: '▦', text: '| Item | Value |\n| --- | --- |\n| a | 1 |\n| b | 2 |', select: 'Item' },
     { id: 'plot', label: 'Plot', title: 'A plot of a function over a range', glyph: '∿', text: 'plot sin(x) for x in 0..2*π', select: 'sin(x)' },
@@ -29,6 +31,8 @@ export const INSERT_BLOCKS: InsertBlock[] = [
         text: '```python\nimport plotly.graph_objects as go\n\nx = [i / 10 for i in range(0, 63)]\nfig = go.Figure(go.Scatter(x=x, y=[v * v for v in x]))\nfig.update_layout(xaxis_title="x", yaxis_title="y")\nfig.show()\n```',
         select: 'import plotly.graph_objects as go',
     },
+    // The same line as page-break.ts's PAGE_BREAK_SHEET (this file has no imports).
+    { id: 'pagebreak', label: 'Page break', title: 'Start a new page here in Print PDF and in the Word file', glyph: '\u2398', text: '<div style="page-break-after:always"></div>' },
 ];
 
 /**

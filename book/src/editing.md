@@ -4,19 +4,83 @@ There are two places to edit: the source on the left and, in the results, the pa
 
 ## The source editor
 
-The editor colours a sheet by role (prose, quantity, block, raw Calcpad, plot) and completes the
-names the sheet defines, Greek spellings, function names and block snippets. It underlines mistakes
-and lists them in the **Errors** dialog; the status bar at the bottom shows the error, warning and
-information counts.
+The editor colours a sheet by role (prose, quantity, block, raw Calcpad, plot). It underlines
+mistakes and lists them in the **Errors** dialog; the status bar at the bottom shows the error,
+warning and information counts.
 
 | Action | How |
 | --- | --- |
+| Complete a name, function, unit or keyword | just type; Tab accepts the highlighted entry, Ctrl+Space opens the list by hand |
+| Rename a name everywhere | F2, or the editor's context menu, or the Variables tab (right-click a name) |
+| Find a variable or function and its value | Ctrl+; (Cmd+; on a Mac) |
 | Go to a name's definition | F12, or hover to see the defining line and its Calcpad spelling |
 | Find references | Shift+F12, or the editor's context menu |
 | Tidy the sheet | Shift+Alt+F (Format Document) |
 | Wrap long lines | Alt+Z |
 | Find | Ctrl+F (Cmd+F on a Mac) |
 | Insert a symbol, function, unit or snippet | the **Insert** tab in the sidebar, or the ribbon |
+
+### Completion
+
+The list opens as you type, in a worksheet and in a sheet alike, and offers what fits where the
+cursor is:
+
+* **Names defined above the cursor**, with their last calculated value next to them
+  (`load = 12 kN`). A name defined further down is not offered, and neither is the word you are
+  typing. The parameters of the function you are writing on the current line are offered too.
+  Greek letters, subscripts and primes work as in any name: typing `σ` finds `σ_c`.
+* **Built-in functions**, with their parameters and a one-line description. Pick one and Tab fills the
+  call with a placeholder for each argument. In a sheet the arguments are separated with commas, in
+  a worksheet with `;`. The same list is what the [function reference](reference/functions.md) shows.
+* **Units, only units, right after a number** (`5 k` offers `kN`, `kg`, `kA`), and after a unit and
+  `*` or `/` (`5kN*`). A sheet offers units after `->` as well. A worksheet's own custom units are in the list.
+* **`#` directives and `$` commands** at the start of a line of a worksheet (`#fo` offers `#for`).
+* **Block keywords and format markers** at the start of a line of a sheet: `if`, `else`, `for`, `while`,
+  `repeat`, `plot`, `>>`, code fences for `calcpad` and `python`, `$$`, the input forms (`input`, `dropdown`,
+  `slider`, `radio`, `checkbox`) and `<!--sheet-->` on the first line.
+
+Nothing is offered where the text is not code: a text or comment line, after a quote mark, in a note
+(after `|`), in a string, in a `#markdown`, `#html` or `#python` block, in sheet prose and
+formulas, and after the `?` of an input. The calculated values come from one calculation of the
+whole worksheet (Python blocks are not run for it), so the first list after an edit may show the
+value from a moment ago; the list never waits more than a quarter of a second for it.
+
+### Rename everywhere
+
+Put the cursor on a variable, function or macro and press **F2** (also in the editor's context
+menu, and in the Variables tab: right-click a name and choose **Rename Everywhere**). A small box
+opens at the top of the editor. It says how many places and lines will change, marks every place in
+the text and shows the first changed lines as they will read. Enter (or the **Rename** button) applies
+it as **one undo step**; Esc cancels.
+
+* **Scope is respected.** A function's parameters, and the name bound inside `$Sum{ ... }`, are renamed only
+  on their own line; a macro's parameters only inside its `#def` block. Renaming a variable `a` leaves
+  a parameter `a` alone, and the other way round. In a sheet the same holds for a function's parameters
+  and the variable of a `plot` line.
+* **Only code is renamed.** Comments and text lines, strings, `#markdown` and `#html` blocks, and in a sheet
+  prose, notes after `|`, headings, `$...$` formulas, and the unit after a number (`3 psi` stays) are left as
+  they are. A formula is typeset text, not a reference to a variable, so it is not renamed.
+* **Inputs follow the name.** A `?` input (`L = ?`, `L: ? 6 m`) is an ordinary definition and is renamed with the name.
+* **Python is left alone except for what it hands over.** The names a Python block passes to the worksheet with
+  `export(name=...)` or `export("name", ...)` are the worksheet's variables, so they are renamed with
+  the name (the box counts them). Any other Python code, which is not a reference to a worksheet variable,
+  is never touched.
+* **A name that would collide is refused**, with the reason, and **Rename** stays off: a name that is not valid
+  (it starts with a letter and holds letters, digits, `_` and primes), a keyword or built-in function or constant,
+  a name already in use in the document or in an included file, and a name a parameter on a changed line would
+  capture (or that would hide a variable used inside the function). A name that is also a unit is allowed, with a note.
+* A name defined in an `#include`d file cannot be renamed from here (only this document is edited).
+
+### The variable palette
+
+**Ctrl+;** (Cmd+; on a Mac) opens a search box over every variable, function and macro of the document, each with
+its last calculated value and unit and the line it is defined on. The key is not used by the browsers or by the
+editor itself. Type to filter: letters in order are enough (`sc` finds `sigma_c`), and built-in functions are included
+once you type something. **Up** and **Down** choose, **Enter** inserts the name at the caret (a function goes in as
+`name()` with the caret between the brackets), **Alt+Enter** (or the arrow button on the row) goes to where it is
+defined, **Esc** or the same key closes it. A tap on a row inserts it, so it works on a touch screen. The Variables tab
+in the sidebar has the same names, with a search box that matches the name, the definition, the parameters
+and the note.
 
 The Insert tab has a search box that filters the whole library. In a sheet, entries that have no
 sheet form (the data grid and the other `#UI` forms, `$Map`, directives) carry a `>>` mark and insert Calcpad text as `>>` lines.
@@ -39,15 +103,6 @@ Each button's tooltip shows the Markdown it types (`Bold: **text**`, `Link: [tex
 * The edit is made in the source, in one undo step, and the editor keeps the focus.
 * On a phone or tablet the floating bar stays away so it does not fight the system selection menu;
   the in-place editor keeps its fixed bar there.
-
-### Name completion
-
-Type a letter in a calculation and the editor offers the names the sheet has defined on the lines
-above (with the defining line beside each, for example `w: 12 kN/m | load`) and the built-in
-functions (`max`, `sqrt`, `sin` and the rest). Accepting a function writes the brackets and leaves the
-caret between them. Nothing pops up while you write prose, in a note after `|`, in quoted text or in
-a `$...$` formula. Ctrl+Space on an empty spot offers everything, including the Greek spellings and
-the block snippets.
 
 ## In-place editing in the results
 
@@ -76,7 +131,7 @@ It loads the first time you use it.
 
 Move the pointer between two rendered blocks and a dashed line appears with a **+** in the middle.
 Click the **+** for a menu of blocks to insert there: Math line, Text, Heading, List, Table, Plot,
-Condition or Python. The new block goes in front of the next block's source line, indented like it,
+Condition, Python or Page break (see [Page breaks](exporting.md#page-breaks)). The new block goes in front of the next block's source line, indented like it,
 and its first word is left selected in the editor so you can type over it. On a touch screen the
 **+** stays hidden until you tap a block, and then shows only in the two gaps beside it.
 
@@ -123,6 +178,19 @@ Folding is only a view: the sheet text and the results do not change, and printi
 always include everything. Folds stay as you edit and when you switch between tabs. Headings are
 matched by level, text and how many headings with the same text come before them.
 
+### Sorting a table
+
+Click a column heading of a table in the preview to sort its rows by that column: the first click
+sorts ascending, the second descending, the third puts the rows back in the order of the source. An
+arrow next to the heading shows which way it is sorted. A column of numbers sorts by value, even
+with a unit after the number (`2.5 kN` comes before `10 kN`); any other column sorts as text, with
+`A2` before `A10`. Empty cells stay at the bottom.
+
+Sorting is only a view, like folding: the sheet text does not change, the sort stays as you edit,
+and printing and exporting show the rows as they are written. The headings are buttons, so Tab
+reaches them and Enter or Space sorts; on a phone, tap a heading. See
+[Tables](sheet/prose.md#tables).
+
 ### Reordering blocks
 
 Drag a block's grip up or down; a blue line shows where it will land, and the block goes there when
@@ -143,16 +211,16 @@ ready for a spreadsheet. The 3D plots have Copy data and PNG only.
 Give a number input a range and Input mode shows a slider under its box:
 
 ```sheet
-L: ? 6 m slider 2..12 step 0.5 | span
-w: ? 12 kN/m slider 0..30 | design load
+L: ? 6 m [2 .. 12 step 0.5] | span
+w: ? 12 kN/m [0 .. 30] | design load
 M: w * L^2 / 8 -> kN*m | maximum moment
 ```
 
 Dragging the slider (or using the arrow keys, Home and End) fills the box and recalculates the
 results while you drag; typing in the box moves the slider. The numbers are in the unit of the
 default, the slider stops at the minimum and maximum, and `step` is the size of one stop (without it,
-about a hundredth of the range). A line without `slider` has no slider. On a phone the track is
-taller so a finger can use it. See [Templates with inputs](templates.md#sliders-for-number-inputs).
+about a hundredth of the range). A line without brackets has no slider. A typed value outside the bounds is refused with a message beside the box. On a phone the track is
+taller so a finger can use it. See [Templates with inputs](templates.md#sliders).
 
 ## The math keyboard
 
@@ -161,6 +229,47 @@ operators, functions, calculus and plots (sum, integral, root, parametric plot),
 and lower-case letters, Greek letters and units. On a computer it is a panel you can drag by its title; on a touch screen it docks
 at the bottom. A key or template inserts at the cursor of the editor, or of the in-place editor when
 one is open. In a sheet, angles are degrees unless the sheet has a `#rad` line.
+
+## Convert a selection to a formula
+
+Select an expression you wrote in a sentence, say `w*L^2/8`, and press **Ctrl+Shift+E** (**Cmd+Shift+E** on a
+Mac), or choose **Convert Selection to Formula** in the editor's right-click menu, or **= Formula** on the text
+toolbar. In a sheet this
+
+```sheet
+w: 12 kN/m
+L: 6 m
+
+The moment at midspan is w*L^2/8.
+```
+
+becomes
+
+<!-- expect: res1 = w · L ^2 8 | 54 kNm -->
+```sheet
+w: 12 kN/m
+L: 6 m
+
+The moment at midspan is w*L^2/8.
+res1: w*L^2/8
+```
+
+The new line goes after the paragraph, and its name is selected: type a better one (`Mmid`) and it is
+named. Where the selection lands:
+
+* **In text** (prose, a note after `|`, a Calcpad text line or comment): a line of its own after the
+  paragraph. In a sheet it is a named line, `res1: w*L^2/8`; in a Calcpad worksheet a plain calculation
+  line, `w*L^2/8`. If the selection is the whole line, the line itself becomes the formula. A selection
+  written with its name, `M = w*L^2/8`, keeps that name, and `$...$`, backticks and a full stop around it
+  are dropped.
+* **In a calculation**: the expression is pulled out to a named line above, and the selection becomes the
+  name: `M: w*L^2/8 -> kN*m` turns into `res1: w*L^2/8` and `M: res1 -> kN*m`. Both copies of `res1` are
+  selected, so typing a name renames the two at once.
+
+The new name is the first of `res1`, `res2`, ... that the document does not use yet. The whole change is one
+undo step. A selection that is not an expression on one line (plain words, a heading, a code fence, an
+input's default) is left alone and the editor says so. On a phone or tablet a **= Formula** button shows
+under the selection instead of the toolbar.
 
 ## The sidebar
 

@@ -300,6 +300,26 @@ engine. Grammar and limits: [docs/sheet-syntax.md](docs/sheet-syntax.md). Tests:
 tests (`cargo test -p civilkit-calcs-sheet`, which render every sample through the engine and
 check hand-computed values), `web/e2e/sheet-check.mjs` and `web/e2e/verify-ribbon-sheet.mjs`.
 
+## D18. Eigenvalues of any square matrix, and complex eigenvalues (addition)
+
+**CalcpadCE:** `eigenvals`, `eigenvecs` and `eigen` take only a matrix of the symmetric (or diagonal) type. A
+literal such as `[2; 1|1; 2]` is a full matrix, so it fails with `Matrix must be symmetric.` until it is copied
+into `symmetric(n)`, and a matrix that is not symmetric has no eigen function at all.
+
+**Here:** a full matrix that equals its transpose (to a relative 1e-12) is copied to the symmetric type and
+solved as before. Any other square matrix is reduced to Hessenberg form and solved with the shifted double QR
+iteration; when all its eigenvalues are real the three functions return them as for a symmetric matrix
+(ascending, the same `ne` argument, one unit eigenvector per row, scaled so its largest component is positive).
+When some are complex they stop with `The matrix has complex eigenvalues.` Two new functions return the complex
+case in the `fft` layout: `ceigenvals(M)` a 2 x n matrix (real parts, imaginary parts) and `ceigenvecs(M)` a
+2n x n matrix (eigenvector k is rows 2k - 1 and 2k). Units of the matrix carry over to the eigenvalues.
+
+**Why:** a literal stress tensor or `inverse(M)*K` of a dynamics problem is the common input, and the copy into a
+symmetric matrix was a stumbling block.
+
+**Tests:** `calcpad-core/src/matrix/general_eigen.rs` (residuals of random and defective matrices),
+`calcpad-core/tests/general_eigen_functions.rs`, `web/e2e/eigen-check.mjs`.
+
 ## Not deviations (scope and known differences)
 
 These are not deliberate behaviour changes, but they can make output differ:
@@ -484,3 +504,42 @@ middle dot, raised digits and `^`), and the stacked-fraction bar counts as a sla
 **Why:** a template whose default has a divided or multiplied unit opened with nothing chosen.
 
 **Tests:** `calcpad-sheet/src/tests.rs` (`a_radio_group_or_drop_down_opens_on_its_default_whatever_the_unit`).
+
+## D16. An SI prefix applies to every SI unit (addition)
+
+**CalcpadCE:** the unit list spells out each prefixed unit it has. `kN`, `MN`, `MPa`, `kHz`, `μm` work, but
+`mN` (a millinewton), `μN`, `fN`, `mT`-style combinations it never listed, and the prefixes beyond pico and tera
+do not: `3 mN` fails with `Error parsing "mN" as units`.
+
+**Here:** a name that is not in the list is read as an SI prefix (yocto `y` to yotta `Y`, with micro written `μ`,
+`µ` or `u`) followed by a unit that takes a prefix: `g`, `m`, `s`, `A`, `mol`, `cd`, `rad`, `L`, `N`, `Nm`, `Pa`, `bar`,
+`J`, `W`, `Wh`, `VA`, `VAR`, `Hz`, `V`, `C`, `F`, `Ω`, `S`, `℧`, `Wb`, `T`, `H`, `Bq`, `Gy`, `Sv`, `lm`, `lx`, `kat`,
+`eV`, `Ah`, `Da`. The result is the unit with that scale factor, shown with its prefix (micro always as `μ`).
+Non-SI units (`min`, `h`, `d`, `ft`, `in`, `lb`, `psi`, `°C`, `K`) take no prefix, and `kg` is the kilogram, so the
+prefixes go on `g` (`Mg`). Every name the list has is read first and means what it meant, so `min`, `mm`, `Pa`,
+`cd`, `ft`, `h`, `d`, `T` and `u` are unchanged and `da` alone is not a unit. The one prefixed reading the list
+shadows is `ks`, the metric horsepower, so a kilosecond is `1000 s`. A variable with the same name as a prefixed
+unit still wins over the unit, as it does over any unit.
+
+**Why:** engineers write `mN`, `μm`, `GPa` and `mΩ` without checking which of them the list happens to spell out,
+and a failure at `3 mN` reads as a bug in the sheet.
+
+**Tests:** `calcpad-core/tests/unit_prefixes.rs` (a table of more than 150 prefix and unit pairs checked by value,
+the ambiguous names, the unprefixable units, and every unit of the old table still parsing to the same unit).
+
+## D17. A number entry can carry bounds and a step (addition)
+
+**CalcpadCE:** `#UI` has no minimum, maximum or step; an entry is a text box and any number typed is accepted.
+
+**Here:** `#UI {"min": 2, "max": 12, "step": 0.5} L = 6m` accepts the keys `min`, `max` and `step` (numbers, in the
+unit of the entry; they apply to an entry only, `min` must not be above `max` and `step` must be above zero).
+They are written to the entry as `data-ui-min`, `data-ui-max` and `data-ui-step`; an entry without them is
+byte for byte what it was. The input form draws a slider beside the box when `min` and `max` are given, and refuses
+a typed value outside them with an error beside the box. A value outside the bounds that arrives from the stored
+`uiOverrides` (the Report, the PDF, the Word and Excel exports) is an error on the line (`L = 15 is outside the
+range 2 to 12.`), not a silent clamp.
+
+**Why:** a span, a load or a ratio has a sensible range, and a slider lets a reader move through it.
+
+**Tests:** `calcpad-core/tests/ui_directive.rs` (`an_entry_with_bounds_*`), `calcpad-sheet/src/tests.rs`
+(`a_slider_input_*`), `web/e2e/inputs-check.mjs`.

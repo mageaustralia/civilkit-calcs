@@ -13,6 +13,14 @@ use std::collections::HashSet;
 pub enum Kind {
     /// A number with an optional unit: the default, as written.
     Number(String),
+    /// A number with bounds and an optional step, `6 m [2 .. 12 step 0.5]`: a slider with a box beside it.
+    /// The bounds are plain numbers in the unit of the default, kept as written.
+    Slider {
+        value: String,
+        min: String,
+        max: String,
+        step: Option<String>,
+    },
     /// A drop-down (`[...]`) or radio buttons (`(...)`).
     Choice { radio: bool, options: Vec<Opt> },
     /// A checkbox, checked or not.
@@ -34,16 +42,6 @@ pub struct Input {
     pub sep: char,
     pub kind: Kind,
     pub note: Option<String>,
-    /// A number input's slider range, `slider 2..12 step 0.5`.
-    pub range: Option<Range>,
-}
-
-/// The bounds of a slider as written (numbers in the unit of the default), and the optional step.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Range {
-    pub min: String,
-    pub max: String,
-    pub step: Option<String>,
 }
 
 /// The name and the text after `?` when the line is an input line (`name: ? ...`).
@@ -92,87 +90,11 @@ pub fn parse(content: &str) -> Option<Result<Input, String>> {
         return Some(Err("write one input per line".into()));
     }
     let spec = parts.first().map(|p| p.trim()).unwrap_or("");
-    let (spec, range) = match split_slider(spec) {
-        Ok(x) => x,
-        Err(m) => return Some(Err(m)),
-    };
-    Some(kind(spec).and_then(|kind| {
-        if let (Some(r), Kind::Number(v)) = (&range, &kind) {
-            check_default(v, r)?;
-        }
-        Ok(Input { name, sep, kind, note, range })
-    }))
+    Some(kind(spec).map(|kind| Input { name, sep, kind, note }))
 }
 
-/// Splits `6 m slider 2..12 step 0.5` into the default and its range. The spec is returned
-/// whole when there is no `slider` word.
-fn split_slider(spec: &str) -> Result<(&str, Option<Range>), String> {
-    let lower = spec.to_ascii_lowercase();
-    let Some(at) = lower.match_indices("slider").map(|(i, _)| i).find(|&i| {
-        i > 0
-            && lower[..i].ends_with(char::is_whitespace)
-            && lower[i + 6..].starts_with(|c: char| c.is_whitespace() || c.is_ascii_digit() || c == '-' || c == '.')
-    }) else {
-        return Ok((spec, None));
-    };
-    let head = spec[..at].trim_end();
-    if head.is_empty() || head.starts_with(['[', '(']) || matches!(head.to_ascii_lowercase().as_str(), "on" | "off" | "true" | "false") {
-        return Err(format!("a slider goes after a number default; {SLIDER_HINT}"));
-    }
-    let r = spec[at + 6..].trim();
-    let (bounds, step) = match r.to_ascii_lowercase().find("step") {
-        Some(i) => (r[..i].trim(), Some(r[i + 4..].trim())),
-        None => (r, None),
-    };
-    let num = |t: &str, what: &str| -> Result<f64, String> {
-        t.replace('\u{2212}', "-")
-            .parse::<f64>()
-            .ok()
-            .filter(|v| v.is_finite())
-            .ok_or_else(|| format!("the slider {what} '{t}' is not a number; {SLIDER_HINT}"))
-    };
-    let (lo, hi) = bounds
-        .find("..")
-        .map(|p| (bounds[..p].trim(), bounds[p + 2..].trim()))
-        .ok_or_else(|| format!("a slider needs a range `min..max`; {SLIDER_HINT}"))?;
-    let (a, b) = (num(lo, "minimum")?, num(hi, "maximum")?);
-    if a >= b {
-        return Err(format!("the slider minimum {lo} must be less than the maximum {hi}"));
-    }
-    if let Some(st) = step {
-        let v = num(st, "step")?;
-        if v <= 0.0 || v > b - a {
-            return Err(format!("the slider step {st} must be above 0 and no more than the range"));
-        }
-    }
-    let range = Range {
-        min: lo.to_string(),
-        max: hi.to_string(),
-        step: step.map(str::to_string),
-    };
-    Ok((head, Some(range)))
-}
-
-const SLIDER_HINT: &str = "write `name: ? 6 m slider 2..12` or `slider 2..12 step 0.5`";
-
-/// The default has to lie on the slider: its leading number is compared with the bounds.
-fn check_default(def: &str, r: &Range) -> Result<(), String> {
-    let fix = |t: &str| t.replace('\u{2212}', "-");
-    let t = fix(def);
-    let v = (1..=t.len())
-        .rev()
-        .filter(|&n| t.is_char_boundary(n))
-        .find_map(|n| t[..n].parse::<f64>().ok());
-    let (Some(v), Ok(lo), Ok(hi)) = (v, fix(&r.min).parse::<f64>(), fix(&r.max).parse::<f64>()) else {
-        return Ok(());
-    };
-    if v < lo || v > hi {
-        return Err(format!("the default {def} is outside the slider range {}..{}", r.min, r.max));
-    }
-    Ok(())
-}
-
-const HINT: &str = "an input is `name: ? 6 m`, `name: ? [Low = 1, High = 2]` or `name: ? on`";
+const HINT: &str =
+    "an input is `name: ? 6 m`, `name: ? 6 m [2 .. 12 step 0.5]`, `name: ? [Low = 1, High = 2]` or `name: ? on`";
 
 fn kind(spec: &str) -> Result<Kind, String> {
     if spec.is_empty() {
@@ -195,7 +117,87 @@ fn kind(spec: &str) -> Result<Kind, String> {
         }
         return choice(&spec[1..spec.len() - 1], first == '(');
     }
+    if spec.ends_with(']') {
+        if let Some(open) = spec.rfind('[') {
+            return slider(&spec[..open], &spec[open + 1..spec.len() - 1]);
+        }
+    }
     Ok(Kind::Number(spec.split_whitespace().collect::<Vec<_>>().join(" ")))
+}
+
+/// A plain number, as the bounds of a slider are written.
+fn bound(text: &str, what: &str) -> Result<f64, String> {
+    let t = text.trim().replace('\u{2212}', "-");
+    if t.is_empty() {
+        return Err(format!("the slider has no {what}; write `[min .. max step s]`"));
+    }
+    t.parse::<f64>()
+        .ok()
+        .filter(|x| x.is_finite() && !t.contains(['e', 'E']))
+        .ok_or_else(|| {
+            format!("the {what} '{}' must be a plain number in the unit of the default (like `[2 .. 12 step 0.5]`)", text.trim())
+        })
+}
+
+/// The tail of `6 m [2 .. 12 step 0.5]`: the bounds and the step.
+fn slider(value: &str, inner: &str) -> Result<Kind, String> {
+    let value = value.split_whitespace().collect::<Vec<_>>().join(" ");
+    let Some((lo, rest)) = inner.split_once("..") else {
+        return Err("the bounds of a slider are written `[min .. max]` or `[min .. max step s]`".into());
+    };
+    let (hi, step) = match rest.find("step") {
+        Some(k) => (&rest[..k], Some(rest[k + 4..].trim())),
+        None => (rest, None),
+    };
+    let (min, max) = (bound(lo, "minimum")?, bound(hi, "maximum")?);
+    if min >= max {
+        return Err(format!("the minimum {} must be below the maximum {}", lo.trim(), hi.trim()));
+    }
+    let step_n = match step {
+        Some(t) => {
+            let x = bound(t, "step")?;
+            if x <= 0.0 {
+                return Err("the step must be above zero".into());
+            }
+            if x > max - min {
+                return Err(format!("the step {} is larger than the range {} to {}", t, lo.trim(), hi.trim()));
+            }
+            Some(x)
+        }
+        None => None,
+    };
+    let d = default_number(&value).ok_or_else(|| {
+        format!("the default '{value}' must be a number with an optional unit (like `6 m`) before the bounds")
+    })?;
+    if d < min || d > max {
+        return Err(format!(
+            "the default {} is outside the bounds {} to {}",
+            value,
+            lo.trim(),
+            hi.trim()
+        ));
+    }
+    Ok(Kind::Slider {
+        value,
+        min: fmt_num(min),
+        max: fmt_num(max),
+        step: step_n.map(fmt_num),
+    })
+}
+
+fn fmt_num(x: f64) -> String {
+    format!("{x}")
+}
+
+/// The number a default starts with (`6 m` is 6).
+fn default_number(text: &str) -> Option<f64> {
+    let t = text.trim().replace('\u{2212}', "-");
+    let end = t
+        .char_indices()
+        .find(|&(_, c)| !(c.is_ascii_digit() || matches!(c, '.' | '-' | '+')))
+        .map(|(k, _)| k)
+        .unwrap_or(t.len());
+    t[..end].parse::<f64>().ok()
 }
 
 fn choice(inner: &str, radio: bool) -> Result<Kind, String> {
@@ -250,6 +252,10 @@ fn choice(inner: &str, radio: bool) -> Result<Kind, String> {
 pub fn canonical(i: &Input) -> String {
     let body = match &i.kind {
         Kind::Number(v) => v.clone(),
+        Kind::Slider { value, min, max, step } => match step {
+            Some(s) => format!("{value} [{min} .. {max} step {s}]"),
+            None => format!("{value} [{min} .. {max}]"),
+        },
         Kind::Check(true) => "on".to_string(),
         Kind::Check(false) => "off".to_string(),
         Kind::Choice { radio, options } => {
@@ -270,13 +276,6 @@ pub fn canonical(i: &Input) -> String {
                 .collect();
             format!("{a}{}{b}", items.join(", "))
         }
-    };
-    let body = match &i.range {
-        Some(r) => match &r.step {
-            Some(st) => format!("{body} slider {}..{} step {st}", r.min, r.max),
-            None => format!("{body} slider {}..{}", r.min, r.max),
-        },
-        None => body,
     };
     match &i.note {
         Some(n) => format!("? {body} | {n}"),
@@ -358,6 +357,14 @@ pub fn directive(i: &Input) -> Result<(Option<String>, String), String> {
     }
     match &i.kind {
         Kind::Number(v) => Ok((None, value(v, "the default")?)),
+        Kind::Slider { value: v, min, max, step } => {
+            let mut j = format!("{{\"min\":{min},\"max\":{max}");
+            if let Some(s) = step {
+                j.push_str(&format!(",\"step\":{s}"));
+            }
+            j.push('}');
+            Ok((Some(j), value(v, "the default")?))
+        }
         Kind::Check(on) => Ok((
             Some("{\"type\":\"checkbox\"}".to_string()),
             if *on { "1" } else { "0" }.to_string(),

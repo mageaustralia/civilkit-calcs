@@ -32,7 +32,57 @@ Without `->`, a sum comes out in the first unit it meets. With `-> unit` the res
 to the unit you choose. In the Calcpad language the same conversion is a vertical bar:
 `a = 1.23m + 35cm + 12mm | cm`.
 
-Prefixes work on every unit that takes them: `kN` is 10³ N, `MPa` is 10⁶ Pa, `mm` is 10⁻³ m.
+Prefixes work on every unit that takes them: `kN` is 10³ N, `MPa` is 10⁶ Pa, `mm` is 10⁻³ m. See
+"Prefixes" below for the full list.
+
+## Prefixes
+
+Any SI prefix goes in front of any SI unit that takes one, so `3 mN`, `2 GPa`, `5 µm`, `40 nF` and `1.2 kΩ`
+all work.
+
+| Prefix | Symbol | Factor | | Prefix | Symbol | Factor |
+| --- | --- | --- | --- | --- | --- | --- |
+| yotta | `Y` | 10²⁴ | | deci | `d` | 10⁻¹ |
+| zetta | `Z` | 10²¹ | | centi | `c` | 10⁻² |
+| exa | `E` | 10¹⁸ | | milli | `m` | 10⁻³ |
+| peta | `P` | 10¹⁵ | | micro | `μ`, `µ` or `u` | 10⁻⁶ |
+| tera | `T` | 10¹² | | nano | `n` | 10⁻⁹ |
+| giga | `G` | 10⁹ | | pico | `p` | 10⁻¹² |
+| mega | `M` | 10⁶ | | femto | `f` | 10⁻¹⁵ |
+| kilo | `k` | 10³ | | atto | `a` | 10⁻¹⁸ |
+| hecto | `h` | 10² | | zepto | `z` | 10⁻²¹ |
+| deca | `da` | 10¹ | | yocto | `y` | 10⁻²⁴ |
+
+Micro can be typed as the Greek mu `μ`, the micro sign `µ` (what a keyboard gives) or a plain `u`; the result
+shows `μ`. The units that take a prefix are `g`, `m`, `s`, `A`, `mol`, `cd`, `rad`, `L`, `N`, `Nm`, `Pa`, `bar`,
+`J`, `W`, `Wh`, `VA`, `VAR`, `Hz`, `V`, `C`, `F`, `Ω`, `S`, `Wb`, `T`, `H`, `Bq`, `Gy`, `Sv`, `lm`, `lx`, `kat`,
+`eV`, `Ah` and `Da`. Everything else stays as it was: `min`, `h`, `d`, `ft`, `in`, `lb`, `psi`, `°C` and the
+other non-SI units take no prefix (`kft` and `mmin` are errors), the kilogram is `kg` (`Mg` is a megagram, not
+`kkg`), and kelvin `K` takes none either.
+
+A name the unit list already had keeps its meaning, and the list is read first. So `min` is the minute (not a
+milli-inch), `mm` is the millimetre, `Pa` the pascal, `cd` the candela, `ft` the foot, `h` the hour, `d` the day,
+`T` the tesla and `u` the atomic mass unit; `da` alone is not a unit, and `dam` is the decametre. The prefix
+spellings that read as another unit are told apart by their case: `fT` is a femtotesla and `ft` a foot, `mS` is
+a millisiemens and `ms` a millisecond. One name is shadowed: `ks` has always been the metric horsepower, so a
+kilosecond is written `1000 s`. A variable you define always wins over a unit of the same
+name, so a sheet that has a variable called `mN` still works.
+
+<!-- expect: F _n = F = 3 mN = 0.003 N | E _m = E = 2 GPa = 2000 MPa | t _n = t = 5 μm = 5000 nm -->
+```sheet
+F: 3 mN
+F_n: F -> N
+E: 2 GPa
+E_m: E -> MPa
+t: 5 µm
+t_n: t -> nm
+```
+
+```text
+F_n = F = 3 mN = 0.003 N
+E_m = E = 2 GPa = 2000 MPa
+t_n = t = 5 μm = 5000 nm
+```
 
 ## Errors you want
 
@@ -122,27 +172,74 @@ A few bare names mean different things in the US and UK systems (`gal`, `ton`, `
 `cwt`, `therm`). The setting **Non-metric units** picks one. Write the explicit suffix
 (`gal_US`, `gal_UK`) when a sheet must not depend on the setting.
 
-## Your own units
+## Percentages
 
-A unit is defined like a variable, with a dot in front of the name. A sheet defines it through a
-`>>` line:
+A ratio has no unit, so it comes out as a plain number. Convert it with `-> %` to show it as a
+percentage, and write `%` after a number to enter one. `‰` (per mille) works the same way.
 
+<!-- expect: 355.1 kN = 0.691 | util = ratio = 0.691 = 69.07 % | f = Ed · r = 245.25 kN · 4 % = 9.81 kN -->
 ```sheet
->> .pace = 0.75m
-distance: 120 pace -> m
+Ed: 245.25 kN
+Rd: 355.1 kN
+ratio: Ed / Rd
+util: ratio -> %
+r: 4%
+f: Ed * r
+slope: 1 / 40 -> ‰
 ```
 
 ```text
-pace = 0.75 m
-distance = 120 pace = 90 m
+ratio = Ed / Rd = 245.25 kN / 355.1 kN = 0.691
+util = ratio = 0.691 = 69.07 %
+r = 4 %
+f = Ed · r = 245.25 kN · 4 % = 9.81 kN
+slope = 1 / 40 = 25 ‰
 ```
+
+The value itself does not change, only the way it is shown: `util` is the same number as
+`ratio`, and `r` is 0.04 in every formula. A result in percent is rounded to the decimals set on the
+Math Formatting tab like any other result, and the rounded figure typed back in (`69.07%`) is the
+same ratio to that many digits. An input works the same way: `rate: ? 12.5 %` shows a box holding
+12.5 with `%` after it, and the name is 0.125 in the formulas.
+
+A percentage times a plain number is a plain number (`4 % · 2` is `0.08`); add `-> %` to the line
+to keep it as a percentage.
+
+## Your own units
+
+A sheet defines a unit of its own with a `#unit` line: the name, `=`, and its value in units
+the engine knows or in units defined above it. Later lines use it after a number and after `->`,
+like any other unit.
+
+<!-- expect: bag = 25 kg cement bag | load = 3 pallet = 3 t | n = 1000 kg = 40 bag -->
+```sheet
+#unit bag = 25 kg | cement bag
+#unit pallet = 40 bag
+load: 3 pallet -> t
+n: 1000 kg -> bag
+rate: 6 bag / 1 m³ -> kg/m³
+```
+
+```text
+bag = 25 kg   cement bag
+pallet = 40 bag
+load = 3 pallet = 3 t
+n = 1000 kg = 40 bag
+rate = 6 bag / 1 m³ = 150 kg/m³
+```
+
+A unit name is letters and `_` only (`bag`, `ton_short`), with no digits; a name with a digit is an
+error on its line. The value can use the usual spellings (`m²`, `kN·m`) and can have a note after
+`|`. A built-in unit cannot be redefined: `#unit slug = 14.6 kg` is an error, because `slug` is
+already a unit. In the Calcpad language, and in a `>>` line of a sheet, the same unit is a line
+with a dot in front of the name: `.bag = 25kg`.
 
 Currency and information units are defined as dimensionless units, the first as 1 and the others
 as multiples:
 
 ```sheet
->> .USD = 1
->> .AUD = 0.65*USD
+#unit USD = 1
+#unit AUD = 0.65 USD
 price: 200 AUD -> USD
 ```
 
@@ -153,7 +250,6 @@ price = 200 AUD = 130 USD
 ```
 
 Two families of dimensionless custom units in one sheet share a dimension, so do not mix them.
-A built-in unit cannot be redefined: `.kip = 4448 N` (in a worksheet, or after `>>` in a sheet) is an error because `kip` exists.
 
 ## Units and names
 

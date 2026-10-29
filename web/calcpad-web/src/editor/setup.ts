@@ -105,6 +105,12 @@ export function createCalcpadEditor(
         acceptSuggestionOnEnter: 'off',
         acceptSuggestionOnCommitCharacter: false,
         tabCompletion: 'on',
+        // The completion lists come from the language providers (completions.ts), which know where
+        // code ends and text begins; Monaco's own list of words from the file would add the words of
+        // comments and prose, so it is off.
+        wordBasedSuggestions: 'off',
+        quickSuggestions: { other: true, comments: false, strings: false },
+        quickSuggestionsDelay: 40,
         // Calcpad source is full of Greek letters, math symbols, and other
         // non-ASCII glyphs - Monaco's unicode highlighter flags all of them.
         unicodeHighlight: {

@@ -1095,10 +1095,11 @@ const onLineEditRequest = ref<{
 // Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
 import MathKeyboard from './editor/MathKeyboard.vue'
 import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
+import { injectTableSort, type TableSortState } from './wasm/table-sort'
 import type { BlockOp } from './wasm/block-ops'
+import { withPageBreakMarks } from './wasm/page-break'
 import { pasteSource, peekClipboard, rememberedBlock } from './wasm/block-clipboard'
 import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
-import { INPUT_SLIDER_SCRIPT } from './wasm/input-slider'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
@@ -1307,10 +1308,13 @@ function openInsertMenu(groupId: string, frameId: string, data: Record<string, u
   if (!iframe || !Number.isInteger(before) || before < 0) return
   const r = (data.rect ?? {}) as Record<string, unknown>
   const box = iframe.getBoundingClientRect()
-  const w = 220, h = INSERT_BLOCKS.length * 40 + 12
+  // One row per block and one for Paste; touch rows are taller. A menu taller than the window scrolls (app.css).
+  const rowH = window.matchMedia('(hover: none)').matches ? 46 : 40
+  const w = 220, h = Math.min((INSERT_BLOCKS.length + 1) * rowH + 12, window.innerHeight - 16)
   const x = Math.max(8, Math.min(box.left + (Number(r.left) || 0), window.innerWidth - w - 8))
   const below = box.top + (Number(r.top) || 0) + (Number(r.height) || 0) + 4
-  const y = below + h > window.innerHeight - 8 ? Math.max(8, box.top + (Number(r.top) || 0) - h - 4) : below
+  const placed = below + h > window.innerHeight - 8 ? box.top + (Number(r.top) || 0) - h - 4 : below
+  const y = Math.max(8, Math.min(placed, window.innerHeight - h - 8))
   closeLineEdit()
   insertMenu.value = { x, y, groupId, before }
   pasteText.value = rememberedBlock()
@@ -1386,6 +1390,11 @@ const collapsedByDoc = new Map<string, string[]>()
 function collapseKey(frameId: string, groupId: string): string { return docKeyByFrame.get(frameId) || groupId }
 function onCollapseState(frameId: string, groupId: string, data: Record<string, unknown>): void {
   if (Array.isArray(data.keys)) collapsedByDoc.set(collapseKey(frameId, groupId), data.keys.filter((k): k is string => typeof k === 'string'))
+}
+// Sorted tables of the preview, per document tab (view state only, see wasm/table-sort.ts).
+const tableSortByDoc = new Map<string, TableSortState>()
+function onTableSort(frameId: string, groupId: string, data: Record<string, unknown>): void {
+  if (data.state && typeof data.state === 'object') tableSortByDoc.set(collapseKey(frameId, groupId), data.state as TableSortState)
 }
 function collapseAllSections(on: boolean): void {
   const m = blockMenu.value
@@ -1878,6 +1887,10 @@ function onPreviewWindowMessage(e: MessageEvent): void {
     onCollapseState(frameId, groupId, data)
     return
   }
+  if (data.type === 'tableSort') {
+    onTableSort(frameId, groupId, data)
+    return
+  }
   if (data.type === 'plotChip') {
     void plotChipHost(data).catch(() => {})
     return
@@ -2252,6 +2265,11 @@ function commitToBuffer(frameId: string, html: string): Promise<void> {
   frame.srcdoc = html
   return ready.then(() => {
     frontBuffer.value = { ...frontBuffer.value, [frameId]: slot }
+    // The back buffer is hidden while it loads and a hidden control cannot take the focus, so the frame is asked again
+    // now that it is shown (the form keeps its slider or box focused through a re-run). Not when the editor has the focus.
+    if (uiPositionSeeded.delete(frameId) && !document.activeElement?.closest('.monaco-editor')) {
+      requestAnimationFrame(() => frame.contentWindow?.postMessage({ type: 'cpdUiRestoreFocus' }, '*'))
+    }
     // The demoted buffer is only overwritten by the next render, so a large one is
     // emptied rather than left holding a second copy.
     if (demoted && demoted !== frame && html.length > BACK_BUFFER_CLEAR_CHARS) demoted.srcdoc = ''
@@ -2274,6 +2292,8 @@ function setPreviewHtml(groupId: string, html: string, scrollToLine?: number, do
   )
   out = injectPreviewConsole(out, groupId)
   out = injectUiPosition(out, groupId)
+  out = withPageBreakMarks(out)
+  if (!isUi && onLineEditRequest.value?.isSheet?.(groupId)) out = injectTableSort(out, groupId, tableSortByDoc.get(docKey || groupId) ?? {})
   previewHtmlByGroup.set(groupId, html)
   setPreviewHtmlOutput(groupId, html)
   return commitToBuffer(groupId, out)
@@ -2343,7 +2363,11 @@ function collapseDragLines(collapsed: string[]): string[] {
     "    if (isNaN(n) || (el.parentElement && el.parentElement.closest('[data-source-line]'))) continue;",
     "    var lv = cdLevel(el), key = null;",
     "    if (lv) { var base = lv + '|' + cdText(el); seen[base] = (seen[base] || 0) + 1; key = base + '|' + seen[base]; }",
-    "    out.push({ el: el, line: n, level: lv, key: key, full: cdFull(el) });",
+    // A heading marked {collapse} is folded by its own <details>; this fold control leaves it alone (no key, no chevron)
+    // but it still ends a section of a lower level, and it is hidden as a whole when a section above it is folded.
+    "    var own = lv && el.parentElement && el.parentElement.tagName === 'SUMMARY' && el.parentElement.parentElement && el.parentElement.parentElement.classList.contains('sheet-collapse') ? el.parentElement.parentElement : null;",
+    "    if (own) key = null;",
+    "    out.push({ el: el, line: n, level: lv, key: key, own: own, full: cdFull(el) });",
     "  }",
     "  return out;",
     "}",
@@ -2354,9 +2378,9 @@ function collapseDragLines(collapsed: string[]): string[] {
     "    var it = cdItems[i];",
     "    if (it.level && cut && it.level <= cut) { head.setAttribute('data-ck-n', hidden); cut = 0; head = null; }",
     "    var hide = cut > 0;",
-    "    it.el.classList.toggle('ck-hid', hide);",
+    "    (it.own || it.el).classList.toggle('ck-hid', hide);",
     "    if (hide) { if (it.full) hidden++; it.el.classList.remove('ck-col'); continue; }",
-    "    var col = !!it.level && COLLAPSED.indexOf(it.key) >= 0;",
+    "    var col = !!it.level && !!it.key && COLLAPSED.indexOf(it.key) >= 0;",
     "    it.el.classList.toggle('ck-col', col);",
     "    if (col) { cut = it.level; head = it.el; hidden = 0; }",
     "  }",
@@ -2384,7 +2408,7 @@ function collapseDragLines(collapsed: string[]): string[] {
     "  var out = [];",
     "  for (var i = 0; i < cdItems.length; i++) {",
     "    var el = cdItems[i].el;",
-    "    if (!el.classList.contains('ck-hid')) {",
+    "    if (!(cdItems[i].own || el).classList.contains('ck-hid')) {",
     "      var cs = getComputedStyle(el);",
     "      if (cs.display === 'inline' || cs.display === 'none' || !el.getBoundingClientRect().height) continue;",
     "    }",
@@ -2563,8 +2587,8 @@ function injectLineLinks(
     // No hover on touch: handles stay hidden until a block is tapped, then only the gaps just above and below it show.
     "      + '@media (hover:none){.ck-ins{height:34px;margin-top:-17px}.ck-ins-btn{top:3px;width:28px;height:28px;margin-left:-14px;font-size:20px;line-height:24px}.ck-ins-line{top:17px}}'",
     // A small grip at the left of each block (on hover, or after a tap) opens the block menu: move, duplicate, delete.
-    "      + '.ck-grip{position:absolute;width:22px;height:24px;padding:0;border:1px solid currentColor;border-radius:5px;background:Canvas;color:CanvasText;font:700 15px/20px system-ui,sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s}'",
-    "      + '.ck-grip.on{opacity:.75;pointer-events:auto}.ck-grip:hover,.ck-grip:focus-visible{opacity:1;pointer-events:auto}.ck-grip:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}'",
+    "      + '.ck-grip{position:absolute;width:22px;height:24px;padding:0;border:0;border-radius:5px;background:transparent;color:CanvasText;font:700 15px/20px system-ui,sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s}'",
+    "      + '.ck-grip.on{opacity:.75;pointer-events:auto}.ck-grip:hover,.ck-grip:focus-visible{opacity:1;pointer-events:auto;background:rgba(128,128,128,.22)}.ck-grip:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}'",
     "      + '@media (hover:none){.ck-grip{width:30px;height:32px;font-size:18px;line-height:28px}}'",
     // Folded sections and the drag cues are screen-only, so print and export always show every block.
     "      + '.ck-grip{touch-action:none}.ck-chev{position:absolute;width:22px;height:20px;padding:0;border:0;border-radius:4px;background:Canvas;color:CanvasText;font:14px/20px system-ui,sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s}'",
@@ -2624,7 +2648,7 @@ function injectLineLinks(
     "        try { window.parent.postMessage({ type: 'blockMenu', line: b.line, heading: !!cdLevel(b.el), starts: starts, rect: { left: r.left, top: r.top, width: r.width, height: r.height }, groupId: FRAME_ID }, '*'); } catch (_e) {}",
     "      });",
     "      var it = cdItem(b.el);",
-    "      if (it && it.level) addChev(g, b, it);",
+    "      if (it && it.level && it.key) addChev(g, b, it);",
     "      dragGrip(g, b);",
     "      layer.appendChild(g); grips.push(g);",
     "    }",
@@ -2681,8 +2705,6 @@ function injectLineLinks(
     ] : []),
     // Chips under each plot: log x / y, 1:1, copy data, save PNG / SVG (see plot-chips.ts).
     ...(lineLinks ? [PLOT_CHIPS_SCRIPT] : []),
-    // A slider beside a number input with a range (Input mode only; see input-slider.ts).
-    ...(lineLinks ? [] : [INPUT_SLIDER_SCRIPT]),
     ...(lineLinks ? [
     "  function hideAllLineLinks() {",
     "    document.querySelectorAll('.lineLink').forEach(function(l) { l.style.display = 'none'; });",
@@ -2728,7 +2750,8 @@ function injectLineLinks(
     "    document.addEventListener('click', function(e) {",
     "      if (e.detail > 1 || e.button) return;",
     "      var t = e.target;",
-    "      if (!t || !t.closest || t.closest('.ck-ins, .ck-chips, .cprs-plotly, svg.plot')) return;",
+    // The heading of a folding section (a summary) folds and opens it; a double click still edits it.
+    "      if (!t || !t.closest || t.closest('.ck-ins, .ck-chips, .cprs-plotly, svg.plot, summary')) return;",
     "      var sel = ''; try { sel = String(window.getSelection() || ''); } catch (_e) {}",
     "      if (sel) return;",
     "      editFrom(t);",
@@ -2848,8 +2871,12 @@ function injectUiPosition(html: string, frameId: string): string {
   uiPositionByFrame.delete(frameId)
   // The state carries a key from the document, so close any tag it could open.
   const json = JSON.stringify(state).replace(/</g, '\\u003c')
+  uiPositionSeeded.add(frameId)
   return insertHeadScript(html, 'window.__calcpadUiPosition = ' + json + ';')
 }
+
+/** The frames whose page was just seeded with a focus position: told to take it once they are the front buffer. */
+const uiPositionSeeded = new Set<string>()
 
 function insertHeadScript(html: string, body: string): string {
   const script = '<' + 'script>' + body + '</' + 'script>'

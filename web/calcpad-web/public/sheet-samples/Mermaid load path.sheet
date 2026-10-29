@@ -1,0 +1,29 @@
+<!--sheet-->
+# Load path and tributary loads
+
+The load path from the slab to the footing, drawn as a diagram, with the loads worked out at
+each level.
+
+```mermaid
+graph LR
+  Slab -->|w_s| Beam
+  Beam -->|R_b| Column
+  Column -->|N| Footing
+  Footing -->|q| Soil
+```
+
+## Inputs
+G: 4.5 kPa | slab dead load
+Q: 3 kPa | slab live load
+spacing: 3 m | beam spacing
+L: 6 m | beam span
+floors: 4 | storeys carried by the column
+
+## Loads down the path
+w_s: (1.2 * G + 1.5 * Q) * spacing -> kN/m | factored line load on a beam
+R_b: w_s * L / 2 -> kN | beam end reaction
+N: 2 * R_b * floors -> kN | column load (a beam on each side)
+
+## Footing
+B: 2 m | square footing width
+q: N / B^2 -> kPa | bearing pressure under the footing

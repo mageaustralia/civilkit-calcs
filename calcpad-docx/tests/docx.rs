@@ -58,6 +58,50 @@ fn a_package_has_its_parts_and_ends_with_section_properties() {
     assert!(d
         .text
         .contains("<w:pgMar w:top=\"850\" w:right=\"850\" w:bottom=\"850\" w:left=\"1134\""));
+}
+
+/// Calcpad's page break, `<div style="page-break-after:always"></div>`, and the other spellings of a forced break are
+/// Word page breaks in the same place; a style that only avoids breaks is not one.
+#[test]
+fn page_break_styles_are_word_page_breaks() {
+    const BRK: &str = "<w:br w:type=\"page\"/>";
+    let d = docx(
+        "<body><p>First</p><div style=\"page-break-after:always\"></div><p>Second</p></body>",
+        &[],
+    );
+    assert_eq!(d.text.matches(BRK).count(), 1, "{}", d.text);
+    let at = |s: &str| d.text.find(s).unwrap();
+    assert!(at(">First<") < at(BRK) && at(BRK) < at(">Second<"), "{}", d.text);
+    // The break is a paragraph of its own between the two, so Word starts "Second" on the next page.
+    let ps = paragraphs(&d);
+    assert_eq!(ps.len(), 3);
+    assert_eq!(ps[1].inner_text(), "");
+
+    let d = docx(
+        "<body><p>A</p><p style=\"page-break-before: always\">B</p><h2 style=\"break-after: page\">C</h2><p>D</p>\
+         <div style=\"break-before:page;color:red\"><p>E</p></div><p style=\"page-break-inside:avoid;break-after:avoid\">F</p></body>",
+        &[],
+    );
+    assert_eq!(d.text.matches(BRK).count(), 3, "{}", d.text);
+    let order: Vec<usize> = [">A<", BRK, ">B<", ">C<", ">D<", ">E<", ">F<"]
+        .iter()
+        .map(|s| d.text.find(s).unwrap())
+        .collect();
+    assert!(order.windows(2).all(|w| w[0] < w[1]), "{}", d.text);
+    let between = |a: &str, b: &str| {
+        d.text[d.text.find(a).unwrap()..d.text.find(b).unwrap()]
+            .matches(BRK)
+            .count()
+    };
+    assert_eq!(
+        (
+            between(">A<", ">B<"),
+            between(">C<", ">D<"),
+            between(">D<", ">E<"),
+            between(">E<", ">F<")
+        ),
+        (1, 1, 1, 0)
+    );
     assert!(!d.text.contains("p{}"), "the head is not part of the document");
 }
 
@@ -286,4 +330,23 @@ fn content_of_unknown_containers_is_kept() {
     let d = docx("<body><blockquote><p>quoted <abbr>abbr</abbr></p></blockquote><noscript>no</noscript><button>b</button></body>", &[]);
     assert!(d.text.contains(">quoted <") && d.text.contains(">abbr<"), "{}", d.text);
     assert!(!d.text.contains(">no<") && !d.text.contains(">b<"));
+}
+
+/// A sheet's folding section is a `<details>` with the heading in its `<summary>`, and a key line ends in a star: the
+/// Word file has the heading, the section's lines and the star, as if the section were open.
+#[test]
+fn a_folding_section_and_a_key_star_are_written_in_full() {
+    let d = docx(
+        "<html><body><details class=\"sheet-collapse\"><summary><h2>Workings</h2></summary>\
+         <p>Some prose.</p><p><span class=\"sheet-note\">moment</span> <span class=\"sheet-key\" title=\"key result\">\u{2605}</span></p>\
+         </details><h2>Results</h2><div class=\"sheet-key-results\"><p>y</p></div></body></html>",
+        &[],
+    );
+    for want in ["Workings", "Some prose.", "moment", "\u{2605}", "Results"] {
+        assert!(d.text.contains(want), "{want} in the document: {}", d.text);
+    }
+    // The heading inside the summary is a heading, in order with the text of the section.
+    let at = |s: &str| d.text.find(s).unwrap();
+    assert!(at("Workings") < at("Some prose.") && at("Some prose.") < at("\u{2605}") && at("\u{2605}") < at("Results"));
+    assert_eq!(d.text.matches("<w:pStyle w:val=\"h2\"/>").count(), 2, "the summary's heading and the next one are both headings: {}", d.text);
 }

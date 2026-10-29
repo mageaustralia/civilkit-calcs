@@ -1131,7 +1131,7 @@ fn the_documented_input_examples_run() {
     assert_eq!(n, 2, "two examples before the table");
     let (c, html, errs) = render(&src);
     no_errors("docs", &errs, &c);
-    assert_eq!(c.text.matches("#UI ").count(), 5);
+    assert_eq!(c.text.matches("#UI ").count(), 6);
     assert!(text(&html).contains("The material is aluminium.") || !text(&html).contains("Error"));
     // The table of what is compiled is true as well.
     let rows = [
@@ -1378,41 +1378,368 @@ fn template_pump_values_and_inputs() {
     assert!(t.contains("cannot lift the water") && t.contains("= 0 L"), "{t}");
 }
 
+// ---- compiled samples stay as they were -------------------------------------------------------
+
+fn fnv(s: &str) -> u64 {
+    let mut h: u64 = 0xcbf29ce484222325;
+    for b in s.bytes() {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x100000001b3);
+    }
+    h
+}
+
+/// The sample with the bounds of its sliders taken out (` [2 .. 12 step 0.5]` is removed).
+fn without_bounds(src: &str) -> String {
+    let mut out = String::new();
+    let mut rest = src;
+    while let Some(i) = rest.find(" [") {
+        let tail = &rest[i + 2..];
+        let close = tail.find(']').unwrap_or(0);
+        let inner = &tail[..close];
+        if close > 0 && inner.contains(" .. ") && inner.starts_with(|c: char| c.is_ascii_digit()) {
+            out.push_str(&rest[..i]);
+            rest = &tail[close + 1..];
+        } else {
+            out.push_str(&rest[..i + 2]);
+            rest = tail;
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// A hash of what the compiler gives for every shipped sample, in both modes, recorded before sliders and
+/// collapsible sections existed: a sheet that does not use them compiles to exactly what it did. The two
+/// templates that now use sliders compile to the recorded text once their bounds are taken away.
 #[test]
-fn a_number_input_with_a_slider_range_carries_it_in_a_hidden_marker() {
-    let l = lines_of("L: ? 6 m slider 2..12 | span");
-    assert_eq!(
-        l[1],
-        "#UI L = 6m '<span class=\"sheet-note\">span</span><span class=\"sheet-range\" hidden data-min=\"2\" data-max=\"12\"></span>"
-    );
-    let l = lines_of("w = ? 12 kN/m slider 0..30 step 0.5");
-    assert_eq!(l[1], "#UI w = 12kN/m '<span class=\"sheet-range\" hidden data-min=\"0\" data-max=\"30\" data-step=\"0.5\"></span>");
-    // The control is the same as without a range; only the marker is new.
-    assert!(lines_of("a: ? -2.5 slider -5..5")[1].starts_with("#UI a = -2.5 '<span"));
-    assert_eq!(lines_of("L: ? 6 m | span")[1], "#UI L = 6m '<span class=\"sheet-note\">span</span>");
+fn every_sample_compiles_to_what_it_did_before() {
+    let golden = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests-data/samples_compiled.txt")).unwrap();
+    let mut files: Vec<_> = std::fs::read_dir(SAMPLES)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| p.extension().is_some_and(|x| x == "sheet"))
+        .collect();
+    files.sort();
+    let mut want = std::collections::HashMap::new();
+    for l in golden.lines() {
+        let mut p = l.rsplitn(3, '|');
+        let hash = p.next().unwrap().to_string();
+        let plain = p.next().unwrap() == "true";
+        want.insert((p.next().unwrap().to_string(), plain), hash);
+    }
+    assert_eq!(want.len(), files.len() * 2, "a sample was added or removed: regenerate tests-data/samples_compiled.txt");
+    let mut with_sliders = 0;
+    for f in &files {
+        let name = f.file_name().unwrap().to_string_lossy().to_string();
+        let src = std::fs::read_to_string(f).unwrap();
+        let plain_src = without_bounds(&src);
+        if plain_src != src {
+            with_sliders += 1;
+        }
+        for plain in [false, true] {
+            let c = compile_with(&plain_src, &Options { plain_tex: plain });
+            let all = format!(
+                "{}\n{:?}\n{:?}",
+                c.text,
+                c.map,
+                c.diagnostics.iter().map(|d| format!("{}:{}", d.line, d.message)).collect::<Vec<_>>()
+            );
+            assert_eq!(format!("{:016x}", fnv(&all)), want[&(name.clone(), plain)], "{name} (plain {plain}) compiles differently");
+        }
+    }
+    assert_eq!(with_sliders, 2, "two templates use sliders");
 }
 
 #[test]
-fn slider_mistakes_are_errors_on_the_input_line() {
-    for bad in [
-        "L: ? 6 m slider 12..2",
-        "L: ? 6 m slider 2..12 step 0",
-        "L: ? 6 m slider 2..12 step x",
-        "L: ? 6 m slider 2",
-        "L: ? 20 m slider 2..12",
-        "L: ? on slider 0..1",
-        "L: ? [a = 1, b = 2] slider 0..3",
+fn the_slider_templates_give_the_same_results_as_their_plain_selves() {
+    for name in ["Template simply supported beam", "Template cantilever tip load"] {
+        let src = sample(name);
+        assert!(src.contains(" .. "), "{name} has sliders");
+        let (c1, h1, e1) = render(&src);
+        no_errors(name, &e1, &c1);
+        let (c2, h2, e2) = render(&without_bounds(&src));
+        no_errors(name, &e2, &c2);
+        assert_eq!(text(&h1), text(&h2), "{name}: the defaults give the same report");
+    }
+}
+
+// ---- sliders ----------------------------------------------------------------------------------
+
+fn compiled_line(src: &str) -> String {
+    let c = compile(&format!("<!--sheet-->\n{src}\n"));
+    assert!(c.diagnostics.is_empty(), "{src}: {:?}", c.diagnostics);
+    c.text.lines().find(|l| l.starts_with("#UI")).unwrap_or_else(|| panic!("{}", c.text)).to_string()
+}
+
+#[test]
+fn a_slider_input_compiles_to_an_entry_with_bounds() {
+    assert_eq!(
+        compiled_line("L: ? 6 m [2 .. 12 step 0.5]"),
+        "#UI {\"min\":2,\"max\":12,\"step\":0.5} L = 6m"
+    );
+    assert_eq!(compiled_line("L: ? 6 m [2 .. 12]"), "#UI {\"min\":2,\"max\":12} L = 6m");
+    assert_eq!(
+        compiled_line("w = ? 12 kN/m [-5 .. 40 step 1] | load"),
+        "#UI {\"min\":-5,\"max\":40,\"step\":1} w = 12kN/m '<span class=\"sheet-note\">load</span>"
+    );
+    // The bounds may be written tight, with a minus sign, a decimal point without a leading digit, or a unicode minus.
+    assert_eq!(compiled_line("a: ? 0.5 [.25 .. 2 step .25]"), "#UI {\"min\":0.25,\"max\":2,\"step\":0.25} a = 0.5");
+    assert_eq!(compiled_line("a: ? 0 [\u{2212}1..1 step 0.1]"), "#UI {\"min\":-1,\"max\":1,\"step\":0.1} a = 0");
+    // A plain input and a choice are as they were.
+    assert_eq!(compiled_line("L: ? 6 m"), "#UI L = 6m");
+}
+
+#[test]
+fn a_slider_with_a_mistake_is_an_error_on_its_line() {
+    for (src, want) in [
+        ("L: ? 20 m [2 .. 12]", "outside the bounds"),
+        ("L: ? 1 m [2 .. 12]", "outside the bounds"),
+        ("L: ? 6 m [12 .. 2]", "minimum 12 must be below the maximum 2"),
+        ("L: ? 6 m [6 .. 6]", "must be below"),
+        ("L: ? 6 m [2 .. 12 step 0]", "step must be above zero"),
+        ("L: ? 6 m [2 .. 12 step -1]", "step must be above zero"),
+        ("L: ? 6 m [2 .. 12 step 20]", "larger than the range"),
+        ("L: ? 6 m [2 .. 12 step]", "no step"),
+        ("L: ? 6 m [2 .. x]", "maximum 'x' must be a plain number"),
+        ("L: ? 6 m [2 m .. 12 m]", "plain number"),
+        ("L: ? 6 m [2 12]", "written `[min .. max]"),
+        ("L: ? 6 m [.. 12]", "no minimum"),
+        ("L: ? 6 m [2 ..]", "no maximum"),
+        ("L: ? 6 m [1e1 .. 12]", "plain number"),
     ] {
-        let e = errors_of(bad);
-        assert_eq!(e.len(), 1, "{bad}: {e:?}");
-        assert!(e[0].1.contains("input:"), "{bad}: {e:?}");
+        let c = compile(&format!("<!--sheet-->\n{src}\n"));
+        assert!(
+            c.diagnostics.iter().any(|d| d.severity == Severity::Error && d.message.contains(want)),
+            "{src}: {want}: {:?}",
+            c.diagnostics
+        );
+        assert!(c.text.contains("Sheet syntax: input:"), "{src}: {}", c.text);
     }
 }
 
 #[test]
-fn a_slider_range_is_formatted_and_idempotent() {
-    let src = "<!--sheet-->\nL:?6 m  SLIDER 2..12  STEP 0.5|span\n";
-    let f = format(src);
-    assert_eq!(f, "<!--sheet-->\nL: ? 6 m slider 2..12 step 0.5 | span\n");
+fn a_slider_line_is_tidied_and_stays_tidy() {
+    let f = format("<!--sheet-->\nL:?6 m[2..12 step .5]|span\nw : ? 12 kN/m  [ 2 ..  40 ]\n");
+    assert_eq!(f, "<!--sheet-->\nL: ? 6 m [2 .. 12 step 0.5] | span\nw: ? 12 kN/m [2 .. 40]\n");
     assert_eq!(format(&f), f);
+}
+
+#[test]
+fn a_slider_runs_in_the_engine_with_its_bounds_on_the_entry() {
+    let c = compile("<!--sheet-->\nL: ? 6 m [2 .. 12 step 0.5] | span\nA: L * 2\n");
+    let req = serde_json::json!({ "content": c.text, "enableUi": true });
+    let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+    assert!(v["errors"].as_array().unwrap().is_empty(), "{:?}", v["errors"]);
+    let html = v["html"].as_str().unwrap();
+    assert!(
+        html.contains("data-ui-min=\"2\" data-ui-max=\"12\" data-ui-step=\"0.5\""),
+        "the entry carries the bounds"
+    );
+    // The report (no form) shows the number only.
+    let (_, html, errs) = render("<!--sheet-->\nL: ? 6 m [2 .. 12 step 0.5] | span\nA: L * 2\n");
+    assert!(errs.is_empty());
+    assert!(!html.contains("data-ui-min=") && !html.contains("<input"), "no control in the report");
+    // A plain input has no bounds attributes.
+    let c = compile("<!--sheet-->\nL: ? 6 m\n");
+    let req = serde_json::json!({ "content": c.text, "enableUi": true });
+    let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+    assert!(!v["html"].as_str().unwrap().contains("data-ui-min=\""), "a plain entry is as it was");
+}
+
+#[test]
+fn a_saved_value_outside_the_bounds_is_an_error_on_the_line() {
+    let c = compile("<!--sheet-->\nL: ? 6 m [2 .. 12]\nA: L * 2\n");
+    for (value, bad) in [("8", false), ("12", false), ("2", false), ("15", true), ("1.5", true), ("-3", true)] {
+        let req = serde_json::json!({ "content": c.text, "uiOverrides": { "L:1": value } });
+        let v: Value = serde_json::from_str(&calcpad_wasm::convert(&req.to_string(), false)).unwrap();
+        let t = text(v["html"].as_str().unwrap());
+        assert_eq!(t.contains("is outside the range 2 to 12"), bad, "{value}: {t}");
+        if !bad {
+            assert!(!t.contains("Error"), "{value}: {t}");
+        }
+    }
+}
+
+// ---- folding sections and key results ---------------------------------------------------------
+
+const FOLD: &str = "<!--sheet-->\n# T\n\nL: ? 6 m | span {key}\n\n## Workings {collapse}\nSome prose.\nw: 12 kN/m | load\nM: w * L^2 / 8 -> kN*m | moment {key}\n\n### Detail\nx: 1\n\n## Results\ny: M * 2 {key}\n\n## Key results\n{key results}\n";
+
+fn out_lines(src: &str, plain: bool) -> (Vec<String>, Vec<(usize, String)>) {
+    let c = compile_with(src, &Options { plain_tex: plain });
+    (
+        c.text.lines().map(str::to_string).collect(),
+        c.diagnostics.iter().map(|d| (d.line, d.message.clone())).collect(),
+    )
+}
+
+#[test]
+fn a_collapse_heading_opens_a_details_block_that_closes_at_the_next_heading_of_its_level() {
+    let (l, d) = out_lines(FOLD, false);
+    assert!(d.is_empty(), "{d:?}");
+    let at = |s: &str| l.iter().position(|x| x == s).unwrap_or_else(|| panic!("{s}: {l:?}"));
+    let open = at("'<details class=\"sheet-collapse\"><summary>");
+    assert_eq!(l[open + 1], "'<h2>Workings</h2>");
+    assert_eq!(l[open + 2], "'</summary>");
+    let close = at("'</details>");
+    // The section holds its prose, its quantities and the deeper heading, and ends before `## Results`.
+    assert!(open < at("'Some prose.") && at("\"Detail") < close && close + 1 == at("'<h2>Results</h2>"));
+    assert_eq!(l.iter().filter(|x| x.as_str() == "'</details>").count(), 1);
+    assert!(!l.iter().any(|x| x.contains("{collapse")), "the marker is not shown");
+}
+
+#[test]
+fn a_collapse_open_section_starts_open_and_the_last_section_closes_at_the_end() {
+    let (l, d) = out_lines("<!--sheet-->\n## A {collapse open}\nx: 1\n## B {collapse}\ny: 2\n", false);
+    assert!(d.is_empty(), "{d:?}");
+    assert!(l.iter().any(|x| x == "'<details class=\"sheet-collapse\" open><summary>"), "{l:?}");
+    assert!(l.iter().any(|x| x == "'<details class=\"sheet-collapse\"><summary>"), "{l:?}");
+    assert_eq!(l.iter().filter(|x| x.as_str() == "'</details>").count(), 2);
+    assert_eq!(l.last().unwrap(), "'</details>");
+}
+
+#[test]
+fn nested_collapse_sections_close_in_order() {
+    let (l, _) = out_lines("<!--sheet-->\n# Top {collapse}\n## Inner {collapse}\na: 1\n## Next\nb: 2\n# Last\nc: 3\n", false);
+    let pos: Vec<usize> = l.iter().enumerate().filter(|(_, x)| x.as_str() == "'</details>").map(|(i, _)| i).collect();
+    assert_eq!(pos.len(), 2, "{l:?}");
+    // The inner section ends before `## Next`, the outer one before `# Last`.
+    assert_eq!(l[pos[0] + 1], "'<h2>Next</h2>");
+    assert_eq!(l[pos[1] + 1], "'<h1>Last</h1>");
+}
+
+#[test]
+fn a_collapse_heading_inside_a_block_is_ignored_with_a_warning() {
+    let (l, d) = out_lines("<!--sheet-->\nif 1 == 1:\n    ## Inner {collapse}\n    a: 1\n", false);
+    assert!(d.iter().any(|(_, m)| m.contains("outside any if")), "{d:?}");
+    assert!(!l.iter().any(|x| x.contains("details")), "{l:?}");
+    assert!(!l.iter().any(|x| x.contains("{collapse")), "{l:?}");
+}
+
+#[test]
+fn a_folded_section_is_calculated_and_in_the_page() {
+    let (c, html, errs) = render(FOLD);
+    no_errors("fold", &errs, &c);
+    assert!(html.contains("<details class=\"sheet-collapse\""), "{html}");
+    assert!(html.contains("<summary>") && html.contains("</summary>") && html.contains("</details>"));
+    // The section's calculation is in the page and later lines use it.
+    let t = text(&html);
+    assert!(t.contains("= 12 kN ∕ m · ( 6 m ) 2 8 = 54 kN · m moment"), "{t}");
+    assert!(t.contains("y = M · 2 = 54 kN · m · 2 = 108 kN · m"), "{t}");
+    // No `open` attribute: it is folded until the reader opens it.
+    assert!(!html.contains("<details class=\"sheet-collapse\" open"), "{html}");
+}
+
+#[test]
+fn a_key_line_gets_a_star_in_its_comment() {
+    let (l, d) = out_lines("<!--sheet-->\nM: 2 kN*m | moment {key}\nN: 3 {key}\nP: 4 | note\na: 1; b: 2 | two {key}\n", false);
+    assert!(d.is_empty(), "{d:?}");
+    let star = "<span class=\"sheet-key\" title=\"key result\">\u{2605}</span>";
+    assert_eq!(l[0], format!("M = 2 kN*m '<span class=\"sheet-note\">moment</span> {star}"));
+    assert_eq!(l[1], format!("N = 3 '{star}"));
+    assert_eq!(l[2], "P = 4 '<span class=\"sheet-note\">note</span>");
+    assert_eq!(l[3], "a = 1");
+    assert_eq!(l[4], format!("b = 2 '<span class=\"sheet-note\">two</span> {star}"));
+    // In plain Calcpad (and so Word and Excel) the star is plain text.
+    let (l, _) = out_lines("<!--sheet-->\nM: 2 kN*m | moment {key}\nN: 3 {key}\n", true);
+    assert_eq!(l, vec!["M = 2 kN*m 'moment \u{2605}".to_string(), "N = 3 '\u{2605}".to_string()]);
+}
+
+#[test]
+fn an_input_can_be_a_key_line() {
+    let (l, d) = out_lines("<!--sheet-->\nL: ? 6 m [2 .. 12] | span {key}\nE: ? [Steel = 200 GPa, *Timber = 11 GPa] | material {key}\nr: ? on {key}\n", false);
+    assert!(d.is_empty(), "{d:?}");
+    let ui: Vec<&String> = l.iter().filter(|x| x.starts_with("#UI")).collect();
+    assert_eq!(ui.len(), 3);
+    assert!(ui.iter().all(|x| x.ends_with("\u{2605}</span>")), "{ui:?}");
+    assert!(ui[0].contains("sheet-note\">span</span> <span class=\"sheet-key\""), "{}", ui[0]);
+}
+
+#[test]
+fn the_key_results_list_has_the_key_lines_above_it() {
+    let (l, d) = out_lines(FOLD, false);
+    assert!(d.is_empty(), "{d:?}");
+    let a = l.iter().position(|x| x == "'<div class=\"sheet-key-results\">").unwrap();
+    let list: Vec<&str> = l[a + 1..].iter().take_while(|x| x.as_str() != "'</div>").map(String::as_str).collect();
+    assert_eq!(list, vec!["L 'span", "M|kN*m 'moment", "y"]);
+    // Plain Calcpad has no wrapper.
+    let (l, _) = out_lines(FOLD, true);
+    assert!(!l.iter().any(|x| x.contains("sheet-key-results")), "{l:?}");
+    assert!(l.contains(&"M|kN*m 'moment".to_string()));
+}
+
+#[test]
+fn the_key_results_list_runs_in_the_engine_with_the_values() {
+    let (c, html, errs) = render(FOLD);
+    no_errors("key", &errs, &c);
+    let t = text(&html);
+    let tail = &t[t.rfind("Key results").unwrap()..];
+    assert!(tail.contains("L = 6 m span"), "{tail}");
+    assert!(tail.contains("M = 54 kN · m moment"), "{tail}");
+    assert!(tail.contains("y = 108 kN · m"), "{tail}");
+    assert_eq!(html.matches("class=\"sheet-key\"").count(), 3, "a star on each of the three key lines");
+}
+
+#[test]
+fn key_lines_that_cannot_be_listed_are_not() {
+    // Below the list, in a block, or a function: a star on the line if it is a key line, never in the list.
+    let src = "<!--sheet-->\na: 1 {key}\nf(x): x * 2 {key}\nif a == 1:\n    c: 3 {key}\n{key results}\nlater: 5 {key}\n";
+    let (l, d) = out_lines(src, true);
+    assert!(d.is_empty(), "{d:?}");
+    assert_eq!(l.iter().position(|x| x == "a"), Some(l.len() - 2), "{l:?}");
+    assert_eq!(l.last().unwrap(), "later = 5 '\u{2605}");
+    assert_eq!(l.iter().filter(|x| x.as_str() == "a").count(), 1);
+    assert!(!l.iter().any(|x| x == "c" || x == "f" || x == "later"), "{l:?}");
+    // The three lines that are not listed still carry the star.
+    assert_eq!(l.iter().filter(|x| x.ends_with('\u{2605}')).count(), 4, "{l:?}");
+}
+
+#[test]
+fn a_key_results_line_with_nothing_above_it_is_a_warning() {
+    let (l, d) = out_lines("<!--sheet-->\n## Key results\n{key results}\nx: 1\n", false);
+    assert!(d.iter().any(|(n, m)| *n == 2 && m.contains("no quantity above this line is marked {key}")), "{d:?}");
+    assert!(!l.iter().any(|x| x.contains("sheet-key-results")), "{l:?}");
+}
+
+#[test]
+fn prose_that_ends_with_the_marker_is_prose() {
+    let (l, d) = out_lines("<!--sheet-->\nWrite {key} to mark a line {key}\n", false);
+    assert!(d.is_empty(), "{d:?}");
+    assert!(l.iter().any(|x| x.contains("{key}")), "{l:?}");
+    assert!(!l.iter().any(|x| x.contains("sheet-key")), "{l:?}");
+}
+
+#[test]
+fn the_marker_lines_are_tidied_and_stay_tidy() {
+    let src = "<!--sheet-->\n## Workings   {collapse}\n##   Open one  {collapse open}\nM:2 kN*m|moment   {key}\nx=3  {key}\nL:?6 m [2..12]|span {key}\n{key results}\n";
+    let f = format(src);
+    assert_eq!(
+        f,
+        "<!--sheet-->\n## Workings {collapse}\n\n## Open one {collapse open}\nM: 2 kN*m | moment {key}\nx = 3 {key}\nL: ? 6 m [2 .. 12] | span {key}\n{key results}\n"
+    );
+    assert_eq!(format(&f), f);
+    // The formatted sheet compiles to the same worksheet.
+    assert_eq!(compile(&f).text.replace(' ', ""), compile(src).text.replace(' ', ""));
+}
+
+#[test]
+fn a_sheet_without_the_markers_is_untouched_by_the_collapse_and_key_code() {
+    // Headings, a trailing brace in a note and braces in LaTeX are as they were.
+    let src = "<!--sheet-->\n# T\n## A\nx: 1 | note {braces}\n$a_{key}$\n## B\n";
+    let (l, _) = out_lines(src, false);
+    assert!(!l.iter().any(|x| x.contains("details") || x.contains("sheet-key")), "{l:?}");
+}
+
+#[test]
+fn the_word_form_of_a_slider_is_not_syntax() {
+    // The bracket form is the only slider. A `slider 2..12` tail is not a range: it is an error on the line, never a slider.
+    for old in ["L: ? 6 m slider 2..12", "L: ? 6 m slider 2..12 step 0.5 | span"] {
+        let e = errors_of(old);
+        assert_eq!(e.len(), 1, "{old}: {e:?}");
+        let t = compile(&format!("<!--sheet-->\n{old}")).text;
+        assert!(!t.contains("\"min\""), "{old}: {t}");
+    }
+    // The formatter does not turn the word form into the bracket form.
+    let src = "<!--sheet-->\nL: ? 6 m slider 2..12\n";
+    assert!(!format(src).contains('['), "{}", format(src));
 }

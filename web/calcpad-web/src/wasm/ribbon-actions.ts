@@ -153,6 +153,9 @@ export const ACTIONS: Record<string, Handler> = {
         `${mod}+Shift+B show or hide the sidebar`,
         `${mod}+F find, ${mod}+Z undo, ${mod}+Shift+Z redo`,
         'Alt+Z wrap long lines',
+        'F2 rename the name under the cursor everywhere in the document',
+        `${mod}+; find a variable or function (Enter inserts it, Alt+Enter goes to its definition)`,
+        'F12 go to the definition, Shift+F12 find references',
     ]),
     about: () => dialog(`CivilKit Calcs ${APP_VERSION}`, [
         `Built on CalcpadCE ${UPSTREAM_VERSION} (MIT), by Nedelcho Ganchovski (Proektsoft) and contributors. The engine is reimplemented in Rust and runs in your browser.`,

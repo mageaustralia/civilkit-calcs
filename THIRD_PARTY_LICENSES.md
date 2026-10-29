@@ -122,25 +122,33 @@ None.
 | zlib-rs | 0.6.8 | Zlib |
 | zmij | 1.0.23 | MIT |
 
-## npm packages in the web app (170, production)
+## npm packages in the web app (281, production)
 
 | Licence | Count |
 | --- | --- |
-| MIT | 156 |
+| MIT | 221 |
+| ISC | 34 |
 | MIT OR Apache-2.0 | 8 |
+| Apache-2.0 | 7 |
+| BSD-3-Clause | 7 |
 | Apache-2.0 OR MIT | 1 |
 | (MPL-2.0 OR Apache-2.0) | 1 |
 | BSD-2-Clause | 1 |
-| ISC | 1 |
-| BSD-3-Clause | 1 |
-| Apache-2.0 | 1 |
+| Unlicense | 1 |
 
 | Package | Version | Licence |
 | --- | --- | --- |
+| @antfu/install-pkg | 2.1.0 | MIT |
 | @babel/helper-string-parser | 7.29.7 | MIT |
 | @babel/helper-validator-identifier | 7.29.7 | MIT |
 | @babel/parser | 7.29.9 | MIT |
 | @babel/types | 7.29.8 | MIT |
+| @braintree/sanitize-url | 7.1.2 | MIT |
+| @chevrotain/cst-dts-gen | 13.2.0 | Apache-2.0 |
+| @chevrotain/gast | 13.2.0 | Apache-2.0 |
+| @chevrotain/regexp-to-ast | 13.2.0 | Apache-2.0 |
+| @chevrotain/types | 13.2.0 | Apache-2.0 |
+| @chevrotain/utils | 13.2.0 | Apache-2.0 |
 | @codemirror/language | 6.13.1 | MIT |
 | @codemirror/state | 6.7.6 | MIT |
 | @codemirror/streamparser | 6.0.0 | MIT |
@@ -148,11 +156,14 @@ None.
 | @floating-ui/core | 1.8.0 | MIT |
 | @floating-ui/dom | 1.8.0 | MIT |
 | @floating-ui/utils | 0.2.12 | MIT |
+| @iconify/types | 2.0.0 | MIT |
+| @iconify/utils | 3.1.7 | MIT |
 | @jridgewell/sourcemap-codec | 1.6.0 | MIT |
 | @lezer/common | 1.5.4 | MIT |
 | @lezer/highlight | 1.2.5 | MIT |
 | @lezer/lr | 1.4.11 | MIT |
 | @marijn/find-cluster-break | 1.0.4 | MIT |
+| @mermaid-js/parser | 2.0.1 | MIT |
 | @milkdown/components | 7.22.3 | MIT |
 | @milkdown/core | 7.22.3 | MIT |
 | @milkdown/ctx | 7.22.3 | MIT |
@@ -185,13 +196,46 @@ None.
 | @tauri-apps/plugin-os | 2.4.0 | MIT OR Apache-2.0 |
 | @tauri-apps/plugin-process | 2.4.0 | MIT OR Apache-2.0 |
 | @tauri-apps/plugin-store | 2.5.0 | MIT OR Apache-2.0 |
+| @types/d3 | 7.4.3 | MIT |
+| @types/d3-array | 3.2.2 | MIT |
+| @types/d3-axis | 3.0.6 | MIT |
+| @types/d3-brush | 3.0.6 | MIT |
+| @types/d3-chord | 3.0.6 | MIT |
+| @types/d3-color | 3.1.3 | MIT |
+| @types/d3-contour | 3.0.6 | MIT |
+| @types/d3-delaunay | 6.0.4 | MIT |
+| @types/d3-dispatch | 3.0.7 | MIT |
+| @types/d3-drag | 3.0.7 | MIT |
+| @types/d3-dsv | 3.0.7 | MIT |
+| @types/d3-ease | 3.0.2 | MIT |
+| @types/d3-fetch | 3.0.7 | MIT |
+| @types/d3-force | 3.0.10 | MIT |
+| @types/d3-format | 3.0.4 | MIT |
+| @types/d3-geo | 3.1.1 | MIT |
+| @types/d3-hierarchy | 3.1.7 | MIT |
+| @types/d3-interpolate | 3.0.4 | MIT |
+| @types/d3-path | 3.1.1 | MIT |
+| @types/d3-polygon | 3.0.2 | MIT |
+| @types/d3-quadtree | 3.0.6 | MIT |
+| @types/d3-random | 3.0.4 | MIT |
+| @types/d3-scale | 4.0.9 | MIT |
+| @types/d3-scale-chromatic | 3.1.0 | MIT |
+| @types/d3-selection | 3.0.12 | MIT |
+| @types/d3-shape | 3.2.0 | MIT |
+| @types/d3-time | 3.0.4 | MIT |
+| @types/d3-time-format | 4.0.3 | MIT |
+| @types/d3-timer | 3.0.2 | MIT |
+| @types/d3-transition | 3.0.9 | MIT |
+| @types/d3-zoom | 3.0.9 | MIT |
 | @types/debug | 4.1.13 | MIT |
+| @types/geojson | 7946.0.16 | MIT |
 | @types/lodash | 4.17.27 | MIT |
 | @types/lodash-es | 4.17.12 | MIT |
 | @types/mdast | 4.0.4 | MIT |
 | @types/ms | 2.1.0 | MIT |
 | @types/trusted-types | 2.0.7 | MIT |
 | @types/unist | 3.0.3 | MIT |
+| @upsetjs/venn.js | 2.0.0 | MIT |
 | @vue/compiler-core | 3.5.44 | MIT |
 | @vue/compiler-dom | 3.5.44 | MIT |
 | @vue/compiler-sfc | 3.5.44 | MIT |
@@ -204,25 +248,80 @@ None.
 | bail | 2.0.2 | MIT |
 | ccount | 2.0.1 | MIT |
 | character-entities | 2.0.2 | MIT |
+| chevrotain | 13.2.0 | Apache-2.0 |
 | clsx | 2.1.1 | MIT |
 | commander | 8.3.0 | MIT |
+| commander | 7.2.0 | MIT |
+| cose-base | 1.0.3 | MIT |
+| cose-base | 2.2.0 | MIT |
 | crelt | 1.0.7 | MIT |
 | csstype | 3.2.3 | MIT |
+| cytoscape | 3.34.4 | MIT |
+| cytoscape-cose-bilkent | 4.1.0 | MIT |
+| cytoscape-fcose | 2.2.0 | MIT |
+| d3 | 7.9.0 | ISC |
+| d3-array | 3.2.4 | ISC |
+| d3-array | 2.12.1 | BSD-3-Clause |
+| d3-axis | 3.0.0 | ISC |
+| d3-brush | 3.0.0 | ISC |
+| d3-chord | 3.0.1 | ISC |
+| d3-color | 3.1.0 | ISC |
+| d3-contour | 4.0.2 | ISC |
+| d3-delaunay | 6.0.4 | ISC |
+| d3-dispatch | 3.0.1 | ISC |
+| d3-drag | 3.0.0 | ISC |
+| d3-dsv | 3.0.1 | ISC |
+| d3-ease | 3.0.1 | BSD-3-Clause |
+| d3-fetch | 3.0.1 | ISC |
+| d3-force | 3.0.0 | ISC |
+| d3-format | 3.1.2 | ISC |
+| d3-geo | 3.1.1 | ISC |
+| d3-hierarchy | 3.1.2 | ISC |
+| d3-interpolate | 3.0.1 | ISC |
+| d3-path | 3.1.0 | ISC |
+| d3-path | 1.0.9 | BSD-3-Clause |
+| d3-polygon | 3.0.1 | ISC |
+| d3-quadtree | 3.0.1 | ISC |
+| d3-random | 3.0.1 | ISC |
+| d3-sankey | 0.12.3 | BSD-3-Clause |
+| d3-scale | 4.0.2 | ISC |
+| d3-scale-chromatic | 3.1.0 | ISC |
+| d3-selection | 3.0.0 | ISC |
+| d3-shape | 1.3.7 | BSD-3-Clause |
+| d3-shape | 3.2.0 | ISC |
+| d3-time | 3.1.0 | ISC |
+| d3-time-format | 4.1.0 | ISC |
+| d3-timer | 3.0.1 | ISC |
+| d3-transition | 3.0.1 | ISC |
+| d3-zoom | 3.0.0 | ISC |
+| dagre-d3-es | 7.0.14 | MIT |
+| dayjs | 1.11.23 | MIT |
 | debug | 4.4.3 | MIT |
 | decode-named-character-reference | 1.3.0 | MIT |
+| delaunator | 5.1.0 | ISC |
 | dequal | 2.0.3 | MIT |
 | devlop | 1.1.0 | MIT |
 | dompurify | 3.4.17 | (MPL-2.0 OR Apache-2.0) |
 | entities | 7.0.1 | BSD-2-Clause |
+| es-toolkit | 1.53.0 | MIT |
 | escape-string-regexp | 5.0.0 | MIT |
 | estree-walker | 2.0.2 | MIT |
 | extend | 3.0.2 | MIT |
+| hachure-fill | 0.5.2 | MIT |
+| iconv-lite | 0.6.3 | MIT |
+| import-meta-resolve | 4.2.0 | MIT |
+| internmap | 1.0.1 | ISC |
+| internmap | 2.0.3 | ISC |
 | is-plain-obj | 4.1.0 | MIT |
 | katex | 0.16.47 | MIT |
+| khroma | 2.1.0 | MIT |
+| layout-base | 2.0.1 | MIT |
+| layout-base | 1.0.2 | MIT |
 | lodash-es | 4.18.1 | MIT |
 | longest-streak | 3.1.0 | MIT |
 | magic-string | 0.30.21 | MIT |
 | markdown-table | 3.0.4 | MIT |
+| marked | 16.4.2 | MIT |
 | mdast-util-definitions | 6.0.0 | MIT |
 | mdast-util-find-and-replace | 3.0.4 | MIT |
 | mdast-util-from-markdown | 2.1.0 | MIT |
@@ -235,6 +334,7 @@ None.
 | mdast-util-phrasing | 4.1.0 | MIT |
 | mdast-util-to-markdown | 2.2.0 | MIT |
 | mdast-util-to-string | 4.0.0 | MIT |
+| mermaid | 12.1.0 | MIT |
 | micromark | 4.0.3 | MIT |
 | micromark-core-commonmark | 2.0.4 | MIT |
 | micromark-extension-gfm | 3.0.0 | MIT |
@@ -270,7 +370,11 @@ None.
 | nanoid | 6.0.2 | MIT |
 | nanoid | 3.3.20 | MIT |
 | orderedmap | 2.1.1 | MIT |
+| package-manager-detector | 1.9.0 | MIT |
+| path-data-parser | 0.1.0 | MIT |
 | picocolors | 1.1.1 | ISC |
+| points-on-curve | 0.2.0 | MIT |
+| points-on-path | 0.2.1 | MIT |
 | postcss | 8.5.31 | MIT |
 | prosemirror-changeset | 2.4.4 | MIT |
 | prosemirror-commands | 1.7.2 | MIT |
@@ -292,16 +396,24 @@ None.
 | remark-inline-links | 7.0.0 | MIT |
 | remark-parse | 11.0.0 | MIT |
 | remark-stringify | 11.0.0 | MIT |
+| robust-predicates | 3.0.3 | Unlicense |
 | rope-sequence | 1.3.4 | MIT |
+| roughjs | 4.6.6 | MIT |
+| rw | 1.3.3 | BSD-3-Clause |
+| safer-buffer | 2.1.2 | MIT |
 | source-map-js | 1.2.2 | BSD-3-Clause |
 | style-mod | 4.1.4 | MIT |
+| stylis | 4.4.0 | MIT |
+| tinyexec | 1.3.1 | MIT |
 | trough | 2.2.0 | MIT |
+| ts-dedent | 2.3.0 | MIT |
 | typescript | 5.9.3 | Apache-2.0 |
 | unified | 11.0.5 | MIT |
 | unist-util-is | 6.0.1 | MIT |
 | unist-util-stringify-position | 4.0.0 | MIT |
 | unist-util-visit | 5.2.0 | MIT |
 | unist-util-visit-parents | 6.1.0 | MIT |
+| uuid | 14.0.3 | MIT |
 | vfile | 6.0.3 | MIT |
 | vfile-message | 4.0.3 | MIT |
 | vue | 3.5.44 | MIT |

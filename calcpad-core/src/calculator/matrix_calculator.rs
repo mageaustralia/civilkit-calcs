@@ -1,6 +1,6 @@
 //! Port of Calculator/MatrixCalculator.cs.
 use super::vector_calculator::lookup_ci;
-use super::{index_out_of_range, Calculator, POWER_OPERATOR_INDEX};
+use super::{general_eigen_calc, generalized_eigen_calc, index_out_of_range, Calculator, POWER_OPERATOR_INDEX};
 use crate::base_types::complex_value::ComplexValue;
 use crate::base_types::real_value::RealValue;
 use crate::base_types::value::Value;
@@ -12,7 +12,7 @@ use crate::matrix::{
 };
 use crate::vector::{cs_int, hp_vector, Relation, Vector};
 
-pub const FUNCTION_NAMES: [(&str, i64); 42] = [
+pub const FUNCTION_NAMES: [(&str, i64); 44] = [
     ("identity", 0),
     ("utriang", 1),
     ("ltriang", 2),
@@ -55,6 +55,8 @@ pub const FUNCTION_NAMES: [(&str, i64); 42] = [
     ("ift", 37),
     ("lu", 38),
     ("polyroots", 39),
+    ("ceigenvals", 40),
+    ("ceigenvecs", 41),
 ];
 
 pub const FUNCTION2_NAMES: [(&str, i64); 36] = [
@@ -248,6 +250,8 @@ pub fn evaluate_matrix_function(index: i64, a: &Value) -> CResult<Value> {
         36 => Value::Matrix(hp_matrix::fft(&a.as_matrix_hp(Items::Argument)?, false)?),
         37 => Value::Matrix(hp_matrix::fft(&a.as_matrix_hp(Items::Argument)?, true)?),
         39 => poly_roots(&a.as_vector(Items::Argument)?)?,
+        40 => general_eigen_calc::complex_eigen(&a.as_matrix(Items::Argument)?, false)?,
+        41 => general_eigen_calc::complex_eigen(&a.as_matrix(Items::Argument)?, true)?,
         _ => return Err(index_out_of_range()),
     })
 }
@@ -518,9 +522,16 @@ pub fn evaluate_matrix_iterative_function(index: i64, a: &Value, b: &Value, tol:
             }
         }
         2..=4 => {
+            if let (Value::Matrix(k), Value::Matrix(m)) = (a, b) {
+                return generalized_eigen_calc::generalized_eigen(index, k, m, tol);
+            }
             let n = cs_int(b.as_real_checked(Items::Argument)?.d);
             let ma = match a {
                 Value::Matrix(m) if matches!(m.mtype(), MatrixType::Symmetric | MatrixType::Diagonal) => m.clone(),
+                Value::Matrix(m) => match general_eigen_calc::as_symmetric(m)? {
+                    Some(s) => s,
+                    None => return general_eigen_calc::real_eigen(index, m, n),
+                },
                 _ => return Err(exceptions::MatrixMustBeSymmetric()),
             };
             match index {

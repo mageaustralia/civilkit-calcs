@@ -1,0 +1,222 @@
+/* The editor's rename box and the variable palette (editor/nav/). Colours come from the CivilKit
+   tokens, so light and dark follow the app theme. Both boxes sit at the TOP of the window or of
+   the editor, so an on-screen keyboard never covers them. */
+
+.ck-nav {
+    font-family: var(--ck-font);
+    font-size: var(--ck-text-m);
+    color: var(--ck-text);
+    background: var(--ck-raised);
+    border: 1px solid var(--ck-line);
+    border-radius: var(--ck-radius);
+    box-shadow: var(--ck-shadow);
+    box-sizing: border-box;
+    padding: var(--ck-space-3);
+}
+
+.ck-nav-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 9px;
+    font: inherit;
+    font-family: var(--ck-mono);
+    color: var(--ck-text);
+    background: var(--ck-sunken);
+    border: 1px solid var(--ck-text-3);
+    border-radius: var(--ck-radius-s);
+}
+
+.ck-nav-input:focus-visible,
+.ck-nav-btn:focus-visible,
+.ck-pal-go:focus-visible {
+    outline: var(--ck-focus-ring);
+    outline-offset: 1px;
+}
+
+/* ---- rename box: an overlay widget at the top right of the editor ---- */
+
+.ck-rename {
+    position: absolute;
+    top: 6px;
+    right: 18px;
+    width: min(380px, calc(100% - 36px));
+    z-index: 60;
+}
+
+.ck-nav-title {
+    margin-bottom: var(--ck-space-2);
+    color: var(--ck-text-2);
+}
+
+.ck-nav-name {
+    font-family: var(--ck-mono);
+    color: var(--ck-text);
+}
+
+.ck-nav-kind {
+    font-size: var(--ck-text-s);
+    color: var(--ck-text-3);
+}
+
+.ck-nav-count {
+    margin-top: var(--ck-space-2);
+    color: var(--ck-text);
+    font-weight: 600;
+}
+
+.ck-nav-msg {
+    min-height: 1.2em;
+    margin-top: var(--ck-space-1);
+    font-size: var(--ck-text-s);
+    color: var(--ck-text-2);
+}
+
+.ck-nav-err { color: var(--ck-err); }
+.ck-nav-warn { color: var(--ck-warn); }
+
+.ck-nav-note {
+    margin-top: var(--ck-space-2);
+    font-size: var(--ck-text-s);
+    color: var(--ck-text-3);
+}
+
+.ck-nav-preview {
+    list-style: none;
+    margin: var(--ck-space-2) 0 0;
+    padding: 0;
+    max-height: 9.5em;
+    overflow: auto;
+    font-family: var(--ck-mono);
+    font-size: var(--ck-text-s);
+}
+
+.ck-nav-preview:empty { display: none; }
+
+.ck-nav-prev,
+.ck-nav-more {
+    display: flex;
+    gap: var(--ck-space-2);
+    padding: 2px 4px;
+    border-radius: var(--ck-radius-s);
+    white-space: nowrap;
+}
+
+.ck-nav-prev:nth-child(odd) { background: var(--ck-accent-soft); }
+.ck-nav-ln { flex: none; min-width: 2.4em; text-align: right; color: var(--ck-text-3); }
+.ck-nav-after { overflow: hidden; text-overflow: ellipsis; }
+.ck-nav-more { color: var(--ck-text-3); font-family: var(--ck-font); }
+
+.ck-nav-actions {
+    display: flex;
+    gap: var(--ck-space-2);
+    justify-content: flex-end;
+    margin-top: var(--ck-space-3);
+}
+
+.ck-nav-btn {
+    font: inherit;
+    padding: 6px 14px;
+    min-height: 32px;
+    color: var(--ck-text);
+    background: var(--ck-raised);
+    border: 1px solid var(--ck-text-3);
+    border-radius: var(--ck-radius-s);
+    cursor: pointer;
+}
+
+.ck-nav-primary {
+    color: var(--ck-on-accent);
+    background: var(--ck-accent-strong);
+    border-color: var(--ck-accent-strong);
+}
+
+.ck-nav-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* Every place a rename will change. */
+.monaco-editor .ck-rename-hit {
+    background: var(--ck-selection);
+    border-bottom: 2px solid var(--ck-accent);
+}
+
+/* ---- the palette: a box at the top of the window ---- */
+
+.ck-pal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 9vh;
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.ck-palette {
+    width: min(620px, calc(100vw - 24px));
+    padding: var(--ck-space-2);
+    background: var(--ck-raised);
+}
+
+.ck-pal-list {
+    max-height: min(50vh, 380px);
+    overflow-y: auto;
+    margin-top: var(--ck-space-2);
+}
+
+.ck-pal-empty { padding: var(--ck-space-3); color: var(--ck-text-3); }
+
+.ck-pal-row {
+    position: relative;
+    padding: 6px 40px 6px 10px;
+    border-radius: var(--ck-radius-s);
+    cursor: pointer;
+}
+
+.ck-pal-row.ck-sel,
+.ck-pal-row:hover { background: var(--ck-accent-soft); }
+.ck-pal-row.ck-sel { outline: 1px solid var(--ck-accent); outline-offset: -1px; }
+
+.ck-pal-main { display: flex; gap: var(--ck-space-3); justify-content: space-between; align-items: baseline; }
+.ck-pal-name { font-family: var(--ck-mono); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ck-pal-name mark { background: transparent; color: var(--ck-accent); text-decoration: underline; }
+.ck-pal-sig { font-weight: 400; color: var(--ck-text-2); }
+.ck-pal-val { font-family: var(--ck-mono); color: var(--ck-text); white-space: nowrap; flex: none; max-width: 50%; overflow: hidden; text-overflow: ellipsis; }
+
+.ck-pal-meta {
+    margin-top: 1px;
+    font-size: var(--ck-text-s);
+    color: var(--ck-text-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ck-pal-go {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    font: inherit;
+    color: var(--ck-text-2);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--ck-radius-s);
+    cursor: pointer;
+}
+
+.ck-pal-go:hover:not(:disabled) { color: var(--ck-accent); border-color: var(--ck-line); }
+.ck-pal-go:disabled { opacity: 0.3; cursor: default; }
+
+.ck-pal-foot { margin-top: var(--ck-space-2); padding: 0 var(--ck-space-1); font-size: var(--ck-text-xs); color: var(--ck-text-3); }
+
+/* ---- phones: the boxes use the full width, at the top ---- */
+@media (max-width: 760px) {
+    .ck-rename { left: 6px; right: 6px; width: auto; top: 4px; }
+    .ck-pal-backdrop { padding-top: 6px; }
+    .ck-palette { width: calc(100vw - 12px); }
+    .ck-pal-list { max-height: min(42dvh, 320px); }
+    .ck-nav-input { font-size: 16px; } /* no zoom on focus in iOS */
+    .ck-nav-preview { max-height: 6em; }
+}

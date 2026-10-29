@@ -83,24 +83,133 @@ factorisation otherwise. `clsolve` uses Cholesky and `slsolve` an iterative meth
 sparse systems. `msolve` solves for several right-hand sides at once. `inverse`, `det`, `rank`,
 `cond`, `lu`, `qr`, `svd`, `cholesky`, `eigenvals`, `eigenvecs` and `eigen` are there too.
 
-The eigenvalue functions need a matrix of the *symmetric* type. A literal is a general matrix,
-so copy it into a symmetric one first:
+## Eigenvalues and eigenvectors
 
 ```sheet
 K: [4, -2; -2, 3]
-Ks: copy(K, symmetric(2), 1, 1)
-lam: eigenvals(Ks)
-V: eigenvecs(Ks)
+lam: eigenvals(K)
+V: eigenvecs(K)
+E: eigen(K)
 ```
 
 ```text
-lam = eigenvals(Ks) = [1.44 5.56]
-V = eigenvecs(Ks) = | -0.615 -0.788 |
-                    | -0.788  0.615 |
+lam = eigenvals(K) = [1.44 5.56]
+V = eigenvecs(K) = | -0.615 -0.788 |
+                   | -0.788  0.615 |
+E = eigen(K) = | 1.44 -0.615 -0.788 |
+               | 5.56 -0.788  0.615 |
 ```
 
-Without the copy the engine reports `Matrix must be symmetric.`, even for a matrix that is
-symmetric as written.
+`eigenvals(M)` returns the eigenvalues of a square matrix in ascending order.
+`eigenvecs(M)` returns one unit eigenvector per **row**, in the same order, and `eigen(M)` gives
+both at once with the eigenvalue in the first column. A second argument keeps only some of them:
+`eigenvals(M, 2)` is the two smallest and `eigenvals(M, -1)` the largest. Units carry over, so a
+stress tensor in MPa has principal stresses in MPa.
+
+The matrix does not have to be symmetric:
+
+<!-- expect: eigenvals(A) = [2 5] | eigenvals(A; -1) = [5] -->
+```sheet
+A: [4, 1; 2, 3]
+lam: eigenvals(A)
+V: eigenvecs(A)
+lmax: eigenvals(A, -1)
+```
+
+```text
+lam = eigenvals(A) = [2 5]
+V = eigenvecs(A) = | -0.447 0.894 |
+                   |  0.707 0.707 |
+lmax = eigenvals(A; -1) = [5]
+```
+
+A symmetric matrix uses the symmetric solver. Any other square matrix is reduced to Hessenberg form
+and solved with the shifted QR iteration; each eigenvector is scaled to unit length with its largest
+component positive.
+
+### Complex eigenvalues
+
+A real matrix that is not symmetric can have complex eigenvalues, which a vector cannot hold.
+`eigenvals` then stops with `The matrix has complex eigenvalues.` Use `ceigenvals` and
+`ceigenvecs`, which write each complex number as a real part and an imaginary part, the same
+layout `fft` uses:
+
+<!-- expect: ceigenvals(R) = 1 1 -2 2 -->
+```sheet
+R: [1, -2; 2, 1]
+C: ceigenvals(R)
+W: ceigenvecs(R)
+```
+
+```text
+C = ceigenvals(R) = |  1 1 |
+                    | -2 2 |
+W = ceigenvecs(R) = | 0.707     0 |
+                    |     0 0.707 |
+                    | 0.707     0 |
+                    |     0 -0.707 |
+```
+
+Column k of `ceigenvals` is eigenvalue k: row 1 is the real part and row 2 the imaginary part,
+so the eigenvalues above are 1 - 2i and 1 + 2i. In `ceigenvecs` eigenvector k is row 2k - 1
+(real parts) plus row 2k (imaginary parts): the first one is [0.707, 0.707i]. They are sorted by
+real part, then imaginary part.
+
+For the polar form, magnitude and angle, use the two rows:
+
+```sheet
+R: [1, -2; 2, 1]
+C: ceigenvals(R)
+mag: sqrt(row(C, 1)^2 + row(C, 2)^2)
+ang: atan2(row(C, 1), row(C, 2))
+```
+
+```text
+mag = [2.24 2.24]
+ang = atan2(row(C; 1); row(C; 2)) = [-63.43 63.43]
+```
+
+In a Calcpad document with complex numbers switched on in Settings, `#phasor` shows every
+complex result as magnitude∠angle, and `#complex` switches back to a + bi.
+
+### Natural frequencies: K x = λ M x
+
+Give `eigenvals`, `eigenvecs` or `eigen` a second matrix and they solve the generalized problem
+K x = λ M x. With a stiffness matrix K and a mass matrix M, each λ is ω², the square of a natural
+circular frequency:
+
+<!-- expect: eigenvals(K; M) = [585.79 3414.21] | = 3.85 Hz | row(Φ; 1)) = 1 -->
+```sheet
+k: 20000 kN/m
+m: 10 t
+K: [2*k, -k; -k, k]
+M: [2*m, 0 t; 0 t, m]
+λ: eigenvals(K, M)
+f_1: sqrt(λ.1)/(2*π) -> Hz
+Phi: eigenvecs(K, M)
+m_1: dot(row(Phi, 1), M*row(Phi, 1))
+```
+
+```text
+λ = eigenvals(K; M) = [585.79 3414.21] s⁻²
+f_1 = 3.85 Hz
+Φ = eigenvecs(K; M) = |  0.158 0.224 | t^-0.5
+                      | -0.158 0.224 |
+m_1 = 1
+```
+
+K must be symmetric and M symmetric positive definite, both square and the same size; anything
+else stops with a message that says which matrix is wrong. The eigenvalues come in ascending order
+with the units of K/M (kN/m over t is s⁻²). Each mode shape is a row of `eigenvecs(K, M)`, scaled so
+that xᵀ M x = 1 and turned so that its largest component is positive; its units are those of
+M^-0.5, so the modal mass `m_1` above is exactly 1. Divide a row by one of its components to scale
+it to 1 at that point instead. Internally M is factored by Cholesky (M = L Lᵀ), the problem is
+turned into the symmetric one of L⁻¹ K L⁻ᵀ, solved with the symmetric solver, and transformed back.
+To keep only the lowest modes, take them from the result: `first(eigenvals(K, M), 3)`.
+
+The samples *Principal stresses* (a plane and a 3D stress tensor, checked with Mohr's circle) and
+*Shear frame natural frequencies* (the frequencies and mode shapes of a two storey frame from
+`eigenvals(K, M)`) use these functions.
 
 ## Building vectors and matrices
 

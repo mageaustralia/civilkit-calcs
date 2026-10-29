@@ -38,6 +38,11 @@ pub struct UiDto {
     pub column_widths: Option<Vec<i32>>,
     pub keys: Option<Vec<Option<String>>>,
     pub values: Option<Vec<Option<String>>>,
+    /// An addition to the C# payload: the bounds and the step of a number entry, in the entry's own
+    /// unit. The form draws a slider beside the box when `min` and `max` are given (DEVIATIONS.md, D16).
+    pub min: Option<f64>,
+    pub max: Option<f64>,
+    pub step: Option<f64>,
 }
 
 /// The JSON could not be read (C# `JsonException`).
@@ -67,6 +72,14 @@ fn get_int(v: &Json) -> Result<Option<i32>, JsonError> {
             Some(i) if i >= i32::MIN as i64 && i <= i32::MAX as i64 => Ok(Some(i as i32)),
             _ => Err(JsonError),
         },
+        _ => Err(JsonError),
+    }
+}
+
+fn get_f64(v: &Json) -> Result<Option<f64>, JsonError> {
+    match v {
+        Json::Null => Ok(None),
+        Json::Number(n) => n.as_f64().map(Some).ok_or(JsonError),
         _ => Err(JsonError),
     }
 }
@@ -125,6 +138,9 @@ impl UiDto {
                 "columnwidths" => d.column_widths = get_int_array(v)?,
                 "keys" => d.keys = get_str_array(v)?,
                 "values" => d.values = get_str_array(v)?,
+                "min" => d.min = get_f64(v)?,
+                "max" => d.max = get_f64(v)?,
+                "step" => d.step = get_f64(v)?,
                 _ => {}
             }
         }
@@ -183,6 +199,7 @@ impl UiDto {
         if matches!(ty, Some("entry" | "dropdown" | "radio" | "checkbox")) {
             self.validate_grid_properties(&mut errors);
         }
+        self.validate_range(&mut errors);
         check_not_negative(&mut errors, "rows", self.rows);
         check_not_negative(&mut errors, "columns", self.columns);
         check_not_negative(&mut errors, "rowHeaderWidth", self.row_header_width);
@@ -247,6 +264,31 @@ impl UiDto {
         grid_only(errors, "width", self.width.is_some());
         grid_only(errors, "rowHeaderWidth", self.row_header_width.is_some());
         grid_only(errors, "columnWidths", self.column_widths.is_some());
+    }
+
+    /// `min`, `max` and `step` belong to a number entry; `min` must not be above `max` and `step`
+    /// must be above zero.
+    fn validate_range(&self, errors: &mut Vec<String>) {
+        let ty = self.ty.as_deref();
+        if !matches!(ty, None | Some("entry")) {
+            for (name, present) in [("min", self.min.is_some()), ("max", self.max.is_some()), ("step", self.step.is_some())] {
+                if present {
+                    errors.push(fmt(messages::The_UI_0_only_applies_to_an_entry, &[name]));
+                }
+            }
+            return;
+        }
+        if let (Some(lo), Some(hi)) = (self.min, self.max) {
+            if lo > hi {
+                errors.push(fmt(
+                    messages::The_UI_min_must_not_be_above_max,
+                    &[&crate::netfmt::double_to_string(lo), &crate::netfmt::double_to_string(hi)],
+                ));
+            }
+        }
+        if self.step.is_some_and(|s| s.is_nan() || s <= 0.0) {
+            errors.push(messages::The_UI_step_must_be_above_zero.to_string());
+        }
     }
 
     fn validate_width(&self, errors: &mut Vec<String>) {

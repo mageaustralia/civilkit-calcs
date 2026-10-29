@@ -8,6 +8,7 @@ import { SHEET_LANGUAGE } from './sheet-language';
 import { applyProse, proseState } from './prose-format';
 import type { ProseAction } from './prose-format';
 import { ProseToolbar, isTouchDevice } from './prose-toolbar';
+import { canConvertToFormula, formulaButton } from './to-formula-monaco';
 
 /** Which lines of a sheet are plain prose: kind `p` and outside code fences and `$$` display formulas. */
 export function proseLines(lines: string[], kinds: string): boolean[] {
@@ -29,6 +30,8 @@ export function attachProseToolbar(ed: monaco.editor.IStandaloneCodeEditor): voi
     const host = ed.getContainerDomNode();
     if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
     let bar: ProseToolbar | null = null;
+    // "= Formula" (to-formula-monaco.ts), shown while the selection is an expression.
+    let formula: HTMLButtonElement | null = null;
     let cacheVersion = -1;
     let cache: boolean[] = [];
 
@@ -61,6 +64,8 @@ export function attachProseToolbar(ed: monaco.editor.IStandaloneCodeEditor): voi
     const ensure = (): ProseToolbar => {
         if (bar) return bar;
         bar = new ProseToolbar(act => run(act));
+        formula = formulaButton(ed);
+        bar.el.appendChild(formula);
         host.appendChild(bar.el);
         return bar;
     };
@@ -73,6 +78,7 @@ export function attachProseToolbar(ed: monaco.editor.IStandaloneCodeEditor): voi
         const tb = ensure();
         const line = t.model.getLineContent(t.l1 + 1);
         tb.setState(proseState(line, t.c1, t.l1 === t.l2 ? t.c2 : line.length));
+        if (formula) formula.hidden = s.isEmpty() || !canConvertToFormula(ed);
         tb.show();
         const pos = ed.getScrolledVisiblePosition({ lineNumber: s.startLineNumber, column: s.startColumn });
         if (!pos) { tb.hide(); return; }

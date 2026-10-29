@@ -12,7 +12,19 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ## [Unreleased]
 
 ### Added
-- A "What's new" page, `whats-new/` beside the app (`https://civilkit.io/calcs/whats-new/`): for each release a few short looping clips of its headline features, then the changelog's Added, Changed and Fixed bullets. `tools/make_whats_new.mjs` writes the static page from `CHANGELOG.md` and `web/calcpad-web/whats-new/clips.json`; `web/e2e/clips/record.mjs` records the clips from the real app (WebM with an MP4 fallback, not committed; the posters are). The page is left out of the service worker precache, and the About dialog links to it. `web/e2e/whats-new-check.mjs` checks it.
+- **Sliders** - `L: ? 6 m [2 .. 12 step 0.5] | span` is a number input with bounds, drawn in Input mode as a slider with the number box beside it. It works by touch and with the keyboard, a typed value outside the bounds shows `must be from 2 to 12` beside the box, and the bounds are checked in the sheet; the engine's `#UI` takes `min`, `max` and `step` (D17 in DEVIATIONS.md).
+- **SI unit prefixes** - `3 mN`, `5 µm`, `40 nF`, `1.2 kΩ`, `2 GPa` and the like all work (yocto `y` to yotta `Y`; micro as `μ`, `µ` or `u`), where before only prefixed names the unit list spelled out were units. Non-SI units stay unprefixed; `ks` is still the metric horsepower. See D16 in DEVIATIONS.md.
+- **Folding sections and key results** - A heading that ends with `{collapse}` folds the section under it in the preview and the report until the reader clicks it, a line ending with `{key}` gets a star, and `{key results}` lists the key lines above it. Print, PDF and the exports show everything; the preview's own fold arrow on other headings is a separate view-only fold.
+- **Editor navigation** - One completion provider serves worksheets and sheets (names above the cursor with their last value, the function being written, built-in functions, units, block keywords), nothing is offered in prose, notes or strings, and Rename Everywhere (F2) and a Variable palette (Ctrl+; or Cmd+;) work in both editors.
+- **What's new page** - `whats-new/` beside the app shows, for each release, a few short looping clips of its headline features and then the changelog's Added, Changed and Fixed items. `tools/make_whats_new.mjs` writes it from `CHANGELOG.md`, and `web/e2e/whats-new-check.mjs` checks it.
+- **Block grip menu** - A grip beside each block of the sheet preview opens a menu to move, duplicate, cut, copy, paste below, disable or enable and delete the block, with an Undo toast; Ctrl/Cmd+Shift+K deletes the block at the caret.
+- **Heading collapse and drag reorder** - Headings in the sheet preview fold their section with an arrow (Collapse all and Expand all in the heading's menu), and dragging a grip moves a block, or a heading with its section.
+- **Prose toolbar** - A floating bar over prose in the source and in-place editors (Style, bold, italic, code, link, lists) whose tooltips show the Markdown each button types.
+- **Name completion in calculation lines** - Typing in a sheet calculation offers the names defined above and the built-in functions, and nothing while writing prose.
+
+### Changed
+- **Input form focus** - The input form keeps the focus on the control you were using when it re-runs the sheet (a slider, a drop-down, a radio button or a box), so the arrow keys keep moving a slider.
+- **Find references** - In a sheet it uses the same scan as rename, so a parameter is a separate name and strings and units are not matches.
 
 ## [26.10.12] - 2026-10-28
 
