@@ -32,6 +32,8 @@ use calcpad_core::CResult;
 use serde_json::Value as Json;
 use wasm_bindgen::prelude::*;
 
+mod message_markup;
+
 pub mod mapped_choices;
 
 const TEMPLATE: &str = include_str!("../assets/template.html");
@@ -210,7 +212,20 @@ pub fn convert(request_json: &str, unwrap: bool) -> String {
             });
         }
     }
+    // A host that translates the engine's messages asks for them to be recorded (and marked in the page, below).
+    let codes = prop_bool(&req, "messageCodes").unwrap_or(false);
+    if codes {
+        calcpad_core::math_parser_exception::message_codes::start();
+    }
     let (mut html, errors, expressions, xlsx) = convert_inner(&r, unwrap || r.force_unwrapped_code);
+    let coded = if codes {
+        calcpad_core::math_parser_exception::message_codes::finish()
+    } else {
+        Vec::new()
+    };
+    if codes {
+        html = message_markup::annotate(&html, &coded);
+    }
     FILES.with(|f| {
         let mut f = f.borrow_mut();
         for key in &borrowed {
@@ -234,7 +249,7 @@ pub fn convert(request_json: &str, unwrap: bool) -> String {
     let errors_json: Vec<Json> = errors
         .iter()
         .map(|e| {
-            serde_json::json!({
+            let mut entry = serde_json::json!({
                 "sourceLine": e.source_line,
                 "outputLine": e.output_line,
                 "message": e.message,
@@ -242,7 +257,12 @@ pub fn convert(request_json: &str, unwrap: bool) -> String {
                     CalcpadErrorSource::Macro => "Macro",
                     CalcpadErrorSource::Expression => "Expression",
                 },
-            })
+            });
+            if let Some((code, args)) = message_markup::for_error(&e.message, &coded) {
+                entry["code"] = Json::String(code.to_string());
+                entry["args"] = args;
+            }
+            entry
         })
         .collect();
     let mut out = serde_json::json!({ "html": html, "errors": errors_json, "files": files });

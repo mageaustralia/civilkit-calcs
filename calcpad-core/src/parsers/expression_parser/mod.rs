@@ -17,7 +17,7 @@ use crate::base_types::value::Value;
 use crate::calcpad_error::{CalcpadError, CalcpadErrorSource};
 use crate::extension_methods::{tag_end_index, trim, trim_end};
 use crate::markdig;
-use crate::math_parser_exception::{CResult, MathParserException};
+use crate::math_parser_exception::{message_codes, CResult, MathParserException};
 use crate::messages;
 use crate::netfmt::{self, fmt, html_encode};
 use crate::output::html_writer::HtmlWriter;
@@ -1176,12 +1176,13 @@ impl ExpressionParser {
 
     fn format_error(&self, expr: &str, msg: &str) -> String {
         if self.show_error_lines {
-            fmt(
+            message_codes::format(
+                "Error_in_0_on_line_1_2",
                 messages::Error_in_0_on_line_1_2,
                 &[expr, &ExpressionParser::line_html(self.cur()), msg],
             )
         } else {
-            fmt(messages::Error_in_0_1, &[expr, msg])
+            message_codes::format("Error_in_0_1", messages::Error_in_0_1, &[expr, msg])
         }
     }
 
