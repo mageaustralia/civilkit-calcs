@@ -205,6 +205,16 @@ node e2e/symbolic-check.mjs       # Symbolic dialog: each operation, typeset res
 node ../tools/set_version.mjs --check
 ```
 
+## Checked at 26.10.14
+
+On the release tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded) passed 6110 tests and `calcpad-sheet` 106, with no
+failures. Browser checks on the release build, served at the root: `sheet-check`, `inputs-check`, `ribbon-check`, `fence-click-check`,
+`browser-check` (all checks) and, on the build with the `/calcs/` base, `browser-check`, `sample-link-check`, `pwa-check` (with `PWA_BASE=/calcs/`)
+and `learn-check` (744 checks over the ten landing pages, 97 quoted engine values compared with a fresh run) all passed; `whats-new-check` and
+`whats-new-browser-check` passed. The user guide's 104 examples all run (`book/check-examples.sh`). Not run for this release: `plot3d-check`,
+`symbolic-check`, `import-check`, `python-check` and the other smaller checks. Not tested: a real phone, `tsc` beyond the build, `clippy` on the
+whole workspace, `cargo fmt --check`.
+
 ## Checked at 26.10.13
 
 On the release tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded) passed 6110 tests and `calcpad-sheet` 106, with no

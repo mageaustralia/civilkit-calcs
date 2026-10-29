@@ -1,6 +1,6 @@
 {
   "name": "calcpad-frontend",
-  "version": "26.10.13",
+  "version": "26.10.14",
   "description": "Shared CalcpadCE frontend logic for VS Code extension, Tauri desktop app, and web browser app",
   "author": "CalcpadCE Contributors",
   "license": "MIT",

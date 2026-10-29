@@ -2,12 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://civilkit.io/calcs/</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/</loc></url>
+  <url><loc>https://civilkit.io/calcs/whats-new/</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/getting-started/first-sheet.html</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/getting-started/screen.html</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/getting-started/saving.html</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/sheet/index.html</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/sheet/quantities.html</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/sheet/prose.html</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/sheet/diagrams.html</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/sheet/sections.html</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/sheet/flow.html</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/sheet/functions.html</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/sheet/passthrough.html</loc></url>

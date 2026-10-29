@@ -193,7 +193,7 @@
 </section>
 <section>
 <h2>The sheet source</h2>
-<p>This is the template exactly as it ships. The lines with a question mark are the inputs; everything else is calculation and text. You can copy it into the app, or open the template and edit it.</p>
+<p>This is the template exactly as it ships. The lines with a question mark are the inputs, and the span and load show as sliders in Input mode; everything else is calculation and text. You can copy it into the app, or open the template and edit it.</p>
 <pre><code># Simply supported beam check
 
 A template with inputs. Choose **Input** in the results bar to fill in the form; every change
@@ -203,8 +203,8 @@ compares the bending stress $\sigma = M/Z$ with an allowable stress and the mid-
 $\delta = 5 w L^4 / (384 E I)$ with a limit.
 
 ## Inputs
-L:     ? 6 m | span
-w:     ? 12 kN/m | applied uniform load
+L:     ? 6 m [2 .. 12 step 0.5] | span
+w:     ? 12 kN/m [2 .. 40 step 1] | applied uniform load
 h:     ? [200 mm deep = 200 mm, *300 mm deep = 300 mm, 400 mm deep = 400 mm] | I-beam section
 mat:   ? [Structural steel = 1, Aluminium = 2, Timber = 3] | material
 limit: ? (L/250 = 250, L/360 = 360, L/500 = 500) | deflection limit
