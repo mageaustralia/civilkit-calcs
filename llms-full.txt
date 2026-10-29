@@ -5721,6 +5721,191 @@ The app can be installed to the home screen and works offline. See
 
 ---
 
+Chapter: Embedding a calculator
+URL: https://civilkit.io/calcs/guide/embedding
+
+# Embedding a calculator
+
+<!-- description: Put a live sheet on another web page: the embed address, its options, the loader script, sandboxing and the postMessage API for setting inputs. -->
+
+An **embed** shows one sample sheet on another web page: its inputs as a small form and its results beside or under
+it. A reader changes an input and the results recalculate in their own browser, with the workings shown. The page
+[Embed a calculator](https://civilkit.io/calcs/embed/) lists the calculators with a snippet to copy for each.
+
+## The embed address
+
+An embed is the app's address with `embed=1` and the id of a sample:
+
+```html
+<iframe src="https://civilkit.io/calcs/?embed=1&sample=template-simply-supported-beam"
+        width="100%" height="560" style="border:1px solid #ccc" loading="lazy"
+        title="Simply supported beam check: CivilKit Calcs" allow=""
+        sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+```
+
+The id is the one the samples browser and the `?sample=` links use. The embed shows no ribbon, no sidebar, no tabs
+and no editor: a slim header with the sheet's title and an **Open in CivilKit Calcs** link (it opens the same
+sample in the full app in a new tab), the form and the results.
+
+The form is drawn from the sheet's input lines (see [Templates with inputs](templates.md)): a number box, a
+slider for a number with bounds (`L: ? 6 m [2 .. 12 step 0.5]`), a list, radio buttons or a checkbox. A typed number
+outside the slider's bounds is not used and the box says why. A sheet with no inputs at all gets its plain number
+lines (`L: 9.8 m | span`) as inputs, so a worked example can still be tried.
+
+| Option | Values | What it does |
+|---|---|---|
+| `sample` | a sample id | The sheet to show (default: the simply supported beam template). |
+| `theme` | `light`, `dark`, `auto` | `auto` (the default) follows the reader's system setting. |
+| `mode` | `input`, `results`, `both` | Only the form, only the results, or both (the default). |
+| `hide` | `title` | Leaves out the title (the Open link stays). |
+| `embed` | `1`, `edit` | `edit` adds a small text editor below, for changing the sheet itself. |
+| `allowpython` | `1` | Lets the sheet's Python blocks run (the reader is still asked first). |
+
+Without `allowpython=1` the Python blocks of a sheet are not run: the embed shows their code and a note, and the
+results that need them are missing.
+
+## The loader script
+
+Instead of writing the frame yourself, put a placeholder where it goes and load the script once:
+
+```html
+<div data-civilkit-sample="template-pipe-flow-darcy" data-height="560" data-theme="auto"></div>
+<script src="https://civilkit.io/calcs/embed.js" async></script>
+```
+
+The script (about 3 KB, no dependencies) turns each placeholder into the frame above, with the sandbox, and then
+fits the frame's height to its content as the reader works. It accepts `data-theme`, `data-mode`, `data-hide`,
+`data-height` (the height before the content is measured) and `data-title`. For a copy of Calcs on your own host,
+`data-origin` and `data-path` say where it lives (`https://example.com` and `/calcs/`); the script accepts height
+messages only from that origin. Each message from the frame is also fired on the iframe as a `civilkit` event.
+
+## Talking to the embed
+
+The embed and the page around it talk with `postMessage`. The embed answers only its parent page
+(`event.source === window.parent`) and checks every value; the page should check that a message comes from
+`https://civilkit.io` (or its own copy).
+
+| Message | Direction | Meaning |
+|---|---|---|
+| `{type: 'civilkit-ready', sample, inputs}` | embed to page | The form is built. `inputs` lists each input: `name`, `kind` (`number`, `select`, `radio`, `check`), `label`, `unit`, `value`, and `min`, `max`, `step` or `options`. |
+| `{type: 'civilkit-results', sample, values}` | embed to page | After each calculation. `values` maps each name to `{value, unit, text}`: a number where the value is one, and the text as shown. |
+| `{type: 'civilkit-embed-height', height}` | embed to page | The embed's content height in pixels, after every layout change. |
+| `{type: 'civilkit-error', errors}` | embed to page | A `civilkit-set` was refused in full or in part, with the reasons. |
+| `{type: 'civilkit-set', values: {L: 8}}` | page to embed | Sets inputs by name, then calculates. |
+| `{type: 'civilkit-get'}` | page to embed | Sends the last results again. |
+
+A value set from the page must name an input of the sheet. A number must be finite and, for a slider, within its
+bounds; a choice must be one of its option values (or labels); a checkbox takes `true`, `false`, `1` or `0`. The valid
+values of a message are applied and the others are reported in one `civilkit-error`.
+
+```js
+const frame = document.querySelector('iframe[src*="embed=1"]');
+window.addEventListener('message', (e) => {
+  if (e.origin !== 'https://civilkit.io' || e.source !== frame.contentWindow) return;
+  if (e.data.type === 'civilkit-results') console.log(e.data.values.M_max.text);
+});
+// Once the frame says it is ready:
+frame.contentWindow.postMessage({ type: 'civilkit-set', values: { L: 8, w: 20 } }, 'https://civilkit.io');
+```
+
+## Privacy
+
+The embed runs the same engine as the app, in the reader's browser. It sends nothing to a server, sets no cookies,
+loads no analytics and stores nothing: the app's own saved settings, files and open tabs are not changed by it. It does not register the app's offline service worker either (a reader who already uses the app
+gets the embed from the same offline copy).
+
+---
+
+Chapter: Using it from an AI assistant (MCP)
+URL: https://civilkit.io/calcs/guide/mcp
+
+# Using CivilKit Calcs from an AI assistant (MCP)
+
+An AI assistant such as Claude can run your calculations in CivilKit Calcs through the public MCP server at
+`https://civilkit.io/mcp`. MCP (the [Model Context Protocol](https://modelcontextprotocol.io/)) is the standard way assistants
+connect to tools. With the server added, an assistant can write a sheet, run it in the same engine as the app, read the values
+and units back, check a hand calculation, convert units, and look things up in this guide, the function reference and the samples.
+
+The server is read only and needs no account. It stores nothing: each request is calculated and answered, and that is all.
+
+## Adding the server
+
+**Claude Code**, in a terminal:
+
+```
+claude mcp add --transport http civilkit-calcs https://civilkit.io/mcp
+```
+
+**Claude Desktop and claude.ai**: Settings > Connectors > Add custom connector, with the URL `https://civilkit.io/mcp`.
+
+**Other clients** (Cursor, VS Code, and any client that takes a remote server): add an HTTP (Streamable HTTP) server with
+that URL. In a JSON configuration it usually looks like this:
+
+```
+{
+  "mcpServers": {
+    "civilkit-calcs": { "type": "http", "url": "https://civilkit.io/mcp" }
+  }
+}
+```
+
+A client that runs only local servers can reach it through the `mcp-remote` bridge:
+`{"command": "npx", "args": ["-y", "mcp-remote", "https://civilkit.io/mcp"]}`.
+
+Opening `https://civilkit.io/mcp` in a browser shows a short page with the same instructions.
+
+## What the assistant can do
+
+| Tool | What it does |
+| --- | --- |
+| `calcs_evaluate_sheet` | Runs a sheet and returns each quantity (name, value, unit, the rendered line, its note and line number), the errors with their lines, and the calculation as text. Input lines (`L: ? 6 m`) can be given other values. |
+| `calcs_evaluate_calcpad` | The same for a Calcpad worksheet (`.cpd` text). |
+| `calcs_check_hand_calc` | Recomputes a calculation with real units and compares it with your answer, within a tolerance. |
+| `calcs_convert_units` | Converts a value: `25 kN/m^2 -> kPa`. |
+| `calcs_search_functions`, `calcs_function_help` | The function, unit and command reference of [the reference chapter](reference/functions.md). |
+| `calcs_search_docs`, `calcs_get_guide_page` | Search this guide and read a chapter. |
+| `calcs_list_samples`, `calcs_get_sample` | The sample sheets, with the link that opens each in the app. |
+| `calcs_sheet_syntax` | The full sheet syntax reference, so the assistant writes sheets that compile. |
+
+There are also two prompts, *check my hand calc* and *write a sheet*, for clients that show prompts as commands.
+
+Things to ask, for example:
+
+* "Check my calculation: a 6 m simply supported beam with 12 kN/m, I got M = 56 kN·m."
+* "Write a CivilKit Calcs sheet for the bearing pressure under a 2 m square pad footing with 800 kN, and run it."
+* "Open the gable frame sample and tell me the thrust with a rigid ridge."
+
+The assistant gets the same numbers as the app. This sheet, run by `calcs_evaluate_sheet`, returns `Mstar` as 54 with the unit
+`kN*m`, and its line as 4:
+
+<!-- expect: M _star = w · L ^2 8 = 12 kN ∕ m · ( 6 m ) ^2 8 = 54 kN · m -->
+```sheet
+L: 6 m | span
+w: 12 kN/m | design load
+Mstar: w * L^2 / 8 -> kN*m | maximum bending moment
+```
+
+A sheet the assistant writes can be pasted into the app (File > New) to see it rendered, print it or export it.
+
+## Limits
+
+The server is public, so it limits what it runs:
+
+* A sheet or worksheet can be up to 64 KB, an expression up to 4 KB.
+* Each address can make 120 requests and 30 calculations a minute.
+* A calculation that runs longer than a few seconds is stopped. Loops with fixed bounds can make up to 200,000 passes.
+* Python blocks, `#include`, `#read`, `#write` and `#append` are not run: the server has no files and no network. Such a
+  worksheet runs in the app, where everything stays in your browser.
+* Plots and diagrams are not drawn; the result is text and numbers.
+
+## Privacy
+
+The server is stateless. What you send is calculated and answered; nothing is stored or logged, there are no cookies, accounts
+or sessions, and every request runs in a fresh copy of the engine. Requests are counted per address for the rate limit only.
+The app itself never sends your work anywhere: the MCP server is a separate service for assistants.
+
+---
+
 Chapter: Samples tour
 URL: https://civilkit.io/calcs/guide/samples
 

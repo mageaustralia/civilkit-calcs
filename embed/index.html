@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Embed a free engineering calculator on your site</title>
+<meta name="description" content="Put a live engineering calculator on your own page with one iframe. Free, MIT licensed, no tracking, and it calculates in the reader's browser.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/embed/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Embed a free engineering calculator on your site">
+<meta property="og:description" content="Put a live engineering calculator on your own page with one iframe. Free, MIT licensed, no tracking, and it calculates in the reader's browser.">
+<meta property="og:url" content="https://civilkit.io/calcs/embed/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Embed a free engineering calculator on your site">
+<meta name="twitter:description" content="Put a live engineering calculator on your own page with one iframe. Free, MIT licensed, no tracking, and it calculates in the reader's browser.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Embed",
+     "item": "https://civilkit.io/calcs/embed/"
+    }
+   ]
+  },
+  {
+   "@type": "WebPage",
+   "name": "Embed a free engineering calculator on your site",
+   "url": "https://civilkit.io/calcs/embed/",
+   "description": "Put a live engineering calculator on your own page with one iframe. Free, MIT licensed, no tracking, and it calculates in the reader's browser.",
+   "isPartOf": {
+    "@type": "WebSite",
+    "name": "CivilKit",
+    "url": "https://civilkit.io/"
+   },
+   "about": {
+    "@type": "SoftwareApplication",
+    "name": "CivilKit Calcs",
+    "url": "https://civilkit.io/calc/",
+    "description": "A free, open source engineering calculation sheet that runs in the browser. Real units, plots, input forms, Word, Excel and PDF export, offline use.",
+    "applicationCategory": "EngineeringApplication",
+    "applicationSubCategory": "Engineering calculation",
+    "operatingSystem": "Any",
+    "browserRequirements": "A current web browser with WebAssembly",
+    "isAccessibleForFree": true,
+    "license": "https://opensource.org/license/mit",
+    "offers": {
+     "@type": "Offer",
+     "price": "0",
+     "priceCurrency": "USD"
+    }
+   }
+  }
+ ]
+}
+</script>
+<style>
+.copyrow { margin: -0.3rem 0 1rem; }
+.copy { font: inherit; font-size: 0.875rem; padding: 0.3rem 0.9rem; border-radius: 6px; border: 2px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.copy:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+iframe.embed { display: block; width: 100%; border: 1px solid var(--line); border-radius: 6px; margin: 0.75rem 0; }
+.samples h3 { margin-top: 1.5rem; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <span>Embed</span></nav>
+<h1>Embed a live engineering calculator</h1>
+<div class="lead">
+<p>An embed is a small window onto a CivilKit Calcs sheet that sits on your own web page: the reader changes the inputs and the results recalculate on the spot, with the workings shown. You add it with one line of HTML. It is free, MIT licensed and has no tracking: the calculation runs in the reader's browser and nothing is sent to a server.</p>
+</div>
+<p class="cta"><a class="button" href="#samples">Pick a calculator</a> <a class="button ghost" href="/calcs/guide/embedding">Read the embedding guide</a></p>
+<section>
+<h2>A live example</h2>
+<p>This is the simply supported beam template, embedded exactly as the snippet below embeds it. Drag the span slider or type a load.</p>
+<iframe class="embed" src="/calcs/?embed=1&amp;sample=template-simply-supported-beam" width="100%" height="560" loading="lazy" title="simply supported beam check: live sheet" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+<p>The link at its top right, Open in CivilKit Calcs, opens the same sheet in the full app in a new tab, where the reader can edit it, save it and export a report.</p>
+</section>
+<section>
+<h2>How to add one</h2>
+<p>Copy the snippet of a calculator below into your page's HTML. That is all: no account, no key, no script of your own.</p>
+<pre><code id="code-example">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=template-simply-supported-beam&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;simply supported beam check: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-example" hidden>Copy</button></p>
+<p>Or let a small script place the frames and fit their height to the content: put a placeholder where each calculator goes and load the script once (about 3 KB, no dependencies).</p>
+<pre><code id="code-script">&lt;div data-civilkit-sample=&quot;template-simply-supported-beam&quot; data-height=&quot;560&quot; data-theme=&quot;auto&quot;&gt;&lt;/div&gt;
+&lt;script src=&quot;https://civilkit.io/calcs/embed.js&quot; async&gt;&lt;/script&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-script" hidden>Copy</button></p>
+<h3>Options</h3>
+<p>Add these to the address of the frame (or as data attributes of the placeholder):</p>
+<ul>
+<li><code>theme=light</code>, <code>theme=dark</code> or <code>theme=auto</code> (the default follows the reader's system setting).</li>
+<li><code>mode=input</code> (only the form), <code>mode=results</code> (only the workings) or <code>mode=both</code> (the default: the form beside or above the results).</li>
+<li><code>hide=title</code> leaves out the sheet's title.</li>
+<li><code>embed=edit</code> in place of <code>embed=1</code> adds a small text editor under the results, for readers who want to change the sheet itself.</li>
+</ul>
+</section>
+<section>
+<h2>Sandboxing</h2>
+<p>The snippets carry <code>sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"</code>. It keeps the frame away from your page (no top navigation, no forms on your origin) while letting the sheet calculate and the Open in CivilKit Calcs link open a normal tab. The frame asks for no browser permissions (<code>allow=""</code>). Python blocks never run in an embed unless the address says <code>allowpython=1</code>, and even then the reader is asked first.</p>
+</section>
+<section>
+<h2>Talking to the frame</h2>
+<p>A page can set inputs and read results with <code>postMessage</code>. The frame answers only its own parent page and checks every value.</p>
+<ul>
+<li>Send <code>{type: 'civilkit-set', values: {L: 8}}</code> to set inputs by name. A number must be finite and within the slider's range; a choice must be one of its options. Anything else is refused with <code>{type: 'civilkit-error', errors: [...]}</code>.</li>
+<li>After each calculation the frame sends <code>{type: 'civilkit-results', values: {name: {value, unit, text}}}</code>.</li>
+<li>It also sends <code>{type: 'civilkit-ready', inputs: [...]}</code> with the inputs and their ranges, and <code>{type: 'civilkit-embed-height', height}</code> whenever its height changes.</li>
+</ul>
+<p>Check that a message comes from <code>https://civilkit.io</code> before you use it. The <a href="/calcs/guide/embedding">embedding guide</a> has a complete example.</p>
+</section>
+<section class="samples" id="samples">
+<h2>Calculators to embed</h2>
+<p>Each of these is a sheet from a <a href="/calcs/learn/">calculator page</a>. Its numbers are generic textbook calculations, not design-code checks.</p>
+<h3 id="s-template-simply-supported-beam">simply supported beam check</h3>
+<p>Span, load, a section and a material from drop-downs, and a deflection limit from radio buttons; bending stress, deflection, both utilisations and a moment diagram follow as you change the form. About it: <a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a>.</p>
+<pre><code id="code-template-simply-supported-beam">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=template-simply-supported-beam&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;simply supported beam check: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-template-simply-supported-beam" hidden>Copy</button></p>
+<h3 id="s-template-retaining-wall-stability">retaining wall sliding and overturning</h3>
+<p>A cantilever retaining wall on level fill: dimensions, a backfill from radio buttons and a surcharge checkbox as inputs; earth thrust, factors of safety against overturning and sliding, and the bearing pressure under the base. About it: <a href="/calcs/learn/retaining-wall-stability-calculator/">Retaining wall stability</a>.</p>
+<pre><code id="code-template-retaining-wall-stability">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=template-retaining-wall-stability&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;retaining wall sliding and overturning: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-template-retaining-wall-stability" hidden>Copy</button></p>
+<h3 id="s-template-pad-footing-bearing">pad footing bearing pressure</h3>
+<p>A pad footing under a column load and moment: sizes, depth and a soil from a drop-down; eccentricity, the largest and smallest bearing pressure, uplift and the check against the allowable pressure. About it: <a href="/calcs/learn/pad-footing-bearing-pressure-calculator/">Pad footing bearing pressure</a>.</p>
+<pre><code id="code-template-pad-footing-bearing">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=template-pad-footing-bearing&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;pad footing bearing pressure: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-template-pad-footing-bearing" hidden>Copy</button></p>
+<h3 id="s-template-pipe-flow-darcy">pipe flow, Darcy-Weisbach</h3>
+<p>Friction loss in a full pipe: flow rate, diameter, length, pipe material and water temperature as inputs; velocity, Reynolds number, friction factor, head loss, pump head and hydraulic power. About it: <a href="/calcs/learn/pipe-flow-darcy-weisbach-calculator/">Pipe flow, Darcy-Weisbach</a>.</p>
+<pre><code id="code-template-pipe-flow-darcy">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=template-pipe-flow-darcy&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;pipe flow, Darcy-Weisbach: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-template-pipe-flow-darcy" hidden>Copy</button></p>
+<h3 id="s-template-pump-operating-point">pump and pipeline operating point</h3>
+<p>A pump lifting water through a pipeline: pump size from radio buttons, pipe diameter from a drop-down, length, lift and an aged-pipe checkbox as inputs; the operating point, a table of flow against pump and pipeline head, and both curves plotted. About it: <a href="/calcs/learn/pump-operating-point-calculator/">Pump operating point</a>.</p>
+<pre><code id="code-template-pump-operating-point">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=template-pump-operating-point&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;pump and pipeline operating point: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-template-pump-operating-point" hidden>Copy</button></p>
+<h3 id="s-template-cantilever-tip-load">cantilever with a tip load</h3>
+<p>A cantilever with a point load at the free end: length, load, a rectangular section, a material and a deflection limit as inputs; moment, shear, stress, tip deflection and rotation and a moment diagram. About it: <a href="/calcs/learn/cantilever-beam-calculator/">Cantilever beam</a>.</p>
+<pre><code id="code-template-cantilever-tip-load">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=template-cantilever-tip-load&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;cantilever with a tip load: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-template-cantilever-tip-load" hidden>Copy</button></p>
+<h3 id="s-template-column-slenderness">rectangular column slenderness</h3>
+<p>Slenderness and buckling of a solid rectangular column: size, length, end conditions and material as inputs; the slenderness class, the Euler or parabolic critical stress and the allowed load. About it: <a href="/calcs/learn/column-buckling-calculator/">Column buckling</a>.</p>
+<pre><code id="code-template-column-slenderness">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=template-column-slenderness&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;rectangular column slenderness: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-template-column-slenderness" hidden>Copy</button></p>
+<h3 id="s-sheet-beam-deflection-symbolic">Beam deflection derived symbolically</h3>
+<p>The midspan deflection of a simply supported beam derived step by step with the Symbolic dialog (integrate, solve for the constants, substitute), typeset as LaTeX, then fed with numbers and checked against the derived curve. About it: <a href="/calcs/learn/beam-deflection-formula-derivation/">Beam deflection formula, derived</a>.</p>
+<pre><code id="code-sheet-beam-deflection-symbolic">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=sheet-beam-deflection-symbolic&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;Beam deflection derived symbolically: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-sheet-beam-deflection-symbolic" hidden>Copy</button></p>
+<h3 id="s-diagram-moment-chart">Bending moment along a beam (XY chart)</h3>
+<p>Moment and shear worked out at sixths of a span in a loop, drawn as an XY chart and as a plot of the sheet. About it: <a href="/calcs/learn/bending-moment-shear-force-diagram/">Moment and shear diagrams</a>.</p>
+<pre><code id="code-diagram-moment-chart">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=diagram-moment-chart&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;Bending moment along a beam (XY chart): CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-diagram-moment-chart" hidden>Copy</button></p>
+<h3 id="s-sheet-principal-stresses">Principal stresses</h3>
+<p>Principal stresses and directions of a plane and a 3D stress tensor from eigenvals and eigenvecs, checked with Mohr's circle. About it: <a href="/calcs/learn/principal-stress-calculator/">Principal stresses</a>.</p>
+<pre><code id="code-sheet-principal-stresses">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=sheet-principal-stresses&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;Principal stresses: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-sheet-principal-stresses" hidden>Copy</button></p>
+<h3 id="s-sheet-principal-axes">Principal axes of a section</h3>
+<p>Strong and weak axes of an unsymmetric section from eigenvals and eigenvecs, checked against the closed form. About it: <a href="/calcs/learn/section-principal-axes-calculator/">Principal axes of a section</a>.</p>
+<pre><code id="code-sheet-principal-axes">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=sheet-principal-axes&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;Principal axes of a section: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-sheet-principal-axes" hidden>Copy</button></p>
+<h3 id="s-sheet-shear-frame-frequencies">Shear frame natural frequencies</h3>
+<p>Natural frequencies and mode shapes of a two storey shear frame from the generalized eigenvalue problem K φ = ω² M φ, eigenvals(K, M). About it: <a href="/calcs/learn/shear-frame-natural-frequencies/">Shear frame frequencies</a>.</p>
+<pre><code id="code-sheet-shear-frame-frequencies">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=sheet-shear-frame-frequencies&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;Shear frame natural frequencies: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-sheet-shear-frame-frequencies" hidden>Copy</button></p>
+<h3 id="s-sheet-gable-frame-thrust">Gable frame thrust: pinned or rigid ridge</h3>
+<p>Horizontal thrust of a symmetric pitched roof frame for a pinned ridge and a rigid ridge, with the common shortcut that overstates it. About it: <a href="/calcs/learn/gable-frame-thrust-calculator/">Gable frame thrust</a>.</p>
+<pre><code id="code-sheet-gable-frame-thrust">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=sheet-gable-frame-thrust&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;Gable frame thrust: pinned or rigid ridge: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-sheet-gable-frame-thrust" hidden>Copy</button></p>
+<h3 id="s-diagram-concrete-strength">Concrete strength gain (timeline)</h3>
+<p>Strength of concrete at ages from 1 to 28 days from a strength gain formula, listed on a timeline and plotted. About it: <a href="/calcs/learn/concrete-strength-gain-calculator/">Concrete strength gain</a>.</p>
+<pre><code id="code-diagram-concrete-strength">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=diagram-concrete-strength&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;Concrete strength gain (timeline): CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-diagram-concrete-strength" hidden>Copy</button></p>
+<h3 id="s-sheet-beam-bending">Beam bending with real units</h3>
+<p>A simply supported beam: moment, section capacity and a utilisation check. Units are real, so a stress times a section modulus comes out in kN.m. About it: <a href="/calcs/learn/export-calculations-to-word-excel-pdf/">Export to Word, Excel and PDF</a>.</p>
+<pre><code id="code-sheet-beam-bending">&lt;iframe src=&quot;https://civilkit.io/calcs/?embed=1&amp;sample=sheet-beam-bending&quot; width=&quot;100%&quot; height=&quot;560&quot; style=&quot;border:1px solid #ccc&quot; loading=&quot;lazy&quot; title=&quot;Beam bending with real units: CivilKit Calcs&quot; allow=&quot;&quot; sandbox=&quot;allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox&quot;&gt;&lt;/iframe&gt;</code></pre>
+<p class="copyrow"><button type="button" class="copy" data-copy="code-sheet-beam-bending" hidden>Copy</button></p>
+</section>
+<section>
+<h2>Free, open and private</h2>
+<p>CivilKit Calcs is free and open source under the MIT licence, so you may embed it anywhere, commercial sites included. The embed sets no cookies, stores nothing, loads no analytics and sends nothing anywhere: the engine runs in the reader's browser. Every embed links back to the full app with Open in CivilKit Calcs. You can also host your own copy from the <a href="https://github.com/mageaustralia/civilkit-calcs">source on GitHub</a>.</p>
+</section>
+</main>
+<footer class="site">
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+<script>
+document.querySelectorAll('button.copy').forEach(function (b) {
+  if (!navigator.clipboard) return;
+  b.hidden = false;
+  b.addEventListener('click', function () {
+    var t = document.getElementById(b.getAttribute('data-copy')).textContent;
+    navigator.clipboard.writeText(t).then(function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); });
+  });
+});
+</script>
+</body>
+</html>

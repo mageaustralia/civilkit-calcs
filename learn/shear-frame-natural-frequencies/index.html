@@ -118,6 +118,11 @@
 <p>The first floor has a mass of 30 t and the roof 20 t. The lower storey has a lateral stiffness of 40,000 kN/m and the upper one 30,000 kN/m. The stiffness matrix is K = [k1 + k2, -k2; -k2, k2] and the mass matrix is diagonal. With two arguments, <code>eigenvals(K, M)</code> solves the generalised problem directly: K must be symmetric and M symmetric positive definite. Each eigenvalue is omega^2 in the units of K over M, so kN/m divided by tonnes comes out per second squared without any conversion by hand.</p>
 </section>
 
+<section class="try" id="try-it">
+<h2>Try it</h2>
+<iframe class="embed" src="/calcs/?embed=1&amp;sample=sheet-shear-frame-frequencies" width="100%" height="560" loading="lazy" title="Shear frame frequencies: live sheet" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+<p class="fallback"><a href="/calcs/?sample=sheet-shear-frame-frequencies">Open the sheet in Calcs</a> or <a href="/calcs/embed/">embed it</a>.</p>
+</section>
 <section>
 <h2>Frequencies</h2>
 <p>The natural frequency is f = omega / (2 pi) and the period is its inverse. Results from the engine:</p>
