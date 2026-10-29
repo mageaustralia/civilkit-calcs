@@ -16,6 +16,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 - **Diagrams menu** - The ribbon tab Plots is now Plots & Diagrams, with a Diagrams menu that inserts a short starter diagram of each common engineering kind, ready to edit, so no Mermaid syntax is needed to begin.
 - **Diagram samples** - Twelve new sample sheets pair a diagram with the numbers behind it: state, sequence, Gantt, pie, treemap, quadrant, XY, Sankey, mind map, requirement, timeline and class diagrams.
 - **Gable frame thrust sample** - A worked sheet for the horizontal thrust of a pitched roof frame: pinned ridge, rigid ridge, and the shortcut that overstates it, with a decision diagram.
+- **llms.txt** - `/calcs/llms.txt` indexes the guide for language models and other tools, and `/calcs/llms-full.txt` is the whole guide in one file. Both are written by `tools/make_llms_txt.mjs`.
 
 ### Changed
 - **Plots and diagrams** - The Samples group Plots is now Plots and diagrams, and the two Mermaid samples moved there from Sheet syntax.

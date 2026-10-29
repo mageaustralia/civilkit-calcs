@@ -77,6 +77,15 @@ Deploy `pages-build-calcs` as the Pages project root, so the files are served un
 `_headers` file sets `application/wasm` for the modules and long caching for hashed assets. Preview with
 `python3 -m http.server 4177 --bind 127.0.0.1` in that folder, then open `http://127.0.0.1:4177/calcs/`.
 
+## llms.txt
+
+`https://civilkit.io/calcs/llms.txt` is an index of the guide for language models and other tools (one line per chapter, the
+first sentence of each, then the landing pages), and `llms-full.txt` beside it is the whole guide as one Markdown file with the
+sheet syntax reference. `tools/make_llms_txt.mjs` writes both into `web/calcpad-web/public/` from `book/src`, `docs/sheet-syntax.md`
+and `public/learn`; run it after a guide change and commit the result, and `node tools/make_llms_txt.mjs --check` fails if they are
+out of date. They are left out of the service worker precache. The host's own root (`/llms.txt`) is owned elsewhere: copy the
+two files there if the host wants them at the top level.
+
 ## What's new page and its clips
 
 `https://civilkit.io/calcs/whats-new/` is a static page (`web/calcpad-web/public/whats-new/index.html`, with `whats-new.css` and
