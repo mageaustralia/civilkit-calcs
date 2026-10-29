@@ -57,7 +57,7 @@ export default {
         // click away: the paragraph is written back as Markdown
         await rec.clickAt(1100, 650, 550);
         await page.waitForSelector('.md-block', { state: 'detached' }).catch(() => {});
-        await rec.skip(() => page.waitForFunction(() => /midspan\*\*/.test(window.calcpadActiveEditor.getValue()))));
+        await rec.skip(() => page.waitForFunction(() => /midspan\*\*/.test(window.calcpadActiveEditor.getValue())));
         await sleep(900);
         // a new math line in the source: typing a letter offers the names defined above
         await page.evaluate(() => { const e = window.calcpadActiveEditor; const m = e.getModel(); const n = m.getLineCount(); e.focus(); e.setPosition({ lineNumber: n, column: m.getLineMaxColumn(n) }); });

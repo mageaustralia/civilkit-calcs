@@ -17,6 +17,18 @@
       "title": "Text toolbar and name completion",
       "blurb": "Select words in a paragraph opened in place and a small toolbar floats over them: here Bold, then a bulleted list. On a math line, typing a letter offers the names defined above it.",
       "recorder": "20-text-toolbar"
+    },
+    {
+      "id": "input-slider",
+      "title": "A slider on an input",
+      "blurb": "Write a range in square brackets after an input's value, as in L: ? 6 m [2 .. 12 step 0.5] | span, and Input mode shows a slider beside its box. Drag it and the moment below is worked out again for each new span.",
+      "recorder": "21-input-slider"
+    },
+    {
+      "id": "mermaid-diagram",
+      "title": "Diagrams drawn from text",
+      "blurb": "A fenced block tagged mermaid is drawn as a diagram in the results, with the calculation under it. Here a new step typed into its text adds a box and an arrow back to the moment check.",
+      "recorder": "22-mermaid-diagram"
     }
   ],
   "26.10.12": [
