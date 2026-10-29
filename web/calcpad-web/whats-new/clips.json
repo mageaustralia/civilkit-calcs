@@ -1,4 +1,12 @@
 {
+  "Unreleased": [
+    {
+      "id": "embed-mode",
+      "title": "A calculator for any page",
+      "blurb": "Adding ?embed=1&sample= and a sample's id to the app address shows that sample as a compact form beside its results, ready for an iframe. Dragging the span from 6 m to 9 m works the moment out again and both checks change to fail.",
+      "recorder": "28-embed-mode"
+    }
+  ],
   "26.10.15": [
     {
       "id": "diagrams-menu",
@@ -49,6 +57,18 @@
       "title": "Diagrams drawn from text",
       "blurb": "A fenced block tagged mermaid is drawn as a diagram in the results, with the calculation under it. Here a new step typed into its text adds a box and an arrow back to the moment check.",
       "recorder": "22-mermaid-diagram"
+    },
+    {
+      "id": "quick-convert",
+      "title": "Quick convert to a formula",
+      "blurb": "Select an expression in a line of text, here w*L^2/8, and press = Formula on the toolbar or Ctrl+Shift+E. It becomes a formula line after the paragraph with its name selected; typing Mmid names it and the preview works out 54 kN m.",
+      "recorder": "26-quick-convert"
+    },
+    {
+      "id": "sortable-table",
+      "title": "Sort a table by a column",
+      "blurb": "Click a column heading of a table in the results to sort by it. Here Load sorts ascending, then descending, and a third click puts the rows back in the order of the source, which is never changed.",
+      "recorder": "27-sortable-table"
     }
   ],
   "26.10.12": [
