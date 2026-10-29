@@ -704,6 +704,29 @@ but not separate arguments), the snippet descriptions, and the Word and Excel re
 tests but no production call site yet, because none of the converted strings is plural. Phases 4 (content overlays) and the
 numbers inside engine messages (arguments pass through as the engine wrote them, not through the number format) are open.
 
+### Checks run on 2026-10-29 (against a local build; nothing was pushed or deployed)
+
+* `node tools/i18n/check.mjs`: 816 English keys (175 used in code, 641 derived), five catalogues at 697 keys (85.4 percent),
+  all ok with 12 length warnings (a translated label more than 140 percent of the English). Mutation test: a dropped
+  placeholder, an orphan key, a dash, a false review claim, removed markup, an unused key, a missing key and English that
+  differs from the data each fail the check.
+* `web/e2e/i18n-unit-check.mjs`: 54 checks, no browser.
+* `web/e2e/i18n-english-check.mjs`: 929 strings compared (10 ribbon tabs, the Settings dialog, its title and search texts,
+  About, Shortcuts, the sidebar tabs, a palette, and 10 engine pages and error lists for five failing worksheets, in
+  both normal and unwrapped view) with a snapshot from a build made before the move: identical.
+* `web/e2e/i18n-check.mjs`: 65 checks (picker, German, first-visit prompt for 11 browser languages, `?lang=`, block menu
+  and toast, engine messages in German, Chinese fonts and caret, pseudo-language, precache).
+* The 30 existing browser checks that assert English text, plus the ribbon, layout, shortcuts and offline checks:
+  all pass except `python-check.mjs`, which fails the same one check ("a wasm that does not match the glue is refused")
+  on a build made before this work. `collapse-drag-check.mjs` and one assertion of `ribbon-check.mjs` failed once each
+  under heavy machine load (hover and timing races) and passed on rerun (4 of 4 and 1 of 1).
+* Rust: 6 new tests in `calcpad-core/tests/message_codes.rs` and 4 in `calcpad-wasm/src/message_markup.rs` pass; of the
+  engine crate's 94 test binaries, 47 ran (2,277 tests, none failing) before the build disk ran low; the other 46 (all
+  transcribed `xunit_*` suites) were not run.
+* Cost: the main JavaScript chunk grows by about 63 KB raw (18 KB gzipped: the English catalogue and the code), each catalogue
+  is 43 to 48 KB (13 KB gzipped) and loads only when used, and the engine wasm grows by about 57 KB raw (16 KB gzipped,
+  2.3 percent). The English app loads no extra file.
+
 ### Merging with the `locale` branch
 
 `locale` is not merged and was not changed. This work is arranged so that it merges cleanly:
