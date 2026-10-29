@@ -17,6 +17,10 @@ the main ones in the output panel.
 | Shift+Alt+F | Format Document (tidy a sheet) |
 | F12 | Go to the definition of the name under the cursor |
 | Shift+F12 | Find references |
+| F2 | Rename the variable, function or macro under the cursor everywhere in the worksheet (see [Editing](../editing.md)) |
+| Ctrl+; | Variable palette: search every variable and function with its value. Enter inserts the name, Alt+Enter goes to its definition |
+| Tab | Accept the highlighted completion (Enter makes a new line) |
+| Ctrl+Space | Open the completion list by hand |
 | Ctrl+B, Ctrl+I, Ctrl+U | Bold, italic, underline in text lines of a Calcpad worksheet |
 | Enter, Ctrl+Enter | Apply an in-place edit (Ctrl+Enter for prose) |
 | Esc | Cancel an in-place edit, or close a dialog |

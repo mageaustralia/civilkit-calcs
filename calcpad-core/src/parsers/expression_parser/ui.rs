@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use super::{ExpressionParser, KeywordResult};
 use crate::exceptions;
 use crate::extension_methods::enumerate_comments;
-use crate::math_parser_exception::CResult;
+use crate::math_parser_exception::{CResult, MathParserException};
 use crate::messages;
 use crate::netfmt::{fmt, html_attribute_encode, html_encode};
 use crate::ui_dto::{UiDto, MAX_SIZE};
@@ -38,6 +38,9 @@ pub(super) struct UiMeta {
     pub column_widths: Option<Vec<i32>>,
     pub keys: Vec<Option<String>>,
     pub values: Vec<Option<String>>,
+    pub min: Option<f64>,
+    pub max: Option<f64>,
+    pub step: Option<f64>,
 }
 
 /// The per parse state of the `#UI` keyword.
@@ -460,6 +463,29 @@ fn ui_mode_attributes(ui: &UiMeta) -> &'static str {
     }
 }
 
+/// The bounds and the step of an entry (`#UI {"min": 2, "max": 12, "step": 0.5} L = 6m`), written
+/// only when given; the form draws a slider from them and refuses a typed value outside them.
+fn ui_range_attributes(ui: &UiMeta) -> String {
+    let mut s = String::new();
+    for (name, v) in [("min", ui.min), ("max", ui.max), ("step", ui.step)] {
+        if let Some(v) = v {
+            s.push_str(&format!(" data-ui-{}=\"{}\"", name, crate::netfmt::double_to_string(v)));
+        }
+    }
+    s
+}
+
+/// The number a typed value stands for, for the range check (`-` may be a minus sign).
+fn leading_number(value: &str) -> Option<f64> {
+    let t: String = value.trim().replace('\u{2212}', "-");
+    let end = t
+        .char_indices()
+        .find(|&(_, c)| !(c.is_ascii_digit() || matches!(c, '.' | '-' | '+')))
+        .map(|(k, _)| k)
+        .unwrap_or(t.len());
+    t[..end].parse::<f64>().ok()
+}
+
 /// System.Text.Json string escaping with the default (HTML safe) encoder.
 fn json_string(s: &str) -> String {
     let mut out = String::from("\"");
@@ -641,6 +667,9 @@ impl ExpressionParser {
                 column_widths: properties.column_widths.clone(),
                 keys: properties.keys.clone().unwrap_or_default(),
                 values: properties.values.clone().unwrap_or_default(),
+                min: properties.min,
+                max: properties.max,
+                step: properties.step,
                 ..Default::default()
             });
         }
@@ -814,6 +843,18 @@ impl ExpressionParser {
                     value = reshape_matrix_literal(&value, ui.rows, ui.columns);
                 }
             }
+            let ui = self.ui_meta(i);
+            if ui.ty != "datagrid" && (ui.min.is_some() || ui.max.is_some()) {
+                if let Some(x) = leading_number(&value) {
+                    if ui.min.is_some_and(|lo| x < lo) || ui.max.is_some_and(|hi| x > hi) {
+                        let show = |v: Option<f64>| v.map_or("-\u{221e}".to_string(), crate::netfmt::double_to_string);
+                        return Err(MathParserException::new(fmt(
+                            messages::The_UI_value_0_is_outside_1_to_2,
+                            &[&format!("{} = {}", ui.variable_name, value.trim()), &show(ui.min), &show(ui.max)],
+                        )));
+                    }
+                }
+            }
             if let Some(overridden) = apply_ui_override(self.ui_meta(i), &expression, &value) {
                 expression = overridden;
             }
@@ -916,10 +957,11 @@ impl ExpressionParser {
 
     fn build_ui_entry(&self, ui: &UiMeta, value: &str) -> String {
         format!(
-            "<input type=\"text\" class=\"{}\" value=\"{}\"{}>",
+            "<input type=\"text\" class=\"{}\" value=\"{}\"{}{}>",
             ui_class(ui, "calcpad-ui-input"),
             html_attribute_encode(value),
-            self.ui_input_binding(ui)
+            self.ui_input_binding(ui),
+            ui_range_attributes(ui)
         )
     }
 

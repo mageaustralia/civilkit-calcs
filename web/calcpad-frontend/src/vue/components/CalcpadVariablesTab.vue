@@ -6,6 +6,7 @@
         type="text"
         placeholder="Search variables, macros, functions, custom units..."
         class="search-input"
+        aria-label="Search variables, macros, functions and custom units"
       />
     </div>
     <div class="variables-container p-3">
@@ -39,7 +40,7 @@
               class="variable-item"
               :title="getMacroTooltip(macro)"
               @click="insertMacro(macro)"
-              @contextmenu.prevent.stop="openContextMenu($event, macro)"
+              @contextmenu.prevent.stop="openContextMenu($event, macro, 'macro')"
             >
               <div class="variable-name">{{ macro.name }}</div>
               <div class="variable-type">Macro</div>
@@ -69,7 +70,7 @@
               class="variable-item"
               :title="getVariableTooltip(variable)"
               @click="insertVariable(variable.name)"
-              @contextmenu.prevent.stop="openContextMenu($event, variable)"
+              @contextmenu.prevent.stop="openContextMenu($event, variable, 'variable')"
             >
               <div class="variable-name">{{ variable.name }}</div>
               <div class="variable-type">Variable</div>
@@ -99,7 +100,7 @@
               class="variable-item"
               :title="getFunctionTooltip(func)"
               @click="insertFunction(func)"
-              @contextmenu.prevent.stop="openContextMenu($event, func)"
+              @contextmenu.prevent.stop="openContextMenu($event, func, 'function')"
             >
               <div class="variable-name">{{ func.name }}</div>
               <div class="variable-type">Function</div>
@@ -130,7 +131,7 @@
               class="variable-item"
               :title="getCustomUnitTooltip(unit)"
               @click="insertCustomUnit(unit)"
-              @contextmenu.prevent.stop="openContextMenu($event, unit)"
+              @contextmenu.prevent.stop="openContextMenu($event, unit, 'unit')"
             >
               <div class="variable-name">.{{ unit.name }}</div>
               <div class="variable-type">Custom Unit</div>
@@ -148,6 +149,16 @@
       @mousedown.stop
       @click.stop
     >
+      <button
+        v-if="contextMenu.kind !== 'unit'"
+        class="calcpad-context-item"
+        @click="onSymbolAction('rename')"
+      >Rename Everywhere...</button>
+      <button
+        v-if="contextMenu.source !== 'include'"
+        class="calcpad-context-item"
+        @click="onSymbolAction('goto')"
+      >Go to Definition</button>
       <button class="calcpad-context-item" @click="onCopyName">Copy Name</button>
       <button
         v-if="contextMenu.definition"
@@ -182,6 +193,7 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits
 const emit = defineEmits<{
   insertText: [text: string]
+  symbolAction: [action: 'rename' | 'goto', name: string]
 }>()
 
 // State
@@ -190,17 +202,21 @@ interface VariableContextMenu {
   y: number
   name: string
   definition: string
+  kind: 'macro' | 'variable' | 'function' | 'unit'
+  source?: string
 }
 
 const contextMenu = ref<VariableContextMenu | null>(null)
 
-const openContextMenu = (e: MouseEvent, item: VariableItem) => {
+const openContextMenu = (e: MouseEvent, item: VariableItem, kind: VariableContextMenu['kind']) => {
   const parts = [item.params ? `Parameters: ${item.params}` : '', item.definition ?? '']
   contextMenu.value = {
     x: e.clientX,
     y: e.clientY,
     name: item.name,
     definition: parts.filter(Boolean).join('\n'),
+    kind,
+    source: item.source,
   }
 }
 
@@ -223,6 +239,13 @@ onBeforeUnmount(() => {
   document.removeEventListener('mousedown', onDocumentInteraction)
   document.removeEventListener('keydown', onDocumentInteraction)
 })
+
+const onSymbolAction = (action: 'rename' | 'goto') => {
+  const m = contextMenu.value
+  if (!m) return
+  closeContextMenu()
+  emit('symbolAction', action, m.name)
+}
 
 const onCopyName = () => {
   const m = contextMenu.value
@@ -254,44 +277,44 @@ const hasVariables = computed(() => {
          props.variablesData.customUnits.length > 0
 })
 
+// A search matches the name first; the definition, parameters and description count too, so
+// `kN` finds the variables written with that unit and `x; y` the functions of two arguments.
+const matches = (item: VariableItem, term: string): boolean =>
+  item.name.toLowerCase().includes(term) ||
+  (item.expression ?? item.definition ?? '').toLowerCase().includes(term) ||
+  (item.params ?? '').toLowerCase().includes(term) ||
+  (item.description ?? '').toLowerCase().includes(term)
+
 const filteredMacros = computed(() => {
   if (!searchTerm.value.trim()) {
     return props.variablesData.macros
   }
-  const term = searchTerm.value.toLowerCase()
-  return props.variablesData.macros.filter(macro =>
-    macro.name.toLowerCase().includes(term)
-  )
+  const term = searchTerm.value.trim().toLowerCase()
+  return props.variablesData.macros.filter(macro => matches(macro, term))
 })
 
 const filteredVariables = computed(() => {
   if (!searchTerm.value.trim()) {
     return props.variablesData.variables
   }
-  const term = searchTerm.value.toLowerCase()
-  return props.variablesData.variables.filter(variable =>
-    variable.name.toLowerCase().includes(term)
-  )
+  const term = searchTerm.value.trim().toLowerCase()
+  return props.variablesData.variables.filter(variable => matches(variable, term))
 })
 
 const filteredFunctions = computed(() => {
   if (!searchTerm.value.trim()) {
     return props.variablesData.functions
   }
-  const term = searchTerm.value.toLowerCase()
-  return props.variablesData.functions.filter(func =>
-    func.name.toLowerCase().includes(term)
-  )
+  const term = searchTerm.value.trim().toLowerCase()
+  return props.variablesData.functions.filter(func => matches(func, term))
 })
 
 const filteredCustomUnits = computed(() => {
   if (!searchTerm.value.trim()) {
     return props.variablesData.customUnits
   }
-  const term = searchTerm.value.toLowerCase()
-  return props.variablesData.customUnits.filter(unit =>
-    unit.name.toLowerCase().includes(term)
-  )
+  const term = searchTerm.value.trim().toLowerCase()
+  return props.variablesData.customUnits.filter(unit => matches(unit, term))
 })
 
 const hasFilteredResults = computed(() => {

@@ -8,7 +8,10 @@
 //   4. Save values writes the entered values under the marker line, the file is still a sheet, and Preview shows them;
 //      the saved text reopened in a new tab is still a sheet and its form shows the saved values;
 //   5. Show compiled and Convert to Calcpad give #UI lines, the report and the Word and Excel exports carry the values;
-//   6. Format Document tidies input lines, and typing a bad input line shows an error on its line.
+//   6. Format Document tidies input lines, and typing a bad input line shows an error on its line;
+//   7. sliders (`L: ? 6 m [2 .. 12 step 0.5]`): the beam and cantilever templates draw a slider beside the box, keys and a
+//      click on the track move it and the result follows, a typed value outside the bounds shows an error and is not used,
+//      the report and the exports keep the plain number, and a bad slider line is an error on its line.
 import { createServer } from 'node:http';
 import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
@@ -149,6 +152,66 @@ t = await change('Simply supported beam check', /wtot = w \+ wsw = 12 kN ∕ m \
 check(/wtot = w \+ wsw = 12 kN ∕ m \+ 0 kN ∕ m = 12 kN/.test(t), 'the checkbox: own weight off leaves the load at 12 kN/m');
 if (shots) await page.screenshot({ path: join(shots, 'template-input-changed.png') });
 
+// ---- 3b. the slider ------------------------------------------------------------------------------------------
+{
+    const ff = await form();
+    const info = await ff.evaluate(() => [...document.querySelectorAll('input.calcpad-ui-slider')].map((x) => [x.min, x.max, x.step, x.value, x.getAttribute('data-ui-slider-for')]));
+    check(info.length === 2 && JSON.stringify(info[0].slice(0, 4)) === '["2","12","0.5","8"]' && JSON.stringify(info[1].slice(0, 3)) === '["2","40","1"]', `the span and the load each get a slider with their bounds, the span's at 8 (${JSON.stringify(info)})`);
+    if (shots) await page.screenshot({ path: join(shots, 'slider-light.png') });
+}
+// Keys: two steps of 0.5 right of 8 m is 9 m, and the moment follows (12 kN/m, 9 m: 121.5 kN.m).
+t = await change('Simply supported beam check', /Mmax .*= 121\.5 kN/, async (ff) => {
+    await ff.locator('input.calcpad-ui-slider').first().focus();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+});
+check(/= 121\.5 kN ?· ?m/.test(t), `the slider: two key presses move L from 8 m to 9 m and M follows (${t.slice(t.indexOf('Mmax'), t.indexOf('Mmax') + 60)})`);
+{
+    // The frame that is shown (the other buffer can still hold an older copy of the form): the one that has the focus.
+    let v = null;
+    for (let i = 0; i < 20 && !v; i++) {
+        for (const fr of page.frames()) {
+            if (fr === page.mainFrame()) continue;
+            const r = await fr.evaluate(() => document.querySelector('input.calcpad-ui-slider') ? [document.querySelector('input.calcpad-ui-input').value, document.querySelector('input.calcpad-ui-slider').value, document.activeElement?.className ?? '', document.hasFocus()] : null).catch(() => null);
+            if (r && r[2] === 'calcpad-ui-slider' && r[3]) v = r;
+        }
+        if (!v) await page.waitForTimeout(250);
+    }
+    check(v != null && v[0] === '9' && v[1] === '9', `the box follows the slider, and the slider keeps its value and the focus through the re-run, so the next key press works (${JSON.stringify(v)})`);
+}
+// A click on the far end of the track: the maximum, 12 m (12 kN/m: 216 kN.m).
+t = await change('Simply supported beam check', /Mmax .*= 216 kN/, async (ff) => {
+    const box = await ff.locator('input.calcpad-ui-slider').first().boundingBox();
+    await page.mouse.move(box.x + box.width - 1, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width + 20, box.y + box.height / 2, { steps: 4 });
+    await page.mouse.up();
+});
+check(/= 216 kN ?· ?m/.test(t), `the slider dragged to its end gives L = 12 m and M = 216 kN.m (${t.slice(t.indexOf('Mmax'), t.indexOf('Mmax') + 60)})`);
+// A typed value outside the bounds: an error beside the box, nothing is posted.
+{
+    const ff = await form();
+    await ff.fill('input.calcpad-ui-input >> nth=0', '20');
+    await ff.press('input.calcpad-ui-input >> nth=0', 'Enter');
+    await page.waitForTimeout(1200);
+    const e = await (await form()).evaluate(() => { const i = document.querySelector('input.calcpad-ui-input'); const m = (i.closest('p') || i.parentElement).querySelector('.calcpad-ui-error'); return { cls: i.className, msg: m && !m.hidden ? m.textContent : '', value: i.value, slider: document.querySelector('input.calcpad-ui-slider').value }; });
+    check(/calcpad-ui-invalid/.test(e.cls) && e.msg === 'must be from 2 to 12' && e.value === '20', `a typed 20 shows "must be from 2 to 12" on the input line (${JSON.stringify(e)})`);
+    if (shots) await page.screenshot({ path: join(shots, 'slider-error.png') });
+    t = await until('Simply supported beam check', /Mmax/);
+    check(/Mmax .*= 216 kN/.test(t) && !/= 333/.test(t), 'the out-of-range value is not used: the result stays at L = 12 m');
+}
+// A typed value in range moves the slider and re-runs: 5 m (12 kN/m: 37.5 kN.m).
+t = await change('Simply supported beam check', /Mmax .*= 37\.5 kN/, async (ff) => { await ff.fill('input.calcpad-ui-input >> nth=0', '5'); await ff.press('input.calcpad-ui-input >> nth=0', 'Enter'); });
+check(/= 37\.5 kN ?· ?m/.test(t), 'a typed 5 clears the error and gives M = 37.5 kN.m');
+{
+    const ff = await form();
+    const e = await ff.evaluate(() => ({ slider: document.querySelector('input.calcpad-ui-slider').value, bad: document.querySelectorAll('.calcpad-ui-invalid').length }));
+    check(e.slider === '5' && e.bad === 0, `the slider moved to the typed value and no error is left (${JSON.stringify(e)})`);
+}
+// Back to 8 m for the steps below.
+t = await change('Simply supported beam check', /Mmax .*= 96 kN/, async (ff) => { await ff.fill('input.calcpad-ui-input >> nth=0', '8'); await ff.press('input.calcpad-ui-input >> nth=0', 'Enter'); });
+check(/= 96 kN ?· ?m/.test(t), 'L is back at 8 m');
+
 // ---- 4. Save values ---------------------------------------------------------------------------------------
 await page.locator('.toolbar-btn', { hasText: /^Save values$/ }).click({ timeout: 10000 });
 await page.waitForTimeout(800);
@@ -190,7 +253,7 @@ await mode('Preview');
 await page.click('[data-ribbon-btn=x-compiled]');
 await page.waitForSelector('[data-testid=compiled-view] .view-lines');
 const compiled = (await page.locator('[data-testid=compiled-view]').innerText()).replace(/ /g, ' ');
-check(compiled.includes('#UI L = 6m') && compiled.includes('#UI {"type":"dropdown"') && compiled.includes('#UI {"type":"checkbox"}') && !compiled.includes('sheet-form') && !compiled.includes('sheet-note'), 'Show compiled gives #UI lines, with no wrapper block and no styled spans');
+check(compiled.includes('#UI {"min":2,"max":12,"step":0.5} L = 6m') && compiled.includes('#UI {"type":"dropdown"') && compiled.includes('#UI {"type":"checkbox"}') && !compiled.includes('sheet-form') && !compiled.includes('sheet-note'), 'Show compiled gives #UI lines, with no wrapper block and no styled spans');
 check(compiled.includes("'span") && compiled.includes("'material -'mat = 1"), 'the notes are plain Calcpad comments, the label of a drop-down comes before its name');
 await page.locator('#cprs-compiled button', { hasText: 'Close' }).click();
 const exports = await page.evaluate(async () => {
@@ -208,7 +271,7 @@ check(exports.xlsx[0] === 200 && exports.xlsx[1] > 2000, `a template exports to 
 await page.click('[data-ribbon-btn=x-convert]');
 await page.waitForTimeout(600);
 const conv = { lang: await lang(), text: await editorText() };
-check(conv.lang === 'calcpad' && conv.text.includes('#UI L = 6m') && !conv.text.includes('<!--sheet-->') && !conv.text.includes('<div'), 'Convert to Calcpad leaves #UI lines and no wrapper');
+check(conv.lang === 'calcpad' && conv.text.includes('#UI {"min":2,"max":12,"step":0.5} L = 6m') && !conv.text.includes('<!--sheet-->') && !conv.text.includes('<div'), 'Convert to Calcpad leaves #UI lines and no wrapper');
 t = await until('Simply supported beam check', /Mmax/);
 check(/= 56\.26 kN|= 96 kN/.test(t) && !/Error in/.test(t), 'the converted worksheet still runs');
 
@@ -272,6 +335,55 @@ check(JSON.stringify([...new Set(bad)]) === '[4,5,6]', `a bad input line is an e
 check(m.some((x) => x[0] === 4 && /at least two options/.test(x[2])) && m.some((x) => x[0] === 5 && /number with an optional unit/.test(x[2])), 'the messages say what to write');
 t = await until('Bad input', /Sheet syntax: input/);
 check(/Sheet syntax: input: a choice needs at least two options/.test(t) && /ok = 4 m|ok =/.test(t), 'the report shows each error in place and still runs the lines after it');
+
+const dismiss = async () => { const b = page.locator('.modal-backdrop button', { hasText: /^Don't Save$/ }); if (await b.waitFor({ timeout: 1500 }).then(() => true, () => false)) await b.click(); };
+// ---- 7. sliders in the report, the exports and the editor ----------------------------------------------------------------
+{
+    const cant = readFileSync(join(web, 'calcpad-web', 'public', 'sheet-samples', 'Template cantilever tip load.sheet'), 'utf8');
+    check(/L: +\? 2\.5 m \[0\.5 \.\. 6 step 0\.1\]/.test(cant) && /P: +\? 8 kN \[1 \.\. 100 step 1\]/.test(cant), 'the cantilever template has sliders for its length and its load');
+    await newTab(cant);
+    await dismiss();
+    await mode('Input');
+    {
+        const ff = await form();
+        const n = ff ? await ff.evaluate(() => document.querySelectorAll('input.calcpad-ui-slider').length) : 0;
+        check(n === 2, `the cantilever draws two sliders (${n})`);
+    }
+    t = await change('Cantilever with a load at the tip', /Mmax .*= 254\.8/, async (ff) => { await ff.locator('input.calcpad-ui-slider').nth(1).focus(); await page.keyboard.press('End'); });
+    check(/= 254\.8\d kN ?· ?m/.test(t), `the load slider's End key gives P = 100 kN and M = 254.8 kN.m (${t.slice(t.indexOf('Mmax'), t.indexOf('Mmax') + 60)})`);
+    await mode('Report');
+    await dismiss();
+    t = await until('Cantilever with a load at the tip', /Mmax/);
+    check(/Mmax/.test(t), 'the report shows the sheet');
+    // The report frame that is shown has the sheet and no control at all (the form's frame can still be there, behind it).
+    let shown = null;
+    for (let i = 0; i < 40 && !shown; i++) {
+        for (const f of page.frames()) {
+            if (f === page.mainFrame()) continue;
+            const r = await f.evaluate(() => (document.body?.textContent ?? '').includes('Cantilever with a load') ? [document.querySelectorAll('.calcpad-ui-slider, input.calcpad-ui-input').length, getComputedStyle(document.documentElement).visibility] : null).catch(() => null);
+            if (r && r[0] === 0) shown = r;
+        }
+        if (!shown) await page.waitForTimeout(250);
+    }
+    check(shown != null, 'the report has no slider and no box (it shows the number)');
+    await mode('Preview');
+    await newTab('<!--sheet-->\nL: ? 6 m [2 .. 12 step 0.5]\nbad: ? 20 m [2 .. 12]\nbad2: ? 6 m [12 .. 2]\nok: L * 2\n');
+    const myMarkers = () => page.evaluate(() => window.monaco.editor.getModelMarkers({ resource: window.calcpadActiveEditor.getModel().uri }).map((m) => [m.startLineNumber, m.severity, m.message]));
+    let mk = [];
+    for (let i = 0; i < 30 && mk.filter((x) => x[1] === 8).length < 2; i++) { await page.waitForTimeout(300); mk = await myMarkers(); }
+    const lines2 = [...new Set(mk.filter((x) => x[1] === 8).map((x) => x[0]))].sort((a, b) => a - b);
+    check(JSON.stringify(lines2) === '[3,4]', `a slider default outside its bounds and bounds the wrong way round are errors on their lines (${JSON.stringify(mk.filter((x) => x[1] === 8))})`);
+    check(mk.some((x) => x[0] === 3 && /outside the bounds/.test(x[2])) && mk.some((x) => x[0] === 4 && /must be below/.test(x[2])), 'the messages say what is wrong');
+    await newTab('<!--sheet-->\nL:?6 m[2..12 step .5]|span\nw :  ?  12 kN/m  [ 2 ..  40 ]\n');
+    await page.evaluate(() => window.calcpadActiveEditor.focus());
+    await page.evaluate(() => window.calcpadActiveEditor.getAction('editor.action.formatDocument').run());
+    await page.waitForFunction(() => window.calcpadActiveEditor.getValue().includes('[2 .. 12 step 0.5]'), null, { timeout: 8000 }).catch(() => {});
+    const tidy = await editorText();
+    check(tidy === '<!--sheet-->\nL: ? 6 m [2 .. 12 step 0.5] | span\nw: ? 12 kN/m [2 .. 40]\n', `Format Document tidies slider lines (${JSON.stringify(tidy)})`);
+    await page.evaluate(() => window.calcpadActiveEditor.getAction('editor.action.formatDocument').run());
+    await page.waitForTimeout(400);
+    check((await editorText()) === tidy, 'formatting a slider line twice changes nothing');
+}
 
 check(pageErrors.length === 0, `no page errors (${pageErrors.slice(0, 2).join(' | ')})`);
 await browser.close();

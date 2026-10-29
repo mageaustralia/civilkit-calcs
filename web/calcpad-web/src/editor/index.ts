@@ -18,7 +18,6 @@ export { registerHoverProvider } from './hover';
 export {
     registerDefinitionProvider,
     registerReferenceProvider,
-    registerRenameProvider,
 } from './references';
 export { attachQuickTyper } from './quick-type';
 export { attachOperatorReplacer } from './operator-replacer';

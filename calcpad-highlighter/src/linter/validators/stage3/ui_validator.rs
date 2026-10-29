@@ -12,7 +12,7 @@ const CODE: &str = "CPD-3415";
 const KEYWORD: &str = "#ui";
 
 /// `UiKey` names: the recognised `#UI` properties.
-const UI_KEY_NAMES: [&str; 15] = [
+const UI_KEY_NAMES: [&str; 18] = [
     "Type",
     "Mode",
     "Style",
@@ -28,6 +28,10 @@ const UI_KEY_NAMES: [&str; 15] = [
     "ColumnWidths",
     "Keys",
     "Values",
+    // An addition to the C# payload (DEVIATIONS.md, D17): the bounds and step of a number entry.
+    "Min",
+    "Max",
+    "Step",
 ];
 
 #[derive(Default)]

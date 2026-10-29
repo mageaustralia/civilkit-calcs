@@ -28,6 +28,7 @@ const UPSTREAM_URL = 'https://github.com/imartincei/CalcpadCE';
 const PROJECT_URL = 'https://github.com/mageaustralia/civilkit-calcs';
 const DOCS_URL = UPSTREAM_URL;
 const CHANGELOG_URL = `${PROJECT_URL}/blob/main/CHANGELOG.md`;
+const WHATS_NEW_URL = 'https://civilkit.io/calcs/whats-new/';
 const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '';
 const UPSTREAM_VERSION = import.meta.env.VITE_UPSTREAM_VERSION ?? '';
 const mod = /Mac|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
@@ -152,12 +153,16 @@ export const ACTIONS: Record<string, Handler> = {
         `${mod}+Shift+B show or hide the sidebar`,
         `${mod}+F find, ${mod}+Z undo, ${mod}+Shift+Z redo`,
         'Alt+Z wrap long lines',
+        'F2 rename the name under the cursor everywhere in the document',
+        `${mod}+; find a variable or function (Enter inserts it, Alt+Enter goes to its definition)`,
+        'F12 go to the definition, Shift+F12 find references',
     ]),
     about: () => dialog(`CivilKit Calcs ${APP_VERSION}`, [
         `Built on CalcpadCE ${UPSTREAM_VERSION} (MIT), by Nedelcho Ganchovski (Proektsoft) and contributors. The engine is reimplemented in Rust and runs in your browser.`,
         `CalcpadCE: ${UPSTREAM_URL}`,
         `This project: ${PROJECT_URL}`,
         `What's new: [the changelog](${CHANGELOG_URL})`,
+        `Short clips of each release: [What's new](${WHATS_NEW_URL})`,
         'MIT licence. Not affiliated with the CalcpadCE authors.',
     ]),
 };
