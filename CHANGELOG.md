@@ -11,7 +11,20 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+## [26.10.13] - 2026-10-29
+
 ### Added
+- **Quick convert** - Select an expression in text or in a calculation and press Ctrl+Shift+E (or use the editor menu, = Formula on the prose toolbar, or the button under the selection on touch screens) to turn it into a formula line: in text it becomes a line after the paragraph, in a calculation it is pulled out to a named line above. One undo step.
+- **Percentage output** - `-> %` and `-> ‰` show a ratio as a percentage or per mille in a sheet; see the percentages section of the guide.
+- **Units of the sheet's own** - A `#unit bag = 25 kg | note` line defines a unit for the rest of the sheet, usable after a number and after `->`. A bad name or value is an error on its line, and the editor colours `#unit` as a keyword.
+- **Eigenvalues of any square matrix** - `eigenvals`, `eigenvecs` and `eigen` accept a matrix that is not symmetric, without copying it into `symmetric(n)`. Complex results come from the new `ceigenvals` and `ceigenvecs`, which return real and imaginary rows; the real functions refuse a matrix with complex eigenvalues and point to them.
+- **Generalised eigenproblem** - `eigenvals(K; M)`, `eigenvecs(K; M)` and `eigen(K; M)` solve K x = λ M x for symmetric K and positive definite M. Eigenvalues come in ascending order, mode shapes are M-orthonormal, and a bad pair is refused with a message naming the problem.
+- **Sortable tables** - Click a column heading of a sheet table in the preview to sort ascending, descending, then back to the source order. It is a view only: the source is unchanged and printing keeps the source order. Headings are buttons, so the keyboard and touch work.
+- **Mermaid diagrams** - A fenced `mermaid` block in a sheet, or in a `#markdown` block of a worksheet, is drawn as a diagram in the preview, print and the HTML report; Word export shows the source. The diagram code loads only on a page that has one and works offline once visited. A fence that does not parse stays as code with the reason. In a fresh checkout, `npm install` is needed to get mermaid.
+- **Page breaks** - Page break is in the + menu between blocks and in the ribbon for sheets, drawn in the preview as a dashed line (screen only), and Word export turns it into a real page break.
+- **Unsaved changes** - The window title starts with a dot while the active document is unsaved, closing an unsaved tab on the web offers Save, Don't Save or cancel, and the browser asks before the page is left with unsaved work. Exports do not count as saves.
+- **New samples** - Two Mermaid diagram sheets (design flow, load path) and Principal axes of a section.
+- **Diagrams in the guide** - A Diagrams chapter shows how to draw flowcharts and other Mermaid diagrams in a sheet, with three examples that the guide check runs.
 - **Sliders** - `L: ? 6 m [2 .. 12 step 0.5] | span` is a number input with bounds, drawn in Input mode as a slider with the number box beside it. It works by touch and with the keyboard, a typed value outside the bounds shows `must be from 2 to 12` beside the box, and the bounds are checked in the sheet; the engine's `#UI` takes `min`, `max` and `step` (D17 in DEVIATIONS.md).
 - **SI unit prefixes** - `3 mN`, `5 µm`, `40 nF`, `1.2 kΩ`, `2 GPa` and the like all work (yocto `y` to yotta `Y`; micro as `μ`, `µ` or `u`), where before only prefixed names the unit list spelled out were units. Non-SI units stay unprefixed; `ks` is still the metric horsepower. See D16 in DEVIATIONS.md.
 - **Folding sections and key results** - A heading that ends with `{collapse}` folds the section under it in the preview and the report until the reader clicks it, a line ending with `{key}` gets a star, and `{key results}` lists the key lines above it. Print, PDF and the exports show everything; the preview's own fold arrow on other headings is a separate view-only fold.
@@ -25,6 +38,14 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ### Changed
 - **Input form focus** - The input form keeps the focus on the control you were using when it re-runs the sheet (a slider, a drop-down, a radio button or a box), so the arrow keys keep moving a slider.
 - **Find references** - In a sheet it uses the same scan as rename, so a parameter is a separate name and strings and units are not matches.
+- **Borderless block grip** - The grip beside a block is plain dots with no border, with a soft highlight on hover.
+- **Importer function list** - `ceigenvals` and `ceigenvecs` are listed as engine function names when a worksheet is imported.
+
+### Fixed
+- **Deleting or moving a block** - Hidden code (`>> #hide` lines and loop code) is now its own block, so deleting or moving the block above no longer takes it along.
+- **Insert menu** - It fits the window and scrolls when the list is longer than the screen.
+- **Folding headings** - The preview's own fold arrow leaves headings that end with `{collapse}` to their own marker.
+- **What's new page** - Bold text that contains a code span renders as bold.
 
 ## [26.10.12] - 2026-10-28
 
