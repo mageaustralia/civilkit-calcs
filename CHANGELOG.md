@@ -11,6 +11,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- **Number format** - Settings > Number format shows results and number boxes in your language's style: Automatic (from the browser language), Point (1,234.5), Comma (1.234,5) or Space and comma (1 234,5), with digit groups as an option. Number boxes accept both 6,5 and 6.5. The worksheet, saved input values and the engine stay with the decimal point, so files read the same everywhere; `?numfmt=comma` tries a format on one page. See the number format chapter of the guide.
+
 ## [26.10.13] - 2026-10-29
 
 ### Added
