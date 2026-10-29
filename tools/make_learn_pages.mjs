@@ -1,4 +1,5 @@
 // Generates the landing pages (web/calcpad-web/public/learn/<slug>/index.html), their hub (public/learn/index.html),
+// the embed catalogue (public/embed/index.html),
 // public/sitemap.xml and public/robots.txt.
 //   node tools/make_learn_pages.mjs            write the files
 //   node tools/make_learn_pages.mjs --check    exit 1 if a file on disk differs from what would be written
@@ -10,6 +11,7 @@ import { root } from './learn/engine.mjs';
 import { pages } from './learn/pages.mjs';
 import { renderPage, renderHub, runAll, urlOf, HUB, SITE } from './learn/render.mjs';
 import { guideChapters, guideUrl } from './guide_url.mjs';
+import { renderEmbedPage } from './learn/embed.mjs';
 
 const pub = join(root, 'web', 'calcpad-web', 'public');
 
@@ -18,9 +20,11 @@ export function outputs() {
     const files = [];
     for (const page of pages) files.push({ path: `learn/${page.slug}/index.html`, content: renderPage(page, runAll(page)) });
     files.push({ path: 'learn/index.html', content: renderHub() });
+    // The embed catalogue (/calcs/embed/, tools/learn/embed.mjs).
+    files.push({ path: 'embed/index.html', content: renderEmbedPage() });
     // The guide chapters, from the book's table of contents, at their canonical extensionless URLs (the introduction is /calcs/guide/).
     const chapters = guideChapters().map((c) => guideUrl(c.file)).filter((u) => u !== guideUrl('introduction.md'));
-    const urls = [`${SITE}/calcs/`, HUB, `${SITE}/calcs/guide/`, `${SITE}/calcs/whats-new/`, ...chapters, ...pages.map((p) => urlOf(p.slug))];
+    const urls = [`${SITE}/calcs/`, HUB, `${SITE}/calcs/embed/`, `${SITE}/calcs/guide/`, `${SITE}/calcs/whats-new/`, ...chapters, ...pages.map((p) => urlOf(p.slug))];
     files.push({
         path: 'sitemap.xml',
         content: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${u}</loc></url>`).join('\n')}\n</urlset>\n`,

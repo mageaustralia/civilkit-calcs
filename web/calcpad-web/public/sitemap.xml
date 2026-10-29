@@ -2,6 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://civilkit.io/calcs/</loc></url>
   <url><loc>https://civilkit.io/calcs/learn/</loc></url>
+  <url><loc>https://civilkit.io/calcs/embed/</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/</loc></url>
   <url><loc>https://civilkit.io/calcs/whats-new/</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/getting-started/first-sheet</loc></url>
@@ -28,6 +29,7 @@
   <url><loc>https://civilkit.io/calcs/guide/importing</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/exporting</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/editing</loc></url>
+  <url><loc>https://civilkit.io/calcs/guide/embedding</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/samples</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/troubleshooting</loc></url>
   <url><loc>https://civilkit.io/calcs/guide/appendix/shortcuts</loc></url>

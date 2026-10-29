@@ -1,5 +1,6 @@
 // The search-engine basics of every page Calcs publishes, from the generated files (no browser, no network):
 //   node e2e/seo-check.mjs [--book DIR]      DIR is the built guide (default target/book; run book/build.sh first)
+// - the embed catalogue (public/embed): the same head checks, breadcrumb CivilKit > Calcs > Embed, a snippet per sample;
 // - landing pages and their hub (public/learn): title 15 to 60 and description 70 to 160 characters, both unique; one h1;
 //   the canonical URL and og:url; JSON-LD that parses; a BreadcrumbList of CivilKit > Calcs (the product page) >
 //   Calculators and guides > the page, and the same trail on the page; "CivilKit Calcs" links to the product page and the
@@ -56,7 +57,11 @@ function resolvesPath(path, query, { canonicalOnly = true } = {}) {
     if (rel === '') {
         if (!query) return null;
         const m = /^sample=(.+)$/.exec(query);
-        return m && sampleIds.has(decodeURIComponent(m[1])) ? null : `no sample for ?${query}`;
+        if (m) return sampleIds.has(decodeURIComponent(m[1])) ? null : `no sample for ?${query}`;
+        // An embed (docs/embedding.md): embed=1 or edit, a known sample and only the documented options.
+        const q = new URLSearchParams(query);
+        const known = ['embed', 'sample', 'theme', 'mode', 'hide', 'allowpython'];
+        return /^(1|edit)$/.test(q.get('embed') ?? '') && sampleIds.has(q.get('sample') ?? '') && [...q.keys()].every((k) => known.includes(k)) ? null : `not an app or embed address: ?${query}`;
     }
     if (rel.startsWith('guide/')) {
         const g = rel.slice('guide/'.length);
@@ -126,6 +131,39 @@ for (const { file, url, page } of learnPages) {
         check(list.length === pages.length && list.every((i) => slugs.has(i.url.slice(HUB.length, -1))), `hub: the ItemList has the ${pages.length} pages`);
     }
     links += checkLinks(html, where, `/calcs/learn/${page ? page.slug + '/' : ''}`);
+}
+
+// ---- the embed catalogue (tools/learn/embed.mjs) ----------------------------------------------------------------------------
+{
+    const where = 'embed page';
+    const url = `${SITE}/calcs/embed/`;
+    const file = join(pub, 'embed', 'index.html');
+    if (!isFile(file)) check(false, `${where}: ${file} exists (run node tools/make_learn_pages.mjs)`);
+    else {
+        const html = read(file);
+        const title = unesc(/<title>([^<]*)<\/title>/.exec(html)?.[1] ?? '');
+        const desc = meta(html, 'name', 'description');
+        check(title.length >= 15 && title.length <= 60, `${where}: title of ${title.length} characters is 15 to 60`);
+        check(desc.length === 1 && desc[0].length >= 70 && desc[0].length <= 160, `${where}: one description of 70 to 160 characters (${desc[0]?.length})`);
+        unique(titles, title, where, 'title');
+        unique(descriptions, desc[0], where, 'description');
+        check(h1s(html) === 1, `${where}: one h1`);
+        check(JSON.stringify(canonicals(html)) === JSON.stringify([url]), `${where}: one canonical, ${url}`);
+        check(meta(html, 'property', 'og:url')[0] === url && !!meta(html, 'property', 'og:title')[0] && /^https:\/\//.test(meta(html, 'property', 'og:image')[0] ?? ''), `${where}: og:url, og:title and an absolute og:image`);
+        const bc = nodes(ldOf(html, where)).find((n) => n['@type'] === 'BreadcrumbList')?.itemListElement ?? [];
+        const want = [['CivilKit', `${SITE}/`], ['Calcs', PRODUCT], ['Embed', url]];
+        check(JSON.stringify(bc.map((i) => [i.name, i.item])) === JSON.stringify(want), `${where}: BreadcrumbList is CivilKit > Calcs > Embed`);
+        const crumb = /<nav class="crumbs"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? '';
+        check(crumb.includes(`<a href="${SITE}/">CivilKit</a>`) && crumb.includes(`<a href="${PRODUCT}">Calcs</a>`) && crumb.includes('<span>Embed</span>'), `${where}: the visible breadcrumb CivilKit / Calcs / Embed`);
+        check(html.includes('href="/calcs/learn/"') && read(join(pub, 'learn', 'index.html')).includes('href="/calcs/embed/"'), `${where}: links the hub, and the hub links it`);
+        for (const p of pages.filter((x) => x.open)) check(html.includes(`?embed=1&amp;sample=${p.open}`), `${where}: a snippet for ${p.open}`);
+        links += checkLinks(html, where, '/calcs/embed/');
+        // The snippets are text: every embed address in them resolves too.
+        for (const m of html.matchAll(/https:\/\/civilkit\.io(\/calcs\/[^\s"&]*)\?([^\s"]*?)&quot;/g)) {
+            const r = resolvesPath(m[1], unesc(m[2]));
+            check(!r, `${where}: snippet ${m[1]}?${unesc(m[2])}: ${r}`);
+        }
+    }
 }
 
 // ---- What's new ----------------------------------------------------------------------------------------------------------------------------
@@ -207,7 +245,7 @@ const toPath = (u) => { const x = new URL(u); return [decodeURIComponent(x.pathn
         if (p.startsWith('/calcs/learn/') || p === '/calcs/whats-new' ) check(p.endsWith('/'), `sitemap: ${u} ends with a slash`);
     }
     for (const c of chapters) check(c.file === 'introduction.md' ? locs.includes(GUIDE) : locs.includes(guideUrl(c.file)), `sitemap lists guide ${c.file} at ${guideUrl(c.file)}`);
-    for (const x of [HUB, APP, `${SITE}/calcs/whats-new/`, ...pages.map((p) => `${HUB}${p.slug}/`)]) check(locs.includes(x), `sitemap lists ${x}`);
+    for (const x of [HUB, APP, `${SITE}/calcs/embed/`, `${SITE}/calcs/whats-new/`, ...pages.map((p) => `${HUB}${p.slug}/`)]) check(locs.includes(x), `sitemap lists ${x}`);
 }
 for (const f of ['llms.txt', 'llms-full.txt']) {
     const t = read(join(pub, f));

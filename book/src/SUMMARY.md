@@ -37,6 +37,7 @@
 - [Importing worksheets](importing.md)
 - [Exporting](exporting.md)
 - [Editing](editing.md)
+- [Embedding a calculator](embedding.md)
 
 # More
 

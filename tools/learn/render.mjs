@@ -69,6 +69,8 @@ function fill(html, page, runs) {
         });
 }
 
+/** The embed catalogue page (tools/learn/embed.mjs). */
+export const EMBED = `${SITE}/calcs/embed/`;
 const NAV = [[PRODUCT, 'Calcs home'], [BASE, 'Calculators and guides'], ['/calcs/guide/', 'User guide'], ['/calcs/whats-new/', "What's new"], ['/calcs/', 'Open Calcs']];
 const LABEL = Object.fromEntries(pages.map((p) => [p.slug, p.label]));
 export const labelOf = (slug) => LABEL[slug];
@@ -114,8 +116,8 @@ export const SOFTWARE = {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
 };
 
-/** The page head shared by the landing pages and the hub. */
-function head({ title, description, url, ld }) {
+/** The page head shared by the landing pages, the hub and the embed page. */
+export function head({ title, description, url, ld }) {
     return `<!doctype html>
 <html lang="en">
 <head>
@@ -144,7 +146,7 @@ ${JSON.stringify(ld, null, 1).replace(/</g, '\\u003c')}
 </head>`;
 }
 
-const header = () => `<a class="skip" href="#main">Skip to the content</a>
+export const header = () => `<a class="skip" href="#main">Skip to the content</a>
 <header class="site">
 <a class="brand" href="${PRODUCT}">CivilKit Calcs</a>
 <nav aria-label="Site">
@@ -153,13 +155,30 @@ ${NAV.map(([h, t]) => `<a href="${h}">${esc(t)}</a>`).join('\n')}
 </header>`;
 
 /** The breadcrumb trail shown on the page; the last entry is the current page (no link). */
-const crumbs = (trail) => `<nav class="crumbs" aria-label="Breadcrumb"><a href="${SITE}/">CivilKit</a> / <a href="${PRODUCT}">Calcs</a> / ${trail.map(([t, h]) => (h ? `<a href="${h}">${esc(t)}</a>` : `<span>${esc(t)}</span>`)).join(' / ')}</nav>`;
+export const crumbs = (trail) => `<nav class="crumbs" aria-label="Breadcrumb"><a href="${SITE}/">CivilKit</a> / <a href="${PRODUCT}">Calcs</a> / ${trail.map(([t, h]) => (h ? `<a href="${h}">${esc(t)}</a>` : `<span>${esc(t)}</span>`)).join(' / ')}</nav>`;
 
-const footer = () => `<footer class="site">
+export const footer = () => `<footer class="site">
 <p><a href="${SITE}/">CivilKit</a> · <a href="${PRODUCT}">CivilKit Calcs</a> · <a href="${BASE}">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="${REPO}">Source on GitHub</a></p>
 <p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="${CALCPADCE}">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
 <p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
 </footer>`;
+
+/**
+ * The "Try it" section of a page with a sample: the sample live in an embed (docs/embedding.md). The frame loads lazily
+ * and has a fixed height, so the page stays fast and does not shift; the link under it works without the frame.
+ */
+export function tryIt(page) {
+    if (!page.open) return '';
+    return `
+<section class="try" id="try-it">
+<h2>Try it</h2>
+<p>Change the inputs and the results recalculate in your browser. <a href="/calcs/embed/">Embed it on your own site</a>.</p>
+<iframe class="embed" src="/calcs/?embed=1&amp;sample=${esc(page.open)}" width="100%" height="${EMBED_HEIGHT}" loading="lazy" title="${esc(LABEL[page.slug])}: live sheet" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+<p class="fallback"><a href="/calcs/?sample=${esc(page.open)}">Open the sheet in Calcs</a> if the live sheet does not show.</p>
+</section>`;
+}
+/** The height of an embedded sheet on the landing pages, in pixels (fixed, so nothing moves while it loads). */
+export const EMBED_HEIGHT = 560;
 
 /** One complete page. `runs` is runAll(page). */
 export function renderPage(page, runs) {
@@ -169,7 +188,7 @@ export function renderPage(page, runs) {
 <video controls preload="none" width="960" height="540" aria-label="${esc(page.video.title)}" src="/calcs/guide/videos/${page.video.file}"></video>
 <figcaption>Video: ${esc(page.video.title)} (about ${page.video.seconds ?? 85} seconds). Read the chapter <a href="${guideHref(page.video.chapter)}">${esc(chapterTitle(page.video.chapter))}</a>.</figcaption>
 </figure>` : '';
-    const body = page.sections.map(([h, html], i) => `<section>\n<h2>${esc(h)}</h2>\n${fill(html, page, runs)}\n</section>${i === 0 ? '\n' + video0 : ''}`).join('\n');
+    const body = page.sections.map(([h, html], i) => `<section>\n<h2>${esc(h)}</h2>\n${fill(html, page, runs)}\n</section>${i === 0 ? '\n' + video0 + tryIt(page) : ''}`).join('\n');
     const openLabel = page.openLabel ?? (page.open?.startsWith('template-') ? 'Open this template' : 'Open this sheet in Calcs');
     const cta = page.open
         ? `<p class="cta"><a class="button" href="/calcs/?sample=${esc(page.open)}">${esc(openLabel)}</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>`
@@ -259,6 +278,10 @@ ${crumbs([['Calculators and guides']])}
 </div>
 <p class="cta"><a class="button" href="/calcs/">Open Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the user guide</a></p>
 ${sections}
+<section id="embed">
+<h2>Embed a calculator</h2>
+<p>The calculators can also live on your own site: a free, copy and paste frame that calculates in the reader's browser. See <a href="/calcs/embed/">Embed a calculator</a>.</p>
+</section>
 </main>
 ${footer()}
 </body>

@@ -78,6 +78,7 @@ export function outputs() {
     index.push(`- [App](${SITE}): open the calculator`);
     index.push('- [Product page](https://civilkit.io/calc/): what CivilKit Calcs is and does');
     index.push(`- [What's new](${SITE}whats-new/): release notes with short clips`);
+    index.push(`- [Embed a calculator](${SITE}embed/): put a live sheet on another web page with one iframe (free, no tracking)`);
     index.push(`- [Source code and issues](${GITHUB})`);
     index.push('');
 

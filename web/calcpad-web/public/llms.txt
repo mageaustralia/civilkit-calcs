@@ -50,6 +50,7 @@ The whole guide in one file: https://civilkit.io/calcs/llms-full.txt
 - [Importing worksheets](https://civilkit.io/calcs/guide/importing): The worksheet importer converts worksheet files from a spreadsheet-like calculation format, with text, equations, plots and pictures placed freely on a page (files ending .xmcd and .mcdx), into a new Calcpad worksheet that this engine calcu
 - [Exporting](https://civilkit.io/calcs/guide/exporting): A calculated sheet leaves the page in four ways: a PDF through the print dialog, a Word document, an Excel workbook and standalone HTML.
 - [Editing](https://civilkit.io/calcs/guide/editing): There are two places to edit: the source on the left and, in the results, the page itself.
+- [Embedding a calculator](https://civilkit.io/calcs/guide/embedding): An embed shows one sample sheet on another web page: its inputs as a small form and its results beside or under it.
 
 ## More
 
@@ -93,4 +94,5 @@ All of them, grouped by purpose: [Calculators and guides](https://civilkit.io/ca
 - [App](https://civilkit.io/calcs/): open the calculator
 - [Product page](https://civilkit.io/calc/): what CivilKit Calcs is and does
 - [What's new](https://civilkit.io/calcs/whats-new/): release notes with short clips
+- [Embed a calculator](https://civilkit.io/calcs/embed/): put a live sheet on another web page with one iframe (free, no tracking)
 - [Source code and issues](https://github.com/mageaustralia/civilkit-calcs)

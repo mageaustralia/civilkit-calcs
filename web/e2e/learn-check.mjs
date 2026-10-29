@@ -58,7 +58,10 @@ function resolves(href) {
     const rel = path.slice('/calcs/'.length);
     if (rel === '' && query) {
         const m = /^sample=(.+)$/.exec(query);
-        return m && sampleIds.has(decodeURIComponent(m[1])) ? null : `no sample for ${href}`;
+        if (m) return sampleIds.has(decodeURIComponent(m[1])) ? null : `no sample for ${href}`;
+        // The "Try it" frame: /calcs/?embed=1&sample=<id>.
+        const e = /^embed=1&sample=([\w.-]+)$/.exec(query);
+        return e && sampleIds.has(e[1]) ? null : `no sample for ${href}`;
     }
     if (rel.startsWith('guide/')) {
         const g = rel.slice('guide/'.length);
@@ -124,6 +127,7 @@ for (const page of pages) {
     const internal = page.related.every((s) => html.includes(`href="/calcs/learn/${s}/"`));
     check(internal && html.includes('href="/calcs/"') && html.includes('href="/calcs/guide/"'), `${where}: links to its related pages, the app and the guide`);
     if (page.open) check(html.includes(`href="/calcs/?sample=${page.open}"`), `${where}: Open this template deep link`);
+    if (page.open) check(html.includes(`<iframe class="embed" src="/calcs/?embed=1&amp;sample=${page.open}" width="100%" height="560" loading="lazy"`), `${where}: a lazy, fixed-height Try it frame of its sheet`);
     if (page.video) check(html.includes(`<video controls preload="none"`) && html.includes(`/calcs/guide/videos/${page.video.file}`), `${where}: video element`);
 
     // Forbidden terms
@@ -156,7 +160,7 @@ check(/^User-agent: \*$/m.test(robots) && /^Allow: \/$/m.test(robots) && robots.
 const swFile = join(dist, 'sw.js');
 if (existsSync(swFile)) {
     const files = JSON.parse(/const FILES = (\[.*\]);/.exec(readFileSync(swFile, 'utf8'))[1]);
-    check(!files.some((f) => f.startsWith('learn/') || f === 'sitemap.xml' || f === 'robots.txt'), `service worker precache (${files.length} files) leaves out learn/, sitemap.xml and robots.txt`);
+    check(!files.some((f) => f.startsWith('learn/') || f.startsWith('embed/') || f === 'sitemap.xml' || f === 'robots.txt'), `service worker precache (${files.length} files) leaves out learn/, embed/, sitemap.xml and robots.txt`);
     check(files.includes('./') && files.some((f) => f.startsWith('assets/')), 'service worker precache still holds the app');
 }
 

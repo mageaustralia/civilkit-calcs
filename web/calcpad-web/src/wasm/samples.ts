@@ -97,6 +97,19 @@ function staticImages(html: string, sample: Sample): string {
     });
 }
 
+/**
+ * A sample's text as it opens and the data files it reads (#include, #read), for a render outside the editor (the embed,
+ * src/embed/embed.ts), with the images it shows pointed at their static copies by `staticImages`.
+ */
+export async function sampleSource(s: Sample): Promise<{ text: string; extraFiles: Record<string, string>; images: (html: string) => string }> {
+    const text = opened(new TextDecoder().decode(await bytes(s.file)).replace(/^\uFEFF/, ''));
+    const extraFiles: Record<string, string> = {};
+    for (const a of s.assets) {
+        if (/\.(cpd|txt|csv|xlsx|xlsm)$/i.test(a.key)) extraFiles[a.key] = toBase64(await bytes(a.url));
+    }
+    return { text, extraFiles, images: (html) => staticImages(html, s) };
+}
+
 export interface SamplesHost {
     library: FileLibrary;
     tabs: () => TabsLike;
