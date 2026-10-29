@@ -1,0 +1,31 @@
+<!--sheet-->
+# Review and sign-off of a calculation
+
+The sequence diagram shows who passes what to whom, in order from the top. The numbers under it
+estimate the time the review takes for a package of members.
+
+```mermaid
+sequenceDiagram
+  participant D as Designer
+  participant C as Checker
+  participant P as Project engineer
+  D->>C: Calculation package
+  C-->>D: Comments, round 1
+  D->>C: Revised package
+  C-->>D: Comments closed
+  C->>P: Checked package
+  P-->>D: Signed for issue
+```
+
+## Inputs
+members: 24 | members in the package
+t_design: 45 min | design time per member
+t_check: 15 min | checking time per member and round
+rounds: 2 | review rounds
+t_sign: 1.5 h | sign-off by the project engineer
+
+## Time
+T_design: members * t_design -> h | design
+T_check: members * t_check * rounds -> h | checking
+T_total: T_design + T_check + t_sign -> h | total
+share: T_check / T_total -> % | share of the time spent checking

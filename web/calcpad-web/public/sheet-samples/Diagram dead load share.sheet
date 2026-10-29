@@ -1,0 +1,29 @@
+<!--sheet-->
+# Dead load on a floor and its share
+
+Each layer of the floor is worked out from its thickness and unit weight. The pie chart shows the
+same values, and the percentages under it are the shares the chart draws.
+
+## Layers
+g_slab: 200 mm * 24 kN/m³ -> kPa | concrete slab
+g_screed: 50 mm * 22 kN/m³ -> kPa | screed
+g_services: 0.3 kPa | services
+g_ceiling: 0.2 kPa | ceiling
+g_part: 1 kPa | partitions allowance
+G: g_slab + g_screed + g_services + g_ceiling + g_part -> kPa | total dead load
+
+```mermaid
+pie showData
+  title Dead load, kPa
+  "Slab" : 4.8
+  "Screed" : 1.1
+  "Services" : 0.3
+  "Ceiling" : 0.2
+  "Partitions" : 1.0
+```
+
+## Shares
+s_slab: g_slab / G -> % | slab
+s_screed: g_screed / G -> % | screed
+s_part: g_part / G -> % | partitions
+s_rest: (g_services + g_ceiling) / G -> % | services and ceiling

@@ -5,6 +5,7 @@ import type { WebFiles } from './web-files';
 import { getResolvedAppTheme } from '../editor/app-theme';
 import { convertToCalcpad, newSheet, showCompiled } from './sheet-ui';
 import { sheetInsert } from './sheet-insert';
+import { diagramEdit } from './diagram-starters.ts';
 import { SymbolicDialog } from './symbolic';
 
 /** The editor's file is a sheet (its Monaco language, which follows the marker line). */
@@ -148,15 +149,16 @@ export const ACTIONS: Record<string, Handler> = {
     zoomOut: c => zoom(c, -1),
     autocalc: c => c.bridge?.setExtraSetting('autoRun', c.bridge.getExtraSetting('autoRun') === 'false' ? 'true' : 'false'),
     docs: () => void window.open(DOCS_URL, '_blank', 'noopener'),
+    // The browser keeps Ctrl+N, Ctrl+O, Ctrl+P, Ctrl+T and F5 for itself, so they are not listed (main.ts).
     shortcuts: () => dialog('Keyboard shortcuts', [
-        `${mod}+O open, ${mod}+S save, ${mod}+Shift+S save as, ${mod}+N new`,
-        `F5 or ${mod}+Alt+X calculate`,
-        `${mod}+Shift+B show or hide the sidebar`,
+        `${mod}+S save, ${mod}+Shift+S save as`,
+        `${mod}+Alt+X calculate (in the editor)`,
         `${mod}+F find, ${mod}+Z undo, ${mod}+Shift+Z redo`,
         'Alt+Z wrap long lines',
         'F2 rename the name under the cursor everywhere in the document',
         `${mod}+; find a variable or function (Enter inserts it, Alt+Enter goes to its definition)`,
         'F12 go to the definition, Shift+F12 find references',
+        `${mod}+Shift+/ disable or enable the block at the cursor`,
     ]),
     about: () => dialog(`CivilKit Calcs ${APP_VERSION}`, [
         `Built on CalcpadCE ${UPSTREAM_VERSION} (MIT), by Nedelcho Ganchovski (Proektsoft) and contributors. The engine is reimplemented in Rust and runs in your browser.`,
@@ -216,6 +218,37 @@ export function insertSnippet(editor: any, text: string, line: boolean, sheet?: 
     } else {
         editor.executeEdits('ribbon', [{ range: sel, text: body, forceMoveMarkers: true }]);
     }
+    editor.focus();
+    return true;
+}
+
+/**
+ * Inserts a starter diagram (the Diagrams menu) as a block of its own at the caret's block boundary: a ```mermaid
+ * fence in a sheet, the fence in a #markdown block in a worksheet (diagram-starters.ts). One undo step; the
+ * diagram's source is left selected, ready to edit.
+ */
+export function insertDiagram(editor: any, source: string): boolean {
+    const model = editor?.getModel();
+    if (!model) return false;
+    const e = diagramEdit(model.getLinesContent(), editor.getPosition()?.lineNumber ?? 1, source, isSheetEditor(editor));
+    const count = model.getLineCount();
+    let range, text;
+    if (e.replace) {
+        range = { startLineNumber: e.before, startColumn: 1, endLineNumber: e.before, endColumn: model.getLineMaxColumn(e.before) };
+        text = e.lines.join('\n');
+    } else if (e.before > count) {
+        const col = model.getLineMaxColumn(count);
+        range = { startLineNumber: count, startColumn: col, endLineNumber: count, endColumn: col };
+        text = '\n' + e.lines.join('\n');
+    } else {
+        range = { startLineNumber: e.before, startColumn: 1, endLineNumber: e.before, endColumn: 1 };
+        text = e.lines.join('\n') + '\n';
+    }
+    editor.pushUndoStop();
+    editor.executeEdits('ribbon-diagram', [{ range, text }]);
+    editor.pushUndoStop();
+    editor.setSelection({ startLineNumber: e.selectFrom, startColumn: 1, endLineNumber: e.selectTo, endColumn: model.getLineMaxColumn(e.selectTo) });
+    editor.revealLinesInCenterIfOutsideViewport(e.selectFrom, e.selectTo);
     editor.focus();
     return true;
 }

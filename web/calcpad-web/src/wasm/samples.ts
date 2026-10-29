@@ -160,8 +160,8 @@ export class SamplesBrowser {
         root.className = 'cprs-samples-backdrop';
         root.innerHTML = `
 <div class="cprs-samples" role="dialog" aria-label="Samples">
-  <div class="cprs-s-head"><b>Samples</b><span class="cprs-s-sub">CalcpadCE examples (MIT). Open makes a copy; the originals are never edited.</span>
-    <button class="cprs-s-close" title="Close">×</button></div>
+  <div class="cprs-s-head"><b>Samples</b><span class="cprs-s-sub">Sheet samples and templates, and the CalcpadCE examples (MIT). Open makes a copy; the originals are never edited.</span>
+    <button class="cprs-s-close" title="Close (Esc)" aria-label="Close">×</button></div>
   <div class="cprs-s-body">
     <div class="cprs-s-groups"></div>
     <div class="cprs-s-listcol">

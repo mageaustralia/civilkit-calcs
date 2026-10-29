@@ -228,7 +228,7 @@ Copy data and PNG.
 
 ## Plot gallery
 
-The **Plots** sample (group "Plots") is a gallery of four plots on a grid in the style of a
+The **Plot gallery** sample (group "Plots and diagrams") is a gallery of four plots on a grid in the style of a
 plotting demo: implicit curves (f(x, y) = 0 drawn as a contour at level zero), functions,
 parametric curves, noise, and polylines with markers, a legend and a second y axis. It is drawn
 in a Python block with the Plotly API, so it can be zoomed and read by hovering.

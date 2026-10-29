@@ -1,0 +1,35 @@
+<!--sheet-->
+# Construction programme for a ground slab
+
+The durations are worked out from quantities and production rates, rounded up to whole days,
+and typed into the Gantt chart. Change a rate, then change the matching duration in the chart.
+
+## Quantities and rates
+A_slab: 30 m * 12 m -> m² | slab area
+V_exc: A_slab * 0.45 m -> m³ | excavation
+rate_exc: 80 m³/d | excavation rate
+rate_reo: 120 m²/d | reinforcement fixing rate
+V_conc: A_slab * 0.2 m -> m³ | concrete
+rate_pour: 60 m³/d | pump rate
+
+## Durations
+t_exc: ceiling(V_exc / rate_exc / 1 d) | days to excavate
+t_reo: ceiling(A_slab / rate_reo / 1 d) | days to fix reinforcement
+t_pour: ceiling(V_conc / rate_pour / 1 d) | days to pour
+t_cure: 7 | days of curing
+t_total: t_exc + t_reo + t_pour + t_cure | working days in total
+
+```mermaid
+gantt
+  title Ground slab
+  dateFormat YYYY-MM-DD
+  axisFormat %d %b
+  section Earthworks
+  Excavate and trim  :exc, 2026-11-02, 3d
+  section Slab
+  Fix reinforcement  :reo, after exc, 3d
+  Pour concrete      :pour, after reo, 2d
+  Cure               :cure, after pour, 7d
+  section Milestone
+  Slab complete      :milestone, after cure, 0d
+```

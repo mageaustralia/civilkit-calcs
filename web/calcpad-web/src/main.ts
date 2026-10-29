@@ -947,7 +947,7 @@ async function bootstrap(): Promise<void> {
         // Focus-the-preview-to-line context action (targets this group).
         ed.addAction({
             id: 'calcpad.focusPreviewToLine',
-            label: 'Focus Preview to Line',
+            label: 'Show Line in Results',
             keybindings: isTauri ? [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Backquote] : [],
             contextMenuGroupId: 'navigation',
             contextMenuOrder: 1.5,
@@ -959,7 +959,7 @@ async function bootstrap(): Promise<void> {
         // from anywhere in the app.
         ed.addAction({
             id: 'calcpad.runPreview',
-            label: 'Run Preview',
+            label: 'Calculate',
             keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.KeyX],
             contextMenuGroupId: 'navigation',
             contextMenuOrder: 1.4,
@@ -972,6 +972,8 @@ async function bootstrap(): Promise<void> {
         ed.addAction({
             id: 'calcpad.editMetadata',
             label: 'Edit Metadata Properties',
+            // Metadata comments are Calcpad syntax; a sheet has no place for them.
+            precondition: "editorLangId != 'calcpad-sheet'",
             contextMenuGroupId: 'navigation',
             contextMenuOrder: 1.6,
             run: (edEditor) => {

@@ -14,7 +14,7 @@
       :class="{ collapsed: !sidebarVisible, dragging: isResizing }"
       @mousedown="onSidebarHandleMouseDown"
       @dblclick="toggleSidebar"
-      :title="sidebarVisible ? 'Drag to resize · double-click to collapse (Ctrl+Shift+B)' : 'Click to expand sidebar (Ctrl+Shift+B)'"
+      :title="sidebarVisible ? `Drag to resize, double-click to collapse${deskKey(' (Ctrl+Shift+B)')}` : `Click to expand the sidebar${deskKey(' (Ctrl+Shift+B)')}`"
       role="separator"
       :aria-orientation="'vertical'"
       :aria-expanded="sidebarVisible"
@@ -65,15 +65,15 @@
                   ✕
                 </button>
               </div>
-              <button class="tab-new" title="New tab (Ctrl+T)" @click="onNewTab(group.id)">+</button>
+              <button class="tab-new" :title="`New tab${deskKey(' (Ctrl+T)')}`" aria-label="New tab" @click="onNewTab(group.id)">+</button>
               <span class="spacer"></span>
               <!-- First group only; the strip is inside the v-for over groups. -->
               <div v-if="gi === 0 && !uiModeFullscreen" class="tab-actions">
                 <button
                   class="tab-action"
                   @click="onRunPreview"
-                  title="Run preview (Ctrl+Alt+X)"
-                  aria-label="Run preview"
+                  :title="`Calculate (${MOD}+Alt+X)`"
+                  aria-label="Calculate"
                 >
                   <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>
                 </button>
@@ -81,7 +81,7 @@
                   class="tab-action"
                   :class="{ active: isSplit }"
                   @click="onToggleSplit"
-                  :title="isSplit ? 'Merge editor groups' : 'Split editor down (Ctrl+\\)'"
+                  :title="isSplit ? 'Merge editor groups' : `Split editor down${deskKey(' (Ctrl+\\)')}`"
                   :aria-label="isSplit ? 'Merge editor groups' : 'Split editor down'"
                   :aria-pressed="isSplit"
                 >
@@ -91,7 +91,7 @@
                   class="tab-action"
                   :class="{ active: previewVisible }"
                   @click="togglePreview"
-                  :title="previewVisible ? 'Hide the results pane' : 'Show the results pane (Ctrl+P)'"
+                  :title="previewVisible ? `Hide the results pane${deskKey(' (Ctrl+P)')}` : `Show the results pane${deskKey(' (Ctrl+P)')}`"
                   :aria-label="previewVisible ? 'Hide the results pane' : 'Show the results pane'"
                   :aria-pressed="previewVisible"
                 >
@@ -112,7 +112,7 @@
                 v-if="!sidebarVisible && gi === 0"
                 class="editor-sidebar-reveal"
                 @click="toggleSidebar"
-                title="Show the sidebar (Ctrl+Shift+B)"
+                :title="`Show the sidebar${deskKey(' (Ctrl+Shift+B)')}`"
                 aria-label="Show the sidebar"
               >
                 <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.2">
@@ -148,18 +148,18 @@
         <button
           class="tab-context-item"
           @click="onContextCloseOthers"
-        >Close Others</button>
-        <button class="tab-context-item" @click="onContextCloseAll">Close All</button>
+        >Close others</button>
+        <button class="tab-context-item" @click="onContextCloseAll">Close all</button>
         <template v-if="tabContextMenu.filePath">
           <div class="tab-context-sep" role="separator"></div>
           <button class="tab-context-item" @click="onContextOpenContainingFolder">
-            Open Containing Folder
+            Open containing folder
           </button>
           <button class="tab-context-item" @click="onContextCopyFullPath">
-            Copy Full Path
+            Copy full path
           </button>
           <button class="tab-context-item" @click="onContextCopyRelativePath">
-            Copy Relative Path
+            Copy relative path
           </button>
         </template>
       </div>
@@ -181,7 +181,7 @@
           class="tab-context-item"
           :disabled="problems.length === 0"
           @click="onCopyAllProblems"
-        >Copy All</button>
+        >Copy all</button>
       </div>
 
       <!-- Output context menu - same copy mechanism as the Problems panel. -->
@@ -201,7 +201,7 @@
           class="tab-context-item"
           :disabled="filteredOutputLines.length === 0"
           @click="onCopyAllOutput"
-        >Copy All</button>
+        >Copy all</button>
       </div>
 
       <!-- Bottom panel (Problems / Output) - reflects the ACTIVE group. -->
@@ -238,8 +238,8 @@
             {{ activeGroupLabel }}
           </span>
           <span class="spacer"></span>
-          <button v-if="activeBottomTab === 'output'" class="toolbar-btn" @click="clearOutput" title="Clear Output">⌫</button>
-          <button class="toolbar-btn" @click="bottomPanelOpen = false">✕</button>
+          <button v-if="activeBottomTab === 'output'" class="toolbar-btn" @click="clearOutput" title="Clear the output" aria-label="Clear the output">⌫</button>
+          <button class="toolbar-btn" title="Close the panel" aria-label="Close the panel" @click="bottomPanelOpen = false">✕</button>
         </div>
         <!-- Problems tab -->
         <div
@@ -358,7 +358,7 @@
             @click="exitUiMode"
             title="Return to the editor"
           >Exit input mode</button>
-          <button v-else-if="!narrow" class="toolbar-btn" @click="togglePreview">✕</button>
+          <button v-else-if="!narrow" class="toolbar-btn" title="Hide the results pane" aria-label="Hide the results pane" @click="togglePreview">✕</button>
         </template>
       </div>
       <!-- One preview iframe per editor group. allow-same-origin is deliberately
@@ -470,19 +470,19 @@
         v-if="previewContextMenu.editable"
         class="tab-context-item"
         @click="onPreviewClipboard('cut')"
-      >Cut (Ctrl+X)</button>
+      >Cut ({{ MOD }}+X)</button>
       <button
         class="tab-context-item"
         :disabled="!previewContextMenu.selection && !previewContextMenu.editable"
         @click="onPreviewClipboard('copy')"
-      >Copy (Ctrl+C)</button>
+      >Copy ({{ MOD }}+C)</button>
       <button
         v-if="previewContextMenu.editable"
         class="tab-context-item"
         @click="onPreviewClipboard('paste')"
-      >Paste (Ctrl+V)</button>
-      <button class="tab-context-item" @click="onFindInPreview">Find… (Ctrl+F)</button>
-      <button v-if="onOpenFullHtmlRequest" class="tab-context-item" @click="onOpenFullHtml">Open Full HTML</button>
+      >Paste ({{ MOD }}+V)</button>
+      <button class="tab-context-item" @click="onFindInPreview">Find... ({{ MOD }}+F)</button>
+      <button v-if="onOpenFullHtmlRequest" class="tab-context-item" @click="onOpenFullHtml">Open full HTML</button>
     </div>
 
     <!-- Double-click on a rendered line: edit its source line in place (see injectLineLinks). -->
@@ -530,7 +530,7 @@
           <span class="insert-glyph" aria-hidden="true">{{ b.glyph }}</span>{{ b.label }}
         </button>
         <button v-if="pasteText" type="button" role="menuitem" title="Paste the copied block here" @click="runInsert(pasteBlock(pasteText))">
-          <span class="insert-glyph" aria-hidden="true">&#x2398;</span>Paste
+          <span class="insert-glyph" aria-hidden="true">&#x2399;</span>Paste
         </button>
       </div>
     </template>
@@ -1302,7 +1302,7 @@ const insertMenu = ref<InsertMenuState | null>(null)
 // "Paste" in the insert menu when a copied block (or text on the system clipboard) is waiting.
 const pasteText = ref('')
 function pasteBlock(text: string): InsertBlock {
-  return { id: 'paste', label: 'Paste', title: 'Paste the copied block here', glyph: '\u2398', text: text.replace(/\r\n?/g, '\n').replace(/^\n+|\s+$/g, '') }
+  return { id: 'paste', label: 'Paste', title: 'Paste the copied block here', glyph: '\u2399', text: text.replace(/\r\n?/g, '\n').replace(/^\n+|\s+$/g, '') }
 }
 function openInsertMenu(groupId: string, frameId: string, data: Record<string, unknown>): void {
   const before = Number(data.line)
@@ -1986,6 +1986,10 @@ function setServerStatus(status: ServerStatus): void {
 const sidebarVisible = ref(true)
 const previewVisible = ref(true)
 // Phone width shows the editor, the results or the sidebar one at a time (CSS does the hiding).
+/** Modifier key names for tooltips and menus, and shortcut hints the browser build cannot honour (main.ts leaves Ctrl+N, O, P, T to the browser). */
+const MOD = /Mac|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl'
+const DESKTOP = typeof (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== 'undefined'
+const deskKey = (hint: string): string => (DESKTOP ? hint.replace(/Ctrl\+/g, `${MOD}+`) : '')
 const MOBILE_PANES = [{ id: 'edit', label: 'Edit' }, { id: 'preview', label: 'Results' }, { id: 'insert', label: 'Insert' }] as const
 const narrowQuery = window.matchMedia('(max-width: 760px)')
 const narrow = ref(narrowQuery.matches)

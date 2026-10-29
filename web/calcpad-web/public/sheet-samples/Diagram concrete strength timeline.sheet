@@ -1,0 +1,26 @@
+<!--sheet-->
+# Concrete strength gain
+
+A common estimate of the strength of moist-cured concrete at an age of t days is
+$f(t) = f_{28} \cdot t / (4 + 0.85\,t)$. The sheet works it out at the ages that matter on site,
+and the timeline lists them with what each one allows.
+
+f_28: 32 MPa | specified strength at 28 days
+f(t): f_28 * t / (4 + 0.85 * t)
+f_1: f(1) | 1 day
+f_3: f(3) | 3 days
+f_7: f(7) | 7 days
+f_14: f(14) | 14 days
+f_28c: f(28) | 28 days
+
+```mermaid
+timeline
+  title Strength of a 32 MPa mix
+  Day 1 : 6.6 MPa : strip edge forms
+  Day 3 : 14.7 MPa : light foot traffic
+  Day 7 : 22.5 MPa : stress the slab
+  Day 14 : 28.2 MPa : backprop removed
+  Day 28 : 32.2 MPa : specified strength
+```
+
+plot f(t) / 1 MPa for t in 0..28

@@ -1,0 +1,43 @@
+<!--sheet-->
+# Design states of a steel beam
+
+A beam passes through a fixed set of checks before it is issued. The state diagram shows the
+order and the way back when a check fails. The checks under it are the same steps, so the state
+this beam reaches can be read from the results.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Sized: section chosen
+  Sized --> Bending: check M*
+  Bending --> Shear: M* <= phi Ms
+  Bending --> Sized: fails, resize
+  Shear --> Deflection: V* <= phi Vv
+  Shear --> Sized: fails, resize
+  Deflection --> Issued: deflection <= L/250
+  Deflection --> Sized: fails, resize
+  Issued --> [*]
+```
+
+## Inputs
+L: 7.2 m | span
+w: 9.5 kN/m | design load for strength
+w_s: 6 kN/m | load for deflection
+fy: 300 MPa | yield strength
+E: 200000 MPa | elastic modulus
+Ze: 775000 mm³ | effective section modulus
+I: 121000000 mm⁴ | second moment of area
+A_w: 2430 mm² | web area
+
+## Bending
+Mstar: w * L^2 / 8 -> kN*m | design moment
+phiMs: 0.9 * fy * Ze -> kN*m | design capacity
+
+## Shear
+Vstar: w * L / 2 -> kN | design shear
+phiVv: 0.9 * 0.6 * fy * A_w -> kN | web shear capacity
+
+## Deflection
+delta: 5 * w_s * L^4 / (384 * E * I) -> mm | midspan deflection
+delta_lim: L / 250 -> mm | limit
+
+if Mstar <= phiMs and Vstar <= phiVv and delta <= delta_lim: "State reached: Issued." else: "State reached: back to Sized."

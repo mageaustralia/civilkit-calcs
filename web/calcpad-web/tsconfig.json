@@ -6,6 +6,7 @@
     "strict": true,
     "jsx": "preserve",
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "resolveJsonModule": true,

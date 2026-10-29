@@ -76,10 +76,12 @@ security policy is unchanged, and the HTML and PDF reports carry the drawing. Wo
 the source. Diagrams use the dagre layout (`layout: elk` is not shipped). A fence Mermaid cannot
 parse stays as code, followed by the reason.
 
-The user guide's chapter on diagrams (`book/src/sheet/diagrams.md`) starts from three small
-examples (a flow chart, a sequence and a state diagram) and gives tips. The samples **Design check
-as a flow diagram** and **Load path and tributary loads** (Sheet syntax group) show a diagram next
-to the calculation it describes.
+The user guide's chapter on diagrams (`book/src/sheet/diagrams.md`) is a gallery with one small
+example of each kind of diagram the bundled Mermaid (12.1.0) draws, a list of the kinds it does not
+have, and tips. The Samples dialog's **Plots and diagrams** group has fourteen sheets with a diagram
+next to the calculation it describes (state, sequence, Gantt, pie, treemap, quadrant, XY, Sankey,
+mind map, requirement, timeline and class diagrams as well as flow charts); `web/e2e/diagram-samples-check.mjs`
+opens each one in the app and checks that it draws.
 
 ## Quantity lines
 

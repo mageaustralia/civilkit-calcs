@@ -24,16 +24,20 @@ sheet form inserts Calcpad text as `>>` lines and carries a small `>>` mark.
 
 | Tab | What is on it |
 | --- | --- |
-| Math | Operators, Greek letters and symbols, programming (conditions, loops, macros), constants, numerical methods, units. |
-| Input/Output | Input fields: entry, dropdown, radio, checkbox (the `?` form in a sheet, `#UI` in a worksheet), data grid; reading and writing files; the Input mode button. |
+| Math | Regions (math line, text, heading, image, plot, table), operators, Greek letters and symbols, programming (conditions, loops, macros), constants, numerical methods, units, clipboard. |
+| Input/Output | Input fields: entry, slider, dropdown, radio, checkbox (the `?` form in a sheet, `#UI` in a worksheet), data grid; reading and writing files; breakpoints; the **Input form** view. |
 | Functions | Trigonometric, hyperbolic, logarithmic, rounding, statistical, logical, complex and other functions; define a function; the **Symbolic** dialog. |
-| Matrices/Tables | Vector and matrix literals, vector and matrix functions, linear algebra, tables, data grid. |
-| Plots | Function, parametric, multiple and colour-map plots; plot settings. |
+| Matrices/Tables | Vector and matrix literals, vector and matrix functions, determinant, inverse and transpose, tables. |
+| Calculation | Calculate, auto-calculate, the four result views, settings, and the Variables and Errors lists. |
+| Plots & Diagrams | Function, parametric, multiple and colour-map plots; plot settings; the **Figures** group: the **Diagrams** menu of starter diagrams (see [Diagrams](../sheet/diagrams.md)) and **Image**. |
 | Math Formatting | Rounding, number format, angle units, output control (`#hide`, `#val`, `#nosub` and so on). |
 | Text Formatting | Headings, bold, italic, colours, links, lists, rules, page break. In a sheet these write Markdown. |
-| Calculation | Calculate, auto-calculate, the four result views, settings, variables, errors. |
-| Document | Print PDF, Word, Excel, Export, Import worksheet, Save As, page break, contents, metadata. |
-| Resources | Samples, library, New sheet, New Calcpad, Show compiled, Convert to Calcpad, help, themes, zoom. |
+| Document | Import worksheet, the tidy tools, header and footer, page break, the report, contents, metadata, and Save as, Print PDF, Word, Excel and Export. |
+| Resources | Samples, library, New sheet, New Calcpad, Show compiled, Convert to Calcpad, themes, zoom, the sidebar and Settings, help. |
+
+The tabs follow the work: write (Math to Matrices/Tables), calculate, plot, format, then the
+document. Hover over a button for what it inserts or does; where it teaches syntax the tooltip shows
+the typed form.
 
 ## The editor
 
@@ -64,9 +68,10 @@ These are in the preview only and are not part of a printout or export.
 ## The sidebar
 
 The sidebar holds the **Insert** tab, a searchable library of every symbol, function, unit and
-snippet (a click inserts it at the cursor), and tabs for the table of contents (TOC) and the
-variables of the worksheet. **Settings**, **Export**, **Errors** and **Prettify** open as
-dialogs over the page. Hide the sidebar with Ctrl+Shift+B.
+snippet (a click inserts it at the cursor), and tabs for the table of **Contents** and the
+**Variables** of the worksheet. **Settings**, **Export**, **Errors** and **Prettify** open as
+dialogs over the page. Hide the sidebar with the button at its top right, or Resources > Sidebar
+(Ctrl+Shift+B in the desktop app).
 
 ## On a phone
 

@@ -34,6 +34,10 @@ export const ICONS_BIG: Record<string, string> = {
     text: tile(w('M9 9h14M16 9v13M13 22h6')),
     image: tile('<circle class="a" cx="11" cy="12" r="2.200"/>' + k('M7 22l6-7 4 4 3-3 5 6z')),
     plot: tile(w('M8 8v14h16') + '<path class="w" d="M10 19c3-9 6 1 9-6s3-2 5-4" />'),
+    // A flowchart: a step, a decision and a step joined by arrows.
+    diagram: tile('<rect class="a" x="10" y="5.500" width="12" height="4.500" rx="1"/>' + '<path class="o" d="M16 10v2.200M14.900 11.100l1.100 1.200 1.100-1.200"/>' +
+        '<path class="w" d="M16 12.600l5.500 3.400-5.500 3.400-5.500-3.400z"/>' + '<path class="o" d="M16 19.400v2.300M14.900 20.600l1.100 1.200 1.100-1.200"/>' +
+        '<rect class="k" x="10" y="22" width="12" height="4.500" rx="1"/>'),
     map: tile('<path class="h" d="M8 8h8v7H8z"/><path class="a" d="M16 8h8v7h-8z"/><path class="k" d="M8 15h8v7H8z" opacity=".8"/><path class="h" d="M16 15h8v7h-8z"/>'),
     table: '<rect class="m" x="3" y="6" width="26" height="20" rx="3"/><path class="l" d="M3 6h26v6H3z"/><path class="h" d="M3 12h26v14a3 3 0 01-3 3H6a3 3 0 01-3-3z" opacity=".9"/><path class="o" d="M3 9a3 3 0 013-3h20a3 3 0 013 3v14a3 3 0 01-3 3H6a3 3 0 01-3-3z"/><path class="o" d="M3 12h26M3 17h26M3 22h26M11 12v14M20 12v14"/>',
     // palettes
@@ -44,21 +48,35 @@ export const ICONS_BIG: Record<string, string> = {
     constants: tile(t(16, 21, 17, 'π')),
     units: '<path class="h" d="M3 12h26v10H3z"/><path class="l" d="M3 22h26v3a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path class="o" d="M3 12h26v13a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path class="w" d="M8 12v5M13 12v7M18 12v5M23 12v7" stroke="var(--rb-ic-line)"/>' + a('M26 6l-3 5h6z'),
     cube: block(),
+    sigma: tile(t(16, 22, 17, 'Σ')),
+    // A form of several input boxes, and more.
+    forms: '<rect class="h" x="3" y="4" width="20" height="9" rx="2"/><rect class="o" x="3" y="4" width="20" height="9" rx="2"/><rect class="h" x="3" y="17" width="20" height="9" rx="2"/><rect class="o" x="3" y="17" width="20" height="9" rx="2"/>' +
+        a('M6 6.500h1.600v4H6zM6 19.500h1.600v4H6z') + w('M10 8.500h9M10 21.500h9') + w('M27 12v6M24 15h6'),
     // functions and data
     func: tile(t(15, 21, 15, 'ƒ') + t(23, 21, 9, 'x')),
     fx: tile(t(13, 21, 15, 'ƒ') + w('M20 12l5 8M25 12l-5 8')),
     symbolic: tile(t(11, 21, 15, '∫') + t(22, 21, 13, 'x', 'k')),
     trig: tile('<path class="w" d="M6 17c3-9 6-9 8 0s5 9 8 0 3-5 4-5"/>'),
+    hyp: tile('<path class="w" d="M7 8c1.500 9 5 13 9 13s7.500-4 9-13"/>'),
+    logroot: tile(t(16, 21, 15, 'ln')),
     stat: tile('<path class="k" d="M8 22v-6h4v6zM14 22V9h4v13zM20 22v-9h4v9z"/>'),
     round: tile(t(11, 21, 14, '.0') + a('M21 21h3v-3z')),
     cond: tile(w('M16 7l7 7-7 7-7-7z') + a('M14 12h4v4h-4z')),
-    complex: tile(t(16, 21, 17, 'i')),
+    // The complex plane: a phasor from the origin.
+    complex: tile(w('M8 22h16M8 22V8') + w('M8 22l10-9') + '<circle class="a" cx="19" cy="12" r="2.200"/>'),
+    vars: tile(t(16, 21, 13, 'x=')),
+    tag: tile('<path class="w" d="M8 8.500h7.500l8.500 8.500-6.500 6.500L8 15z"/><circle class="a" cx="12" cy="12.500" r="1.700"/>'),
+    warn: '<path class="h" d="M16 4l13 23H3z"/><path class="o" d="M16 4l13 23H3z"/>' + w('M16 12v7') + '<circle class="k" cx="16" cy="23" r="1.300"/>',
+    toc: tile(w('M8 9h9M8 15h9M8 21h9') + '<path class="x" d="M19 9h5M19 15h5M19 21h5" stroke-dasharray="1 2"/>'),
     list: tile(w('M12 9h12M12 15h12M12 21h12') + '<circle class="k" cx="8" cy="9" r="1.500"/><circle class="k" cx="8" cy="15" r="1.500"/><circle class="k" cx="8" cy="21" r="1.500"/>'),
     find: tile('<circle class="w" cx="14" cy="14" r="5"/>' + w('M18 18l6 6')),
     // arrays
     vector: '<path class="l" d="M4 26l16-16 3 3L7 29z"/><path class="m" d="M4 23L20 7l3 3L7 26z"/><path class="h" d="M18 4h10v10z"/><path class="o" d="M18 4h10v10zM4 23L20 7M7 26l16-16"/>',
     matrix: block('<path class="x" d="M7.500 12.800l8.500 4.200M11 11l8.500 4.300M20 14.500l8-4M22 17l-6 3M8 16.600v5M12 18.500v5M20 20v5M24 18v5" />'),
     grid: tile('<path class="w" d="M8 8h16v14H8zM8 13h16M8 18h16M13 8v14M19 8v14" stroke-width="1.600"/>'),
+    det: tile(t(16, 21, 13, '|A|')),
+    inv: tile(t(13, 22, 15, 'A') + t(23, 15, 8, '-1')),
+    transp: tile(t(14, 22, 15, 'A') + t(23, 15, 9, 'T')),
     // input and output
     entry: '<rect class="h" x="3" y="9" width="26" height="14" rx="3"/><path class="l" d="M3 19h26v1a3 3 0 01-3 3H6a3 3 0 01-3-3z"/><rect class="o" x="3" y="9" width="26" height="14" rx="3"/>' + a('M10 12h2v8h-2z') + w('M15 16h9') ,
     slider: '<rect class="h" x="3" y="13" width="26" height="6" rx="3"/><rect class="o" x="3" y="13" width="26" height="6" rx="3"/><circle class="m" cx="20" cy="16" r="6"/><circle class="o" cx="20" cy="16" r="6"/>' + a('M20 13.500v5'),
@@ -75,6 +93,9 @@ export const ICONS_BIG: Record<string, string> = {
     hide: tile('<path class="k" d="M6 15s4-6 10-6 10 6 10 6-4 6-10 6-10-6-10-6z" opacity=".6"/>' + w('M7 23L25 7')),
     angle: tile(w('M8 22h16M8 22L21 9') + '<path class="a" d="M15 22a7 7 0 00-2-5z"/>'),
     settings: tile('<circle class="w" cx="16" cy="15" r="3.500"/>' + w('M16 7v3M16 20v3M8 15h3M21 15h3M10.500 9.500l2 2M19.500 18.500l2 2M10.500 20.500l2-2M19.500 11.500l2-2')),
+    // A page with a header and a footer band.
+    headfoot: page('<rect class="k" x="7" y="9.500" width="19" height="3" opacity=".55"/><rect class="k" x="7" y="24" width="19" height="3" opacity=".55"/>', '<path class="x" d="M10 16h13M10 19.500h13"/>'),
+    pane: '<rect class="h" x="3" y="5" width="26" height="22" rx="3"/><path class="m" d="M17 5h9a3 3 0 013 3v16a3 3 0 01-3 3h-9z"/><rect class="o" x="3" y="5" width="26" height="22" rx="3"/><path class="o" d="M17 5v22"/>' + a('M20 10h6v2h-6zM20 15h6v2h-6z'),
     // text formatting
     bold: tile(t(16, 22, 18, 'B')),
     italic: tile('<text class="k" x="16" y="22" font-size="18" font-style="italic" font-weight="700" text-anchor="middle" font-family="Georgia,serif" stroke="none">I</text>'),
@@ -87,6 +108,11 @@ export const ICONS_BIG: Record<string, string> = {
     olist: tile(w('M14 9h10M14 15h10M14 21h10') + t(9, 12, 6, '1') + t(9, 18, 6, '2') + t(9, 24, 6, '3')),
     star: '<path class="h" d="M16 4l3.600 7.300 8 1.200-5.800 5.600 1.400 8L16 22.300 8.800 26.100l1.400-8L4.400 12.500l8-1.200z"/><path class="o" d="M16 4l3.600 7.300 8 1.200-5.800 5.600 1.400 8L16 22.300 8.800 26.100l1.400-8L4.400 12.500l8-1.200z"/>',
     fold: tile(w('M8 9h16M8 15h8M8 21h16') + a('M20 12l4 3-4 3z')),
+    markdown: tile(t(12.500, 20, 12, 'M') + a('M20 10h3v5h2.500l-4 4.500-4-4.500H20z')),
+    svg: tile('<path class="w" d="M8 21C11 9 21 21 24 9"/>' + '<rect class="a" x="6.500" y="19.500" width="3" height="3"/><rect class="a" x="22.500" y="7.500" width="3" height="3"/>'),
+    // Tidy: clear the imported formatting (a T and a small x).
+    tidy: tile(t(13, 21, 15, 'T') + w('M20 17l4 4M24 17l-4 4')),
+    indent: tile(w('M8 9h16M14 14h10M14 19h10M8 24h16') + a('M8 13l3.500 2.500L8 18z')),
     // calculation, files
     run: '<path class="l" d="M8 7l19 10-19 11z"/><path class="m" d="M8 5l19 10L8 25z"/><path class="h" d="M8 5l19 10-19 3z"/><path class="o" d="M8 5l19 10L8 25z"/>',
     auto: '<path class="m" d="M5 6l15 8L5 22z"/><path class="o" d="M5 6l15 8L5 22z"/>' + '<rect class="a" x="22" y="12" width="7" height="2" rx="1"/><rect class="a" x="22" y="17" width="7" height="2" rx="1"/>',
@@ -99,6 +125,10 @@ export const ICONS_BIG: Record<string, string> = {
     excel: page('<rect class="m" x="7" y="16" width="19" height="8"/>', t(16.500, 22.500, 8, 'X')),
     export: tile(w('M16 20V8M11 13l5-5 5 5M9 22h14')),
     file: page('', w('M11 15h10M11 20h10') ),
+    newcpd: page('', w('M14 14l-3 3.500 3 3.500M19 14l3 3.500-3 3.500')),
+    convert: page('', w('M10 17.500h12M18 13.500l4 4-4 4')),
+    import: page('', w('M3 18h12M11 14l4 4-4 4')),
+    notes: page('<circle class="k" cx="11" cy="13" r="1.200"/><circle class="k" cx="11" cy="17.500" r="1.200"/><circle class="k" cx="11" cy="22" r="1.200"/>', w('M14 13h8M14 17.500h8M14 22h8')),
     open: '<path class="l" d="M3 10h8l3 3h13v14H3z"/><path class="m" d="M3 10h8l3 3h13v3H3z"/><path class="h" d="M3 16h26l-3 11H3z"/><path class="o" d="M3 10h8l3 3h13v14H3z"/>',
     save: tile('<rect class="k" x="9" y="7" width="14" height="8" rx="1" opacity=".9"/><rect class="a" x="19" y="8" width="2" height="5"/><rect class="k" x="10" y="18" width="12" height="5" rx="1"/>'),
     saveas: tile('<rect class="k" x="8" y="7" width="12" height="8" rx="1" opacity=".9"/>' + w('M20 23l1-4 5-5 2 2-5 5z')),
@@ -153,6 +183,8 @@ export const ICONS_SMALL: Record<string, string> = {
     symbolic: '<path d="M12 3c-3 0-3 2-3 5v8c0 3 0 5-3 5"/><path d="M14 9l6 7M20 9l-6 7"/>',
     fx: '<path d="M10 4C7 4 8 9 8 12s-1 8-4 8M5 11h6"/><path d="M13 12l6 6M19 12l-6 6"/>',
     sub: '<path d="M4 6l8 10M12 6L4 16"/><path d="M15 17h5v4h-5z"/>',
+    sup: '<path d="M4 8l8 10M12 8L4 18"/><path d="M15 3h5v4h-5z"/>',
+    ref: '<path d="M12 6C10 4.500 7 4 4 4.500v14c3-.5 6 0 8 1.500 2-1.500 5-2 8-1.500v-14C17 4 14 4.500 12 6zM12 6v14"/>',
     split: '<path d="M4 8h16M4 16h8"/><path d="M16 14l3 2-3 2"/>',
     wrap: '<path d="M4 8h16v5H8"/><path d="M11 10l-3 3 3 3"/>',
     cut: '<circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/><path d="M8 14L18 4M16 14L6 4"/>',

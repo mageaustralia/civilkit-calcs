@@ -12,6 +12,8 @@
 // snippet is substituted for `{}` in `test` (default `r = {}`). `nox` runs without a variable named x
 // (plots and numerical methods use x as their own variable); `raw` runs with no prelude at all;
 // `skip` lists a snippet the engine cannot check on its own, with the reason.
+// The Diagrams menu's starters live in diagram-starters.ts (also plain data).
+import { cpdFence, DIAGRAM_STARTERS, sheetFence } from './diagram-starters.ts';
 
 export interface Entry {
     label: string;
@@ -30,6 +32,8 @@ export interface Entry {
     skip?: string;
     /** What the entry inserts in a sheet (sheet-insert.ts); without it the Calcpad text is converted or passed through. */
     sheet?: string;
+    /** A starter diagram (its Mermaid source): inserted as a block of its own, see insertDiagram in ribbon-actions.ts. */
+    diagram?: string;
 }
 export interface Section { heading: string; items: Entry[] }
 export interface RibbonButton {
@@ -131,6 +135,12 @@ const more = (id: string, label: string, icon: string, title: string, key: strin
 /** A popover with a Common section (`palette`) above the library list `key`. */
 const both = (id: string, label: string, icon: string, title: string, palette: Section[], key: string): RibbonButton => ({ id, label, icon, title, palette, more: key });
 const action = (id: string, label: string, icon: string, title: string, a = id, size?: 'small'): RibbonButton => ({ id, label, icon, title, action: a, size });
+
+/** The Diagrams menu: a starter of each kind, a fence in a sheet and a #markdown block in a worksheet. */
+const PAL_DIAGRAMS: Section[] = DIAGRAM_STARTERS.map(s => ({
+    heading: s.heading,
+    items: s.items.map((d): Entry => ({ label: d.label, title: d.title, text: cpdFence(d.source) + '\n', sheet: sheetFence(d.source) + '\n', line: true, diagram: d.source })),
+}));
 
 const greekLower = 'αβγδεζηθικλμνξοπρστυφχψω'.split('');
 const greekUpper = 'ΓΔΘΛΞΠΣΦΨΩ'.split('');
@@ -318,59 +328,68 @@ const PAL_CALCULUS: Section[] = [lines('Sums and calculus', [
 
 
 export const QUICK: RibbonButton[] = [
-    action('q-new', 'New', 'file', 'New sheet (Ctrl+N)', 'newsheet'),
-    action('q-open', 'Open', 'open', 'Open a worksheet (Ctrl+O)', 'open'),
+    // The browser keeps Ctrl+N and Ctrl+O for itself, so these name no shortcut.
+    action('q-new', 'New', 'file', 'New sheet', 'newsheet'),
+    action('q-open', 'Open', 'open', 'Open a worksheet or sheet from your computer', 'open'),
     action('q-save', 'Save', 'save', 'Save (Ctrl+S)', 'save'),
     action('q-undo', 'Undo', 'undo', 'Undo (Ctrl+Z)', 'undo'),
     action('q-redo', 'Redo', 'redo', 'Redo (Ctrl+Shift+Z)', 'redo'),
 ];
 
+const TABLE_WS = "'<table class=\"bordered\"><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>\n";
+const TABLE_SHEET = '| A | B |\n|---|---|\n| 1 | 2 |\n';
+const IMAGE_WS = '\'<img src="./image.png" alt="Image">\n';
+const IMAGE_SHEET = '![Image](./image.png)\n';
+const PAGE_BREAK = "'<div style=\"page-break-after:always\"></div>\n";
+const PAGE_BREAK_SHEET = '<div style="page-break-after:always"></div>\n';
+const PAGE_BREAK_TITLE = 'Start a new page here when printing and in the Word file';
 
+// Tabs follow the work: write (Math to Matrices/Tables), calculate, plot, format, then the document.
 export const RIBBON: RibbonTab[] = [
     {
         id: 'math', label: 'Math', groups: [
             { name: 'Regions', buttons: [
-                big('r-math', 'Math line', 'mathline', 'Insert a line of math', { text: 'a = 1\n', line: true }),
-                big('r-text', 'Text', 'comment', 'Insert a comment line (text in single quotes)', { text: "'Text\n", line: true, sheet: 'Text\n' }),
-                big('r-heading', 'Heading', 'heading', 'Insert a heading line (text in double quotes)', { text: '"Heading\n', line: true, sheet: '## Heading\n' }),
-                big('r-image', 'Image', 'image', 'Insert an image reference', { text: '\'<img src="./image.png" alt="Image">\n', line: true, sheet: '![Image](./image.png)\n' }),
-                big('r-plot', 'Plot', 'plot', 'Insert a function plot', { text: '$Plot{sin(x) @ x = 0 : 2*π}\n', line: true, nox: true, sheet: 'plot sin(x) for x in 0..2*π\n' }),
-                big('r-table', 'Table', 'table', 'Insert an HTML table', { text: "'<table class=\"bordered\"><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>\n", line: true, sheet: '| A | B |\n|---|---|\n| 1 | 2 |\n' }),
+                big('r-math', 'Math line', 'mathline', 'Insert a line of math, such as a = 1', { text: 'a = 1\n', line: true }),
+                big('r-text', 'Text', 'comment', "Insert a line of text: 'Text in a worksheet, a paragraph in a sheet", { text: "'Text\n", line: true, sheet: 'Text\n' }),
+                big('r-heading', 'Heading', 'heading', 'Insert a heading: "Heading in a worksheet, ## Heading in a sheet', { text: '"Heading\n', line: true, sheet: '## Heading\n' }),
+                big('r-image', 'Image', 'image', 'Insert a picture from a file: <img src="./image.png"> in a worksheet, ![Image](./image.png) in a sheet', { text: IMAGE_WS, line: true, sheet: IMAGE_SHEET }),
+                big('r-plot', 'Plot', 'plot', 'Insert a function plot: $Plot{sin(x) @ x = 0 : 2*π}', { text: '$Plot{sin(x) @ x = 0 : 2*π}\n', line: true, nox: true, sheet: 'plot sin(x) for x in 0..2*π\n' }),
+                big('r-table', 'Table', 'table', 'Insert a table: HTML in a worksheet, Markdown pipes in a sheet', { text: TABLE_WS, line: true, sheet: TABLE_SHEET }),
             ] },
             { name: 'Palettes', buttons: [
-                both('p-operators', 'Operators', 'operators', 'Operators', PAL_OPERATORS, 'operators'),
+                both('p-operators', 'Operators', 'operators', 'Arithmetic, comparison and logical operators, powers and roots', PAL_OPERATORS, 'operators'),
                 both('p-symbols', 'Symbols', 'symbols', 'Greek letters, subscripts, accents and bars', PAL_SYMBOLS, 'symbols'),
                 both('p-programming', 'Programming', 'program', 'Conditions, loops, macros and modules', PAL_PROGRAMMING, 'keywords'),
                 both('p-constants', 'Constants', 'constants', 'Mathematical, physical and engineering constants', PAL_CONSTANTS, 'constants'),
-                both('p-numerical', 'Numerical methods', 'fx', 'Sums, products, integrals, roots, minima and expression blocks', PAL_CALCULUS, 'numerical'),
+                both('p-numerical', 'Numerical methods', 'sigma', 'Sums, products, integrals, roots, minima and expression blocks', PAL_CALCULUS, 'numerical'),
             ] },
             { name: 'Units', buttons: [
-                both('p-units', 'Units', 'units', 'Units by dimension, and the base units', [...PAL_UNITS, ...PAL_BASEUNITS], 'units'),
+                both('p-units', 'Units', 'units', 'Units by dimension, the base units and the | conversion', [...PAL_UNITS, ...PAL_BASEUNITS], 'units'),
             ] },
             { name: 'Style', buttons: [
-                small('s-sub', 'Subscript', 'sub', 'Subscript: _ after a name', { text: '_', test: 'a{}1 = 1' }),
+                small('s-sub', 'Subscript', 'sub', 'Subscript: an underscore after a name, as in a_1', { text: '_', test: 'a{}1 = 1' }),
                 small('s-index', 'Index', 'vector', 'Element index: a dot and the index, as in v.2', { text: '.1', test: 'r = v{}' }),
-                small('s-mindex', 'Matrix index', 'matrix', 'Matrix element: a dot and (row; column)', { text: '.(1; 2)', test: 'r = A{}' }),
-                small('s-split', 'Split equation', 'split', 'Split equations after the = sign', { text: '#split\n', line: true }),
-                small('s-wrap', 'Wrap equation', 'wrap', 'Wrap equations at the end of the line', { text: '#wrap\n', line: true }),
+                small('s-mindex', 'Matrix index', 'matrix', 'Matrix element: a dot and (row; column), as in A.(1; 2)', { text: '.(1; 2)', test: 'r = A{}' }),
+                small('s-split', 'Split equation', 'split', 'Split long equations after the = sign: #split', { text: '#split\n', line: true }),
+                small('s-wrap', 'Wrap equation', 'wrap', 'Wrap long equations at the end of the line: #wrap', { text: '#wrap\n', line: true }),
             ] },
             { name: 'Clipboard', buttons: [
-                action('c-cut', 'Cut', 'cut', 'Cut the selection', 'cut', 'small'),
-                action('c-copy', 'Copy', 'copy', 'Copy the selection', 'copy', 'small'),
-                action('c-paste', 'Paste', 'paste', 'Paste', 'paste', 'small'),
+                action('c-cut', 'Cut', 'cut', 'Cut the selection (Ctrl+X)', 'cut', 'small'),
+                action('c-copy', 'Copy', 'copy', 'Copy the selection (Ctrl+C)', 'copy', 'small'),
+                action('c-paste', 'Paste', 'paste', 'Paste at the cursor (Ctrl+V)', 'paste', 'small'),
             ] },
         ],
     },
     {
         id: 'io', label: 'Input/Output', groups: [
             { name: 'Input fields', buttons: [
-                big('u-entry', 'Entry', 'entry', 'An input box for a number', { text: '#UI L = 10m\n', line: true, sheet: 'L: ? 10 m | span\n' }),
-                big('u-slider', 'Slider', 'slider', 'A number with bounds, drawn as a slider with a box beside it', { text: '#UI {"min": 0, "max": 20, "step": 0.5} L = 10m\n', line: true, sheet: 'L: ? 10 m [0 .. 20 step 0.5] | span\n' }),
-                big('u-dropdown', 'Dropdown', 'dropdown', 'A drop-down list of choices', { text: '#UI {"type": "dropdown", "keys": ["Low", "Medium", "High"], "values": ["1", "2", "3"]} grade = 1\n', line: true, sheet: 'grade: ? [Low = 1, Medium = 2, High = 3] | grade\n' }),
-                big('u-radio', 'Radio', 'radio', 'A group of radio buttons', { text: '#UI {"type": "radio", "keys": ["Steel", "Concrete"], "values": ["200GPa", "25GPa"]} E = 200GPa\n', line: true, sheet: 'E: ? (Steel = 200 GPa, Concrete = 25 GPa) | material\n' }),
-                big('u-check', 'Checkbox', 'checkbox', 'A checkbox (1 or 0)', { text: '#UI {"type": "checkbox"} useSteel = 1\n', line: true, sheet: 'useSteel: ? on | use steel\n' }),
-                big('u-grid', 'Data grid', 'grid', 'An empty editable grid', { text: '#UI G_1 = matrix(3; 3)\n', line: true }),
-                more('a-ui', 'More input forms', 'entry', 'Vector, matrix, labelled and formula inputs, and every other #UI form', 'uiInputs'),
+                big('u-entry', 'Entry', 'entry', 'An input box for a number: #UI L = 10m (L: ? 10 m in a sheet)', { text: '#UI L = 10m\n', line: true, sheet: 'L: ? 10 m | span\n' }),
+                big('u-slider', 'Slider', 'slider', 'A number with bounds, drawn as a slider with a box beside it (L: ? 10 m [0 .. 20 step 0.5] in a sheet)', { text: '#UI {"min": 0, "max": 20, "step": 0.5} L = 10m\n', line: true, sheet: 'L: ? 10 m [0 .. 20 step 0.5] | span\n' }),
+                big('u-dropdown', 'Dropdown', 'dropdown', 'A drop-down list of choices (grade: ? [Low = 1, Medium = 2, High = 3] in a sheet)', { text: '#UI {"type": "dropdown", "keys": ["Low", "Medium", "High"], "values": ["1", "2", "3"]} grade = 1\n', line: true, sheet: 'grade: ? [Low = 1, Medium = 2, High = 3] | grade\n' }),
+                big('u-radio', 'Radio', 'radio', 'A group of radio buttons (E: ? (Steel = 200 GPa, Concrete = 25 GPa) in a sheet)', { text: '#UI {"type": "radio", "keys": ["Steel", "Concrete"], "values": ["200GPa", "25GPa"]} E = 200GPa\n', line: true, sheet: 'E: ? (Steel = 200 GPa, Concrete = 25 GPa) | material\n' }),
+                big('u-check', 'Checkbox', 'checkbox', 'A checkbox that gives 1 or 0 (useSteel: ? on in a sheet)', { text: '#UI {"type": "checkbox"} useSteel = 1\n', line: true, sheet: 'useSteel: ? on | use steel\n' }),
+                big('u-grid', 'Data grid', 'grid', 'An editable grid of values in the input form: #UI G_1 = matrix(3; 3)', { text: '#UI G_1 = matrix(3; 3)\n', line: true }),
+                more('a-ui', 'More input forms', 'forms', 'Vector, matrix, labelled and formula inputs, and every other #UI form', 'uiInputs'),
             ] },
             { name: 'Files', buttons: [
                 both('io-files', 'Files', 'read', 'Read, write and append matrices, and include other worksheets', [...PAL_READ.map(s => ({ ...s, heading: `Read: ${s.heading}` })), ...PAL_WRITE.map(s => ({ ...s, heading: `Write: ${s.heading}` }))], 'externalData'),
@@ -378,8 +397,8 @@ export const RIBBON: RibbonTab[] = [
             { name: 'Flow', buttons: [
                 more('a-brk', 'Breakpoints', 'pause', 'Pause the calculation, or show an input form and wait', 'breakpoints'),
             ] },
-            { name: 'Results', buttons: [
-                action('o-input', 'Input mode', 'input', 'The #UI input form (also on the Calculation tab)', 'mode:ui'),
+            { name: 'View', buttons: [
+                action('o-input', 'Input form', 'input', 'Show the input form of the #UI fields in the results pane (also on the Calculation tab)', 'mode:ui'),
             ] },
         ],
     },
@@ -387,20 +406,20 @@ export const RIBBON: RibbonTab[] = [
         id: 'functions', label: 'Functions', groups: [
             { name: 'Elementary', buttons: [
                 both('fn-trig', 'Trigonometric', 'trig', 'Trigonometric and inverse trigonometric functions', PAL_TRIG, 'fnTrig'),
-                both('fn-hyp', 'Hyperbolic', 'trig', 'Hyperbolic and inverse hyperbolic functions', PAL_HYP, 'fnHyp'),
-                both('fn-exp', 'Log and roots', 'func', 'Logarithms, exponentials and roots', PAL_LOGROOT, 'fnLog'),
+                both('fn-hyp', 'Hyperbolic', 'hyp', 'Hyperbolic and inverse hyperbolic functions', PAL_HYP, 'fnHyp'),
+                both('fn-exp', 'Log and roots', 'logroot', 'Logarithms, exponentials and roots', PAL_LOGROOT, 'fnLog'),
                 both('fn-round', 'Rounding', 'round', 'Rounding and integer functions', PAL_ROUND, 'fnRound'),
             ] },
             { name: 'Data and logic', buttons: [
-                both('fn-stat', 'Statistical', 'stat', 'Aggregate and interpolation functions', PAL_STAT, 'fnStat'),
-                both('fn-logic', 'Logical', 'cond', 'Conditional and logical functions', PAL_LOGIC, 'fnLogic'),
+                both('fn-stat', 'Statistical', 'stat', 'Aggregate, statistical and interpolation functions', PAL_STAT, 'fnStat'),
+                both('fn-logic', 'Logical', 'cond', 'Conditional and logical functions: if, switch, and, or, not', PAL_LOGIC, 'fnLogic'),
             ] },
             { name: 'Other', buttons: [
-                both('fn-complex', 'Complex', 'complex', 'Complex number functions', PAL_COMPLEX, 'fnComplex'),
-                both('fn-other', 'Other functions', 'units', 'Functions on units, sign, random and others', PAL_FNOTHER, 'fnOther'),
+                both('fn-complex', 'Complex', 'complex', 'Functions of complex numbers: re, im, abs, phase, conj', PAL_COMPLEX, 'fnComplex'),
+                both('fn-other', 'Other functions', 'func', 'Functions on units, sign, random and others', PAL_FNOTHER, 'fnOther'),
             ] },
             { name: 'Define', buttons: [
-                big('d-func', 'Function', 'fx', 'Define a function', { text: 'g_1(t) = t^2 + 1\n', line: true }),
+                big('d-func', 'Function', 'fx', 'Define your own function: g_1(t) = t^2 + 1', { text: 'g_1(t) = t^2 + 1\n', line: true }),
             ] },
             { name: 'Symbolic', buttons: [
                 action('fn-symbolic', 'Symbolic', 'symbolic', 'Exact algebra: simplify, expand, factor, differentiate, integrate and solve, then insert the result', 'symbolic'),
@@ -410,50 +429,76 @@ export const RIBBON: RibbonTab[] = [
     {
         id: 'matrices', label: 'Matrices/Tables', groups: [
             { name: 'Create', buttons: [
-                big('m-vector', 'Vector', 'vector', 'A vector', { text: 'v_1 = [1; 2; 3]\n', line: true }),
-                big('m-matrix', 'Matrix', 'matrix', 'A matrix', { text: 'A_1 = [1; 2| 3; 4]\n', line: true }),
+                big('m-vector', 'Vector', 'vector', 'Insert a vector, elements separated by ;: v_1 = [1; 2; 3]', { text: 'v_1 = [1; 2; 3]\n', line: true }),
+                big('m-matrix', 'Matrix', 'matrix', 'Insert a matrix, rows separated by |: A_1 = [1; 2| 3; 4]', { text: 'A_1 = [1; 2| 3; 4]\n', line: true }),
             ] },
             { name: 'Functions', buttons: [
                 both('m-vector-fn', 'Vector functions', 'vector', 'Vector functions: structure, data, math, lookup', [...PAL_VECTOR, ...PAL_MLOOKUP.filter(s => s.heading === 'Vectors').map(s => ({ ...s, heading: 'Lookup' }))], 'fnVector'),
                 both('m-matrix-fn', 'Matrix functions', 'matrix', 'Matrix functions: creation, structure, sorting, lookup, linear algebra', [...PAL_MCREATE, ...PAL_MSTRUCT, ...PAL_MSORT.filter(s => s.heading === 'Matrices'), ...PAL_MLOOKUP.filter(s => s.heading === 'Matrices'), ...PAL_MATRIX, ...PAL_MSOLVE.filter(s => s.heading === 'Products')], 'fnMatrix'),
             ] },
             { name: 'Linear algebra', buttons: [
-                big('m-det', 'Determinant', 'matrix', 'Determinant', { text: 'det(A)', test: 'r = {}' }),
-                big('m-inv', 'Inverse', 'matrix', 'Inverse', { text: 'inverse(A)', test: 'r = {}' }),
-                big('m-transp', 'Transpose', 'matrix', 'Transpose', { text: 'transp(A)', test: 'r = {}' }),
+                big('m-det', 'Determinant', 'det', 'Determinant of a square matrix: det(A)', { text: 'det(A)', test: 'r = {}' }),
+                big('m-inv', 'Inverse', 'inv', 'Inverse of a square matrix: inverse(A)', { text: 'inverse(A)', test: 'r = {}' }),
+                big('m-transp', 'Transpose', 'transp', 'Transpose of a matrix: transp(A)', { text: 'transp(A)', test: 'r = {}' }),
             ] },
             { name: 'Tables', buttons: [
-                big('t-table', 'Table', 'table', 'An HTML table', { text: "'<table class=\"bordered\"><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>\n", line: true, sheet: '| A | B |\n|---|---|\n| 1 | 2 |\n' }),
-                big('t-data', 'Data table', 'table', 'A table with a left-aligned first column', { text: "'<table class=\"data\"><tr><th>Item</th><th>Value</th></tr><tr><td>Load</td><td>1</td></tr></table>\n", line: true }),
-                big('t-grid', 'Data grid', 'grid', 'An editable grid in the input form', { text: '#UI G_2 = matrix(3; 3)\n', line: true }),
+                big('t-table', 'Table', 'table', 'Insert a table: HTML in a worksheet, Markdown pipes in a sheet', { text: TABLE_WS, line: true, sheet: TABLE_SHEET }),
+                big('t-data', 'Data table', 'table', 'Insert a table of items and values, the first column left-aligned', { text: "'<table class=\"data\"><tr><th>Item</th><th>Value</th></tr><tr><td>Load</td><td>1</td></tr></table>\n", line: true }),
             ] },
         ],
     },
     {
-        id: 'plots', label: 'Plots', groups: [
+        id: 'calc', label: 'Calculation', groups: [
+            { name: 'Run', buttons: [
+                action('k-calc', 'Calculate', 'run', 'Calculate the worksheet now (Ctrl+Alt+X in the editor)', 'calc'),
+                action('k-auto', 'Auto-calculate', 'auto', 'Recalculate as you type (on or off)', 'autocalc'),
+            ] },
+            { name: 'Results', buttons: [
+                action('k-preview', 'Preview', 'preview', 'Show the document as written', 'mode:preview'),
+                action('k-unwrapped', 'Unwrapped', 'source', 'Show the source listing with macros and includes resolved', 'mode:unwrapped'),
+                action('k-input', 'Input form', 'input', 'Show the input form of the #UI fields', 'mode:ui'),
+                action('k-report', 'Report', 'report', 'Show the print layout', 'mode:report'),
+                action('k-toggle', 'Show results', 'pane', 'Show or hide the results pane', 'togglePreview'),
+            ] },
+            { name: 'Settings', buttons: [
+                action('k-settings', 'Calculation settings', 'settings', 'Decimals, precision, complex mode and plot options (the Settings dialog)', 'settings'),
+                more('a-numset', 'Numerical settings', 'settings', 'Lines that set the precision and tolerance of the numerical methods', 'numSettings'),
+            ] },
+            { name: 'Check', buttons: [
+                action('k-variables', 'Variables', 'vars', 'The variables of the worksheet and their values, in the sidebar', 'tab:variables'),
+                action('k-errors', 'Errors', 'warn', 'The errors and warnings of the worksheet', 'tab:errors'),
+            ] },
+        ],
+    },
+    {
+        id: 'plots', label: 'Plots & Diagrams', groups: [
             { name: 'Plots', buttons: [
-                big('pl-plot', 'Function', 'plot', 'y = f(x)', { text: '$Plot{x^2 - 5*x + 3 @ x = -1 : 6}\n', line: true, nox: true }),
-                big('pl-param', 'Parametric', 'plot', 'x(t) and y(t)', { text: '$Plot{cos(t) | sin(t) @ t = 0 : 2*π}\n', line: true, nox: true }),
-                big('pl-multi', 'Multiple', 'plot', 'Several functions on one plot', { text: '$Plot{sin(x) & cos(x) @ x = 0 : 2*π}\n', line: true, nox: true }),
-                big('pl-map', 'Colour map', 'map', 'A colour map of f(x; y)', { text: '$Map{x*y @ x = -1 : 1 & y = -1 : 1}\n', line: true, nox: true }),
+                big('pl-plot', 'Function', 'plot', 'Plot y = f(x) over a range: $Plot{f(x) @ x = a : b}', { text: '$Plot{x^2 - 5*x + 3 @ x = -1 : 6}\n', line: true, nox: true }),
+                big('pl-param', 'Parametric', 'plot', 'Plot a curve x(t), y(t): $Plot{x(t) | y(t) @ t = a : b}', { text: '$Plot{cos(t) | sin(t) @ t = 0 : 2*π}\n', line: true, nox: true }),
+                big('pl-multi', 'Multiple', 'plot', 'Several functions on one plot, joined by &: $Plot{f(x) & g(x) @ x = a : b}', { text: '$Plot{sin(x) & cos(x) @ x = 0 : 2*π}\n', line: true, nox: true }),
+                big('pl-map', 'Colour map', 'map', 'A colour map of f(x; y) over a rectangle: $Map{f(x; y) @ x = a : b & y = c : d}', { text: '$Map{x*y @ x = -1 : 1 & y = -1 : 1}\n', line: true, nox: true }),
                 both('pl-more', 'More plots', 'plot', 'Plot forms with placeholders, and multi-curve and polar examples', [
                     lines('Examples', [['Multi parametric', '$Plot{cos(t) | sin(t) & 2*cos(t) | 2*sin(t) @ t = 0 : 2*π}\n', 'Several parametric curves'], ['Polar', '$Plot{(1 + cos(θ))*cos(θ) | (1 + cos(θ))*sin(θ) @ θ = 0 : 2*π}\n', 'A polar curve r(θ)']], { nox: true }),
                 ], 'plotting'),
             ] },
             { name: 'Options', buttons: [
-                more('a-plotset', 'Plot settings', 'settings', 'Size, palette, mesh and lighting lines', 'plotSettings'),
-                small('pl-image', 'Image', 'image', 'Insert an image reference', { text: '\'<img src="./image.png" alt="Image">\n', line: true, sheet: '![Image](./image.png)\n' }),
+                more('a-plotset', 'Plot settings', 'settings', 'Lines that set the plot size, palette, mesh and lighting', 'plotSettings'),
+            ] },
+            // Pictures that are not plotted: diagrams drawn from text, and images from files.
+            { name: 'Figures', buttons: [
+                pal('dg-diagrams', 'Diagrams', 'diagram', 'Insert a starter diagram: flowchart, sequence, Gantt, pie, Sankey and more, drawn from text', PAL_DIAGRAMS),
+                big('pl-image', 'Image', 'image', 'Insert a picture from a file: <img src="./image.png"> in a worksheet, ![Image](./image.png) in a sheet', { text: IMAGE_WS, line: true, sheet: IMAGE_SHEET }),
             ] },
         ],
     },
     {
         id: 'mathfmt', label: 'Math Formatting', groups: [
             { name: 'Numbers', buttons: [
-                both('mf-number', 'Number format', 'round', 'Rounding and number format strings', [
+                both('mf-number', 'Number format', 'round', 'Rounding and number format strings: #round, #format', [
                     lines('Rounding', [['#round', '#round 3\n', 'Round results to n decimals'], ['default', '#round default\n', 'Back to the default rounding']]),
                     lines('Format', [['#format', '#format 0.00\n', 'A custom number format'], ['default', '#format default\n', 'Back to the default format']]),
                 ], 'numberFormat'),
-                both('mf-angles', 'Angle units', 'angle', 'Degrees, radians or gradians for trigonometric functions', [
+                both('mf-angles', 'Angle units', 'angle', 'Degrees, radians or gradians for trigonometric functions: #deg, #rad, #gra', [
                     lines('Angle units', [['#deg', '#deg\n', 'Degrees'], ['#rad', '#rad\n', 'Radians'], ['#gra', '#gra\n', 'Gradians']]),
                 ], 'angles'),
             ] },
@@ -463,96 +508,78 @@ export const RIBBON: RibbonTab[] = [
                     lines('Output mode', [['#val', '#val\n', 'Results only'], ['#equ', '#equ\n', 'Equations and results'], ['#noc', '#noc\n', 'Equations without results'], ['#nosub', '#nosub\n', 'No substitution'], ['#novar', '#novar\n', 'Substituted values only'], ['#varsub', '#varsub\n', 'Variables and values']]),
                     lines('Layout and complex', [['#split', '#split\n', 'Split equations after ='], ['#wrap', '#wrap\n', 'Wrap equations'], ['#phasor', '#phasor\n', 'Complex as A∠φ'], ['#complex', '#complex\n', 'Complex as a + bi']]),
                 ], 'output'),
-                more('a-over', 'Overrides', 'settings', 'Settings overrides', 'overrides'),
+                more('a-over', 'Overrides', 'settings', 'Lines that override a setting for the rest of the worksheet', 'overrides'),
             ] },
         ],
     },
     {
+        // Small buttons, so that the whole tab fits a desktop window.
         id: 'textfmt', label: 'Text Formatting', groups: [
-            { name: 'Headings', buttons: [1, 2, 3, 4, 5].map(n => big(`tf-h${n}`, `H${n}`, 'heading', `Heading ${n}`, { text: `<h${n}>{sel}</h${n}>`, test: "'{}", sheet: `${'#'.repeat(n)} {sel}` })),
+            { name: 'Headings', buttons: [1, 2, 3, 4, 5].map(n => small(`tf-h${n}`, `H${n}`, 'heading', `Heading ${n}: <h${n}> around the selection (${'#'.repeat(n)} in a sheet)`, { text: `<h${n}>{sel}</h${n}>`, test: "'{}", sheet: `${'#'.repeat(n)} {sel}` })),
             },
             { name: 'Font', buttons: [
-                big('tf-b', 'Bold', 'bold', 'Bold (select text first)', { text: '<b>{sel}</b>', test: "'a {} b", sheet: '**{sel}**' }),
-                big('tf-i', 'Italic', 'italic', 'Italic', { text: '<i>{sel}</i>', test: "'a {} b", sheet: '*{sel}*' }),
-                big('tf-u', 'Underline', 'underline', 'Underline', { text: '<u>{sel}</u>', test: "'a {} b" }),
-                big('tf-s', 'Strike', 'strike', 'Strike through', { text: '<s>{sel}</s>', test: "'a {} b", sheet: '~~{sel}~~' }),
-                small('tf-sub', 'Subscript', 'sub', 'Subscript', { text: '<sub>{sel}</sub>', test: "'a {} b", sheet: '~{sel}~' }),
-                small('tf-sup', 'Superscript', 'sub', 'Superscript', { text: '<sup>{sel}</sup>', test: "'a {} b", sheet: '^{sel}^' }),
+                small('tf-b', 'Bold', 'bold', 'Bold: <b> around the selection (** in a sheet)', { text: '<b>{sel}</b>', test: "'a {} b", sheet: '**{sel}**' }),
+                small('tf-i', 'Italic', 'italic', 'Italic: <i> around the selection (* in a sheet)', { text: '<i>{sel}</i>', test: "'a {} b", sheet: '*{sel}*' }),
+                small('tf-u', 'Underline', 'underline', 'Underline: <u> around the selection', { text: '<u>{sel}</u>', test: "'a {} b" }),
+                small('tf-s', 'Strike', 'strike', 'Strike through: <s> around the selection (~~ in a sheet)', { text: '<s>{sel}</s>', test: "'a {} b", sheet: '~~{sel}~~' }),
+                small('tf-sub', 'Subscript', 'sub', 'Subscript text: <sub> around the selection (~ in a sheet)', { text: '<sub>{sel}</sub>', test: "'a {} b", sheet: '~{sel}~' }),
+                small('tf-sup', 'Superscript', 'sup', 'Superscript text: <sup> around the selection (^ in a sheet)', { text: '<sup>{sel}</sup>', test: "'a {} b", sheet: '^{sel}^' }),
             ] },
             { name: 'Colour', buttons: [
-                big('tf-red', 'Red', 'colour', 'Red text', { text: '<span class="err">{sel}</span>', test: "'a {} b" }),
-                big('tf-green', 'Green', 'colour', 'Green text', { text: '<span class="ok">{sel}</span>', test: "'a {} b" }),
-                small('tf-color', 'Any colour', 'colour', 'Text in a colour of your choice', { text: '<span style="color:blue;">{sel}</span>', test: "'a {} b" }),
-                small('tf-ref', 'Reference', 'link', 'A right-aligned reference to a design code', { text: '<span class="ref">{sel}</span>', test: "'a {} b" }),
+                small('tf-red', 'Red', 'colour', 'Red text, as for a failed check', { text: '<span class="err">{sel}</span>', test: "'a {} b" }),
+                small('tf-green', 'Green', 'colour', 'Green text, as for a passed check', { text: '<span class="ok">{sel}</span>', test: "'a {} b" }),
+                small('tf-color', 'Any colour', 'colour', 'Text in a colour of your choice: <span style="color:blue;">', { text: '<span style="color:blue;">{sel}</span>', test: "'a {} b" }),
             ] },
             { name: 'Paragraph', buttons: [
-                small('tf-link', 'Link', 'link', 'A link (select the text first)', { text: '<a href="https://example.com">{sel}</a>', test: "'a {} b", sheet: '[{sel}](https://example.com)' }),
-                small('tf-code', 'Code', 'source', 'Code in a text line', { text: '<code>{sel}</code>', test: "'a {} b", sheet: '`{sel}`' }),
-                big('tf-p', 'Paragraph', 'text', 'A paragraph', { text: '<p>{sel}</p>', test: "'{}" }),
-                big('tf-br', 'Line break', 'br', 'A line break', { text: '<br/>', test: "'a {} b" }),
-                big('tf-hr', 'Rule', 'hr', 'A horizontal rule', { text: "'<hr/>\n", line: true, sheet: '---\n' }),
-                big('tf-page', 'Page break', 'page', 'Start a new page when printing and in the Word file', { text: "'<div style=\"page-break-after:always\"></div>\n", line: true, sheet: '<div style="page-break-after:always"></div>\n' }),
+                small('tf-p', 'Paragraph', 'text', 'A paragraph: <p> around the selection', { text: '<p>{sel}</p>', test: "'{}" }),
+                small('tf-br', 'Line break', 'br', 'A line break: <br/>', { text: '<br/>', test: "'a {} b" }),
+                small('tf-hr', 'Rule', 'hr', 'A horizontal rule: <hr/> (--- in a sheet)', { text: "'<hr/>\n", line: true, sheet: '---\n' }),
+                small('tf-link', 'Link', 'link', 'A link on the selection: <a href="..."> ([text](url) in a sheet)', { text: '<a href="https://example.com">{sel}</a>', test: "'a {} b", sheet: '[{sel}](https://example.com)' }),
+                small('tf-code', 'Code', 'source', 'Code in a line of text: <code> (` in a sheet)', { text: '<code>{sel}</code>', test: "'a {} b", sheet: '`{sel}`' }),
+                small('tf-ref', 'Reference', 'ref', 'A reference to a design code clause, set at the right of the line', { text: '<span class="ref">{sel}</span>', test: "'a {} b" }),
+                small('tf-page', 'Page break', 'page', PAGE_BREAK_TITLE, { text: PAGE_BREAK, line: true, sheet: PAGE_BREAK_SHEET }),
             ] },
             { name: 'Lists', buttons: [
-                big('tf-ul', 'Bullets', 'list', 'A bulleted list', { text: "'<ul><li>First</li><li>Second</li></ul>\n", line: true, sheet: '- First\n- Second\n' }),
-                big('tf-ol', 'Numbered', 'olist', 'A numbered list', { text: "'<ol><li>First</li><li>Second</li></ol>\n", line: true, sheet: '1. First\n2. Second\n' }),
-                big('tf-fold', 'Fold', 'fold', 'A section that folds in the report; in a sheet a heading marked {collapse}', { text: "'<div class=\"fold\">\n'<b>Heading</b> (click to unfold)\n'<p>Content</p>\n'</div>\n", line: true, sheet: '## Workings {collapse}\n' }),
-                big('tf-key', 'Key results', 'star', 'A list of the lines marked {key} above it (sheets): important inputs and results', { text: '"Key results\n', line: true, sheet: '## Key results\n{key results}\n' }),
+                small('tf-ul', 'Bullets', 'list', 'A bulleted list (- items in a sheet)', { text: "'<ul><li>First</li><li>Second</li></ul>\n", line: true, sheet: '- First\n- Second\n' }),
+                small('tf-ol', 'Numbered', 'olist', 'A numbered list (1. items in a sheet)', { text: "'<ol><li>First</li><li>Second</li></ol>\n", line: true, sheet: '1. First\n2. Second\n' }),
+                small('tf-fold', 'Fold', 'fold', 'A section that folds in the report; in a sheet a heading marked {collapse}', { text: "'<div class=\"fold\">\n'<b>Heading</b> (click to unfold)\n'<p>Content</p>\n'</div>\n", line: true, sheet: '## Workings {collapse}\n' }),
+                small('tf-key', 'Key results', 'star', 'A list of the lines marked {key} above it (sheets): important inputs and results', { text: '"Key results\n', line: true, sheet: '## Key results\n{key results}\n' }),
             ] },
             { name: 'Library', buttons: [
-                more('a-html', 'More HTML', 'source', 'Every HTML snippet', 'html'),
+                more('a-html', 'More HTML', 'source', 'The whole list of HTML snippets', 'html'),
                 more('a-css', 'CSS', 'colour', 'Style blocks', 'css'),
-                both('a-md', 'Markdown', 'text', 'Markdown on and off, and the Markdown forms', [
+                both('a-md', 'Markdown', 'markdown', 'Markdown on and off (#md on, #md off), and the Markdown forms', [
                     lines('Mode', [['#md on', '#md on\n', 'Comments use Markdown'], ['#md off', '#md off\n', 'Comments use HTML']]),
                 ], 'markdown'),
-                more('a-svg', 'SVG', 'image', 'SVG drawing snippets', 'svg'),
-            ] },
-        ],
-    },
-    {
-        id: 'calc', label: 'Calculation', groups: [
-            { name: 'Run', buttons: [
-                action('k-calc', 'Calculate', 'run', 'Run the worksheet (F5)', 'calc'),
-                action('k-auto', 'Auto-calculate', 'auto', 'Recalculate while typing', 'autocalc'),
-            ] },
-            { name: 'Results', buttons: [
-                action('k-preview', 'Preview', 'preview', 'The document as written', 'mode:preview'),
-                action('k-unwrapped', 'Unwrapped', 'source', 'The source listing with macros and includes resolved', 'mode:unwrapped'),
-                action('k-input', 'Input', 'input', 'The #UI input form', 'mode:ui'),
-                action('k-report', 'Report', 'report', 'The print layout', 'mode:report'),
-                action('k-toggle', 'Show results', 'show', 'Show or hide the results pane', 'togglePreview'),
-            ] },
-            { name: 'Settings', buttons: [
-                action('k-settings', 'Calculation settings', 'settings', 'Decimals, precision, complex mode, plot options (Settings dialog)', 'settings'),
-                more('a-numset', 'Numerical settings', 'settings', 'Precision and tolerance lines', 'numSettings'),
-                action('k-variables', 'Variables', 'list', 'The variables of the worksheet', 'tab:variables'),
-                action('k-errors', 'Errors', 'info', 'Errors and warnings', 'tab:errors'),
+                more('a-svg', 'SVG', 'svg', 'SVG drawing snippets', 'svg'),
             ] },
         ],
     },
     {
         id: 'document', label: 'Document', groups: [
-            { name: 'Export', buttons: [
+            { name: 'Import', buttons: [
+                action('d-import', 'Import worksheet', 'import', 'Bring in a worksheet from another calculation tool (.xmcd or .mcdx); it opens as a new worksheet', 'importWorksheet'),
+            ] },
+            { name: 'Tidy', buttons: [
+                action('d-prettify', 'Prettify', 'indent', 'Indent the document consistently and remove trailing whitespace (the Prettify dialog)', 'tab:formatting'),
+                action('d-tidy', 'Tidy text', 'tidy', 'Remove imported fonts, sizes and colours from paragraphs and turn import markers into short notes; equations are left alone', 'tidyText'),
+                action('d-markdown', 'Text to Markdown', 'markdown', 'Tidy, then write simple paragraphs as Markdown (#md on blocks)', 'markdownText'),
+            ] },
+            { name: 'Page', buttons: [
+                action('d-pdfsettings', 'Header and footer', 'headfoot', 'Page numbers, date and title for PDF export (the Settings dialog)', 'settings'),
+                big('d-pagebreak', 'Page break', 'page', PAGE_BREAK_TITLE, { text: PAGE_BREAK, line: true, sheet: PAGE_BREAK_SHEET }),
+            ] },
+            { name: 'Report', buttons: [
+                action('d-report', 'Report', 'report', 'Show the print layout', 'mode:report'),
+                action('d-toc', 'Contents', 'toc', 'The table of contents of the worksheet, in the sidebar', 'tab:toc'),
+                more('a-meta', 'Metadata', 'tag', 'Metadata properties: title, author, project and the like', 'metadata'),
+            ] },
+            { name: 'Save and export', buttons: [
+                action('d-saveas', 'Save as', 'saveas', 'Save under a new name (Ctrl+Shift+S)', 'saveas'),
                 action('d-pdf', 'Print PDF', 'pdf', 'Print the report as a PDF', 'pdf'),
                 action('d-word', 'Word', 'word', 'Save the report as a Word document', 'word'),
                 action('d-excel', 'Excel', 'excel', 'Save the variables as an Excel workbook', 'excel'),
-                action('d-export', 'Export…', 'export', 'HTML, PDF, Word and #write: the Export dialog', 'exportTab'),
-            ] },
-            { name: 'Import', buttons: [
-                action('d-import', 'Import worksheet', 'open', 'Bring in a worksheet from another calculation tool (.xmcd or .mcdx); it opens as a new worksheet', 'importWorksheet'),
-                action('d-prettify', 'Prettify', 'text', 'Auto-indent the document (indent style and trailing whitespace)', 'tab:formatting'),
-                action('d-tidy', 'Tidy text', 'text', 'Remove imported fonts, sizes and colours from paragraphs and turn import markers into short notes; equations are left alone', 'tidyText'),
-                action('d-markdown', 'Text to Markdown', 'comment', 'Tidy, then write simple paragraphs as Markdown (#md on blocks)', 'markdownText'),
-            ] },
-            { name: 'Page', buttons: [
-                action('d-saveas', 'Save As', 'saveas', 'Save As', 'saveas'),
-                action('d-pdfsettings', 'Header and footer', 'settings', 'Page numbers, date and title for PDF export (Settings dialog)', 'settings'),
-                big('d-pagebreak', 'Page break', 'page', 'Start a new page when printing and in the Word file', { text: "'<div style=\"page-break-after:always\"></div>\n", line: true, sheet: '<div style="page-break-after:always"></div>\n' }),
-            ] },
-            { name: 'Report', buttons: [
-                action('d-report', 'Report', 'report', 'The print layout', 'mode:report'),
-                action('d-toc', 'Contents', 'list', 'The table of contents of the worksheet', 'tab:toc'),
-                more('a-meta', 'Metadata', 'info', 'Metadata properties', 'metadata'),
+                action('d-export', 'Export', 'export', 'The Export dialog: HTML, PDF, Word, Excel and packaged worksheets', 'exportTab'),
             ] },
         ],
     },
@@ -560,33 +587,31 @@ export const RIBBON: RibbonTab[] = [
         id: 'resources', label: 'Resources', groups: [
             { name: 'Examples', buttons: [
                 action('x-samples', 'Samples', 'samples', 'Browse the sample worksheets', 'samples'),
-                action('x-library', 'Library', 'recent', 'Recent worksheets and the #include and #read library', 'filemenu'),
+                action('x-library', 'Library', 'recent', 'Recent worksheets and the #include and #read library (the File menu)', 'filemenu'),
+                more('a-all', 'All snippets', 'find', 'The whole snippet library, searchable', 'all'),
             ] },
             { name: 'Sheet syntax', buttons: [
                 action('x-newsheet', 'New sheet', 'file', 'New sheet (Markdown style): prose, name: value lines and LaTeX that compile to Calcpad', 'newsheet'),
-                action('x-newcalcpad', 'New Calcpad', 'file', 'New Calcpad worksheet (the advanced syntax)', 'newcalcpad'),
-                action('x-compiled', 'Show compiled', 'list', 'Show the Calcpad the active sheet compiles to', 'showcompiled'),
-                action('x-convert', 'Convert to Calcpad', 'report', 'Replace the active sheet with its compiled Calcpad', 'convertsheet'),
+                action('x-newcalcpad', 'New Calcpad', 'newcpd', 'New Calcpad worksheet (the advanced syntax)', 'newcalcpad'),
+                action('x-compiled', 'Show compiled', 'source', 'Show the Calcpad the active sheet compiles to', 'showcompiled'),
+                action('x-convert', 'Convert to Calcpad', 'convert', 'Replace the active sheet with its compiled Calcpad', 'convertsheet'),
             ] },
-            { name: 'Insert panel', buttons: [
-                action('x-insert', 'Insert tab', 'plus', 'Symbols, functions and snippets in the sidebar', 'tab:insert'),
-                action('x-settings', 'Settings', 'settings', 'Settings', 'settings'),
+            { name: 'View', buttons: [
+                action('x-light', 'Light', 'sun', 'Light theme', 'theme:Light', 'small'),
+                action('x-dark', 'Dark', 'moon', 'Dark theme', 'theme:Dark', 'small'),
+                action('x-zoomin', 'Zoom in', 'zoomin', 'Larger editor text', 'zoomIn', 'small'),
+                action('x-zoomout', 'Zoom out', 'zoomout', 'Smaller editor text', 'zoomOut', 'small'),
+            ] },
+            { name: 'Panels', buttons: [
+                action('x-sidebar', 'Sidebar', 'sidebar', 'Show or hide the sidebar', 'sidebar'),
+                action('x-insert', 'Insert panel', 'plus', 'Symbols, functions and snippets in the sidebar', 'tab:insert'),
+                action('x-settings', 'Settings', 'settings', 'The Settings dialog: calculation, editor, appearance and PDF export', 'settings'),
             ] },
             { name: 'Help', buttons: [
                 action('x-docs', 'Documentation', 'help', 'Open the CalcpadCE documentation (the worksheet language)', 'docs'),
-                action('x-keys', 'Shortcuts', 'keyboard', 'List the keyboard shortcuts in the output panel', 'shortcuts'),
-                action('x-changelog', 'Changelog', 'list', 'What changed in each version (opens GitHub in a new tab)', 'changelog'),
+                action('x-keys', 'Shortcuts', 'keyboard', 'List the keyboard shortcuts', 'shortcuts'),
+                action('x-changelog', 'Changelog', 'notes', 'What changed in each version (opens GitHub in a new tab)', 'changelog'),
                 action('x-about', 'About', 'info', 'About this editor', 'about'),
-            ] },
-            { name: 'View', buttons: [
-                action('x-light', 'Light', 'sun', 'Light theme', 'theme:Light'),
-                action('x-dark', 'Dark', 'moon', 'Dark theme', 'theme:Dark'),
-                action('x-zoomin', 'Zoom in', 'zoomin', 'Larger editor text', 'zoomIn'),
-                action('x-zoomout', 'Zoom out', 'zoomout', 'Smaller editor text', 'zoomOut'),
-                action('x-sidebar', 'Sidebar', 'sidebar', 'Show or hide the sidebar (Ctrl+Shift+B)', 'sidebar'),
-            ] },
-            { name: 'Snippets', buttons: [
-                more('a-all', 'All snippets', 'list', 'The whole snippet library, searchable', 'all'),
             ] },
         ],
     },

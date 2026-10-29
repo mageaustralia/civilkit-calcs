@@ -21,7 +21,7 @@
     <div v-if="symbolGroups.length > 0" class="symbols-palette">
       <div class="symbols-palette-header" @click="symbolsPaletteOpen = !symbolsPaletteOpen">
         <span class="symbols-palette-arrow" :class="{ open: symbolsPaletteOpen }">&#x25B6;</span>
-        <span class="symbols-palette-title">Symbol Palette</span>
+        <span class="symbols-palette-title">Symbol palette</span>
       </div>
       <div v-show="symbolsPaletteOpen" class="symbols-palette-body">
         <div v-for="group in symbolGroups" :key="group.name" class="symbol-group">
@@ -47,7 +47,7 @@
 
     <div class="image-insert-container">
       <button @click="insertImage" class="image-insert-btn" title="Insert an image from file">
-        Insert Image
+        Insert image
       </button>
     </div>
 
@@ -78,7 +78,7 @@
     <div v-else class="tree-view">
       <div class="tree-actions">
         <button @click="collapseAll" class="collapse-btn">
-          Collapse All
+          Collapse all
         </button>
       </div>
       <div id="tree-container" class="tree-container">

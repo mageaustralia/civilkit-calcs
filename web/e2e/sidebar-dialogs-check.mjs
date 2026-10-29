@@ -1,4 +1,4 @@
-// The sidebar has three tabs (Insert, TOC, Variables); Settings, Export, Errors and Prettify open as dialogs from the ribbon.
+// The sidebar has three tabs (Insert, Contents, Variables); Settings, Export, Errors and Prettify open as dialogs from the ribbon.
 //   node e2e/sidebar-dialogs-check.mjs [--url U] [--shots DIR]
 import { chromium, devices } from 'playwright';
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
@@ -16,7 +16,7 @@ for (const [name, opts, phone] of [['desktop', { viewport: { width: 1300, height
     await page.waitForFunction(() => window.calcpadActiveEditor != null, null, { timeout: 60000 });
     if (phone) await page.locator('.mobile-bar button', { hasText: 'Insert' }).tap();
     const tabs = await page.locator('.calcpad-vue-ui .tab-container .tab').allInnerTexts();
-    check(tabs.join(',') === 'Insert,TOC,Variables', `${name}: the sidebar has three tabs (${tabs.join(',')})`);
+    check(tabs.join(',') === 'Insert,Contents,Variables', `${name}: the sidebar has three tabs (${tabs.join(',')})`);
     if (phone) await page.locator('.mobile-bar button', { hasText: 'Edit' }).tap();
     const ribbon = async (tab, btn) => {
         const b = page.locator(`[data-ribbon-btn=${btn}]`).first();

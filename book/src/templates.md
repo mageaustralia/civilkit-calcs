@@ -127,7 +127,7 @@ Calcpad (the bar is not written). **Format Document** (Shift+Alt+F) lines the co
 ## Using the form
 
 In the browser a template opens as Preview. Choose **Input** in the results bar (Preview,
-Unwrapped, **Input**, Report), or **Input mode** on the Input/Output tab. Then:
+Unwrapped, **Input**, Report), or **Input form** on the Input/Output tab. Then:
 
 * Each input line is a control. A box holds the number only; the unit stays beside it, so a number
   cannot be typed in the wrong unit. A box accepts digits, a decimal point and a sign.

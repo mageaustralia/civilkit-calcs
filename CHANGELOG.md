@@ -11,6 +11,30 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- **Diagram gallery** - The Diagrams chapter of the guide now has a small example to copy for every kind of Mermaid diagram the app draws, from flow charts and Gantt charts to Sankey, radar and railroad diagrams, and lists the one kind that is not available (ZenUML).
+- **Diagrams menu** - The ribbon tab Plots is now Plots & Diagrams, with a Diagrams menu that inserts a short starter diagram of each common engineering kind, ready to edit, so no Mermaid syntax is needed to begin.
+- **Diagram samples** - Twelve new sample sheets pair a diagram with the numbers behind it: state, sequence, Gantt, pie, treemap, quadrant, XY, Sankey, mind map, requirement, timeline and class diagrams.
+- **Gable frame thrust sample** - A worked sheet for the horizontal thrust of a pitched roof frame: pinned ridge, rigid ridge, and the shortcut that overstates it, with a decision diagram.
+
+### Changed
+- **Plots and diagrams** - The Samples group Plots is now Plots and diagrams, and the two Mermaid samples moved there from Sheet syntax.
+- **Figures group** - Image moves from the plot options into a Figures group next to Diagrams, and the Diagrams button has a flowchart icon.
+- **Ribbon order** - The Calculation tab now comes straight after Matrices/Tables, so the tabs follow the work: write, calculate, plot, format, document.
+- **Ribbon fits** - The tab strip fits a window down to about 900 px wide, and the Text Formatting and Resources tabs fit a 1300 px window, with small buttons where a tab was too wide.
+- **Ribbon groups** - Document groups run Import, Tidy, Page, Report, then Save and export; Variables and Errors form a Check group on Calculation; Resources has View, Panels and Help groups.
+- **One data grid** - Data grid is on Input/Output only, and the Input mode button there is now Input form, as on the Calculation tab.
+- **Ribbon icons** - Buttons that shared an icon with a different button have their own, such as Hyperbolic, Determinant, Show results, Errors, Tidy text and Changelog.
+- **Ribbon tooltips** - Every ribbon button says what it inserts or does, with the typed form where it teaches syntax, and shortcuts read Cmd on a Mac.
+- **Menu labels** - Menus use sentence case and three dots for items that ask for more, the sidebar tab TOC is now Contents, and the editor menu says Calculate and Show Line in Results.
+- **Samples groups** - Sample groups are in sentence case, Plots and diagrams comes before 3D plots, and the dialog's subtitle names the sheet samples as well as the classic examples.
+- **Phone targets** - On a phone the quick-access buttons, the ribbon tabs and the small ribbon buttons are taller and easier to tap.
+- **Block menu marks** - Paste has the same mark in the insert menu and the block menu, and Page break no longer shares the Copy mark.
+
+### Fixed
+- **Shortcut hints** - Tooltips, the File menu and the Shortcuts list no longer name keys the browser keeps for itself, such as Ctrl+N, Ctrl+O and F5.
+- **Metadata in sheets** - The editor menu no longer offers Edit Metadata Properties in a sheet, where it wrote a classic comment line.
+
 ## [26.10.14] - 2026-10-29
 
 ### Added

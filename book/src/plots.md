@@ -7,6 +7,10 @@ There are three ways to draw: the `plot` line of the sheet format, the Calcpad `
 commands, and Python blocks, which are covered in [Python blocks](python.md). All three can sit in
 the same sheet.
 
+Charts that are not drawn from a function, such as a pie chart, a Gantt chart, a Sankey diagram or a
+bar chart of values you type, are diagrams written as text. See [Diagrams](sheet/diagrams.md) for a
+gallery of every kind, and the **Plots and diagrams** group of the samples.
+
 ## The `plot` line
 
 ```sheet
@@ -99,7 +103,7 @@ plot M(x) for x in 0..L
 | `PlotLightDir` | Direction of the light, 0 to 7 clockwise from north. |
 
 The same settings are in the Settings dialog, which sets the defaults for every worksheet. The
-Plots tab of the ribbon has buttons for each form and for these lines.
+Plots & Diagrams tab of the ribbon has buttons for each form and for these lines.
 
 ## The buttons under a plot
 

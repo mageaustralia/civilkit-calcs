@@ -6,7 +6,7 @@
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
           stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL.menu"></svg><span>File</span>
       </button>
-      <button v-for="b in QUICK" :key="b.id" class="rb-q" :title="b.title || b.label" :aria-label="b.label"
+      <button v-for="b in QUICK" :key="b.id" class="rb-q" :title="tip(b.title || b.label)" :aria-label="b.label"
         :data-ribbon-btn="b.id" @mousedown.prevent @click="fire(b, $event)">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
           stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL[b.icon!]"></svg>
@@ -14,19 +14,21 @@
     </div>
     <div class="rb-tabs" role="tablist">
       <button v-for="t in RIBBON" :key="t.id" class="rb-tab" :class="{ on: t.id === active }" role="tab"
-        :aria-selected="t.id === active" :data-ribbon-tab="t.id" @click="selectTab(t.id)">{{ t.label }}</button>
+        :aria-selected="t.id === active" :aria-controls="'rb-panel'" :data-ribbon-tab="t.id" @click="selectTab(t.id)">{{ t.label }}</button>
     </div>
-    <div v-show="!folded" class="rb-panel" role="tabpanel" :data-ribbon-panel="active">
-      <div v-for="g in tab.groups" :key="g.name" class="rb-group">
+    <div v-show="!folded" id="rb-panel" class="rb-panel" role="tabpanel" :aria-label="tab.label" :data-ribbon-panel="active">
+      <div v-for="g in tab.groups" :key="g.name" class="rb-group" role="group" :aria-label="g.name">
         <div class="rb-cells">
           <template v-for="(cell, ci) in cells(g)" :key="ci">
-            <button v-if="cell.big" class="rb-big" :class="{ on: isOn(cell.big), 'rb-raw': isRaw(cell.big) }" :title="(cell.big.title || cell.big.label) + (isRaw(cell.big) ? RAW_NOTE : '')"
+            <button v-if="cell.big" class="rb-big" :class="{ on: isOn(cell.big), 'rb-raw': isRaw(cell.big) }" :title="tip(cell.big.title || cell.big.label) + (isRaw(cell.big) ? RAW_NOTE : '')"
+              :aria-haspopup="hasPop(cell.big) ? 'dialog' : undefined" :aria-expanded="hasPop(cell.big) ? pop?.id === cell.big.id : undefined"
               :data-ribbon-btn="cell.big.id" @mousedown.prevent @click="fire(cell.big, $event)">
               <svg class="rb-ic" viewBox="0 0 32 32" width="32" height="32" v-html="ICONS_BIG[cell.big.icon!] ?? ICONS_BIG.cube"></svg>
               <span class="rb-label">{{ cell.big.label }}<i v-if="cell.big.palette || cell.big.more" class="rb-caret"></i></span>
             </button>
             <div v-else class="rb-stack">
-              <button v-for="b in cell.stack" :key="b.id" class="rb-small" :class="{ on: isOn(b), 'rb-raw': isRaw(b) }" :title="(b.title || b.label) + (isRaw(b) ? RAW_NOTE : '')"
+              <button v-for="b in cell.stack" :key="b.id" class="rb-small" :class="{ on: isOn(b), 'rb-raw': isRaw(b) }" :title="tip(b.title || b.label) + (isRaw(b) ? RAW_NOTE : '')"
+                :aria-haspopup="hasPop(b) ? 'dialog' : undefined" :aria-expanded="hasPop(b) ? pop?.id === b.id : undefined"
                 :data-ribbon-btn="b.id" @mousedown.prevent @click="fire(b, $event)">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
                   stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL[b.icon!]"></svg>
@@ -38,13 +40,13 @@
         <div class="rb-gname">{{ g.name }}</div>
       </div>
     </div>
-    <div v-if="pop" class="rb-pop" :class="{ wide: pop.wide }" :style="pop.style" role="dialog" :data-ribbon-popover="pop.id" @mousedown="onPopDown">
+    <div v-if="pop" class="rb-pop" :class="{ wide: pop.wide }" :style="pop.style" role="dialog" :aria-label="popLabel" :data-ribbon-popover="pop.id" @mousedown="onPopDown">
       <input v-if="pop.filter" ref="filterEl" v-model="q" class="rb-filter" type="search" placeholder="Filter" aria-label="Filter" />
       <div v-if="pop.loading" class="rb-pop-h">Loading...</div>
       <template v-for="s in shown" :key="s.heading + s.items[0]?.label">
         <div v-if="s.heading" class="rb-pop-h">{{ s.heading }}</div>
         <div class="rb-pop-grid">
-          <button v-for="e in s.items" :key="(e.snipKey ?? '') + e.label + e.text" class="rb-glyph" :class="{ 'rb-raw': isRaw(e) }" :title="(e.title || e.text.replace(/\n/g, ' ').trim()) + (isRaw(e) ? RAW_NOTE : '')"
+          <button v-for="e in s.items" :key="(e.snipKey ?? '') + e.label + e.text" class="rb-glyph" :class="{ 'rb-raw': isRaw(e) }" :title="(e.title || e.text.replace(/\n/g, ' ').trim()) + (isRaw(e) ? RAW_NOTE : '')" :aria-label="e.title ? `${e.label}: ${e.title}` : undefined"
             :data-ribbon-glyph="e.label" :data-snip-key="e.snipKey" @click="pick(e)">{{ e.label }}</button>
         </div>
       </template>
@@ -60,7 +62,7 @@ import type { Entry, RibbonButton, RibbonGroup, Section } from './ribbon-data';
 import { ICONS_BIG, ICONS_SMALL } from './ribbon-icons';
 import { insertLibrarySnippet, loadSnippets, sectionsFor } from './ribbon-snippets';
 import type { Snip } from './ribbon-snippets';
-import { insertSnippet, isActive, isSheetEditor, runAction } from './ribbon-actions';
+import { insertDiagram, insertSnippet, isActive, isSheetEditor, runAction } from './ribbon-actions';
 import { sheetInsert } from './sheet-insert';
 import type { RibbonCtx } from './ribbon-actions';
 
@@ -94,6 +96,11 @@ const sheetMode = computed(() => (void tick.value, isSheetEditor(props.ctx.edito
 /** In a sheet, a text button with no sheet form inserts raw Calcpad (a `>>` line). */
 const isRaw = (b: { text?: string; line?: boolean; sheet?: string }): boolean => sheetMode.value && b.text !== undefined && sheetInsert(b.text, !!b.line, b.sheet).raw;
 const RAW_NOTE = ' (inserts raw Calcpad with >> in a sheet)';
+/** Tooltips name Ctrl; a Mac's keys are Cmd. */
+const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
+const tip = (t: string): string => (MAC ? t.replace(/\bCtrl\+/g, 'Cmd+') : t);
+const hasPop = (b: RibbonButton): boolean => !!(b.palette || b.more);
+const popLabel = computed(() => { const id = pop.value?.id; for (const t of RIBBON) for (const g of t.groups) for (const b of g.buttons) if (b.id === id) return b.label; return ''; });
 const isOn = (b: RibbonButton): boolean => (void tick.value, !!b.action && isActive(b.action, ctxWith(document.body)));
 
 type Cell = { big?: RibbonButton; stack?: RibbonButton[] };
@@ -172,7 +179,8 @@ function fire(b: RibbonButton, ev: MouseEvent): void {
 }
 
 function pick(e: Entry): void {
-  if (e.snipKey) insertLibrarySnippet(props.ctx.editor(), e.text, !!e.line, snipByKey.get(e.snipKey));
+  if (e.diagram !== undefined) insertDiagram(props.ctx.editor(), e.diagram);
+  else if (e.snipKey) insertLibrarySnippet(props.ctx.editor(), e.text, !!e.line, snipByKey.get(e.snipKey));
   else insertSnippet(props.ctx.editor(), e.text, !!e.line, e.sheet);
   closePop(false);
 }
@@ -223,18 +231,23 @@ onBeforeUnmount(() => {
 .rb-q{display:flex;align-items:center;justify-content:center;width:26px;height:24px;border:1px solid transparent;border-radius:3px;background:none;color:inherit;cursor:pointer}
 .rb-q:hover{background:var(--vscode-toolbar-hoverBackground,rgba(0,0,0,.08));border-color:var(--vscode-panel-border,#ccc)}
 .rb-tabs{display:flex;overflow-x:auto;padding:0 4px;scrollbar-width:none;border-top:1px solid var(--vscode-panel-border,#ddd)}
-.rb-tab{flex:none;height:26px;padding:0 12px;border:0;border-bottom:2px solid transparent;background:none;color:inherit;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.rb-tab{flex:none;height:26px;padding:0 10px;border:0;border-bottom:2px solid transparent;background:none;color:inherit;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
 .rb-tab:hover{background:var(--vscode-toolbar-hoverBackground,rgba(0,0,0,.08))}
 .rb-tab.on{border-bottom-color:var(--vscode-focusBorder,#0060c0);font-weight:600}
+/* Narrow windows: tighter tabs, so that the strip still fits without scrolling down to about 900 px. */
+@media (max-width:1100px){.rb-tab{padding:0 7px}}
+.rb-tab:focus-visible,.rb-big:focus-visible,.rb-small:focus-visible,.rb-q:focus-visible,.rb-file:focus-visible,.rb-glyph:focus-visible{outline:2px solid var(--vscode-focusBorder,#0060c0);outline-offset:-2px}
+/* Red and Green show their colour; the other text buttons keep the plain ink. */
+.rb-small[data-ribbon-btn=tf-red] svg{color:#c62828}.rb-small[data-ribbon-btn=tf-green] svg{color:#2e7d32}
 .rb-panel{display:flex;align-items:stretch;height:96px;padding:3px 4px 0;overflow-x:auto;overflow-y:hidden;
   background:var(--ck-raised);border-top:1px solid var(--ck-line)}
 .rb-group{flex:none;display:flex;flex-direction:column;padding:0 6px;border-right:1px solid var(--vscode-panel-border,#ddd)}
 .rb-group:last-child{border-right:0}
 .rb-cells{flex:1;display:flex;align-items:flex-start;gap:2px;min-height:0}
 .rb-big,.rb-small{display:flex;border:1px solid transparent;border-radius:3px;background:none;color:inherit;font:inherit;cursor:pointer}
-.rb-big{flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;min-width:52px;height:68px;padding:4px 6px}
+.rb-big{flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;min-width:52px;height:68px;padding:4px 5px}
 .rb-small{align-items:center;gap:5px;height:22px;padding:0 6px;white-space:nowrap;text-align:left}
-.rb-stack{display:flex;flex-direction:column;justify-content:flex-start;gap:0;min-width:96px}
+.rb-stack{display:flex;flex-direction:column;justify-content:flex-start;gap:0;min-width:52px}
 .rb-big:hover,.rb-small:hover{background:var(--vscode-toolbar-hoverBackground,rgba(0,0,0,.08));border-color:var(--vscode-panel-border,#ccc)}
 .rb-big.on,.rb-small.on{background:var(--vscode-toolbar-activeBackground,rgba(0,96,192,.18));border-color:var(--vscode-focusBorder,#0060c0)}
 .rb-label{font-size:11px;line-height:1.1;white-space:nowrap}
@@ -253,10 +266,13 @@ onBeforeUnmount(() => {
 .rb-raw::after{content:'>>';position:absolute;right:1px;top:0;font:700 8px/1 var(--vscode-editor-font-family,monospace);color:var(--vscode-descriptionForeground,#888);pointer-events:none}
 .rb-glyph:hover{background:var(--vscode-menu-selectionBackground,#0060c0);color:var(--vscode-menu-selectionForeground,#fff)}
 @media (max-width:760px){
-  .rb-quick{height:40px}
-  .rb-q{width:36px;height:34px}
-  .rb-file{height:32px}
-  .rb-tab{height:36px}
+  .rb-quick{height:46px}
+  .rb-q{width:44px;height:40px}
+  .rb-file{height:36px}
+  .rb-tab{height:40px;padding:0 12px}
+  /* Touch: small buttons tall enough to tap, so the panel grows to hold a stack of three. */
+  .rb-panel{height:118px}
+  .rb-small{height:30px}
 }
 @media (max-width:700px){
   .rb-pop,.rb-pop.wide{left:0;right:0;bottom:0;top:auto;width:auto;max-width:none;max-height:55vh;border-radius:10px 10px 0 0}

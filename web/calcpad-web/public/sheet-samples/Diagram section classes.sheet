@@ -1,0 +1,44 @@
+<!--sheet-->
+# Section shapes as classes
+
+A class diagram shows the shapes as kinds of one section: each has an area and a second moment of
+area, worked out by its own formula. The sheet works out both for three shapes.
+
+```mermaid
+classDiagram
+  class Section {
+    +area() A
+    +inertia() I
+  }
+  class Rectangle {
+    +b
+    +h
+  }
+  class Circle {
+    +d
+  }
+  class Tube {
+    +D
+    +t
+  }
+  Section <|-- Rectangle
+  Section <|-- Circle
+  Section <|-- Tube
+```
+
+## Rectangle
+b: 200 mm; h: 400 mm
+A_r: b * h -> mm² | area
+I_r: b * h^3 / 12 -> mm⁴ | second moment of area
+
+## Circle
+d: 300 mm
+A_c: π * d^2 / 4 -> mm²
+I_c: π * d^4 / 64 -> mm⁴
+
+## Tube
+D: 300 mm; t: 10 mm
+d_i: D - 2 * t | inside diameter
+A_t: π * (D^2 - d_i^2) / 4 -> mm²
+I_t: π * (D^4 - d_i^4) / 64 -> mm⁴
+ratio: I_t / I_c -> % | stiffness of the tube as a share of the solid circle

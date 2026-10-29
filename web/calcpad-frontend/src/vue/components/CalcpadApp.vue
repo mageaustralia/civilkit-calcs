@@ -332,7 +332,7 @@ const uiControls = ref<UiControl[] | null>(null)
 const tabs = computed<Tab[]>(() => {
   const base: Tab[] = [
     { id: 'insert', label: 'Insert' },
-    { id: 'toc', label: 'TOC' },
+    { id: 'toc', label: 'Contents' },
     { id: 'variables', label: 'Variables' }
   ]
   // The metadata comment editor is driven by editor cursor tracking, available
@@ -437,7 +437,7 @@ const hideSidebar = () => {
   postMessage({ type: 'hideSidebar' })
 }
 
-// Settings, Export, Errors and Prettify are dialogs; the three sidebar tabs are Insert, TOC and Variables.
+// Settings, Export, Errors and Prettify are dialogs; the three sidebar tabs are Insert, Contents and Variables.
 const DIALOG_TITLES: Record<string, string> = { settings: 'Settings', export: 'Export', errors: 'Errors and warnings', formatting: 'Prettify' }
 const dialogTab = ref<string | null>(null)
 const shown = (pane: Pane): string => dialogTab.value ?? pane.activeTab

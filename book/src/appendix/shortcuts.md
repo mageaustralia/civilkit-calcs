@@ -6,12 +6,12 @@ the main ones in the output panel.
 | Shortcut | Action |
 | --- | --- |
 | Ctrl+S | Save |
-| Ctrl+Shift+S | Save As |
+| Ctrl+Shift+S | Save as |
 | Ctrl+O | Open (the desktop app; a browser keeps its own Open command) |
 | Ctrl+Alt+X | Calculate. F5 does the same in the desktop app; in a browser F5 reloads the page. |
 | Ctrl+Z, Ctrl+Shift+Z | Undo, redo |
 | Ctrl+F | Find in the editor |
-| Ctrl+Shift+B | Show or hide the sidebar |
+| Ctrl+Shift+B | Show or hide the sidebar (the desktop app; in a browser use Resources > Sidebar) |
 | Alt+Z | Wrap long lines |
 | Ctrl+Shift+E | Convert the selected expression to a formula line (see [Editing](../editing.md)) |
 | Shift+Alt+F | Format Document (tidy a sheet) |

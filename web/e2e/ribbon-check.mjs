@@ -164,7 +164,7 @@ check(!!d && /\.docx$/i.test(d.suggestedFilename()), `Document > Word triggers a
 // File button: the full menu
 await btn(page, 'file').click();
 const menu = await page.locator('.cprs-menu').innerText();
-check(/Save As/.test(menu) && /Samples/.test(menu) && /Export Excel/.test(menu) && /recent/i.test(menu), 'the File button opens the full file menu');
+check(/Save as/.test(menu) && /Samples/.test(menu) && /Export Excel/.test(menu) && /recent/i.test(menu), 'the File button opens the full file menu');
 await page.keyboard.press('Escape');
 // calculation / resources
 await tab(page, 'calc');

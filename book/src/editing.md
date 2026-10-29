@@ -281,7 +281,7 @@ under the selection instead of the toolbar.
 
 ## The sidebar
 
-The sidebar has three tabs: **Insert**, **TOC** (the outline of headings) and **Variables**.
+The sidebar has three tabs: **Insert**, **Contents** (the outline of headings) and **Variables**.
 Settings, Export, Errors and Prettify open as dialogs from the ribbon (and Errors from the status
 bar); Esc closes them.
 

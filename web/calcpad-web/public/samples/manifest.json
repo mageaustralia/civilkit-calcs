@@ -1,15 +1,15 @@
 {
  "groups": [
   "Beams",
-  "Reinforced Concrete",
+  "Reinforced concrete",
   "Steel",
   "Loads",
   "Frames",
   "Dynamics",
   "Nonlinear",
-  "Soil Mechanics",
+  "Soil mechanics",
   "Sections",
-  "Maths & plotting",
+  "Maths and plotting",
   "Python"
  ],
  "samples": [
@@ -513,7 +513,7 @@
   {
    "id": "structural-reinforced-concrete-areas-of-reinforcement-bars",
    "title": "Areas of Reinforcement Bars",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/Areas of Reinforcement Bars.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/Areas of Reinforcement Bars.cpd",
@@ -532,7 +532,7 @@
   {
    "id": "structural-reinforced-concrete-bending-capacity-of-tee-section",
    "title": "Bending Capacity of Tee Section",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/Bending Capacity of Tee Section.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/Bending Capacity of Tee Section.cpd",
@@ -554,7 +554,7 @@
   {
    "id": "structural-reinforced-concrete-bending-design-of-rectangular-section",
    "title": "Bending Design of Rectangular Section",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/Bending Design of Rectangular Section.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/Bending Design of Rectangular Section.cpd",
@@ -576,7 +576,7 @@
   {
    "id": "structural-reinforced-concrete-bending-design-of-tee-section",
    "title": "Bending Design of Tee Section",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/Bending Design of Tee Section.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/Bending Design of Tee Section.cpd",
@@ -598,7 +598,7 @@
   {
    "id": "structural-reinforced-concrete-column-design-for-bending-and-axial-force",
    "title": "Column Design for Bending and Axial Force",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/Column Design for Bending and Axial Force.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/Column Design for Bending and Axial Force.cpd",
@@ -620,7 +620,7 @@
   {
    "id": "structural-reinforced-concrete-column-design-for-biaxial-bending-and-axial-force",
    "title": "Column Design for Biaxial Bending and Axial Force",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/Column Design for Biaxial Bending and Axial Force.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/Column Design for Biaxial Bending and Axial Force.cpd",
@@ -646,7 +646,7 @@
   {
    "id": "structural-reinforced-concrete-column-design-for-biaxial-bending-and-axial-force-with-units",
    "title": "Column Design for Biaxial Bending and Axial Force (with Units)",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/Column Design for Biaxial Bending and Axial Force (with Units).cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/Column Design for Biaxial Bending and Axial Force (with Units).cpd",
@@ -672,7 +672,7 @@
   {
    "id": "structural-reinforced-concrete-combined-bending-shear-and-torsion",
    "title": "Combined Bending, Shear and Torsion",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/Combined Bending, Shear and Torsion.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/Combined Bending, Shear and Torsion.cpd",
@@ -694,7 +694,7 @@
   {
    "id": "structural-reinforced-concrete-interaction-diagram-of-rc-section",
    "title": "Interaction Diagram of RC Section",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/Interaction Diagram of RC Section.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/Interaction Diagram of RC Section.cpd",
@@ -716,7 +716,7 @@
   {
    "id": "structural-reinforced-concrete-shear-design-of-rectangular-section",
    "title": "Shear Design of Rectangular Section",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/Shear Design of Rectangular Section.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/Shear Design of Rectangular Section.cpd",
@@ -738,7 +738,7 @@
   {
    "id": "structural-reinforced-concrete-sls-design-of-beam-with-rectangular-section",
    "title": "SLS Design of Beam with Rectangular Section",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/SLS Design of Beam with Rectangular Section.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/SLS Design of Beam with Rectangular Section.cpd",
@@ -776,7 +776,7 @@
   {
    "id": "structural-reinforced-concrete-sls-design-of-beam-with-tee-section",
    "title": "SLS Design of Beam with Tee Section",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete",
    "file": "samples/Structural/Reinforced Concrete/SLS Design of Beam with Tee Section.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete/SLS Design of Beam with Tee Section.cpd",
@@ -814,7 +814,7 @@
   {
    "id": "structural-reinforced-concrete-plates-fully-restrained-slab-panel",
    "title": "Two-Way Slab Panel: All Edges Restrained",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Plates",
    "file": "samples/Structural/Reinforced Concrete - Plates/Fully Restrained Slab Panel.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Plates/Fully Restrained Slab Panel.cpd",
@@ -840,7 +840,7 @@
   {
    "id": "structural-reinforced-concrete-plates-simply-supported-slab-panel",
    "title": "Two-Way Slab Panel: All Edges Simply Supported",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Plates",
    "file": "samples/Structural/Reinforced Concrete - Plates/Simply Supported Slab Panel.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Plates/Simply Supported Slab Panel.cpd",
@@ -866,7 +866,7 @@
   {
    "id": "structural-reinforced-concrete-plates-restrained-adjacent-edges",
    "title": "Two-Way Slab Panel: Restrained Adjacent Edges",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Plates",
    "file": "samples/Structural/Reinforced Concrete - Plates/Restrained Adjacent Edges.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Plates/Restrained Adjacent Edges.cpd",
@@ -892,7 +892,7 @@
   {
    "id": "structural-reinforced-concrete-plates-restrained-both-longer-edges",
    "title": "Two-Way Slab Panel: Restrained Both Longer Edges",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Plates",
    "file": "samples/Structural/Reinforced Concrete - Plates/Restrained Both Longer Edges.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Plates/Restrained Both Longer Edges.cpd",
@@ -918,7 +918,7 @@
   {
    "id": "structural-reinforced-concrete-plates-restrained-both-shorter-edges",
    "title": "Two-Way Slab Panel: Restrained Both Shorter Edges",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Plates",
    "file": "samples/Structural/Reinforced Concrete - Plates/Restrained Both Shorter Edges.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Plates/Restrained Both Shorter Edges.cpd",
@@ -944,7 +944,7 @@
   {
    "id": "structural-reinforced-concrete-plates-restrained-longer-edge",
    "title": "Two-Way Slab Panel: Restrained Longer Edge",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Plates",
    "file": "samples/Structural/Reinforced Concrete - Plates/Restrained Longer Edge.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Plates/Restrained Longer Edge.cpd",
@@ -970,7 +970,7 @@
   {
    "id": "structural-reinforced-concrete-plates-restrained-panel-with-unrestrained-longer-edge",
    "title": "Two-Way Slab Panel: Restrained Panel with Unrestrained Longer Edge",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Plates",
    "file": "samples/Structural/Reinforced Concrete - Plates/Restrained Panel with Unrestrained Longer Edge.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Plates/Restrained Panel with Unrestrained Longer Edge.cpd",
@@ -996,7 +996,7 @@
   {
    "id": "structural-reinforced-concrete-plates-restrained-panel-with-unrestrained-shorter-edge",
    "title": "Two-Way Slab Panel: Restrained Panel with Unrestrained Shorter Edge",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Plates",
    "file": "samples/Structural/Reinforced Concrete - Plates/Restrained Panel with Unrestrained Shorter Edge.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Plates/Restrained Panel with Unrestrained Shorter Edge.cpd",
@@ -1022,7 +1022,7 @@
   {
    "id": "structural-reinforced-concrete-plates-restrained-shorter-edge",
    "title": "Two-Way Slab Panel: Restrained Shorter Edge",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Plates",
    "file": "samples/Structural/Reinforced Concrete - Plates/Restrained Shorter Edge.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Plates/Restrained Shorter Edge.cpd",
@@ -1048,7 +1048,7 @@
   {
    "id": "structural-reinforced-concrete-punching-corner-column",
    "title": "Punching Shear: Corner Column",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Punching",
    "file": "samples/Structural/Reinforced Concrete - Punching/Corner Column.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Punching/Corner Column.cpd",
@@ -1078,7 +1078,7 @@
   {
    "id": "structural-reinforced-concrete-punching-edge-column",
    "title": "Punching Shear: Edge Column",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Punching",
    "file": "samples/Structural/Reinforced Concrete - Punching/Edge Column.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Punching/Edge Column.cpd",
@@ -1108,7 +1108,7 @@
   {
    "id": "structural-reinforced-concrete-punching-internal-column",
    "title": "Punching Shear: Internal Column",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Punching",
    "file": "samples/Structural/Reinforced Concrete - Punching/Internal Column.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Punching/Internal Column.cpd",
@@ -1138,7 +1138,7 @@
   {
    "id": "structural-reinforced-concrete-seismic-detailing-beam-detailing-for-dcm",
    "title": "Seismic Detailing (DCM): Beam",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Seismic Detailing",
    "file": "samples/Structural/Reinforced Concrete - Seismic Detailing/Beam Detailing for DCM.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Seismic Detailing/Beam Detailing for DCM.cpd",
@@ -1162,7 +1162,7 @@
   {
    "id": "structural-reinforced-concrete-seismic-detailing-column-detailing-for-dcm",
    "title": "Seismic Detailing (DCM): Column",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Seismic Detailing",
    "file": "samples/Structural/Reinforced Concrete - Seismic Detailing/Column Detailing for DCM.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Seismic Detailing/Column Detailing for DCM.cpd",
@@ -1190,7 +1190,7 @@
   {
    "id": "structural-reinforced-concrete-seismic-detailing-shear-wall-detailing-for-dcm",
    "title": "Seismic Detailing (DCM): Shear Wall",
-   "group": "Reinforced Concrete",
+   "group": "Reinforced concrete",
    "folder": "Reinforced Concrete - Seismic Detailing",
    "file": "samples/Structural/Reinforced Concrete - Seismic Detailing/Shear Wall Detailing for DCM.cpd",
    "upstream": "Examples/Structural/Reinforced Concrete - Seismic Detailing/Shear Wall Detailing for DCM.cpd",
@@ -1575,7 +1575,7 @@
   {
    "id": "structural-soil-mechanics-soil-stress-and-deformations",
    "title": "Soil Stress and Deformations",
-   "group": "Soil Mechanics",
+   "group": "Soil mechanics",
    "folder": "Soil Mechanics",
    "file": "samples/Structural/Soil Mechanics/Soil Stress and Deformations.cpd",
    "upstream": "Examples/Structural/Soil Mechanics/Soil Stress and Deformations.cpd",
@@ -1604,7 +1604,7 @@
   {
    "id": "engineering-custom-units-currency-units",
    "title": "Currency Units",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Custom Units",
    "file": "samples/Engineering/Custom Units/Currency Units.cpd",
    "upstream": "Examples/Engineering/Custom Units/Currency Units.cpd",
@@ -1618,7 +1618,7 @@
   {
    "id": "engineering-custom-units-information-units",
    "title": "Information Units",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Custom Units",
    "file": "samples/Engineering/Custom Units/Information Units.cpd",
    "upstream": "Examples/Engineering/Custom Units/Information Units.cpd",
@@ -1632,7 +1632,7 @@
   {
    "id": "engineering-elastic-analysis-deep-beam",
    "title": "Deep Beam: Elastic Series Solution",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Elastic Analysis",
    "file": "samples/Engineering/Elastic Analysis/Deep Beam.cpd",
    "upstream": "Examples/Engineering/Elastic Analysis/Deep Beam.cpd",
@@ -1651,7 +1651,7 @@
   {
    "id": "engineering-elastic-analysis-rectangular-slab",
    "title": "Rectangular Plate: Navier Solution",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Elastic Analysis",
    "file": "samples/Engineering/Elastic Analysis/Rectangular Slab.cpd",
    "upstream": "Examples/Engineering/Elastic Analysis/Rectangular Slab.cpd",
@@ -1670,7 +1670,7 @@
   {
    "id": "engineering-elastic-analysis-saint-venant-torsion",
    "title": "Saint-Venant Torsion",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Elastic Analysis",
    "file": "samples/Engineering/Elastic Analysis/Saint-Venant Torsion.cpd",
    "upstream": "Examples/Engineering/Elastic Analysis/Saint-Venant Torsion.cpd",
@@ -1689,7 +1689,7 @@
   {
    "id": "engineering-finite-elements-deep-beam-fea",
    "title": "Deep Beam: Finite Element Analysis",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Finite Elements",
    "file": "samples/Engineering/Finite Elements/Deep Beam FEA.cpd",
    "upstream": "Examples/Engineering/Finite Elements/Deep Beam FEA.cpd",
@@ -1712,7 +1712,7 @@
   {
    "id": "engineering-finite-elements-flat-slab-fea",
    "title": "Flat Slab FEA",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Finite Elements",
    "file": "samples/Engineering/Finite Elements/Flat Slab FEA.cpd",
    "upstream": "Examples/Engineering/Finite Elements/Flat Slab FEA.cpd",
@@ -1735,7 +1735,7 @@
   {
    "id": "engineering-finite-elements-flat-slab-fea-optimized",
    "title": "Flat Slab FEA Optimized",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Finite Elements",
    "file": "samples/Engineering/Finite Elements/Flat Slab FEA Optimized.cpd",
    "upstream": "Examples/Engineering/Finite Elements/Flat Slab FEA Optimized.cpd",
@@ -1758,7 +1758,7 @@
   {
    "id": "engineering-finite-elements-rectangular-slab-fea",
    "title": "Rectangular Slab FEA",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Finite Elements",
    "file": "samples/Engineering/Finite Elements/Rectangular Slab FEA.cpd",
    "upstream": "Examples/Engineering/Finite Elements/Rectangular Slab FEA.cpd",
@@ -1781,7 +1781,7 @@
   {
    "id": "engineering-getting-started-calculating",
    "title": "Getting Started: Calculating",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Getting Started",
    "file": "samples/Engineering/Getting Started/Calculating.cpd",
    "upstream": "Examples/Engineering/Getting Started/Calculating.cpd",
@@ -1795,7 +1795,7 @@
   {
    "id": "engineering-getting-started-functions",
    "title": "Getting Started: Functions and Plots",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Getting Started",
    "file": "samples/Engineering/Getting Started/Functions.cpd",
    "upstream": "Examples/Engineering/Getting Started/Functions.cpd",
@@ -1809,7 +1809,7 @@
   {
    "id": "engineering-getting-started-unit-conversion",
    "title": "Getting Started: Units and Conversion",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Getting Started",
    "file": "samples/Engineering/Getting Started/Unit Conversion.cpd",
    "upstream": "Examples/Engineering/Getting Started/Unit Conversion.cpd",
@@ -1823,7 +1823,7 @@
   {
    "id": "engineering-interpolation-double-interpolation",
    "title": "Double Interpolation",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Interpolation",
    "file": "samples/Engineering/Interpolation/Double Interpolation.cpd",
    "upstream": "Examples/Engineering/Interpolation/Double Interpolation.cpd",
@@ -1837,7 +1837,7 @@
   {
    "id": "engineering-interpolation-interpolation-of-functions",
    "title": "Interpolation of Functions",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Interpolation",
    "file": "samples/Engineering/Interpolation/Interpolation of Functions.cpd",
    "upstream": "Examples/Engineering/Interpolation/Interpolation of Functions.cpd",
@@ -1851,7 +1851,7 @@
   {
    "id": "engineering-interpolation-interpolation",
    "title": "Interpolation with take, line and spline",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Interpolation",
    "file": "samples/Engineering/Interpolation/Interpolation.cpd",
    "upstream": "Examples/Engineering/Interpolation/Interpolation.cpd",
@@ -1865,7 +1865,7 @@
   {
    "id": "engineering-matrices-matrix-creational-functions",
    "title": "Matrix Creational Functions",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Matrices",
    "file": "samples/Engineering/Matrices/Matrix Creational Functions.cpd",
    "upstream": "Examples/Engineering/Matrices/Matrix Creational Functions.cpd",
@@ -1879,7 +1879,7 @@
   {
    "id": "engineering-matrices-matrix-data-functions",
    "title": "Matrix Data Functions",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Matrices",
    "file": "samples/Engineering/Matrices/Matrix Data Functions.cpd",
    "upstream": "Examples/Engineering/Matrices/Matrix Data Functions.cpd",
@@ -1893,7 +1893,7 @@
   {
    "id": "engineering-matrices-matrix-initialization-and-indexing",
    "title": "Matrix Initialization and Indexing",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Matrices",
    "file": "samples/Engineering/Matrices/Matrix Initialization and Indexing.cpd",
    "upstream": "Examples/Engineering/Matrices/Matrix Initialization and Indexing.cpd",
@@ -1907,7 +1907,7 @@
   {
    "id": "engineering-matrices-matrix-math-functions",
    "title": "Matrix Math Functions",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Matrices",
    "file": "samples/Engineering/Matrices/Matrix Math Functions.cpd",
    "upstream": "Examples/Engineering/Matrices/Matrix Math Functions.cpd",
@@ -1921,7 +1921,7 @@
   {
    "id": "engineering-matrices-matrix-operators",
    "title": "Matrix Operators",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Matrices",
    "file": "samples/Engineering/Matrices/Matrix Operators.cpd",
    "upstream": "Examples/Engineering/Matrices/Matrix Operators.cpd",
@@ -1935,7 +1935,7 @@
   {
    "id": "engineering-matrices-matrix-structural-functions",
    "title": "Matrix Structural Functions",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Matrices",
    "file": "samples/Engineering/Matrices/Matrix Structural Functions.cpd",
    "upstream": "Examples/Engineering/Matrices/Matrix Structural Functions.cpd",
@@ -1949,7 +1949,7 @@
   {
    "id": "engineering-multiline-functions-cubic-roots-function",
    "title": "Cubic Roots Function",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Multiline Functions",
    "file": "samples/Engineering/Multiline Functions/Cubic Roots Function.cpd",
    "upstream": "Examples/Engineering/Multiline Functions/Cubic Roots Function.cpd",
@@ -1963,7 +1963,7 @@
   {
    "id": "engineering-multiline-functions-fibonacci-numbers",
    "title": "Fibonacci Numbers",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Multiline Functions",
    "file": "samples/Engineering/Multiline Functions/Fibonacci Numbers.cpd",
    "upstream": "Examples/Engineering/Multiline Functions/Fibonacci Numbers.cpd",
@@ -1977,7 +1977,7 @@
   {
    "id": "engineering-multiline-functions-greatest-common-divisor-euclid-algorithm",
    "title": "Greatest Common Divisor - Euclid Algorithm",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Multiline Functions",
    "file": "samples/Engineering/Multiline Functions/Greatest Common Divisor - Euclid Algorithm.cpd",
    "upstream": "Examples/Engineering/Multiline Functions/Greatest Common Divisor - Euclid Algorithm.cpd",
@@ -1991,7 +1991,7 @@
   {
    "id": "engineering-multiline-functions-quadratic-roots-function",
    "title": "Quadratic Roots Function",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Multiline Functions",
    "file": "samples/Engineering/Multiline Functions/Quadratic Roots Function.cpd",
    "upstream": "Examples/Engineering/Multiline Functions/Quadratic Roots Function.cpd",
@@ -2005,7 +2005,7 @@
   {
    "id": "engineering-numerical-monte-carlo-pi",
    "title": "Monte Carlo Pi",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Numerical",
    "file": "samples/Engineering/Numerical/Monte Carlo Pi.cpd",
    "upstream": "Examples/Engineering/Numerical/Monte Carlo Pi.cpd",
@@ -2019,7 +2019,7 @@
   {
    "id": "engineering-numerical-newton-s-method-animated",
    "title": "Newton's Method (Animated)",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Numerical",
    "file": "samples/Engineering/Numerical/Newton's Method Animated.cpd",
    "upstream": "Examples/Engineering/Numerical/Newton's Method Animated.cpd",
@@ -2033,7 +2033,7 @@
   {
    "id": "engineering-numerical-numerical-differentiation",
    "title": "Numerical Differentiation",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Numerical",
    "file": "samples/Engineering/Numerical/Numerical Differentiation.cpd",
    "upstream": "Examples/Engineering/Numerical/Numerical Differentiation.cpd",
@@ -2047,7 +2047,7 @@
   {
    "id": "engineering-numerical-numerical-integration",
    "title": "Numerical Integration",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Numerical",
    "file": "samples/Engineering/Numerical/Numerical Integration.cpd",
    "upstream": "Examples/Engineering/Numerical/Numerical Integration.cpd",
@@ -2061,7 +2061,7 @@
   {
    "id": "engineering-numerical-rayleigh-quotient-iteration",
    "title": "Rayleigh Quotient Iteration",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Numerical",
    "file": "samples/Engineering/Numerical/Rayleigh Quotient Iteration.cpd",
    "upstream": "Examples/Engineering/Numerical/Rayleigh Quotient Iteration.cpd",
@@ -2075,7 +2075,7 @@
   {
    "id": "engineering-numerical-system-of-nonlinear-equations",
    "title": "System of Nonlinear Equations",
-   "group": "Maths & plotting",
+   "group": "Maths and plotting",
    "folder": "Numerical",
    "file": "samples/Engineering/Numerical/System of Nonlinear Equations.cpd",
    "upstream": "Examples/Engineering/Numerical/System of Nonlinear Equations.cpd",

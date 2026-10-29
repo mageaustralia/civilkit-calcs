@@ -21,15 +21,15 @@ const ref = resolve(argRef > 0 ? process.argv[argRef + 1] : join(repo, '..', 'ca
 const examples = join(ref, 'Examples');
 const out = join(repo, 'web', 'calcpad-web', 'public', 'samples');
 
-// Structural: everything. Maths & plotting: the Engineering folders a structural engineer uses.
+// Structural: everything. Maths and plotting: the Engineering folders a structural engineer uses.
 const MATHS = ['Getting Started', 'Matrices', 'Numerical', 'Interpolation', 'Finite Elements', 'Elastic Analysis', 'Custom Units', 'Multiline Functions'];
 const GROUPS = {
     Cantilevers: 'Beams', 'Continuous Beam': 'Beams', Deflections: 'Beams', 'Fully Restrained Beams': 'Beams',
     'Propped Cantilevers': 'Beams', 'Simply Supported Beams': 'Beams',
-    'Reinforced Concrete': 'Reinforced Concrete', 'Reinforced Concrete - Plates': 'Reinforced Concrete',
-    'Reinforced Concrete - Punching': 'Reinforced Concrete', 'Reinforced Concrete - Seismic Detailing': 'Reinforced Concrete',
+    'Reinforced Concrete': 'Reinforced concrete', 'Reinforced Concrete - Plates': 'Reinforced concrete',
+    'Reinforced Concrete - Punching': 'Reinforced concrete', 'Reinforced Concrete - Seismic Detailing': 'Reinforced concrete',
     Steel: 'Steel', Loads: 'Loads', Frames: 'Frames', 'Structural Dynamics': 'Dynamics', Nonlinear: 'Nonlinear',
-    'Soil Mechanics': 'Soil Mechanics',
+    'Soil Mechanics': 'Soil mechanics',
 };
 // Display titles. Upstream's file names repeat across folders ("Concentrated Force" in four
 // beam folders), carry typos ("Unifrom") or say little ("Frame"); the copies keep upstream's
@@ -96,7 +96,8 @@ function plainMath(tex) {
         .replace(/[{}]/g, '');
 }
 
-const GROUP_ORDER = ['Beams', 'Reinforced Concrete', 'Steel', 'Loads', 'Frames', 'Dynamics', 'Nonlinear', 'Soil Mechanics', 'Sections', 'Maths & plotting', 'Python'];
+// Group names in sentence case, like the sheet sample groups listed before them.
+const GROUP_ORDER = ['Beams', 'Reinforced concrete', 'Steel', 'Loads', 'Frames', 'Dynamics', 'Nonlinear', 'Soil mechanics', 'Sections', 'Maths and plotting', 'Python'];
 
 const cpdFiles = (dir) => readdirSync(dir).filter((f) => f.endsWith('.cpd')).map((f) => join(dir, f));
 const folders = [
@@ -296,7 +297,7 @@ for (const [top, folder] of folders) {
         samples.push({
             id,
             title,
-            group: top === 'Engineering' ? 'Maths & plotting' : (GROUPS[folder] ?? folder),
+            group: top === 'Engineering' ? 'Maths and plotting' : (GROUPS[folder] ?? folder),
             folder,
             file: copy(file),
             upstream: `Examples/${rel}`,

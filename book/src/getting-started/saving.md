@@ -11,7 +11,7 @@ The File button at the top left of the ribbon opens a menu:
 | Open... | Opens a `.sheet`, `.cpd` or `.txt` file. Data files and pictures you pick join the library. |
 | Import worksheet... | Converts a worksheet from another tool. See [Importing worksheets](../importing.md). |
 | Samples... | The sample browser. See [Samples tour](../samples.md). |
-| Save, Save As... | Saves the active tab. |
+| Save, Save as... | Saves the active tab. |
 | Print PDF..., Export..., Export Excel... | See [Exporting](../exporting.md). |
 
 Below the commands are the **Recent** worksheets and the **Library**. The library holds the files
@@ -23,7 +23,7 @@ file joins the library.
 
 ## Saving
 
-Press Ctrl+S (Cmd+S on a Mac), or use Save in the quick-access strip. Ctrl+Shift+S is Save As.
+Press Ctrl+S (Cmd+S on a Mac), or use Save in the quick-access strip. Ctrl+Shift+S is Save as.
 
 * In a browser that can write files in place (Chrome and Edge on a computer), you choose a file
   once and later saves write to it.

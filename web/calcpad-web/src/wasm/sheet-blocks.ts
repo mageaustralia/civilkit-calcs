@@ -32,7 +32,7 @@ export const INSERT_BLOCKS: InsertBlock[] = [
         select: 'import plotly.graph_objects as go',
     },
     // The same line as page-break.ts's PAGE_BREAK_SHEET (this file has no imports).
-    { id: 'pagebreak', label: 'Page break', title: 'Start a new page here in Print PDF and in the Word file', glyph: '\u2398', text: '<div style="page-break-after:always"></div>' },
+    { id: 'pagebreak', label: 'Page break', title: 'Start a new page here in Print PDF and in the Word file', glyph: '\u2550', text: '<div style="page-break-after:always"></div>' },
 ];
 
 /**

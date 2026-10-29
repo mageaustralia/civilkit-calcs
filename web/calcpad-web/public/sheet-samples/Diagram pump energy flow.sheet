@@ -1,0 +1,34 @@
+<!--sheet-->
+# Energy flow through a pumping station
+
+The power that reaches the water is worked out from the flow and the head, then traced back
+through the pump and the motor to the electrical input. The Sankey diagram draws each flow with
+a width in proportion to its power, in kW.
+
+## Inputs
+Q: 0.1 m³/s | flow
+H_s: 24 m | static lift
+H_f: 8 m | friction head in the pipeline
+eta_p: 0.78 | pump efficiency
+eta_m: 0.93 | motor efficiency
+rho: 1000 kg/m³ | water
+g: 9.81 m/s²
+
+## Powers
+P_static: rho * g * Q * H_s -> kW | lifting the water
+P_friction: rho * g * Q * H_f -> kW | lost to pipe friction
+P_water: P_static + P_friction -> kW | hydraulic power
+P_shaft: P_water / eta_p -> kW | pump shaft
+P_in: P_shaft / eta_m -> kW | electrical input
+eta: P_static / P_in -> % | useful share of the input
+
+```mermaid
+sankey-beta
+Electrical input,Motor,43.28
+Motor,Motor losses,3.03
+Motor,Pump shaft,40.25
+Pump shaft,Pump losses,8.86
+Pump shaft,Water,31.39
+Water,Static lift,23.54
+Water,Pipe friction,7.85
+```

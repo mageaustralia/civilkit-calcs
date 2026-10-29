@@ -406,13 +406,14 @@ body{display:flex;flex-direction:column}
             menu.appendChild(d);
         };
         const mod = /Mac|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
+        // Ctrl+O and Ctrl+N belong to the browser (main.ts), so only Save shows a shortcut.
         item('New sheet', () => newSheet(this.o.tabs()));
         item('New Calcpad worksheet', () => this.newWorksheet());
-        item('Open...', () => void this.open(), `${mod}+O`);
+        item('Open...', () => void this.open());
         if (this.o.importer) item('Import worksheet...', () => void this.o.importer!.pick());
         if (this.o.openSamples) item('Samples...', () => this.o.openSamples!());
         item('Save', () => void this.save(), `${mod}+S`);
-        item('Save As...', () => void this.save(true), `${mod}+Shift+S`);
+        item('Save as...', () => void this.save(true), `${mod}+Shift+S`);
         menu.appendChild(document.createElement('hr'));
         head('Recent');
         const recent = readRecent();
