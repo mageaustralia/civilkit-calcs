@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Excel alternative for engineering calculations</title>
+<meta name="description" content="Write engineering calculations with units and readable formulas instead of cell references, see the workings, and export to Word, PDF and Excel.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/excel-alternative-for-engineering-calculations/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Excel alternative for engineering calculations">
+<meta property="og:description" content="Write engineering calculations with units and readable formulas instead of cell references, see the workings, and export to Word, PDF and Excel.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/excel-alternative-for-engineering-calculations/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Excel alternative for engineering calculations">
+<meta name="twitter:description" content="Write engineering calculations with units and readable formulas instead of cell references, see the workings, and export to Word, PDF and Excel.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit Calcs",
+     "item": "https://civilkit.io/calcs/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Excel alternative",
+     "item": "https://civilkit.io/calcs/learn/excel-alternative-for-engineering-calculations/"
+    }
+   ]
+  },
+  {
+   "@type": "SoftwareApplication",
+   "name": "CivilKit Calcs",
+   "url": "https://civilkit.io/calcs/",
+   "description": "A free, open source engineering calculation sheet that runs in the browser. Real units, plots, input forms, Word, Excel and PDF export, offline use.",
+   "applicationCategory": "BusinessApplication",
+   "applicationSubCategory": "Engineering calculation",
+   "operatingSystem": "Any operating system with a modern web browser",
+   "isAccessibleForFree": true,
+   "license": "https://opensource.org/license/mit",
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   }
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Can it replace Excel?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Not as a general tool. It replaces the spreadsheets you use to show a single calculation with its workings. For large tables of data, sorting and pivots, Excel remains the right tool."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does the Excel export keep my formulas live?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. The workbook holds calculated values and the expressions as text. It also has native charts. Do the recalculation in the sheet, not in the workbook."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it check units?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Units are part of every quantity, so multiplication and division combine them, results convert to the unit you ask for, and adding incompatible units is an error."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I import data from a spreadsheet?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "A worksheet can read a matrix from a file kept in the browser library with the #read command; see the user guide. For a first calculation, typing the few input values is simpler."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it need an internet connection?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. After the first visit it works offline, and nothing you calculate is sent to a server."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="/calcs/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="/calcs/">Open the app</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/learn/engineering-calculation-software-free/">All pages</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/calcs/">CivilKit Calcs</a> / <span>Excel alternative</span></nav>
+<h1>An Excel alternative for engineering calculations</h1>
+<div class="lead">
+<p>Spreadsheets are the default tool for a quick engineering calculation, and for good reason: they are everywhere and everyone can open one. They are also a poor place to show workings. The formula sits behind a cell, the units are in a header, and a reviewer has to click through references to see what was done.</p>
+<p>CivilKit Calcs keeps the calculation as a readable document instead. This page compares the two honestly, including where a spreadsheet is still the better tool.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+<section>
+<h2>The same calculation, written out</h2>
+<p>In a spreadsheet, a bending stress is a number in a cell whose formula reads something like <code>=B4/B5</code>, with the unit conversion done by hand. In a sheet it is:</p>
+<pre><code># Bending stress
+
+M: 54 kN*m | design moment
+Z: 691.76 cm^3 | section modulus
+sigma: M / Z -&gt; MPa | bending stress</code></pre>
+<p>The report shows the formula, the numbers substituted and the result: <span class="v" data-run="s" data-key="sigma">78.06 MPa</span>. The engine converted kN·m divided by cm³ into MPa because you asked for MPa. A reviewer reads the page top to bottom and does not need to open anything.</p>
+</section>
+<figure class="video">
+<video controls preload="none" width="960" height="540" aria-label="Export a report to Word, Excel and PDF" src="/calcs/guide/videos/08-export-word-excel-pdf.mp4"></video>
+<figcaption>Video: Export a report to Word, Excel and PDF (about 85 seconds). <a href="/calcs/guide/exporting.html">Read the chapter</a>.</figcaption>
+</figure>
+<section>
+<h2>Where a calculation sheet is stronger</h2>
+<ul>
+<li><strong>Units are part of the value.</strong> A spreadsheet stores a bare number, so a kN in one cell and a N in another add without complaint. Here the engine tracks units, converts them, and refuses to add a length to a time.</li>
+<li><strong>Formulas are readable.</strong> Names such as <code>M</code> and <code>Z</code> instead of <code>B4</code>, and the typeset formula appears in the output.</li>
+<li><strong>The workings are the output.</strong> Each result shows its formula and its substituted numbers, ready to print.</li>
+<li><strong>Inputs are explicit.</strong> A template marks its inputs with a question mark and presents them as a form. The cells you may change are not mixed with the cells you must not.</li>
+<li><strong>Branching reads like text.</strong> An <code>if</code> line prints a plain sentence such as "OK" or "choose a deeper section".</li>
+</ul>
+</section>
+<section>
+<h2>Where a spreadsheet is still better</h2>
+<p>Use a spreadsheet for tables of many similar rows, quick what-if columns, data you will sort or filter, pivot tables, and anything shared with people who only have Excel. A calculation sheet is for a calculation with a story: inputs, steps and checks that you want to read and file. Many engineers use both.</p>
+</section>
+<section>
+<h2>Getting the results into Excel</h2>
+<p>Export gives you a workbook with the report in document order. Each equation is a row with its description, name, expression, the expression with numbers put in, value and unit. There are separate sheets for variables, for each vector or matrix, for the inputs and for plot data, and plots become native Excel charts that you can edit.</p>
+<p>Be clear about what you get: the cells hold calculated values with the expressions as text. They are not live Excel formulas, so changing a cell in the workbook does not recalculate the rest. The workbook opens in LibreOffice and a Python reader. We have not tried it in Microsoft Excel, so check it opens as you expect.</p>
+<p>If you want a document rather than a workbook, export Word, with real equations, or print the report to PDF.</p>
+</section>
+<section>
+<h2>Moving a spreadsheet calculation over</h2>
+<p>Take the cell that holds the answer, and work backwards. Write each input as a line with its unit, then each formula as a line using those names. Keep the same numbers and check the result against the spreadsheet. A good first target is a calculation you repeat often, because you can turn its inputs into a template and reuse it as a form.</p>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>Can it replace Excel?</h3>
+<p>Not as a general tool. It replaces the spreadsheets you use to show a single calculation with its workings. For large tables of data, sorting and pivots, Excel remains the right tool.</p>
+<h3>Does the Excel export keep my formulas live?</h3>
+<p>No. The workbook holds calculated values and the expressions as text. It also has native charts. Do the recalculation in the sheet, not in the workbook.</p>
+<h3>Does it check units?</h3>
+<p>Yes. Units are part of every quantity, so multiplication and division combine them, results convert to the unit you ask for, and adding incompatible units is an error.</p>
+<h3>Can I import data from a spreadsheet?</h3>
+<p>A worksheet can read a matrix from a file kept in the browser library with the <code>#read</code> command; see the user guide. For a first calculation, typing the few input values is simpler.</p>
+<h3>Does it need an internet connection?</h3>
+<p>No. After the first visit it works offline, and nothing you calculate is sent to a server.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/mathcad-alternative/">Mathcad alternative</a></li>
+<li><a href="/calcs/learn/calcpad-online/">Calcpad online</a></li>
+<li><a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a></li>
+<li><a href="/calcs/learn/engineering-calculation-software-free/">Free calculation software</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+</main>
+<footer class="site">
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. Source: <a href="https://github.com/mageaustralia/civilkit-calcs">github.com/mageaustralia/civilkit-calcs</a>. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

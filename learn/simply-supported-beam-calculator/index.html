@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simply supported beam calculator with units</title>
+<meta name="description" content="Free beam calculator: moment, shear, bending stress and deflection of a simply supported I-beam under a uniform load, with a moment diagram. Opens as a form.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/simply-supported-beam-calculator/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Simply supported beam calculator with units">
+<meta property="og:description" content="Free beam calculator: moment, shear, bending stress and deflection of a simply supported I-beam under a uniform load, with a moment diagram. Opens as a form.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/simply-supported-beam-calculator/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Simply supported beam calculator with units">
+<meta name="twitter:description" content="Free beam calculator: moment, shear, bending stress and deflection of a simply supported I-beam under a uniform load, with a moment diagram. Opens as a form.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit Calcs",
+     "item": "https://civilkit.io/calcs/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Simply supported beam",
+     "item": "https://civilkit.io/calcs/learn/simply-supported-beam-calculator/"
+    }
+   ]
+  },
+  {
+   "@type": "HowTo",
+   "name": "How to check a simply supported beam under a uniform load",
+   "description": "Free beam calculator: moment, shear, bending stress and deflection of a simply supported I-beam under a uniform load, with a moment diagram. Opens as a form.",
+   "step": [
+    {
+     "@type": "HowToStep",
+     "position": 1,
+     "name": "Open the template",
+     "text": "Choose Open this template on this page. The sheet opens in a new tab of CivilKit Calcs, with the inputs set to the values used on this page."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 2,
+     "name": "Switch to Input mode",
+     "text": "In the results bar choose Input. The input lines become boxes, lists, buttons and ticks."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 3,
+     "name": "Enter your values",
+     "text": "Change the inputs to your own. The span, load, section, material, limit and own weight are the six inputs. Every change recalculates the whole page."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 4,
+     "name": "Read and export the result",
+     "text": "Read the results and the OK or not OK lines under them. Use Report, then Print PDF, Word or Excel, to keep the calculation with its workings."
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Which beam formulas does the calculator use?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Maximum moment wL^2/8, maximum shear wL/2 and mid-span deflection 5wL^4/(384EI), all for a simply supported span with a uniform load."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I use my own section?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Edit the section lines in the sheet and enter A, I and Z yourself, or replace the I-beam proportions. The rest of the sheet uses those names."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it check lateral buckling or shear capacity?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. It checks bending stress and deflection against allowable values, nothing else. It is a textbook calculation, not a design-code check."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I save the result?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Use Report, then Print PDF, Word or Excel. The Word and Excel files use the values you entered."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I add a point load?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "You can add lines for it in the sheet, because it is ordinary text. The template as shipped has the uniform load only."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="/calcs/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="/calcs/">Open the app</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/learn/engineering-calculation-software-free/">All pages</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/calcs/">CivilKit Calcs</a> / <span>Simply supported beam</span></nav>
+<h1>Simply supported beam calculator</h1>
+<div class="lead">
+<p>This template checks a simply supported beam carrying a uniform load: the maximum bending moment and shear, the bending stress, and the mid-span deflection, each compared with a limit. The section is a doubly symmetric I-beam described by one depth, and the material comes from a drop-down. It opens as a fill-in form, and every change recalculates the page.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=template-simply-supported-beam">Open this template</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>What it computes</h2>
+<p>You give the span, the uniform load, the section depth, the material, a deflection limit, and whether to include the beam's own weight. The sheet derives the section properties from the depth, adds the own weight to the load, and reports the bending moment, shear force, stress, deflection and two utilisations (stress over allowable stress, deflection over its limit), with a plain sentence under each saying whether it passes. A moment diagram is plotted along the span.</p>
+</section>
+<figure class="video">
+<video controls preload="none" width="960" height="540" aria-label="Templates with inputs" src="/calcs/guide/videos/05-templates-with-inputs.mp4"></video>
+<figcaption>Video: Templates with inputs (about 85 seconds). <a href="/calcs/guide/templates.html">Read the chapter</a>.</figcaption>
+</figure>
+<section>
+<h2>The formulas</h2>
+<ul>
+<li>Section from the depth h: flange width b = h / 2, flange thickness t_f = h / 20, web thickness t_w = h / 40.</li>
+<li>Area A = 2 b t_f + (h - 2 t_f) t_w. Second moment of area I = (b h^3 - (b - t_w)(h - 2 t_f)^3) / 12. Section modulus Z = 2 I / h.</li>
+<li>Own weight w_sw = density x A x g, total load w_tot = w + w_sw.</li>
+<li>Maximum moment M = w_tot L^2 / 8 at mid-span. Maximum shear V = w_tot L / 2 at the supports.</li>
+<li>Bending stress sigma = M / Z. Deflection delta = 5 w_tot L^4 / (384 E I). Limit = L / 250, 360 or 500.</li>
+<li>Utilisations: sigma / allowable stress, and delta / limit.</li>
+</ul>
+<p>The materials table holds three entries (structural steel, aluminium and timber) with a modulus, an allowable bending stress and a density. A new material is one more entry in each list.</p>
+</section>
+<section>
+<h2>Worked example</h2>
+<p>Defaults: span 6 m, load 12 kN/m, a 300 mm I-beam in structural steel (E = 200 GPa, allowable stress 165 MPa), a limit of L/250, own weight included. These are the values you get when you open the template. Results from the engine:</p>
+<table>
+<thead><tr><th>Quantity</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Area A</td><td><span class="v" data-run="base" data-key="A">65.25 cm²</span></td></tr>
+<tr><td>Second moment of area I</td><td><span class="v" data-run="base" data-key="I">10376.4 cm⁴</span></td></tr>
+<tr><td>Section modulus Z</td><td><span class="v" data-run="base" data-key="Z">691.76 cm³</span></td></tr>
+<tr><td>Own weight w_sw</td><td><span class="v" data-run="base" data-key="w_sw">0.502 kN/m</span></td></tr>
+<tr><td>Total load w_tot</td><td><span class="v" data-run="base" data-key="w_tot">12.5 kN/m</span></td></tr>
+<tr><td>Maximum moment M</td><td><span class="v" data-run="base" data-key="M_max">56.26 kN·m</span></td></tr>
+<tr><td>Maximum shear V</td><td><span class="v" data-run="base" data-key="V_max">37.51 kN</span></td></tr>
+<tr><td>Bending stress</td><td><span class="v" data-run="base" data-key="sigma">81.33 MPa</span></td></tr>
+<tr><td>Mid-span deflection</td><td><span class="v" data-run="base" data-key="delta">10.17 mm</span></td></tr>
+<tr><td>Deflection limit</td><td><span class="v" data-run="base" data-key="delta_lim">24 mm</span></td></tr>
+<tr><td>Bending utilisation</td><td><span class="v" data-run="base" data-key="util_b">0.493</span></td></tr>
+<tr><td>Deflection utilisation</td><td><span class="v" data-run="base" data-key="util_d">0.424</span></td></tr>
+</tbody>
+</table>
+<p>Both utilisations are below 1, so the sheet prints "Bending: OK" and "Deflection: OK". Stress uses about <span class="v" data-run="base" data-key="util_b">0.493</span> of the allowable stress and deflection about <span class="v" data-run="base" data-key="util_d">0.424</span> of its limit.</p>
+</section>
+<section>
+<h2>Change one input and watch what governs</h2>
+<p>With the 200 mm section instead, the total load is <span class="v" data-run="shallow" data-key="w_tot">12.22 kN/m</span>, the stress becomes <span class="v" data-run="shallow" data-key="sigma">268.36 MPa</span> and the deflection <span class="v" data-run="shallow" data-key="delta">50.32 mm</span>, giving utilisations of <span class="v" data-run="shallow" data-key="util_b">1.63</span> for bending and <span class="v" data-run="shallow" data-key="util_d">2.1</span> for deflection. Both fail, and the sheet says to choose a deeper section.</p>
+<p>Back at 300 mm, switching the material to aluminium gives a stress of <span class="v" data-run="alu" data-key="sigma">79.19 MPa</span> (utilisation <span class="v" data-run="alu" data-key="util_b">0.792</span>, which passes) but a deflection of <span class="v" data-run="alu" data-key="delta">28.28 mm</span> against a limit of <span class="v" data-run="alu" data-key="delta_lim">24 mm</span> (utilisation <span class="v" data-run="alu" data-key="util_d">1.18</span>, which fails). Stiffness, not strength, decides it. That is the kind of thing a form makes quick to see.</p>
+</section>
+<section>
+<h2>What this is, and is not</h2>
+<div class="note">
+<p><strong>This is a generic textbook calculation, not a design-code check.</strong> The beam is one doubly symmetric I-section with proportions fixed by the depth, loaded with one uniform load on a single span, and compared with an allowable stress you choose from the table. There is no lateral buckling check, no shear or web check and no load combination. It does not apply load factors, resistance factors or any limit from a design standard. If you need a code check, use the formulas your standard requires, and treat this sheet as a way to see the mechanics and to check hand calculations.</p>
+</div>
+</section>
+<section>
+<h2>The sheet source</h2>
+<p>This is the template exactly as it ships. The lines with a question mark are the inputs, and the span and load show as sliders in Input mode; everything else is calculation and text. You can copy it into the app, or open the template and edit it.</p>
+<pre><code># Simply supported beam check
+
+A template with inputs. Choose **Input** in the results bar to fill in the form; every change
+recalculates the page. The beam is a doubly symmetric I-beam, so one depth $h$ describes it:
+flange width $b = h/2$, flange thickness $t_f = h/20$ and web thickness $t_w = h/40$. The check
+compares the bending stress $\sigma = M/Z$ with an allowable stress and the mid-span deflection
+$\delta = 5 w L^4 / (384 E I)$ with a limit.
+
+## Inputs
+L:     ? 6 m [2 .. 12 step 0.5] | span
+w:     ? 12 kN/m [2 .. 40 step 1] | applied uniform load
+h:     ? [200 mm deep = 200 mm, *300 mm deep = 300 mm, 400 mm deep = 400 mm] | I-beam section
+mat:   ? [Structural steel = 1, Aluminium = 2, Timber = 3] | material
+limit: ? (L/250 = 250, L/360 = 360, L/500 = 500) | deflection limit
+sw:    ? on | include the own weight of the beam
+
+## Material properties
+The input above picks one entry of each table, so a new material is one more entry in each.
+
+E_tab:   [200 GPa, 70 GPa, 11 GPa] | modulus of elasticity
+fa_tab:  [165 MPa, 100 MPa, 12 MPa] | allowable bending stress
+rho_tab: [7850 kg/m^3, 2700 kg/m^3, 500 kg/m^3] | density
+E:   E_tab.mat -&gt; GPa
+f_a: fa_tab.mat -&gt; MPa
+rho: rho_tab.mat -&gt; kg/m^3
+
+if mat == 1: &quot;The material is structural steel.&quot;
+if mat == 2: &quot;The material is aluminium.&quot;
+if mat == 3: &quot;The material is timber.&quot;
+
+## Section
+b:   h / 2 | flange width
+t_f: h / 20 | flange thickness
+t_w: h / 40 | web thickness
+A:   2 * b * t_f + (h - 2 * t_f) * t_w -&gt; cm^2 | area
+I:   (b * h^3 - (b - t_w) * (h - 2 * t_f)^3) / 12 -&gt; cm^4 | second moment of area
+Z:   2 * I / h -&gt; cm^3 | elastic section modulus
+
+## Load
+g_acc: 9.81 m/s^2 | gravitational acceleration
+w_sw:  sw * rho * A * g_acc -&gt; kN/m | own weight, when included
+w_tot: w + w_sw | total uniform load
+
+## Results
+M_max: w_tot * L^2 / 8 -&gt; kN*m | maximum bending moment, at mid-span
+V_max: w_tot * L / 2 -&gt; kN | maximum shear force, at the supports
+sigma: M_max / Z -&gt; MPa | maximum bending stress
+delta: 5 * w_tot * L^4 / (384 * E * I) -&gt; mm | mid-span deflection
+delta_lim: L / limit -&gt; mm | deflection limit
+util_b: sigma / f_a | bending utilisation
+util_d: delta / delta_lim | deflection utilisation
+
+if util_b &lt;= 1: &quot;Bending: OK, the stress is within the allowable stress.&quot; else: &quot;Bending: the stress exceeds the allowable stress, choose a deeper section or a stronger material.&quot;
+if util_d &lt;= 1: &quot;Deflection: OK, within the limit.&quot; else: &quot;Deflection: over the limit, choose a deeper section or a stiffer material.&quot;
+
+## Moment diagram
+M(x): w_tot * x * (L - x) / 2 -&gt; kN*m | bending moment along the span
+
+plot M(x * 1 m) / (1 kN*m) for x in 0..L / (1 m)</code></pre>
+</section>
+<section>
+<h2>How to use it</h2>
+<ol>
+<li><strong>Open the template.</strong> Choose <strong>Open this template</strong> on this page. The sheet opens in a new tab of CivilKit Calcs, with the inputs set to the values used on this page.</li>
+<li><strong>Switch to Input mode.</strong> In the results bar choose <strong>Input</strong>. The input lines become boxes, lists, buttons and ticks.</li>
+<li><strong>Enter your values.</strong> Change the inputs to your own. The span, load, section, material, limit and own weight are the six inputs. Every change recalculates the whole page.</li>
+<li><strong>Read and export the result.</strong> Read the results and the OK or not OK lines under them. Use <strong>Report</strong>, then Print PDF, Word or Excel, to keep the calculation with its workings.</li>
+</ol>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>Which beam formulas does the calculator use?</h3>
+<p>Maximum moment wL^2/8, maximum shear wL/2 and mid-span deflection 5wL^4/(384EI), all for a simply supported span with a uniform load.</p>
+<h3>Can I use my own section?</h3>
+<p>Yes. Edit the section lines in the sheet and enter A, I and Z yourself, or replace the I-beam proportions. The rest of the sheet uses those names.</p>
+<h3>Does it check lateral buckling or shear capacity?</h3>
+<p>No. It checks bending stress and deflection against allowable values, nothing else. It is a textbook calculation, not a design-code check.</p>
+<h3>Can I save the result?</h3>
+<p>Yes. Use Report, then Print PDF, Word or Excel. The Word and Excel files use the values you entered.</p>
+<h3>Can I add a point load?</h3>
+<p>You can add lines for it in the sheet, because it is ordinary text. The template as shipped has the uniform load only.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/retaining-wall-stability-calculator/">Retaining wall stability</a></li>
+<li><a href="/calcs/learn/pad-footing-bearing-pressure-calculator/">Pad footing bearing pressure</a></li>
+<li><a href="/calcs/learn/engineering-calculation-software-free/">Free calculation software</a></li>
+<li><a href="/calcs/learn/excel-alternative-for-engineering-calculations/">Excel alternative</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=template-simply-supported-beam">Open this template</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. Source: <a href="https://github.com/mageaustralia/civilkit-calcs">github.com/mageaustralia/civilkit-calcs</a>. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>

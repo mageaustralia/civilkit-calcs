@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipe flow calculator: Darcy-Weisbach head loss</title>
+<meta name="description" content="Free pipe friction loss calculator: velocity, Reynolds number, friction factor, Darcy-Weisbach head loss, pump head and power for water in a full pipe.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Pipe flow calculator: Darcy-Weisbach head loss">
+<meta property="og:description" content="Free pipe friction loss calculator: velocity, Reynolds number, friction factor, Darcy-Weisbach head loss, pump head and power for water in a full pipe.">
+<meta property="og:url" content="https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Pipe flow calculator: Darcy-Weisbach head loss">
+<meta name="twitter:description" content="Free pipe friction loss calculator: velocity, Reynolds number, friction factor, Darcy-Weisbach head loss, pump head and power for water in a full pipe.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit Calcs",
+     "item": "https://civilkit.io/calcs/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Pipe flow, Darcy-Weisbach",
+     "item": "https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/"
+    }
+   ]
+  },
+  {
+   "@type": "HowTo",
+   "name": "How to calculate friction head loss in a full pipe",
+   "description": "Free pipe friction loss calculator: velocity, Reynolds number, friction factor, Darcy-Weisbach head loss, pump head and power for water in a full pipe.",
+   "step": [
+    {
+     "@type": "HowToStep",
+     "position": 1,
+     "name": "Open the template",
+     "text": "Choose Open this template on this page. The sheet opens in a new tab of CivilKit Calcs, with the inputs set to the values used on this page."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 2,
+     "name": "Switch to Input mode",
+     "text": "In the results bar choose Input. The input lines become boxes, lists, buttons and ticks."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 3,
+     "name": "Enter your values",
+     "text": "Change the inputs to your own. Flow, diameter, length, rise, fittings, material and temperature are the inputs. Every change recalculates the whole page."
+    },
+    {
+     "@type": "HowToStep",
+     "position": 4,
+     "name": "Read and export the result",
+     "text": "Read the results and the OK or not OK lines under them. Use Report, then Print PDF, Word or Excel, to keep the calculation with its workings."
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Which friction factor formula is used?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "For turbulent flow, the explicit Swamee-Jain approximation of the Colebrook equation. For laminar flow, 64 / Re."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I use a fluid other than water?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Edit the density and viscosity tables in the sheet. They hold three entries for water at 5, 20 and 40 degrees C."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it handle different diameters in series?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Not as shipped. It models one diameter. You can add sections as further lines in the sheet."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How accurate is the head loss?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "It is as accurate as the roughness, the fitting coefficients and the correlation you give it. Treat it as an estimate and compare with a method you trust for a critical line."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What does the 3 m/s warning mean?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "It is a rule of thumb in the sheet for noise and wear, not a limit from a standard. Change it to suit your project."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="/calcs/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="/calcs/">Open the app</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/learn/engineering-calculation-software-free/">All pages</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/calcs/">CivilKit Calcs</a> / <span>Pipe flow, Darcy-Weisbach</span></nav>
+<h1>Pipe flow calculator with Darcy-Weisbach head loss</h1>
+<div class="lead">
+<p>This template finds the friction loss for water flowing in a full circular pipe, then the head a pump must supply and the hydraulic power. You enter the flow, diameter, length, rise in level, a sum of fitting loss coefficients, the pipe material (as a roughness) and the water temperature, and the sheet works through velocity, Reynolds number, friction factor and head loss.</p>
+</div>
+<p class="cta"><a class="button" href="/calcs/?sample=template-pipe-flow-darcy">Open this template</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+<section>
+<h2>What it computes</h2>
+<p>From the flow rate and the bore it gets the mean velocity and the Reynolds number. It picks a friction factor for laminar or turbulent flow, then applies the Darcy-Weisbach equation for the friction loss and adds the loss in fittings. The head to be supplied is the rise in level plus the total loss. It also reports the pressure drop due to losses and the hydraulic power of the water, and flags a velocity above 3 m/s.</p>
+</section>
+<figure class="video">
+<video controls preload="none" width="960" height="540" aria-label="Templates with inputs" src="/calcs/guide/videos/05-templates-with-inputs.mp4"></video>
+<figcaption>Video: Templates with inputs (about 85 seconds). <a href="/calcs/guide/templates.html">Read the chapter</a>.</figcaption>
+</figure>
+<section>
+<h2>The formulas</h2>
+<ul>
+<li>Flow area A = pi D^2 / 4. Velocity V = Q / A. Reynolds number Re = V D / nu, with the kinematic viscosity nu looked up for 5, 20 or 40 degrees C.</li>
+<li>Laminar flow (Re below 2300): friction factor f = 64 / Re.</li>
+<li>Turbulent flow: the explicit Swamee-Jain formula f = 0.25 / [log10(eps / (3.7 D) + 5.74 / Re^0.9)]^2, where eps is the pipe roughness.</li>
+<li>Friction head loss h_f = f (L / D) V^2 / (2 g). Fittings h_m = K V^2 / (2 g).</li>
+<li>Head to supply H = rise + h_f + h_m. Pressure drop = rho g (h_f + h_m). Hydraulic power = rho g Q H.</li>
+</ul>
+</section>
+<section>
+<h2>Worked example</h2>
+<p>Defaults: 25 L/s of water at 5 degrees C through 300 m of 150 mm commercial steel pipe (roughness 0.045 mm), a rise of 5 m and fittings with a total K of 2.5. Engine results:</p>
+<table>
+<thead><tr><th>Quantity</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Flow area</td><td><span class="v" data-run="base" data-key="A">176.71 cm²</span></td></tr>
+<tr><td>Velocity</td><td><span class="v" data-run="base" data-key="V">1.41 m/s</span></td></tr>
+<tr><td>Reynolds number</td><td><span class="v" data-run="base" data-key="Re">139610</span></td></tr>
+<tr><td>Relative roughness</td><td><span class="v" data-run="base" data-key="rr">0.0003</span></td></tr>
+<tr><td>Friction factor</td><td><span class="v" data-run="base" data-key="f">0.0186</span></td></tr>
+<tr><td>Friction head loss</td><td><span class="v" data-run="base" data-key="h_f">3.79 m</span></td></tr>
+<tr><td>Head loss in fittings</td><td><span class="v" data-run="base" data-key="h_m">0.255 m</span></td></tr>
+<tr><td>Total head loss</td><td><span class="v" data-run="base" data-key="h_L">4.05 m</span></td></tr>
+<tr><td>Head the pump must supply</td><td><span class="v" data-run="base" data-key="H">9.05 m</span></td></tr>
+<tr><td>Pressure drop from losses</td><td><span class="v" data-run="base" data-key="dp">39.72 kPa</span></td></tr>
+<tr><td>Hydraulic power</td><td><span class="v" data-run="base" data-key="P_h">2.22 kW</span></td></tr>
+</tbody>
+</table>
+<p>The flow is turbulent (Re is <span class="v" data-run="base" data-key="Re">139610</span>) and the velocity of <span class="v" data-run="base" data-key="V">1.41 m/s</span> is within the 3 m/s guide, so the sheet prints OK.</p>
+</section>
+<section>
+<h2>Change the flow or the bore</h2>
+<p>Raising the flow to 40 L/s lifts the velocity to <span class="v" data-run="flow" data-key="V">2.26 m/s</span>, the total loss to <span class="v" data-run="flow" data-key="h_L">9.83 m</span> and the head to supply to <span class="v" data-run="flow" data-key="H">14.83 m</span>, with a hydraulic power of <span class="v" data-run="flow" data-key="P_h">5.82 kW</span>. Head loss rises roughly with the square of the flow, which is why the loss more than doubles when the flow grows by 60 percent.</p>
+<p>Keeping 25 L/s but dropping the pipe to 100 mm gives <span class="v" data-run="small" data-key="V">3.18 m/s</span>, which is above 3 m/s, so the sheet warns about it. The loss is then <span class="v" data-run="small" data-key="h_L">30.08 m</span> and the head to supply <span class="v" data-run="small" data-key="H">35.08 m</span>. A modest cut in diameter has a large effect, because the velocity scales with the inverse square of the diameter.</p>
+</section>
+<section>
+<h2>What this is, and is not</h2>
+<div class="note">
+<p><strong>This is a generic textbook calculation, not a design-code check.</strong> The fluid is water at one of three temperatures from a short table, the pipe is full and of one diameter, and the fittings are lumped into one coefficient. The friction factor uses an explicit approximation, and the sheet switches between laminar and turbulent formulas at Re 2300, with no treatment of the transition zone. Pipe roughness values are typical figures for new pipe; real pipe ages. It does not apply load factors, resistance factors or any limit from a design standard. If you need a code check, use the formulas your standard requires, and treat this sheet as a way to see the mechanics and to check hand calculations.</p>
+</div>
+</section>
+<section>
+<h2>The sheet source</h2>
+<pre><code># Pipe flow: friction loss and pump head
+
+A template with inputs. Choose **Input** in the results bar to fill in the form. Water flows
+through a full circular pipe of diameter $D$ and length $L_p$. The Darcy-Weisbach equation gives the
+friction head loss $h_f = f \frac{L_p}{D}\frac{V^2}{2g}$. The friction factor is $f = 64/Re$ in laminar
+flow and, in turbulent flow, the explicit Swamee-Jain formula
+$f = 0.25 / \left[\log_{10}\left(\frac{\varepsilon}{3.7 D} + \frac{5.74}{Re^{0.9}}\right)\right]^2$.
+Fittings add $h_m = K V^2 / 2g$.
+
+## Inputs
+Q:    ? 25 L/s | flow rate
+D:    ? 150 mm | inside diameter of the pipe
+L_p:  ? 300 m | pipe length
+dz:   ? 5 m | rise in level from the inlet to the outlet
+K_m:  ? 2.5 | sum of the loss coefficients of the fittings
+eps:  ? [Drawn plastic = 0.0015 mm, *Commercial steel = 0.045 mm, Cast iron = 0.26 mm, Concrete = 1 mm] | pipe material, roughness
+temp: ? (5 degrees C = 1, 20 degrees C = 2, 40 degrees C = 3) | water temperature
+minor: ? on | include the fittings
+
+## Water properties
+rho_tab: [1000 kg/m^3, 998 kg/m^3, 992 kg/m^3] | density at 5, 20 and 40 degrees C
+nu_tab:  [0.00000152 m^2/s, 0.00000100 m^2/s, 0.00000066 m^2/s] | kinematic viscosity at 5, 20 and 40 degrees C
+rho: rho_tab.temp -&gt; kg/m^3
+nu:  nu_tab.temp -&gt; m^2/s
+g_acc: 9.81 m/s^2 | gravitational acceleration
+
+if temp == 1: &quot;The water is at 5 degrees C.&quot;
+if temp == 2: &quot;The water is at 20 degrees C.&quot;
+if temp == 3: &quot;The water is at 40 degrees C.&quot;
+
+## Flow
+A:  π * D^2 / 4 -&gt; cm^2 | flow area
+V:  Q / A -&gt; m/s | mean velocity
+Re: V * D / nu | Reynolds number
+rr: eps / D | relative roughness
+
+if Re &lt; 2300:
+    The flow is laminar.
+    f: 64 / Re | friction factor, laminar
+else:
+    The flow is turbulent.
+    f: 0.25 / (log(rr / 3.7 + 5.74 / Re^0.9))^2 | friction factor, Swamee-Jain
+
+## Head loss
+h_f: f * (L_p / D) * V^2 / (2 * g_acc) -&gt; m | friction head loss
+h_m: minor * K_m * V^2 / (2 * g_acc) -&gt; m | head loss in the fittings, when included
+h_L: h_f + h_m -&gt; m | total head loss
+H:   dz + h_L -&gt; m | head the pump must supply
+dp:  rho * g_acc * h_L -&gt; kPa | pressure drop from losses
+P_h: rho * g_acc * Q * H -&gt; kW | hydraulic power
+
+if V &lt;= 3 m/s: &quot;OK: the velocity is within the usual limit of 3 m/s.&quot; else: &quot;High velocity: more than 3 m/s, consider a larger pipe.&quot;</code></pre>
+</section>
+<section>
+<h2>How to use it</h2>
+<ol>
+<li><strong>Open the template.</strong> Choose <strong>Open this template</strong> on this page. The sheet opens in a new tab of CivilKit Calcs, with the inputs set to the values used on this page.</li>
+<li><strong>Switch to Input mode.</strong> In the results bar choose <strong>Input</strong>. The input lines become boxes, lists, buttons and ticks.</li>
+<li><strong>Enter your values.</strong> Change the inputs to your own. Flow, diameter, length, rise, fittings, material and temperature are the inputs. Every change recalculates the whole page.</li>
+<li><strong>Read and export the result.</strong> Read the results and the OK or not OK lines under them. Use <strong>Report</strong>, then Print PDF, Word or Excel, to keep the calculation with its workings.</li>
+</ol>
+</section>
+<section class="faq">
+<h2>Questions</h2>
+<h3>Which friction factor formula is used?</h3>
+<p>For turbulent flow, the explicit Swamee-Jain approximation of the Colebrook equation. For laminar flow, 64 / Re.</p>
+<h3>Can I use a fluid other than water?</h3>
+<p>Edit the density and viscosity tables in the sheet. They hold three entries for water at 5, 20 and 40 degrees C.</p>
+<h3>Does it handle different diameters in series?</h3>
+<p>Not as shipped. It models one diameter. You can add sections as further lines in the sheet.</p>
+<h3>How accurate is the head loss?</h3>
+<p>It is as accurate as the roughness, the fitting coefficients and the correlation you give it. Treat it as an estimate and compare with a method you trust for a critical line.</p>
+<h3>What does the 3 m/s warning mean?</h3>
+<p>It is a rule of thumb in the sheet for noise and wear, not a limit from a standard. Change it to suit your project.</p>
+</section>
+<section class="related">
+<h2>Related pages</h2>
+<ul>
+<li><a href="/calcs/learn/pump-operating-point-calculator/">Pump operating point</a></li>
+<li><a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a></li>
+<li><a href="/calcs/learn/engineering-calculation-software-free/">Free calculation software</a></li>
+<li><a href="/calcs/learn/excel-alternative-for-engineering-calculations/">Excel alternative</a></li>
+</ul>
+</section>
+<p class="cta"><a class="button" href="/calcs/?sample=template-pipe-flow-darcy">Open this template</a> <a class="button ghost" href="/calcs/">Open a blank sheet</a></p>
+</main>
+<footer class="site">
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. Source: <a href="https://github.com/mageaustralia/civilkit-calcs">github.com/mageaustralia/civilkit-calcs</a>. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+</body>
+</html>
