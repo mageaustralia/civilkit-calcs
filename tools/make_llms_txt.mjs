@@ -9,6 +9,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { guideChapters, guideUrl, summaryOf } from './guide_url.mjs';
+import { TOOLS } from '../mcp/src/tools.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pub = join(root, 'web', 'calcpad-web', 'public');
@@ -64,6 +65,17 @@ export function outputs() {
         }
         index.push('');
     }
+    // The MCP server (mcp/): assistants can run sheets through it instead of only reading about them.
+    index.push('## MCP');
+    index.push('');
+    index.push('CivilKit Calcs has a public, read-only, stateless MCP server (Streamable HTTP, no sign-in) at https://civilkit.io/mcp . '
+        + 'It runs sheets and Calcpad worksheets in the same engine as the app and returns the values with their units. '
+        + 'Add it to Claude Code with `claude mcp add --transport http civilkit-calcs https://civilkit.io/mcp`. Tools:');
+    index.push('');
+    for (const t of TOOLS) index.push(`- \`${t.name}\`: ${t.title}`);
+    index.push('');
+    index.push(`More: [Using CivilKit Calcs from an AI assistant](${guideUrl('mcp.md')})`);
+    index.push('');
     const learn = landingPages();
     if (learn.length) {
         index.push('## Task pages');

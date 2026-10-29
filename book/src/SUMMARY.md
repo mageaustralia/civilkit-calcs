@@ -37,6 +37,7 @@
 - [Importing worksheets](importing.md)
 - [Exporting](exporting.md)
 - [Editing](editing.md)
+- [Using it from an AI assistant (MCP)](mcp.md)
 
 # More
 

@@ -50,6 +50,7 @@ The whole guide in one file: https://civilkit.io/calcs/llms-full.txt
 - [Importing worksheets](https://civilkit.io/calcs/guide/importing): The worksheet importer converts worksheet files from a spreadsheet-like calculation format, with text, equations, plots and pictures placed freely on a page (files ending .xmcd and .mcdx), into a new Calcpad worksheet that this engine calcu
 - [Exporting](https://civilkit.io/calcs/guide/exporting): A calculated sheet leaves the page in four ways: a PDF through the print dialog, a Word document, an Excel workbook and standalone HTML.
 - [Editing](https://civilkit.io/calcs/guide/editing): There are two places to edit: the source on the left and, in the results, the page itself.
+- [Using it from an AI assistant (MCP)](https://civilkit.io/calcs/guide/mcp): An AI assistant such as Claude can run your calculations in CivilKit Calcs through the public MCP server at https://civilkit.io/mcp.
 
 ## More
 
@@ -61,6 +62,24 @@ The whole guide in one file: https://civilkit.io/calcs/llms-full.txt
 - [Keyboard shortcuts](https://civilkit.io/calcs/guide/appendix/shortcuts): On a Mac use Cmd where this page says Ctrl.
 - [Deviations from CalcpadCE](https://civilkit.io/calcs/guide/appendix/deviations): CivilKit Calcs reproduces CalcpadCE's output exactly unless a behaviour is listed in the project's DEVIATIONS.md.
 - [Credits and licences](https://civilkit.io/calcs/guide/appendix/credits): CivilKit Calcs is built on CalcpadCE, the MIT-licensed continuation of Calcpad by Nedelcho Ganchovski (Proektsoft) and contributors.
+
+## MCP
+
+CivilKit Calcs has a public, read-only, stateless MCP server (Streamable HTTP, no sign-in) at https://civilkit.io/mcp . It runs sheets and Calcpad worksheets in the same engine as the app and returns the values with their units. Add it to Claude Code with `claude mcp add --transport http civilkit-calcs https://civilkit.io/mcp`. Tools:
+
+- `calcs_evaluate_sheet`: Evaluate a CivilKit Calcs sheet
+- `calcs_evaluate_calcpad`: Evaluate a Calcpad worksheet
+- `calcs_convert_units`: Convert units
+- `calcs_check_hand_calc`: Check a hand calculation
+- `calcs_search_functions`: Search functions, units and commands
+- `calcs_function_help`: Function documentation
+- `calcs_search_docs`: Search the user guide
+- `calcs_get_guide_page`: Read a guide chapter
+- `calcs_list_samples`: List the sample sheets
+- `calcs_get_sample`: Get a sample sheet
+- `calcs_sheet_syntax`: Sheet syntax reference
+
+More: [Using CivilKit Calcs from an AI assistant](https://civilkit.io/calcs/guide/mcp)
 
 ## Task pages
 
