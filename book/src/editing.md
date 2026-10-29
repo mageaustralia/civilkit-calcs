@@ -2,6 +2,14 @@
 
 There are two places to edit: the source on the left and, in the results, the page itself.
 
+## What you can write
+
+A sheet holds prose, quantity and input lines, conditions and loops, plots, Python blocks and
+diagrams. [The line kinds](sheet/index.md#the-line-kinds) lists each one with its chapter. A
+diagram is a fenced `mermaid` block of text that the results draw as boxes and arrows; see
+[Diagrams](sheet/prose.md#diagrams) for a first example and [the Diagrams chapter](sheet/diagrams.md)
+for more.
+
 ## The source editor
 
 The editor colours a sheet by role (prose, quantity, block, raw Calcpad, plot). It underlines
