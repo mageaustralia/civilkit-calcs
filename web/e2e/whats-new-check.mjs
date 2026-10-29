@@ -4,7 +4,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CANONICAL, GITHUB, PAGE_DIR, MANIFEST, anchor, generate, parseChangelog, plainText, pngSize } from '../../tools/make_whats_new.mjs';
+import { CANONICAL, GITHUB, PAGE_DIR, MANIFEST, UNRELEASED, anchor, generate, parseChangelog, plainText, pngSize } from '../../tools/make_whats_new.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -76,22 +76,28 @@ check(releases.every((r) => r.sections.every((s) => s.bullets.every((b) => !/^\s
 const clips = Object.entries(manifest).flatMap(([version, list]) => list.map((c) => ({ ...c, version })));
 const clipIds = clips.map((c) => c.id);
 check(new Set(clipIds).size === clipIds.length, `${clips.length} clips with unique ids`);
-check(Object.keys(manifest).every((v) => releases.some((r) => r.version === v)), 'every manifest version is one of the releases shown');
+check(Object.keys(manifest).every((v) => v === UNRELEASED || releases.some((r) => r.version === v)), `every manifest version is one of the releases shown (or ${UNRELEASED})`);
 const recorders = readdirSync(join(here, 'clips')).filter((f) => /^\d\d-.*\.mjs$/.test(f));
 for (const c of clips) {
     check(/^[a-z0-9]+(-[a-z0-9]+)*$/.test(c.id) && c.title?.length >= 5 && c.blurb?.length >= 40 && c.blurb.length <= 400, `${c.id}: id, title and a blurb of 40 to 400 characters`);
-    const poster = join(PAGE_DIR, 'posters', `${c.id}.png`);
-    check(existsSync(poster) && statSync(poster).size <= 60 * 1000, `${c.id}: committed poster is a PNG of at most 60 KB (${existsSync(poster) ? (statSync(poster).size / 1000).toFixed(0) + ' KB' : 'missing'})`);
-    if (existsSync(poster)) { const { w, h } = pngSize(poster); check(w >= 300 && h >= 300, `${c.id}: poster is ${w} x ${h}`); }
     const rec = recorders.find((f) => f === `${c.recorder}.mjs`);
     check(!!rec, `${c.id}: recorder ${c.recorder}.mjs exists`);
     if (rec) check(new RegExp(`id: '${c.id}'`).test(readFileSync(join(here, 'clips', rec), 'utf8')), `${c.id}: the recorder records this id`);
+    const poster = join(PAGE_DIR, 'posters', `${c.id}.png`);
+    // An unreleased clip is not on the page yet; its poster may wait until the release is cut.
+    if (c.version === UNRELEASED) {
+        check(!html.includes(`id="clip-${c.id}"`), `${c.id}: held back from the page until its release`);
+        if (existsSync(poster)) check(statSync(poster).size <= 60 * 1000, `${c.id}: poster is at most 60 KB`);
+        continue;
+    }
+    check(existsSync(poster) && statSync(poster).size <= 60 * 1000, `${c.id}: committed poster is a PNG of at most 60 KB (${existsSync(poster) ? (statSync(poster).size / 1000).toFixed(0) + ' KB' : 'missing'})`);
+    if (existsSync(poster)) { const { w, h } = pngSize(poster); check(w >= 300 && h >= 300, `${c.id}: poster is ${w} x ${h}`); }
     const block = new RegExp(`<figure class="clip[^"]*" id="clip-${c.id}">[^]*?</figure>`).exec(html)?.[0] ?? '';
     check(!!block && block.includes(`poster="posters/${c.id}.png"`) && block.includes(`src="clips/${c.id}.webm"`) && block.includes(`src="clips/${c.id}.mp4"`), `${c.id}: on the page with its poster and both sources`);
     check(/<video muted loop playsinline preload="metadata"/.test(block) && !block.includes('autoplay'), `${c.id}: video is muted loop playsinline, preloads metadata and does not autoplay (hover to play)`);
     check(sections.find((m) => m[1] === anchor(c.version))?.[2].includes(`id="clip-${c.id}"`) ?? false, `${c.id}: shown under ${c.version}`);
 }
-check([...html.matchAll(/<figure class="clip/g)].length === clips.length, 'the page has exactly the manifest clips');
+check([...html.matchAll(/<figure class="clip/g)].length === clips.filter((c) => c.version !== UNRELEASED).length, 'the page has exactly the released manifest clips');
 check(recorders.every((f) => clips.some((c) => `${c.recorder}.mjs` === f)), 'every recorder is in the manifest');
 
 // ---- the build -----------------------------------------------------------------------------------------------------------------------------------

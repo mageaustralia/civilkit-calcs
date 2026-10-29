@@ -8,6 +8,8 @@
 // every release in the changelog, newest first: one section each, with the clips of that version and then the changelog's bullets as HTML.
 // A clip's poster is public/whats-new/posters/<id>.png (committed); the clip files (clips/<id>.webm and .mp4) are
 // not committed and the page looks right without them. See docs/DEPLOY.md.
+// Clips recorded ahead of a release go under the key "Unreleased": they are left off the page until the release is cut,
+// then the key is renamed to the new version (and their posters are committed with it).
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -15,6 +17,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const PAGE_DIR = join(repo, 'web', 'calcpad-web', 'public', 'whats-new');
 export const MANIFEST = join(repo, 'web', 'calcpad-web', 'whats-new', 'clips.json');
+/** The clips.json key for clips of the next release, kept off the page until it has a changelog version. */
+export const UNRELEASED = 'Unreleased';
 export const SITE = 'https://civilkit.io/calcs/';
 export const CANONICAL = `${SITE}whats-new/`;
 export const GITHUB = 'https://github.com/mageaustralia/civilkit-calcs';
@@ -122,7 +126,7 @@ export function buildPage(changelog, manifest) {
     const releases = parseChangelog(changelog);
     if (!releases.length) throw new Error('CHANGELOG.md has no releases');
     const shown = new Set(releases.map((r) => r.version));
-    for (const v of Object.keys(manifest)) if (!shown.has(v)) throw new Error(`clips.json has clips for ${v}, which is not a release in CHANGELOG.md (${[...shown].join(', ')})`);
+    for (const v of Object.keys(manifest)) if (v !== UNRELEASED && !shown.has(v)) throw new Error(`clips.json has clips for ${v}, which is not a release in CHANGELOG.md (${[...shown].join(', ')})`);
     const newest = releases[0];
     const ogClip = (manifest[newest.version] ?? [])[0];
     const ogImage = ogClip ? `${CANONICAL}posters/${ogClip.id}.png` : `${SITE}icon-512.png`;

@@ -1,4 +1,24 @@
 {
+  "Unreleased": [
+    {
+      "id": "block-grip-menu",
+      "title": "Block menu behind the grip",
+      "blurb": "Hover a block of a sheet and a grip shows at its left. Its menu moves, duplicates, copies or deletes the block; here a line is duplicated, another moved down, and the toast at the bottom undoes the move.",
+      "recorder": "18-block-grip-menu"
+    },
+    {
+      "id": "collapse-and-drag",
+      "title": "Fold sections and drag blocks",
+      "blurb": "The arrow under a heading's grip folds its section away and opens it again. Drag a grip to move a block; a heading takes its whole section along, and Undo puts it back.",
+      "recorder": "19-collapse-and-drag"
+    },
+    {
+      "id": "text-toolbar",
+      "title": "Text toolbar and name completion",
+      "blurb": "Select words in a paragraph opened in place and a small toolbar floats over them: here Bold, then a bulleted list. On a math line, typing a letter offers the names defined above it.",
+      "recorder": "20-text-toolbar"
+    }
+  ],
   "26.10.12": [
     {
       "id": "templates-with-inputs",

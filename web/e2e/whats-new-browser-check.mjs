@@ -10,7 +10,8 @@ import { chromium } from 'playwright';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pub = resolve(here, '../calcpad-web/public');
-const clipCount = Object.values(JSON.parse(readFileSync(resolve(here, '../calcpad-web/whats-new/clips.json'), 'utf8'))).reduce((n, l) => n + l.length, 0);
+// Clips under "Unreleased" are not on the page until their release is cut.
+const clipCount = Object.entries(JSON.parse(readFileSync(resolve(here, '../calcpad-web/whats-new/clips.json'), 'utf8'))).filter(([v]) => v !== 'Unreleased').reduce((n, [, l]) => n + l.length, 0);
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
 const clipsDir = arg('--clips', '') ? resolve(arg('--clips', '')) : '';
 const shots = arg('--shots', '');
