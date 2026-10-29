@@ -3172,9 +3172,12 @@ bootstrap().catch((err) => {
 // Offline use: sw.js (written at build time by pwa-plugin.ts) caches the whole build.
 // `?nosw` skips it, which is what the browser checks use.
 if (import.meta.env.PROD && import.meta.env.VITE_PLATFORM === 'web' && 'serviceWorker' in navigator && !location.search.includes('nosw')) {
-    window.addEventListener('load', () => {
+    const registerWorker = () => {
         navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`)
             .then(reg => watchForUpdates(reg))
             .catch(() => { /* private window or blocked: the app works online as before */ });
-    });
+    };
+    // This module is imported by src/boot.ts, so the page may have finished loading before it runs.
+    if (document.readyState === 'complete') registerWorker();
+    else window.addEventListener('load', registerWorker);
 }
