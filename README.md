@@ -9,9 +9,40 @@ WebAssembly, and no calculation request leaves the browser.
 * Live demo: https://civilkit.io/calcs/ (also at https://mageaustralia.github.io/civilkit-calcs/)
 * Source: https://github.com/mageaustralia/civilkit-calcs
 * Version: see [CHANGELOG.md](CHANGELOG.md). Releases are numbered YY.M.N (26.10.1 was the first release of
-  October 2026; this is 26.10.2) and tagged `v26.10.2`.
+  October 2026) and tagged `v26.10.1` and so on.
 
 Status: early. The project is not affiliated with the authors of CalcpadCE.
+
+## What we changed
+
+* **Sheets:** a plain-text way to write a calculation, Markdown prose with `name: expression -> unit | note` lines, that compiles to the Calcpad language and runs on the same engine ([docs/sheet-syntax.md](docs/sheet-syntax.md)).
+* **Units everywhere:** every quantity carries its unit through the whole sheet, with `-> %` for ratios and `#unit` for units of your own.
+* **Rust engine in the browser:** the .NET engine and server are replaced by a Rust engine compiled to WebAssembly, so no calculation request leaves the page.
+* **Inputs and sliders:** `L: ? 6 m [2 .. 12 step 0.5]` gives an Input form with a number box and a slider, and Calcpad `#UI` forms (entries, lists, radio buttons, checkboxes, data grids) still work.
+* **Edit where it stands:** click a rendered line to edit it in place, double-click prose for rich-text editing, and select an expression to turn it into a formula.
+* **Block menu:** every block has a grip to move, duplicate, cut, copy, paste, turn off or delete it, with Undo, plus headings that fold and drag to reorder.
+* **Insert without typing:** a strip between blocks, a text toolbar, name completion and an on-screen math keyboard help you write sheets without knowing the syntax.
+* **Plots and 3D:** 2D and 3D plots, plot galleries and animations, with Plotly charts available from Python blocks.
+* **Diagrams from text:** Mermaid diagrams drawn in the sheet, with a ribbon menu of starter diagrams for the kinds engineers use.
+* **Python blocks:** small MicroPython programs run in the page with consent, and send results back into the sheet.
+* **Symbolic algebra:** exact simplify, expand, factor, differentiate, integrate and solve from the Functions tab ([docs/caskit.md](docs/caskit.md)).
+* **Matrices and eigenvalues:** eigenvalues and eigenvectors of any square matrix, complex results, and `eigenvals(K; M)` for natural frequencies.
+* **Reports:** Word, Excel (with native charts), PDF through print and standalone HTML, with manual page breaks.
+* **Import worksheets:** drop a `.xmcd` or `.mcdx` file on the page to convert it locally, with a report of what did not convert ([docs/worksheet-import.md](docs/worksheet-import.md)).
+* **Samples and templates:** more than 150 worksheets and fill-in templates, grouped and searchable, with a preview.
+* **Installable and offline:** a web app manifest and service worker let the page install on a phone or desktop and calculate without a connection.
+* **Phone layout:** the ribbon, editor and results rearrange on a narrow screen, with larger touch targets.
+* **Ribbon interface:** ten tabs and a quick-access strip replace the menu bar, with every snippet of the library reachable from it.
+* **User guide:** a guide whose examples are all run by the test suite, at https://civilkit.io/calcs/guide/.
+* **What's new:** release notes with short clips at https://civilkit.io/calcs/whats-new/.
+* **Calculator pages:** ready-made calculator and migration pages, each with numbers from a real engine run, at https://civilkit.io/calcs/learn/.
+* **Embeds:** `/calcs/?embed=1&sample=<id>` shows one sample as an input form with live results for an iframe on any site, with a loader script and a postMessage API ([docs/embedding.md](docs/embedding.md)).
+* **MCP server and llms.txt:** a public, read-only MCP server at https://civilkit.io/mcp runs sheets and checks hand calculations, and `llms.txt` indexes the guide for AI tools ([docs/mcp.md](docs/mcp.md)).
+* **Model bindings:** a worksheet input can carry a `civilkit: bind` comment that ties it to a quantity of a structural model; the parser and display exist, connecting a model does not yet ([docs/model-bindings.md](docs/model-bindings.md)).
+* **Safer scripts:** worksheet scripts run only from a library list, under a Content Security Policy, with the print frame sandboxed (DEVIATIONS.md, D3).
+* **Known deviations** from CalcpadCE are listed one by one, with the test that pins each, in [DEVIATIONS.md](DEVIATIONS.md); not supported are raster (SkiaSharp) plots, `#ProjectPath` and `#LibraryPath` roots, and compiled `.cpdz` worksheets.
+
+Export testing: the Excel workbook opens cleanly in openpyxl and LibreOffice, but we have not tried it in Microsoft Excel. The Word document has been checked in LibreOffice only, not in Microsoft Word. PDF output uses the browser's print dialog, so it carries the browser's own header and footer.
 
 ## Credit: this is a derivative of CalcpadCE
 
@@ -43,79 +74,6 @@ The Rust libraries are published on crates.io (0.1.0, early; the API may change 
 
 Their Rust crate names are unchanged (`calcpad_core`, `calcpad_highlighter`, `calcpad_docx`), so `use calcpad_core::...` works
 with `civilkit-calcs-engine = "0.1"` in `Cargo.toml`. The crates have their own 0.x semver, separate from the app's YY.M.N version.
-
-## What we changed
-
-* **Engine:** the Rust engine, compiled to WebAssembly, replaces the .NET engine and the server it
-  runs in. The page answers the server API itself (`web/calcpad-web/src/wasm/transport.ts`).
-  The engine wasm is 1.77 MB raw and 655 KB gzipped; it is built at opt-level `s`, which ran a heavy
-  `$Map` sheet 1.5 times faster than the size-optimised build.
-* **Editor services in a second wasm:** the highlighter, linter, prettifier, go-to-definition and
-  the snippet library are a separate module (`calcpad-highlighter-wasm`, 351 KB gzipped) that loads
-  on first use.
-* **Word export:** `Export > Save Word` builds the .docx in the page (module `calcpad-docx-wasm`,
-  loaded on first use). Equations are written as Office Math.
-* **Excel export:** a Report sheet that mirrors the worksheet (headings and text, each equation as
-  a row of name, expression, expression with values, value and unit, tables as cell ranges,
-  `$Plot` as native editable charts with their data on a Plot data sheet, other drawings as
-  pictures), then a Variables sheet, one sheet per vector or matrix, and an Inputs sheet.
-* **`#UI` input forms:** entries, drop-downs, radio buttons, checkboxes and data grids. A chosen
-  select, radio or checkbox is carried into the report, PDF and Word output.
-* **Dark theme:** the preview keeps form controls, drawings and plots readable.
-* **Import worksheet:** `File > Import worksheet...`, the Document tab's Import button, or dropping a `.xmcd` or `.mcdx` file on
-  the page converts a worksheet of the spreadsheet-like format of another calculation tool into a new unsaved
-  worksheet, locally in the page (its own WebAssembly module, loaded on first use). Text, definitions,
-  evaluations, functions, matrices, units, sums, integrals, programs (loops, early exits, grown arrays), plots, stepped
-  ranges, complex numbers, simple solve blocks, statistics functions, referenced worksheets and pictures convert; what does not
-  is shown as a typeset not-calculated equation or a static picture of the original, and counted in a summary. Two options
-  tidy the text: plain layout wrappers dropped and equations written as plain Calcpad, and prose written as Markdown. See [docs/worksheet-import.md](docs/worksheet-import.md).
-* **Rich-text editing:** double-click prose in a Markdown block (`#markdown`) or in a sheet and edit it as rich text
-  (headings, lists, emphasis, pipe tables); untouched text is never rewritten. See [docs/rich-text-editing.md](docs/rich-text-editing.md).
-* **Units once on arrays:** a vector or matrix whose elements share a unit is shown as `[16; 12; 3] ft` rather than with the
-  unit on every element; `#settings {"unitPerElement": true}` restores the old display (DEVIATIONS.md, D13).
-* **Installable and offline:** a web app manifest and a service worker that caches the whole build (about 19 MB), so
-  the page can be installed on a phone or desktop and opens and calculates without a connection. Plotly charts need the
-  CDN script loaded once while online.
-* **Samples browser:** 101 worksheets, all copied from CalcpadCE's examples (structural and maths),
-  with groups, search and a preview. We rewrote their deprecated `? {default}` input fields as
-  `#UI` declarations, and kept a conversion only where the engine renders it like the original.
-* **Ribbon interface:** a tabbed ribbon (ten tabs, a quick-access strip) in place of the menu bar. Each
-  palette opens a Common section above the whole snippet library, which the ribbon reads from the same
-  highlighter call as the sidebar's Insert tab (1166 snippets, all reachable from the ribbon).
-* **Model bindings:** a worksheet input can carry a `civilkit: bind` comment that ties it to a
-  quantity of a structural model. The parser and the in-app display exist; connecting a model does
-  not yet. The generic specification is in [docs/model-bindings.md](docs/model-bindings.md).
-* **Worksheet scripts:** scripts in worksheets run only from a library list, under a
-  Content Security Policy, with the print frame sandboxed (DEVIATIONS.md, D3).
-* **Sheet syntax (our addition, not part of CalcpadCE):** the main way to write a worksheet here. Markdown
-  prose, `name: expression -> unit | note` lines, LaTeX, indented `for` (with `step`), `while` and `if` blocks
-  with `break` and `continue`, plots, and `>>` lines that pass raw Calcpad through. File > New and the quick-access New
-  button open a sheet; New Calcpad worksheet opens the advanced syntax. A sheet compiles to the Calcpad worksheet language
-  and runs on the same engine (a front end, not a second engine), so units, vectors, plots and the Word and
-  Excel exports all work, and Show compiled / Convert to Calcpad give the Calcpad a person would write. The
-  compiler is the crate `calcpad-sheet` in its own 39 KB gzipped wasm (`calcpad-sheet-wasm`); the preview
-  renders LaTeX with the bundled KaTeX, loaded only when a sheet has a formula. The editor formats, completes,
-  highlights, and goes to definition, finds references and hovers on a sheet's names; errors and lint markers
-  are mapped back to sheet lines; the ribbon and Insert tab insert sheet forms. See
-  [docs/sheet-syntax.md](docs/sheet-syntax.md).
-* **Symbolic algebra:** `Functions > Symbolic` simplifies, expands, factors, differentiates, integrates (indefinite or
-  between limits), solves an equation or a linear system of up to four unknowns, substitutes and evaluates one expression.
-  It is exact rational algebra from the `caskit` crate (`1/3` stays `1/3`; a result that does not fit 128 bits is an error),
-  with documented limits: no complex numbers, only `sin`, `cos`, `ln`, `exp` and `sqrt`, a small class of integrands, and
-  solving of degree 1 and 2 only. A refusal is shown in words. The result is typeset and can be copied or inserted into a
-  worksheet or a sheet. The module (290 KB, 122 KB gzipped) loads only when the dialog first runs something. See
-  [caskit/README.md](caskit/README.md) and [docs/caskit.md](docs/caskit.md).
-* **Changelog:** a button on the Resources tab and a link in About open
-  [CHANGELOG.md](CHANGELOG.md) on GitHub.
-* **Embeds:** `/calcs/?embed=1&sample=<id>` shows one sample as an input form with live results for an
-  iframe on any site, with a small loader script and a postMessage API (`/calcs/embed/`, docs/embedding.md).
-* **Known deviations** from CalcpadCE's behaviour are listed one by one, with the test that pins
-  each, in [DEVIATIONS.md](DEVIATIONS.md). Not supported: raster (SkiaSharp) plots,
-  `#ProjectPath`/`#LibraryPath` path roots, and compiled `.cpdz` worksheets.
-
-Export testing: the Excel workbook opens cleanly in openpyxl and LibreOffice, but we have not tried it in
-Microsoft Excel. The Word document has been checked in LibreOffice only, not in Microsoft Word. PDF output uses
-the browser's print dialog, so it carries the browser's own header and footer.
 
 ## Layout
 
