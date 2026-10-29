@@ -2587,8 +2587,8 @@ function injectLineLinks(
     // No hover on touch: handles stay hidden until a block is tapped, then only the gaps just above and below it show.
     "      + '@media (hover:none){.ck-ins{height:34px;margin-top:-17px}.ck-ins-btn{top:3px;width:28px;height:28px;margin-left:-14px;font-size:20px;line-height:24px}.ck-ins-line{top:17px}}'",
     // A small grip at the left of each block (on hover, or after a tap) opens the block menu: move, duplicate, delete.
-    "      + '.ck-grip{position:absolute;width:22px;height:24px;padding:0;border:1px solid currentColor;border-radius:5px;background:Canvas;color:CanvasText;font:700 15px/20px system-ui,sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s}'",
-    "      + '.ck-grip.on{opacity:.75;pointer-events:auto}.ck-grip:hover,.ck-grip:focus-visible{opacity:1;pointer-events:auto}.ck-grip:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}'",
+    "      + '.ck-grip{position:absolute;width:22px;height:24px;padding:0;border:0;border-radius:5px;background:transparent;color:CanvasText;font:700 15px/20px system-ui,sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s}'",
+    "      + '.ck-grip.on{opacity:.75;pointer-events:auto}.ck-grip:hover,.ck-grip:focus-visible{opacity:1;pointer-events:auto;background:rgba(128,128,128,.22)}.ck-grip:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}'",
     "      + '@media (hover:none){.ck-grip{width:30px;height:32px;font-size:18px;line-height:28px}}'",
     // Folded sections and the drag cues are screen-only, so print and export always show every block.
     "      + '.ck-grip{touch-action:none}.ck-chev{position:absolute;width:22px;height:20px;padding:0;border:0;border-radius:4px;background:Canvas;color:CanvasText;font:14px/20px system-ui,sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s}'",
