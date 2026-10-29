@@ -205,6 +205,21 @@ node e2e/symbolic-check.mjs       # Symbolic dialog: each operation, typeset res
 node ../tools/set_version.mjs --check
 ```
 
+## Checked at 26.10.16
+
+On the release tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded) passed 6110 tests and `calcpad-sheet` 106, with no
+failures (the known flaky `HPMatrixCond2` failed once in a first run and passed on the re-run). Browser checks on the release build, served
+at the root: `sheet-check`, `inputs-check`, `ribbon-check` (with `--lint`), `ribbon-layout-check`, `fence-click-check`, `diagram-ribbon-check`,
+`diagram-samples-check`, `mermaid-check`, `shortcuts-check` and `browser-check` (123 checks), and `verify-ribbon-snippets` (435 snippets run,
+4 skipped, 0 failed). On the build with the `/calcs/` base: `browser-check` (123 checks; a first run failed two network checks that load
+libraries from CDNs and passed on the re-run), `sample-link-check`, `pwa-check` (with `PWA_BASE=/calcs/`; the precache holds 600 files) and
+`learn-check` (1739 checks over the 21 landing pages, 221 quoted engine values compared with a fresh run) all passed; `whats-new-check` passed.
+`seo-check` (2925 checks, 1957 internal links followed) passed on the guide built with `book/build.sh`. The user guide's 134 examples all run
+(`book/check-examples.sh`). `whats-new-browser-check` passed with the clips left out (posters only); with the clips, 5 of the 25 videos
+(typing-an-input-line, insert-strip, edit-in-place, plots-gallery, phone-layout) did not play in headless Chromium, so those clips are not
+verified. Not run for this release: `plot3d-check`, `symbolic-check`, `import-check`, `python-check` and the other smaller checks. Not tested:
+a real phone, `tsc` beyond the build, `clippy` on the whole workspace, `cargo fmt --check`.
+
 ## Checked at 26.10.15
 
 On the release tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded) passed 6216 tests and `calcpad-sheet` 106, with no

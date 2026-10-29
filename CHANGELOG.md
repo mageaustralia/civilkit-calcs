@@ -11,6 +11,8 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+## [26.10.16] - 2026-10-29
+
 ### Added
 - **Calculators and guides hub** - A new page at `/calcs/learn/` lists every landing page, grouped as calculators, alternatives and guides, and a Calculators and guides button on the Resources tab opens it.
 - **Guide pages for search** - Every guide page has its own description, a canonical address without `.html`, sharing tags and a single h1. Build the guide with `book/build.sh`.
