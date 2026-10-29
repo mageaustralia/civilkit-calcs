@@ -166,6 +166,21 @@ node e2e/embed-check.mjs          # ?embed=1: form and results, postMessage API,
 node ../tools/set_version.mjs --check
 ```
 
+## Checked at 26.10.17
+
+On the release tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded) passed 6110 tests and `calcpad-sheet` 106, with no
+failures. Browser checks on the release build, served at the root: `sheet-check` (50 checks), `inputs-check` (71), `ribbon-check` (with
+`--lint`, 58), `ribbon-layout-check` (31), `fence-click-check`, `diagram-ribbon-check` (96), `diagram-samples-check` (58), `mermaid-check`
+(37), `shortcuts-check` and `browser-check` (123 checks), and `verify-ribbon-snippets` (435 snippets run, 4 skipped, 0 failed). On the build
+with the `/calcs/` base: `browser-check` (123 checks), `sample-link-check`, `pwa-check` (with `PWA_BASE=/calcs/`; the precache holds 603
+files) and `learn-check` (720 links, 221 quoted engine values compared with a fresh run, 21 pages re-rendered) all passed, and `whats-new-check`
+passed. `embed-check` (41 checks, on the build with `CALCS_BASE=/`) passed. `seo-check` (3168 checks, 2115 internal links followed) passed on
+the guide built with `book/build.sh`, and the user guide's 135 examples all run (`book/check-examples.sh`). `whats-new-browser-check`
+passed with all 56 clip files (105 checks): each of the 28 clips plays on hover and on a tap in headless Chromium, and with the clips left out
+only the posters show. Not run for this release: `plot3d-check`, `symbolic-check`, `import-check`, `python-check` and the other smaller checks.
+Not tested: a real phone, other browsers than headless Chromium, the MCP Worker in `mcp/` (its tests are not part of this tree's checks),
+`tsc` beyond the build, `clippy` on the whole workspace, `cargo fmt --check`.
+
 ## Checked at 26.10.16
 
 On the release tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded) passed 6110 tests and `calcpad-sheet` 106, with no
