@@ -18,6 +18,7 @@
 //                                           the browser instead (message-bridge.ts)
 
 import { reportHeadMarkup } from './report-fonts';
+import { showEngineMessages, withMessageCodes } from '../i18n/engine-messages';
 import { uiAssetsMarkup } from './ui-assets';
 import { libraries } from './library-list';
 import { applyScriptPolicy } from './script-policy';
@@ -231,8 +232,9 @@ class EngineWorker {
         });
     }
 
-    convert(body: string, unwrap: boolean, signal?: AbortSignal | null): Promise<string> {
-        return this.post({ kind: 'convert', body, unwrap }, signal);
+    /** The engine's answer, with its messages in the reader's language (i18n/engine-messages.ts). */
+    async convert(body: string, unwrap: boolean, signal?: AbortSignal | null): Promise<string> {
+        return showEngineMessages(await this.post<string>({ kind: 'convert', body: withMessageCodes(body), unwrap }, signal));
     }
 
     /** The Excel workbook of a rendered page and the variable sheets (calcpad-docx-wasm). */
