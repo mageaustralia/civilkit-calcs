@@ -23,12 +23,16 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/jav
 export function serve(dist) {
     return new Promise((ok) => {
         const srv = createServer(async (req, res) => {
-            let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-            if (p.endsWith('/')) p += 'index.html';
-            const f = join(dist, p);
-            if (!f.startsWith(dist) || !existsSync(f) || statSync(f).isDirectory()) { res.writeHead(404); res.end('not found'); return; }
-            res.writeHead(200, { 'Content-Type': MIME[extname(f)] ?? 'application/octet-stream' });
-            res.end(await readFile(f));
+            try {
+                let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+                if (p.endsWith('/')) p += 'index.html';
+                const f = join(dist, p);
+                if (!f.startsWith(dist) || !existsSync(f) || statSync(f).isDirectory()) { res.writeHead(404); res.end('not found'); return; }
+                res.writeHead(200, { 'Content-Type': MIME[extname(f)] ?? 'application/octet-stream' });
+                res.end(await readFile(f));
+            } catch {
+                res.writeHead(400); res.end('bad request');
+            }
         });
         srv.listen(0, '127.0.0.1', () => ok({ url: `http://127.0.0.1:${srv.address().port}/`, close: () => srv.close() }));
     });
