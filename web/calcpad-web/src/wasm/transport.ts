@@ -18,6 +18,7 @@
 //                                           the browser instead (message-bridge.ts)
 
 import { reportHeadMarkup } from './report-fonts';
+import { activeFormat, localiseHtml, localiseOmml, withNumberFormatShim } from './number-format';
 import { uiAssetsMarkup } from './ui-assets';
 import { libraries } from './library-list';
 import { applyScriptPolicy } from './script-policy';
@@ -131,6 +132,12 @@ const PREVIEW_PHONE = '<style>@media screen and (max-width:760px){'
     + 'body{padding-right:22px;overflow-wrap:anywhere}'
     + '.modebar-container{display:none!important}'
     + '}</style>';
+
+/** A rendered page in the reader's number format, with the form's number boxes following it. */
+function showInNumberFormat(html: string): string {
+    const nf = activeFormat();
+    return withNumberFormatShim(localiseHtml(html, nf.fmt, nf.grouped), nf.fmt);
+}
 
 function addPreviewDark(html: string): string {
     const i = html.toLowerCase().lastIndexOf('</head>');
@@ -524,6 +531,8 @@ export function installWasmTransport(): WasmTransport {
             if (transport.resolveFile) html = libraryImages(html, transport.resolveFile);
             // Plotly figures from a Python block: the page draws them (python-plotly.ts); Plotly.js comes through the script policy below.
             if (py && !unwrap) html = plotlyPage(html);
+            // The reader's number format (Settings > Number format): the text only, the source stays canonical.
+            if (!unwrap) html = showInNumberFormat(html);
             html = addPreviewDark(html);
             // Worksheet scripts: only listed library files, checked by hash; no network access.
             html = applyScriptPolicy(html, libraries(), window.location.origin);
@@ -560,7 +569,10 @@ export function installWasmTransport(): WasmTransport {
             if (out.files?.length && transport.onFilesWritten) {
                 transport.onFilesWritten(out.files.map(f => ({ path: f.path, data: fromBase64(f.data) })));
             }
-            const bytes = await engine.docx(html, out.openXmlExpressions ?? [], signal);
+            const nf = activeFormat();
+            html = localiseHtml(html, nf.fmt, nf.grouped);
+            const expressions = (out.openXmlExpressions ?? []).map(x => localiseOmml(x, nf.fmt, nf.grouped));
+            const bytes = await engine.docx(html, expressions, signal);
             return new Response(new Uint8Array(bytes), {
                 status: 200,
                 headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
@@ -610,6 +622,9 @@ export function installWasmTransport(): WasmTransport {
             let html = out.html ?? '';
             if (pyE) html = plotlyForExport(resolvePythonLines(html, n => (shE ? sheetLine(shE.sheet, n) : n)));
             if (transport.resolveFile) html = libraryImages(html, transport.resolveFile);
+            // The Report sheet's text follows the number format; the Variables sheets keep real numbers.
+            const nf = activeFormat();
+            html = localiseHtml(html, nf.fmt, nf.grouped);
             const bytes = await engine.xlsx(html, JSON.stringify(out.xlsxSheets), JSON.stringify(out.xlsxCharts ?? []), signal);
             return new Response(new Uint8Array(bytes), {
                 status: 200,

@@ -78,6 +78,7 @@ import './editor/workers';
 // calcpad-rs: answer the Calcpad.Server API with the in-page wasm engine.
 import { installWasmTransport } from './wasm/transport';
 import { installWebFiles, webExtensions } from './wasm/setup';
+import { onNumberFormatChanged } from './wasm/number-format';
 import { mountRibbon } from './wasm/ribbon';
 import type { WebFiles } from './wasm/web-files';
 import { installBeforeUnloadGuard, titleWithUnsavedMark } from './services/unsaved-guard';
@@ -844,6 +845,9 @@ async function bootstrap(): Promise<void> {
         }
         for (const g of groups.values()) void refreshPreviewFor(g);
     }
+
+    // A new number format (Settings > Number format) re-renders what is on screen.
+    onNumberFormatChanged(() => refreshAllPreviews());
 
     // Editor -> preview sync: scroll a group's preview to its cursor's source
     // line. `force` opens the preview if it's closed (right-click action);

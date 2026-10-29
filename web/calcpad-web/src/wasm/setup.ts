@@ -5,6 +5,7 @@ import { FileLibrary } from './library';
 import type { WasmTransport } from './transport';
 import { type TabsLike, WebFiles } from './web-files';
 import LibrariesSettings from './LibrariesSettings.vue';
+import NumberFormatSettings from './NumberFormatSettings.vue';
 import LibrariesInsert from './LibrariesInsert.vue';
 import { ref } from 'vue';
 import { looksLikeLine, sheetInsert } from './sheet-insert';
@@ -58,6 +59,7 @@ export function webExtensions() {
         sheetMode.value = e?.getModel()?.getLanguageId() === 'calcpad-sheet';
     }, 400);
     return {
+        settingsFirstSections: [NumberFormatSettings],
         settingsSections: [LibrariesSettings],
         insertSections: [LibrariesInsert],
         sheetMode,
