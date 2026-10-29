@@ -30,12 +30,24 @@
     {
      "@type": "ListItem",
      "position": 1,
-     "name": "CivilKit Calcs",
-     "item": "https://civilkit.io/calcs/"
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
     },
     {
      "@type": "ListItem",
      "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Calculators and guides",
+     "item": "https://civilkit.io/calcs/learn/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 4,
      "name": "Excel alternative",
      "item": "https://civilkit.io/calcs/learn/excel-alternative-for-engineering-calculations/"
     }
@@ -44,11 +56,12 @@
   {
    "@type": "SoftwareApplication",
    "name": "CivilKit Calcs",
-   "url": "https://civilkit.io/calcs/",
+   "url": "https://civilkit.io/calc/",
    "description": "A free, open source engineering calculation sheet that runs in the browser. Real units, plots, input forms, Word, Excel and PDF export, offline use.",
-   "applicationCategory": "BusinessApplication",
+   "applicationCategory": "EngineeringApplication",
    "applicationSubCategory": "Engineering calculation",
-   "operatingSystem": "Any operating system with a modern web browser",
+   "operatingSystem": "Any",
+   "browserRequirements": "A current web browser with WebAssembly",
    "isAccessibleForFree": true,
    "license": "https://opensource.org/license/mit",
    "offers": {
@@ -109,21 +122,23 @@
 <body>
 <a class="skip" href="#main">Skip to the content</a>
 <header class="site">
-<a class="brand" href="/calcs/">CivilKit Calcs</a>
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
 <nav aria-label="Site">
-<a href="/calcs/">Open the app</a>
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
 <a href="/calcs/guide/">User guide</a>
-<a href="/calcs/learn/engineering-calculation-software-free/">All pages</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
 </nav>
 </header>
 <main id="main">
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/calcs/">CivilKit Calcs</a> / <span>Excel alternative</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <a href="/calcs/learn/">Calculators and guides</a> / <span>Excel alternative</span></nav>
 <h1>An Excel alternative for engineering calculations</h1>
 <div class="lead">
 <p>Spreadsheets are the default tool for a quick engineering calculation, and for good reason: they are everywhere and everyone can open one. They are also a poor place to show workings. The formula sits behind a cell, the units are in a header, and a reviewer has to click through references to see what was done.</p>
 <p>CivilKit Calcs keeps the calculation as a readable document instead. This page compares the two honestly, including where a spreadsheet is still the better tool.</p>
 </div>
-<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+<p class="cta"><a class="button" href="/calcs/">Open Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
 <section>
 <h2>The same calculation, written out</h2>
 <p>In a spreadsheet, a bending stress is a number in a cell whose formula reads something like <code>=B4/B5</code>, with the unit conversion done by hand. In a sheet it is:</p>
@@ -136,7 +151,7 @@ sigma: M / Z -&gt; MPa | bending stress</code></pre>
 </section>
 <figure class="video">
 <video controls preload="none" width="960" height="540" aria-label="Export a report to Word, Excel and PDF" src="/calcs/guide/videos/08-export-word-excel-pdf.mp4"></video>
-<figcaption>Video: Export a report to Word, Excel and PDF (about 85 seconds). <a href="/calcs/guide/exporting.html">Read the chapter</a>.</figcaption>
+<figcaption>Video: Export a report to Word, Excel and PDF (about 85 seconds). Read the chapter <a href="/calcs/guide/exporting">Exporting</a>.</figcaption>
 </figure>
 <section>
 <h2>Where a calculation sheet is stronger</h2>
@@ -179,15 +194,17 @@ sigma: M / Z -&gt; MPa | bending stress</code></pre>
 <h2>Related pages</h2>
 <ul>
 <li><a href="/calcs/learn/mathcad-alternative/">Mathcad alternative</a></li>
-<li><a href="/calcs/learn/calcpad-online/">Calcpad online</a></li>
+<li><a href="/calcs/learn/calcpad-online/">Calcpad worksheets in the browser</a></li>
 <li><a href="/calcs/learn/simply-supported-beam-calculator/">Simply supported beam</a></li>
 <li><a href="/calcs/learn/engineering-calculation-software-free/">Free calculation software</a></li>
+<li><a href="/calcs/learn/">All calculators and guides</a></li>
 </ul>
 </section>
-<p class="cta"><a class="button" href="/calcs/">Open CivilKit Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
+<p class="cta"><a class="button" href="/calcs/">Open Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the guide</a></p>
 </main>
 <footer class="site">
-<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. Source: <a href="https://github.com/mageaustralia/civilkit-calcs">github.com/mageaustralia/civilkit-calcs</a>. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
 <p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
 </footer>
 </body>

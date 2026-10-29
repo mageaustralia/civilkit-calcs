@@ -1,5 +1,7 @@
 # The screen
 
+<!-- description: A tour of the CivilKit Calcs window: the ribbon, the editor, the results, the sidebar, and how the layout changes on a phone. -->
+
 The window has five parts.
 
 ```text

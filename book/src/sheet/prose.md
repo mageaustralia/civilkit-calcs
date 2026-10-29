@@ -1,5 +1,7 @@
 # Prose, LaTeX and tables
 
+<!-- description: Write the text of a calculation in Markdown, typeset formulas in LaTeX, add tables and diagrams, and force a line to be read as prose. -->
+
 Anything that is not one of the line kinds is Markdown prose. Use it to say what is being
 checked, to state assumptions and to explain results.
 

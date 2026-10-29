@@ -250,7 +250,7 @@ onBeforeUnmount(() => {
 .rb-stack{display:flex;flex-direction:column;justify-content:flex-start;gap:0;min-width:52px}
 .rb-big:hover,.rb-small:hover{background:var(--vscode-toolbar-hoverBackground,rgba(0,0,0,.08));border-color:var(--vscode-panel-border,#ccc)}
 .rb-big.on,.rb-small.on{background:var(--vscode-toolbar-activeBackground,rgba(0,96,192,.18));border-color:var(--vscode-focusBorder,#0060c0)}
-.rb-label{font-size:11px;line-height:1.1;white-space:nowrap}
+.rb-label{font-size:11px;line-height:1.1;white-space:pre;text-align:center}
 .rb-caret{display:inline-block;margin-left:4px;vertical-align:middle;border:4px solid transparent;border-top-color:currentColor;border-bottom:0}
 .rb-gname{flex:none;text-align:center;font-size:10px;opacity:.65;padding:2px 0;white-space:nowrap}
 .rb-pop{position:fixed;z-index:1100;width:340px;max-width:calc(100vw - 8px);max-height:70vh;overflow:auto;padding:6px 8px 8px;

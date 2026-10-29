@@ -1,5 +1,7 @@
 # Saving, opening and working offline
 
+<!-- description: Save and open worksheets from the File menu, use the recent list and the browser library, install the app and keep working offline. -->
+
 ## The File menu
 
 The File button at the top left of the ribbon opens a menu:

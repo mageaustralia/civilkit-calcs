@@ -1,5 +1,7 @@
 # Appendix: keyboard shortcuts
 
+<!-- description: Keyboard shortcuts for saving, calculating, finding, renaming and editing in CivilKit Calcs, with Cmd in place of Ctrl on a Mac. -->
+
 On a Mac use Cmd where this page says Ctrl. The Resources tab has a **Shortcuts** button that lists
 the main ones in the output panel.
 

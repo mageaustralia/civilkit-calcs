@@ -1,5 +1,7 @@
 # Conditions and loops
 
+<!-- description: Conditions and loops in a sheet: one-line if checks that print OK or a message, blocks of lines, for and while loops, and their limits. -->
+
 ## One-line conditions
 
 ```sheet

@@ -182,6 +182,13 @@ check(await page.evaluate(() => document.documentElement.dataset.theme) === 'lig
 await btn(page, 'x-keys').click();
 check(/shortcuts/i.test(await page.locator('[role=dialog]').innerText()), 'Resources > Shortcuts opens the shortcut list');
 await page.keyboard.press('Escape');
+{
+    // Calculators and guides opens the hub on civilkit.io in a new tab (window.open is recorded, not followed).
+    await page.evaluate(() => { window.__opened = []; window.__open0 = window.open; window.open = (u, t, f) => { window.__opened.push([u, t, f]); return null; }; });
+    await btn(page, 'x-learn').click();
+    const opened = await page.evaluate(() => { const o = window.__opened; window.open = window.__open0; return o; });
+    check(opened.length === 1 && opened[0][0] === 'https://civilkit.io/calcs/learn/' && opened[0][1] === '_blank' && /noopener/.test(opened[0][2] ?? ''), `Resources > Calculators and guides opens the hub in a new tab (${JSON.stringify(opened)})`);
+}
 check(errors.length === 0, `no page errors (${errors.slice(0, 2).join(' | ')})`);
 
 // ---- the version: one source of truth, shown in the page and reported by the engine ---------
@@ -202,6 +209,7 @@ check(errors.length === 0, `no page errors (${errors.slice(0, 2).join(' | ')})`)
     await page.waitForSelector('[role=dialog]');
     const aboutText = await page.evaluate(() => document.querySelector('[role=dialog]').innerText + ' ' + [...document.querySelectorAll('[role=dialog] a')].map(a => a.href).join(' '));
     check(/CivilKit Calcs \d+\.\d+\.\d+/.test(aboutText) && /Built on CalcpadCE/.test(aboutText) && aboutText.includes('github.com/imartincei/CalcpadCE') && aboutText.includes('github.com/mageaustralia/civilkit-calcs'), 'Resources > About credits CalcpadCE and links both repositories');
+    check(aboutText.includes('https://civilkit.io/calcs/learn/') && aboutText.includes('https://civilkit.io/calcs/guide/') && !/learn\/[a-z-]+\//.test(aboutText), 'Resources > About links the user guide and the calculators hub');
     await page.screenshot({ path: `${out}/about-credits-v4.png` });
     await page.keyboard.press('Escape');
     check(!(await page.locator('[role=dialog]').count()), 'Escape closes the About dialog');

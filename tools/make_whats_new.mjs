@@ -22,6 +22,8 @@ export const UNRELEASED = 'Unreleased';
 export const SITE = 'https://civilkit.io/calcs/';
 export const CANONICAL = `${SITE}whats-new/`;
 export const GITHUB = 'https://github.com/mageaustralia/civilkit-calcs';
+/** The product page: what "CivilKit Calcs" links to. The app (../) is for "Open Calcs". */
+export const PRODUCT = 'https://civilkit.io/calc/';
 export const TITLE = "What's new in CivilKit Calcs: release notes with short clips";
 export const DESCRIPTION = 'Short looping clips and release notes for every CivilKit Calcs release: sheets, Python blocks, Plotly charts, symbolic algebra, rich-text editing and more.';
 
@@ -136,7 +138,12 @@ export function buildPage(changelog, manifest) {
         name: TITLE,
         url: CANONICAL,
         description: DESCRIPTION,
-        isPartOf: { '@type': 'WebSite', name: 'CivilKit Calcs', url: SITE },
+        isPartOf: { '@type': 'WebSite', name: 'CivilKit', url: 'https://civilkit.io/' },
+        about: { '@type': 'SoftwareApplication', name: 'CivilKit Calcs', url: PRODUCT },
+        breadcrumb: {
+            '@type': 'BreadcrumbList',
+            itemListElement: [['CivilKit', 'https://civilkit.io/'], ['Calcs', PRODUCT], ["What's new", CANONICAL]].map(([name, item], i) => ({ '@type': 'ListItem', position: i + 1, name, item })),
+        },
         mainEntity: {
             '@type': 'ItemList',
             itemListElement: releases.map((r, i) => ({ '@type': 'ListItem', position: i + 1, name: `CivilKit Calcs ${r.version}`, url: `${CANONICAL}#${anchor(r.version)}` })),
@@ -173,11 +180,12 @@ ${JSON.stringify(ld, null, 1)}
 <body>
 <a class="skip" href="#main">Skip to the releases</a>
 <header class="site">
-<a class="brand" href="../">CivilKit Calcs</a>
+<a class="brand" href="${PRODUCT}">CivilKit Calcs</a>
 <nav aria-label="Site">
-<a href="../">Open the app</a>
+<a href="../learn/">Calculators and guides</a>
 <a href="../guide/">User guide</a>
 <a href="./" aria-current="page">What's new</a>
+<a href="../">Open Calcs</a>
 </nav>
 </header>
 <main id="main">
@@ -196,7 +204,7 @@ ${body}
 <p class="more">The same notes are in the <a href="${GITHUB}/blob/main/CHANGELOG.md">changelog</a> and on the <a href="${GITHUB}/releases">releases page</a>.</p>
 </main>
 <footer class="site">
-<p>CivilKit Calcs is free and open source (MIT). <a href="${GITHUB}">Source on GitHub</a>.</p>
+<p><a href="${PRODUCT}">CivilKit Calcs</a> is free and open source (MIT). <a href="../learn/">Calculators and guides</a>. <a href="${GITHUB}">Source on GitHub</a>.</p>
 </footer>
 </body>
 </html>

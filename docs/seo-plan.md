@@ -40,7 +40,13 @@ pages), internal links among the ten, to the app and to the guide, and one how-t
 
 ## Indexing
 
-* `public/sitemap.xml` lists the app, the guide chapters and the ten pages (absolute URLs). It is served at
+* Site structure: the product page `https://civilkit.io/calc/` is the content root. Every landing page, the hub, the guide
+  and What's new link "CivilKit Calcs" to it, and the app (`/calcs/`) only from "Open" buttons. Breadcrumbs (visible and
+  BreadcrumbList) read CivilKit > Calcs > Calculators and guides (or User guide) > page. `web/e2e/seo-check.mjs` holds
+  these rules.
+
+* `public/sitemap.xml` lists the app, the hub (`/calcs/learn/`), the guide chapters at their extensionless addresses and the
+  landing pages (absolute URLs). It is served at
   `/calcs/sitemap.xml`. `public/robots.txt` is served at `/calcs/robots.txt`, which crawlers ignore: they read only the
   host's root `/robots.txt`, which is owned elsewhere. Add the same `Sitemap:` line there, and submit the sitemap URL in
   Search Console.

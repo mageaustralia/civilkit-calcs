@@ -1,5 +1,7 @@
 # Functions
 
+<!-- description: Define your own functions in a sheet, call the built-in function library, and use numerical commands such as root finding and integration. -->
+
 ## Your own functions
 
 A line with an argument list defines a function:

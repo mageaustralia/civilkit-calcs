@@ -11,6 +11,17 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- **Calculators and guides hub** - A new page at `/calcs/learn/` lists every landing page, grouped as calculators, alternatives and guides, and a Calculators and guides button on the Resources tab opens it.
+- **Guide pages for search** - Every guide page has its own description, a canonical address without `.html`, sharing tags and a single h1. Build the guide with `book/build.sh`.
+- **App page details** - The app page has a description, a canonical address, sharing tags, structured data and a short summary with links for browsers without JavaScript.
+- **Guide links** - The guide introduction has a Try it note, and the chapters on templates, plots, units, importing and exporting link the matching calculator pages.
+
+### Changed
+- **Guide addresses** - The sitemap, llms.txt and every generated link to the guide use the extensionless addresses the site serves.
+- **Breadcrumbs** - Landing pages, the guide and What's new link CivilKit Calcs to the product page, and breadcrumbs read CivilKit, Calcs, Calculators and guides, then the page.
+- **Two retitled pages** - The worksheet page now covers running `.cpd` worksheets offline in the browser, and the converter page covers opening `.xmcd` and `.mcdx` files.
+
 ## [26.10.15] - 2026-10-29
 
 ### Added

@@ -7,7 +7,8 @@ The user documentation of CivilKit Calcs, written as an [mdBook](https://rust-la
 ```sh
 cargo install mdbook        # once
 cd book
-mdbook build                # writes ../target/book
+mdbook build                # writes ../target/book (a quick local build)
+./build.sh                  # what is published: mdbook build, then ../tools/guide_seo.mjs (descriptions, canonicals, one h1)
 mdbook serve --open         # serves on http://localhost:3000 and reloads on change
 ```
 

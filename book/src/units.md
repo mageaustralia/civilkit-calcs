@@ -1,5 +1,7 @@
 # Units
 
+<!-- description: Units are part of every value: attach SI and US units, use prefixes, let unit errors catch mistakes, show percentages and define your own units. -->
+
 <p><strong>Video:</strong> Units and results</p>
 <video controls preload="none" poster="videos/02-units-and-results.jpg" style="width:100%;max-width:960px" src="videos/02-units-and-results.mp4"></video>
 
@@ -281,3 +283,5 @@ Use `clrunits` sparingly. A value without a unit is a value the engine can no lo
 
 A vector or matrix whose elements all carry the same unit shows the unit once after the
 bracket. See [Vectors and matrices](vectors-matrices.md).
+
+**Related calculators:** [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/), [Pipe flow, Darcy-Weisbach](https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

@@ -1,5 +1,7 @@
 # The sheet format
 
+<!-- description: A sheet is a calculation written the way you would explain it: Markdown prose, plain name: value lines with real units, and LaTeX formulas. -->
+
 A **sheet** is a calculation written the way you would explain it to a colleague: Markdown
 prose, plain `name: value` lines, and LaTeX where you want a typeset formula. The sheet compiler
 turns it into the Calcpad worksheet language and the engine runs that. There is no second engine:

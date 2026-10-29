@@ -47,7 +47,7 @@ const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
 check(new Set(ids).size === ids.length, `all ${ids.length} ids are unique`);
 const hrefs = [...html.matchAll(/<a [^>]*href="([^"]+)"/g)].map((m) => m[1]);
 check(hrefs.filter((h) => h.startsWith('#')).every((h) => ids.includes(h.slice(1))), 'every #link has a target');
-const okHref = (h) => h.startsWith('#') || ['../', '../guide/', './'].includes(h) || h.startsWith(`${GITHUB}/`) || h === GITHUB;
+const okHref = (h) => h.startsWith('#') || ['../', '../guide/', '../learn/', './', 'https://civilkit.io/calc/'].includes(h) || h.startsWith(`${GITHUB}/`) || h === GITHUB;
 check(hrefs.every(okHref), `every link is an anchor, an app path or a project link${hrefs.filter((h) => !okHref(h)).map((h) => ` (${h})`).join('')}`);
 for (const r of releases) check(html.includes(`href="${GITHUB}/releases/tag/v${r.version}"`), `${r.version}: a "Release notes on GitHub" link to its tag`);
 check(!/https?:\/\/(?!civilkit\.io\/|github\.com\/mageaustralia\/civilkit-calcs|schema\.org|opensource\.org)[^"\s<]+/.test(html.replace(/<script[^]*?<\/script>/, '')), 'no link to any other site');

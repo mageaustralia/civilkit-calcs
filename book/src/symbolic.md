@@ -1,5 +1,7 @@
 # Symbolic maths
 
+<!-- description: The Symbolic dialog works exactly: it simplifies, factors, differentiates, integrates and solves, shown on a derivation of a beam deflection. -->
+
 <p><strong>Video:</strong> Symbolic maths for a beam deflection</p>
 <video controls preload="none" poster="videos/07-symbolic-beam-deflection.jpg" style="width:100%;max-width:960px" src="videos/07-symbolic-beam-deflection.mp4"></video>
 

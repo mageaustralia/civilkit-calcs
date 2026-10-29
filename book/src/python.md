@@ -1,5 +1,7 @@
 # Python blocks
 
+<!-- description: Run small Python programs inside a sheet: numpy-style arrays and linear algebra, matplotlib-style and Plotly-style charts and 3D plots, sandboxed. -->
+
 <p><strong>Video:</strong> Plots from Python, Plotly and matplotlib style</p>
 <video controls preload="none" poster="videos/04-plots-from-python.jpg" style="width:100%;max-width:960px" src="videos/04-plots-from-python.mp4"></video>
 

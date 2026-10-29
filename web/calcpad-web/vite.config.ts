@@ -16,7 +16,7 @@ export default defineConfig(() => ({
         vue(),
         pwaPlugin(),
         // The version in the page head: <meta name="version">.
-        { name: 'app-version-meta', transformIndexHtml: (html: string) => html.replace('__APP_VERSION__', resolveVersion()) },
+        { name: 'app-version-meta', transformIndexHtml: (html: string) => html.replaceAll('__APP_VERSION__', resolveVersion()) },
     ],
     define: {
         'import.meta.env.VITE_APP_VERSION': JSON.stringify(resolveVersion()),

@@ -609,9 +609,10 @@ export const RIBBON: RibbonTab[] = [
             ] },
             { name: 'Help', buttons: [
                 action('x-docs', 'Documentation', 'help', 'Open the CalcpadCE documentation (the worksheet language)', 'docs'),
-                action('x-keys', 'Shortcuts', 'keyboard', 'List the keyboard shortcuts', 'shortcuts'),
-                action('x-changelog', 'Changelog', 'notes', 'What changed in each version (opens GitHub in a new tab)', 'changelog'),
-                action('x-about', 'About', 'info', 'About this editor', 'about'),
+                action('x-learn', 'Calculators\nand guides', 'learn', 'Ready-made calculators and how-to pages that open as sheets (civilkit.io, in a new tab)', 'learn'),
+                action('x-keys', 'Shortcuts', 'keyboard', 'List the keyboard shortcuts', 'shortcuts', 'small'),
+                action('x-changelog', 'Changelog', 'notes', 'What changed in each version (opens GitHub in a new tab)', 'changelog', 'small'),
+                action('x-about', 'About', 'info', 'About this editor', 'about', 'small'),
             ] },
         ],
     },

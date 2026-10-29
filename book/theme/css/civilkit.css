@@ -8,3 +8,21 @@
     --links: #5aa9ff;
     --sidebar-active: #5aa9ff;
 }
+
+/* The site bar from theme/header.hbs, and the menu title, which tools/guide_seo.mjs turns from an h1 into a p so that
+   each page has one h1 (the chapter's own). */
+.ck-site {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    align-items: baseline;
+    padding: 0.4rem 15px;
+    font-size: 1.4rem;
+    border-bottom: 1px solid var(--theme-popup-border, rgba(0, 0, 0, 0.1));
+}
+.ck-site a { color: var(--links); text-decoration: none; }
+.ck-site a:hover { text-decoration: underline; }
+.ck-site .ck-brand { font-weight: 700; color: var(--fg); }
+.ck-site .ck-open { margin-left: auto; font-weight: 600; }
+p.menu-title { margin: 0; }
+@media print { .ck-site { display: none; } }

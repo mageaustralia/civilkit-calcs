@@ -1,5 +1,7 @@
 # Vectors and matrices
 
+<!-- description: Vectors and matrices in a sheet: write them with brackets, do arithmetic, solve and decompose, find eigenvalues and read or write data files. -->
+
 ## Writing them
 
 In a sheet, a bracket makes a vector or a matrix. Elements are separated by commas or semicolons

@@ -1,5 +1,7 @@
 # The Calcpad language
 
+<!-- description: The Calcpad worksheet language that every sheet compiles to: how a worksheet reads, a sheet and its Calcpad side by side, operators and angles. -->
+
 The sheet format is a front end. Underneath, every sheet becomes a **Calcpad worksheet**, the
 language of CalcpadCE, and the engine runs that. You can also write Calcpad directly: choose
 **File > New Calcpad worksheet** (the second item of the File menu, also on the Resources tab), or
@@ -112,3 +114,5 @@ screen and the part that appears in the report. The complete list is in
   settings, files, numerical commands.
 * [Input forms with `#UI`](ui-inputs.md): the `#UI` directive, grids and entry options.
 * [Templates with inputs](../templates.md): fill-in forms, and the `?` input lines of a sheet.
+
+**Related pages:** [Calcpad worksheets in the browser](https://civilkit.io/calcs/learn/calcpad-online/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

@@ -1,5 +1,7 @@
 # Input forms with `#UI`
 
+<!-- description: Turn Calcpad assignments into input controls with #UI: text boxes, drop-downs, radio buttons, checkboxes and editable grids in Input mode. -->
+
 `#UI` is the Calcpad language's own input directive. It turns the assignment that follows it into an
 input control in Input mode: a text box, a drop-down, radio buttons, a checkbox or an editable grid.
 

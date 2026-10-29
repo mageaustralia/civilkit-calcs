@@ -1,5 +1,7 @@
 # Directives and commands
 
+<!-- description: Calcpad directives and commands: conditions, loops, macros, modules, constants, number format, text modes, reading data and numerical commands. -->
+
 A directive starts with `#` and controls the flow of the worksheet. A command starts with `$` and
 takes arguments in braces. In a sheet, both are written on `>>` lines (or inside a `calcpad`
 fence), except the ones the sheet has its own form for (`if`, `for`, `while`, `repeat`, `plot`).

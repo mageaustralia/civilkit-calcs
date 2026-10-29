@@ -3,11 +3,11 @@
 // web/e2e/learn-check.mjs re-checks. No design standards are named: these are generic textbook calculations.
 
 const V = {
-    first: { file: '01-first-calculation.mp4', title: 'Your first calculation', chapter: 'getting-started/first-sheet.html' },
-    plots: { file: '03-plots-in-sheets.mp4', title: 'Plots in the sheet format', chapter: 'plots.html' },
-    templates: { file: '05-templates-with-inputs.mp4', title: 'Templates with inputs', chapter: 'templates.html' },
-    importing: { file: '06-import-a-worksheet.mp4', title: 'Import an existing worksheet', chapter: 'importing.html' },
-    exporting: { file: '08-export-word-excel-pdf.mp4', title: 'Export a report to Word, Excel and PDF', chapter: 'exporting.html' },
+    first: { file: '01-first-calculation.mp4', title: 'Your first calculation', chapter: 'getting-started/first-sheet.md' },
+    plots: { file: '03-plots-in-sheets.mp4', title: 'Plots in the sheet format', chapter: 'plots.md' },
+    templates: { file: '05-templates-with-inputs.mp4', title: 'Templates with inputs', chapter: 'templates.md' },
+    importing: { file: '06-import-a-worksheet.mp4', title: 'Import an existing worksheet', chapter: 'importing.md' },
+    exporting: { file: '08-export-word-excel-pdf.mp4', title: 'Export a report to Word, Excel and PDF', chapter: 'exporting.md' },
 };
 
 /** A two-column table of "label, engine value" rows for one run. */
@@ -30,6 +30,8 @@ export const pages = [];
 /* ------------------------------------------------------------------------------------------------ 1 */
 pages.push({
     slug: 'mathcad-alternative',
+    label: 'Mathcad alternative',
+    group: 'alternative',
     title: 'Free Mathcad alternative that runs in your browser',
     description: 'A free, open source engineering calculation sheet for the browser: real units, plots, Word and Excel export, offline use, and a Mathcad worksheet importer.',
     h1: 'A free Mathcad alternative that runs in your browser',
@@ -78,9 +80,11 @@ M: w * L^2 / 8 -> kN*m | maximum moment
 /* ------------------------------------------------------------------------------------------------ 2 */
 pages.push({
     slug: 'calcpad-online',
-    title: 'Calcpad online: run Calcpad worksheets in a browser',
-    description: 'CivilKit Calcs runs the Calcpad worksheet language in your browser on a Rust engine compiled to WebAssembly. Free, open source, installable and offline.',
-    h1: 'Calcpad online: the Calcpad language in your browser',
+    label: 'Calcpad worksheets in the browser',
+    group: 'alternative',
+    title: 'Open Calcpad .cpd files in your browser, offline',
+    description: 'Open and run Calcpad .cpd worksheets in your browser, offline, on an open source Rust engine. Edit, plot, import and export to Word, Excel or PDF.',
+    h1: 'Run Calcpad worksheets in your browser, offline',
     schema: ['software'],
     video: V.first,
     related: ['mathcad-alternative', 'excel-alternative-for-engineering-calculations', 'engineering-calculation-software-free', 'simply-supported-beam-calculator'],
@@ -91,12 +95,13 @@ b = 4m
 c = sqrt(a^2 + b^2)
 ` },
     },
-    lead: `<p>Calcpad is a calculator and report writer by Nedelcho Ganchovski (Proektsoft) in which you write equations with units and get a formatted document. Its community edition, CalcpadCE, is MIT licensed. CivilKit Calcs is a derivative of CalcpadCE: the same worksheet language, with the calculation engine rewritten in Rust and compiled to WebAssembly, so it runs in a browser tab with nothing to install.</p>
-<p>It is not affiliated with the Calcpad authors. Their work is the foundation, and the credit and licence travel with the code.</p>`,
+    lead: `<p>Calcpad is a calculator and report writer by Nedelcho Ganchovski (Proektsoft): you write equations with units and get a formatted document. Its authors offer an official online version on their own site, and that is the place to go for Calcpad itself. This page is about something else. CivilKit Calcs is an independent, open source derivative of CalcpadCE, the MIT licensed community edition, and it opens your <code>.cpd</code> worksheets in a browser tab and runs them there, with no server and, once it has loaded, no connection.</p>
+<p>The worksheet language is the same. The calculation engine was rewritten in Rust and compiled to WebAssembly, so the arithmetic happens on your own computer. It is not affiliated with the Calcpad authors: their work is the foundation, and the credit and licence travel with the code.</p>`,
     sections: [
-        ['Run a Calcpad worksheet in the browser', `<p>Open the app, paste a worksheet or use File, then Open, and the page calculates it. A worksheet like this one is ordinary Calcpad:</p>
+        ['Open a .cpd worksheet', `<p>Open the app and use File, then Open, drag a <code>.cpd</code> file onto the page, or paste the text into a new Calcpad tab. The page calculates it straight away. A worksheet like this one is ordinary Calcpad:</p>
 {{code:t}}
 <p>It gives [[t:c]] for the hypotenuse, with the units carried through. Everything the language offers is meant to work: units, vectors and matrices, <code>$Plot</code> and <code>$Map</code> plots, macros, <code>#if</code> and <code>#while</code> blocks, includes, input fields and the large function library.</p>`],
+        ['Offline, and on your own computer', `<p>The first visit loads the app; after that a service worker keeps a copy, so the page opens and calculates with no network at all. You can install it from the browser as an app on a desktop or a phone. Worksheets are kept in the browser's own library or saved to your disk as ordinary <code>.cpd</code> text files, and nothing you calculate is sent anywhere. That makes it a practical way to read and check a colleague's worksheet on a machine where you cannot install software.</p>`],
         ['What was rebuilt, and what was kept', `<ul>
 <li><strong>The engine</strong> is a Rust port of the CalcpadCE calculation engine, compiled to WebAssembly. The page answers the calls the original made to its server itself, so no server is needed.</li>
 <li><strong>The editor and report view</strong> are CalcpadCE's web frontend, with changes.</li>
@@ -105,22 +110,25 @@ c = sqrt(a^2 + b^2)
 </ul>`],
         ['How close to CalcpadCE is it?', `<p>The Rust engine is tested against CalcpadCE's own test classes, transcribed to Rust, and against the expected-output files of its worksheets. Where it deliberately behaves differently, the difference is listed one by one with the test that pins it, in a file of deviations in the repository. One example: when an <code>#if</code> condition cannot be evaluated, the block is left unresolved with an error message, instead of silently running the <code>#else</code> branch.</p>
 <p>Not supported: raster plots from the original's graphics library, the project and library path roots, and compiled <code>.cpdz</code> worksheets. The project is early, so if you depend on an unusual corner of the language, run your worksheet and compare the output before you switch.</p>`],
-        ['What it adds: the sheet format and templates', `<p>On top of the Calcpad language there is a lighter way to write, called the sheet format: Markdown prose, <code>name: expression -> unit | note</code> lines and LaTeX. A sheet compiles to Calcpad and runs on the same engine, and you can always see the Calcpad it becomes with Show compiled.</p>
-<p>A <code>?</code> in front of a value makes it an input, so a sheet becomes a fill-in template. See the <a href="/calcs/learn/simply-supported-beam-calculator/">beam calculator</a> for a worked one.</p>`],
+        ['Beyond the worksheet: sheets, imports and exports', `<p>On top of the Calcpad language there is a lighter way to write, called the sheet format: Markdown prose, <code>name: expression -> unit | note</code> lines and LaTeX. A sheet compiles to Calcpad and runs on the same engine, and you can always see the Calcpad it becomes with Show compiled. A <code>?</code> in front of a value makes it an input, so a sheet becomes a fill-in template; the <a href="/calcs/learn/simply-supported-beam-calculator/">beam calculator</a> is a worked one.</p>
+<p>The same page can <a href="/calcs/learn/mathcad-worksheet-converter/">import worksheets from another calculation tool</a> and export any worksheet to Word with real equations, to Excel with native charts, or to PDF.</p>`],
         ['Credit and licence', `<p>Calcpad was created by Nedelcho Ganchovski (Proektsoft); CalcpadCE is its MIT licensed continuation, at <a href="https://github.com/imartincei/CalcpadCE">github.com/imartincei/CalcpadCE</a>. CivilKit Calcs is MIT licensed too, and the upstream copyright notices are kept in the repository. If Calcpad is useful to you, look at the original project as well.</p>`],
     ],
     faq: [
-        ['Is this the official Calcpad?', 'No. It is an independent derivative of CalcpadCE, the MIT licensed community edition, with the engine rewritten in Rust. It is not made or endorsed by the Calcpad authors.'],
+        ['Is this the official Calcpad online version?', 'No. The Calcpad authors publish their own online version. This is an independent derivative of CalcpadCE, the MIT licensed community edition, with the engine rewritten in Rust. It is not made or endorsed by the Calcpad authors.'],
         ['Do I have to install anything?', 'No. Open the page in a current browser. You can install it as an app from the browser if you want it on the desktop or a phone.'],
         ['Can I open my existing .cpd files?', 'Yes, with File then Open or by pasting the text. Check the result against what you expect, because the engine is a port and a few behaviours are deliberately different. The deviations file lists them.'],
         ['Does my worksheet leave my computer?', 'No. The engine runs in the page. There is no calculation server.'],
         ['Does it work offline?', 'Yes, after a first visit. Plotly charts, which load a script from a CDN, need to have been loaded once while online.'],
+        ['Can it open compiled .cpdz files?', 'No. Compiled <code>.cpdz</code> worksheets are not supported. Open the <code>.cpd</code> source instead.'],
     ],
 });
 
 /* ------------------------------------------------------------------------------------------------ 3 */
 pages.push({
     slug: 'excel-alternative-for-engineering-calculations',
+    label: 'Excel alternative',
+    group: 'alternative',
     title: 'Excel alternative for engineering calculations',
     description: 'Write engineering calculations with units and readable formulas instead of cell references, see the workings, and export to Word, PDF and Excel.',
     h1: 'An Excel alternative for engineering calculations',
@@ -166,6 +174,8 @@ sigma: M / Z -> MPa | bending stress
 /* ------------------------------------------------------------------------------------------------ 4 hub */
 pages.push({
     slug: 'engineering-calculation-software-free',
+    label: 'Free calculation software',
+    group: 'alternative',
     title: 'Free engineering calculation software in the browser',
     description: 'A free browser tool for engineering calculations with units: templates for beams, walls, footings, pipes and pumps, plots, and Word, Excel and PDF export.',
     h1: 'Free engineering calculation software in your browser',
@@ -195,8 +205,8 @@ M: w * L^2 / 8 -> kN*m | maximum moment
 </ul>
 <p>The app has two more templates, a cantilever with a tip load and a rectangular column slenderness check, and more than a hundred sample worksheets from the CalcpadCE project.</p>`],
         ['If you are coming from another tool', `<ul>
-<li><a href="/calcs/learn/mathcad-alternative/">Mathcad alternative</a>, and how to <a href="/calcs/learn/mathcad-worksheet-converter/">convert Mathcad worksheets</a>.</li>
-<li><a href="/calcs/learn/calcpad-online/">Calcpad online</a>, if you already use the Calcpad language.</li>
+<li><a href="/calcs/learn/mathcad-alternative/">Mathcad alternative</a>, and how to <a href="/calcs/learn/mathcad-worksheet-converter/">open Mathcad files without Mathcad</a>.</li>
+<li><a href="/calcs/learn/calcpad-online/">Calcpad worksheets in the browser</a>, if you already use the Calcpad language.</li>
 <li><a href="/calcs/learn/excel-alternative-for-engineering-calculations/">Excel alternative</a> for calculations that need their workings shown.</li>
 </ul>`],
         ['What is in the box', `<ul>
@@ -224,6 +234,9 @@ M: w * L^2 / 8 -> kN*m | maximum moment
 const BEAM = 'Template simply supported beam.sheet';
 pages.push({
     slug: 'simply-supported-beam-calculator',
+    label: 'Simply supported beam',
+    group: 'calculator',
+    area: 'structural',
     title: 'Simply supported beam calculator with units',
     description: 'Free beam calculator: moment, shear, bending stress and deflection of a simply supported I-beam under a uniform load, with a moment diagram. Opens as a form.',
     h1: 'Simply supported beam calculator',
@@ -275,6 +288,9 @@ ${taskSteps('The span, load, section, material, limit and own weight are the six
 const WALL = 'Template retaining wall stability.sheet';
 pages.push({
     slug: 'retaining-wall-stability-calculator',
+    label: 'Retaining wall stability',
+    group: 'calculator',
+    area: 'geotechnical',
     title: 'Retaining wall stability calculator',
     description: 'Free retaining wall calculator: active earth thrust, overturning and sliding safety factors and base pressure for a cantilever wall, with units.',
     h1: 'Retaining wall stability calculator',
@@ -322,6 +338,9 @@ ${taskSteps('The wall dimensions, the backfill and the surcharge are the inputs.
 const PAD = 'Template pad footing bearing.sheet';
 pages.push({
     slug: 'pad-footing-bearing-pressure-calculator',
+    label: 'Pad footing bearing pressure',
+    group: 'calculator',
+    area: 'geotechnical',
     title: 'Pad footing bearing pressure calculator',
     description: 'Free pad footing calculator: bearing pressure under a column load and moment, eccentricity, uplift and the check against an allowable soil pressure.',
     h1: 'Pad footing bearing pressure calculator',
@@ -368,6 +387,9 @@ ${taskSteps('Use your own loads, footing size and allowable pressure; to use a v
 const PIPE = 'Template pipe flow Darcy.sheet';
 pages.push({
     slug: 'pipe-flow-darcy-weisbach-calculator',
+    label: 'Pipe flow, Darcy-Weisbach',
+    group: 'calculator',
+    area: 'hydraulics',
     title: 'Pipe flow calculator: Darcy-Weisbach head loss',
     description: 'Free pipe friction loss calculator: velocity, Reynolds number, friction factor, Darcy-Weisbach head loss, pump head and power for water in a full pipe.',
     h1: 'Pipe flow calculator with Darcy-Weisbach head loss',
@@ -416,6 +438,9 @@ ${taskSteps('Flow, diameter, length, rise, fittings, material and temperature ar
 const PUMP = 'Template pump operating point.sheet';
 pages.push({
     slug: 'pump-operating-point-calculator',
+    label: 'Pump operating point',
+    group: 'calculator',
+    area: 'hydraulics',
     title: 'Pump operating point calculator: pump vs system curve',
     description: 'Free calculator for the operating point of a pump on a pipeline: where the pump curve meets the system curve, with a table of heads and both curves plotted.',
     h1: 'Pump operating point calculator',
@@ -462,19 +487,21 @@ ${taskSteps('Pump size, pipe diameter, length, static lift and the aged-pipe box
 /* ------------------------------------------------------------------------------------------------ 10 converter */
 pages.push({
     slug: 'mathcad-worksheet-converter',
-    title: 'Mathcad worksheet converter: import .xmcd and .mcdx',
-    description: 'Import Mathcad .xmcd and .mcdx worksheets into a browser calculation sheet. What converts, what shows as a gap, and why your file is not uploaded.',
-    h1: 'Convert Mathcad worksheets (.xmcd and .mcdx) in your browser',
+    label: 'Open Mathcad files',
+    group: 'alternative',
+    title: 'Open .xmcd and .mcdx files without Mathcad, free',
+    description: 'Open Mathcad .xmcd and .mcdx worksheets without Mathcad: they convert to a live calculation sheet in your browser, and nothing is uploaded.',
+    h1: 'Open Mathcad .xmcd and .mcdx files without Mathcad',
     schema: [],
     video: V.importing,
     related: ['mathcad-alternative', 'calcpad-online', 'engineering-calculation-software-free', 'excel-alternative-for-engineering-calculations'],
-    howto: 'How to import a Mathcad worksheet into CivilKit Calcs',
+    howto: 'How to open a Mathcad worksheet without Mathcad',
     runs: {},
-    lead: `<p>CivilKit Calcs can read Mathcad worksheet files (<code>.xmcd</code> and <code>.mcdx</code>) and write them out as a new worksheet that its own engine calculates. The conversion runs in your browser, so the file is not uploaded. This page says what to expect, including what does not convert.</p>
+    lead: `<p>No Mathcad licence, and a worksheet you need to read? CivilKit Calcs opens Mathcad worksheet files (<code>.xmcd</code> and <code>.mcdx</code>) and converts them into a live calculation sheet in your browser, which its own engine then calculates. Nothing is uploaded: the conversion runs inside the page, and it is free. This page says what to expect, including what does not convert.</p>
 <p>The importer is a work in progress. It is a translator, not a guarantee. Plan on checking every imported worksheet against the original, line by line.</p>`,
     sections: [
         ['How to import a worksheet', `<ol>
-<li>Open <a href="/calcs/">CivilKit Calcs</a>.</li>
+<li><a href="/calcs/">Open CivilKit Calcs</a> in a new tab.</li>
 <li>Choose <strong>File, then Import worksheet</strong>, or the <strong>Import worksheet</strong> button on the Document tab. You can also use File, then Open, or drag the file onto the page.</li>
 <li>The converted worksheet opens in a new unsaved tab named after the file, with the extension <code>.cpd</code>.</li>
 <li>A dialog tells you how the import went, for example "18 of 21 regions converted live, 2 shown as static pictures, 1 need attention", with the reasons in plain words.</li>
@@ -524,6 +551,7 @@ pages.push({
         ['Tidy and save', 'Use Tidy text if you want the imported fonts removed, then save the worksheet.'],
     ],
     faq: [
+        ['Do I need Mathcad installed?', 'No. The file is read and converted by CivilKit Calcs itself, in the browser. You do not need Mathcad or any other program.'],
         ['Which file types can it import?', 'The <code>.xmcd</code> and <code>.mcdx</code> worksheet formats. Other file types are rejected with a message.'],
         ['Will every worksheet convert completely?', 'No. Worksheets that use add-ins, embedded objects, symbolic evaluation or unsupported plots will have gaps, and the importer says where.'],
         ['Does it keep my original file?', 'Yes. It reads the file and does not change it.'],

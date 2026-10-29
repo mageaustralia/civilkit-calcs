@@ -1,5 +1,7 @@
 # Templates with inputs
 
+<!-- description: Turn a calculation into a fill-in template: a question mark makes an input box, a drop-down, radio buttons or a checkbox, grouped as a form. -->
+
 <p><strong>Video:</strong> Templates with inputs</p>
 <video controls preload="none" poster="videos/05-templates-with-inputs.jpg" style="width:100%;max-width:960px" src="videos/05-templates-with-inputs.mp4"></video>
 
@@ -930,3 +932,5 @@ with `>>`. See [Input forms with `#UI`](calcpad/ui-inputs.md).
 A `'<!--civilkit: bind L = path -->` comment before an input can tie it to a quantity in a
 structural model. The specification and the in-app marker exist; no model is connected yet, so
 typed values are used.
+
+**Related calculators:** [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/), [Retaining wall stability](https://civilkit.io/calcs/learn/retaining-wall-stability-calculator/), [Pad footing bearing pressure](https://civilkit.io/calcs/learn/pad-footing-bearing-pressure-calculator/), [Pipe flow, Darcy-Weisbach](https://civilkit.io/calcs/learn/pipe-flow-darcy-weisbach-calculator/), [Pump operating point](https://civilkit.io/calcs/learn/pump-operating-point-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

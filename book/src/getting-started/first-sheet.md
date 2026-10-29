@@ -1,5 +1,7 @@
 # Your first sheet in five minutes
 
+<!-- description: Build a bending check for a simply supported beam in five minutes: type inputs with units, add a pass or fail message, change a number and save. -->
+
 <p><strong>Video:</strong> Your first calculation in 5 minutes</p>
 <video controls preload="none" poster="../videos/01-first-calculation.jpg" style="width:100%;max-width:960px" src="../videos/01-first-calculation.mp4"></video>
 
@@ -149,3 +151,5 @@ is saved as a `.sheet` file. In other browsers the file downloads. See
 * Why the units came out right: [Units](../units.md).
 * Draw the moment along the beam: [Plots](../plots.md).
 * Turn the sheet into a form you fill in: [Templates with inputs](../templates.md).
+
+**Related calculators:** [Simply supported beam](https://civilkit.io/calcs/learn/simply-supported-beam-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

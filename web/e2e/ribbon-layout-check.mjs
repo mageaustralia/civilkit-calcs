@@ -35,6 +35,8 @@ const all = RIBBON.flatMap(t => t.groups.flatMap(g => g.buttons.map(b => ({ tab:
     check(flow.length === 1 && flow[0] === 'dg-diagrams', `the flowchart icon belongs to the Diagrams button alone (${flow.join(', ')})`);
     const order = RIBBON.map(t => t.id).join(',');
     check(order === 'math,io,functions,matrices,calc,plots,mathfmt,textfmt,document,resources', `the tabs follow the work: write, calculate, plot, format, document (${order})`);
+    const help = RIBBON.find(t => t.id === 'resources')?.groups.find(g => g.name === 'Help')?.buttons.map(b => b.id).join(',');
+    check(help === 'x-docs,x-learn,x-keys,x-changelog,x-about', `Resources > Help: Documentation, Calculators and guides, Shortcuts, Changelog, About (${help})`);
     const empty = RIBBON.flatMap(t => t.groups.filter(g => !g.buttons.length).map(g => `${t.label}: ${g.name}`));
     check(empty.length === 0, `no empty group (${empty.join(', ') || 'none'})`);
 }

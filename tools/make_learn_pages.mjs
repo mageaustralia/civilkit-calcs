@@ -1,4 +1,5 @@
-// Generates the ten landing pages (web/calcpad-web/public/learn/<slug>/index.html), public/sitemap.xml and public/robots.txt.
+// Generates the landing pages (web/calcpad-web/public/learn/<slug>/index.html), their hub (public/learn/index.html),
+// public/sitemap.xml and public/robots.txt.
 //   node tools/make_learn_pages.mjs            write the files
 //   node tools/make_learn_pages.mjs --check    exit 1 if a file on disk differs from what would be written
 // Every number on a task page comes from a real engine run (tools/learn/engine.mjs: the sheet compiler wasm and the Cli
@@ -7,7 +8,8 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { root } from './learn/engine.mjs';
 import { pages } from './learn/pages.mjs';
-import { renderPage, runAll, urlOf, SITE } from './learn/render.mjs';
+import { renderPage, renderHub, runAll, urlOf, HUB, SITE } from './learn/render.mjs';
+import { guideChapters, guideUrl } from './guide_url.mjs';
 
 const pub = join(root, 'web', 'calcpad-web', 'public');
 
@@ -15,10 +17,10 @@ const pub = join(root, 'web', 'calcpad-web', 'public');
 export function outputs() {
     const files = [];
     for (const page of pages) files.push({ path: `learn/${page.slug}/index.html`, content: renderPage(page, runAll(page)) });
-    // The guide chapters, from the book's table of contents (mdBook writes chapter.md as chapter.html).
-    const summary = readFileSync(join(root, 'book', 'src', 'SUMMARY.md'), 'utf8');
-    const chapters = [...summary.matchAll(/\]\(([^)]+\.md)\)/g)].map((m) => m[1]).filter((f) => f !== 'introduction.md').map((f) => f.replace(/\.md$/, '.html'));
-    const urls = [`${SITE}/calcs/`, `${SITE}/calcs/guide/`, `${SITE}/calcs/whats-new/`, ...chapters.map((c) => `${SITE}/calcs/guide/${c}`), ...pages.map((p) => urlOf(p.slug))];
+    files.push({ path: 'learn/index.html', content: renderHub() });
+    // The guide chapters, from the book's table of contents, at their canonical extensionless URLs (the introduction is /calcs/guide/).
+    const chapters = guideChapters().map((c) => guideUrl(c.file)).filter((u) => u !== guideUrl('introduction.md'));
+    const urls = [`${SITE}/calcs/`, HUB, `${SITE}/calcs/guide/`, `${SITE}/calcs/whats-new/`, ...chapters, ...pages.map((p) => urlOf(p.slug))];
     files.push({
         path: 'sitemap.xml',
         content: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${u}</loc></url>`).join('\n')}\n</urlset>\n`,

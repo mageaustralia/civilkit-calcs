@@ -1,5 +1,7 @@
 # Quantities, units and notes
 
+<!-- description: Quantity lines in a sheet: names, units, converting the answer with ->, notes, several quantities on one line, operators and input lines. -->
+
 A quantity line defines a name:
 
 ```text

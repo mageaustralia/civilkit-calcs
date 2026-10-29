@@ -1,5 +1,7 @@
 # Importing worksheets
 
+<!-- description: Import .xmcd and .mcdx worksheets from another calculation tool as a live Calcpad worksheet: what converts, what is frozen and what does not. -->
+
 <p><strong>Video:</strong> Import an existing worksheet</p>
 <video controls preload="none" poster="videos/06-import-a-worksheet.jpg" style="width:100%;max-width:960px" src="videos/06-import-a-worksheet.mp4"></video>
 
@@ -112,3 +114,5 @@ shows that region's names as undefined; read the dialog list first.
 Input over 64 MiB, XML nested deeper than 256, a DTD, and pictures over 16 MiB each or 192 MiB in
 total are refused or skipped. Errors are messages, not crashes: "... is not a worksheet this importer
 reads", "not well-formed XML", "the file is a zip package that cannot be read".
+
+**Related pages:** [Opening .xmcd and .mcdx files](https://civilkit.io/calcs/learn/mathcad-worksheet-converter/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

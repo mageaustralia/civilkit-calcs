@@ -112,3 +112,5 @@ dialog's **Write files** choice and **Write to Disk** button change that.
 The command-line front end of the engine converts a Calcpad worksheet to HTML, Word or Excel:
 `Cli input.cpd output.xlsx`. It is built from the same code. A sheet has to be compiled first
 (Convert to Calcpad, or the sheet compiler), because the command line reads Calcpad.
+
+**Related pages:** [Calculations instead of spreadsheets](https://civilkit.io/calcs/learn/excel-alternative-for-engineering-calculations/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

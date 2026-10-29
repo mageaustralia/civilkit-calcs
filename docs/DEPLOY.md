@@ -77,6 +77,35 @@ Deploy `pages-build-calcs` as the Pages project root, so the files are served un
 `_headers` file sets `application/wasm` for the modules and long caching for hashed assets. Preview with
 `python3 -m http.server 4177 --bind 127.0.0.1` in that folder, then open `http://127.0.0.1:4177/calcs/`.
 
+## The user guide
+
+The guide at `https://civilkit.io/calcs/guide/` is the mdBook in `book/`. Build it with `book/build.sh`, not a bare
+`mdbook build`: the script runs mdBook and then `tools/guide_seo.mjs`, which gives each page its own meta description, a
+canonical link at the extensionless address the host serves (`/calcs/guide/units`; the introduction is `/calcs/guide/`),
+og:url and breadcrumb JSON-LD, and turns the menu-bar book title into a `<p>` so the chapter heading is the only h1.
+`node tools/guide_seo.mjs --check` fails on a page that was built without that step. A chapter whose first sentence is not
+70 to 160 characters long carries a `<!-- description: ... -->` comment under its heading.
+
+```sh
+book/build.sh                                   # target/book
+node tools/guide_seo.mjs --check
+mkdir -p ../pages-build-calcs/calcs/guide
+cp -R target/book/. ../pages-build-calcs/calcs/guide/    # after the app's cp -R above; keep the guide's videos/ folder there
+```
+
+## Landing pages, their hub and the sitemap
+
+`/calcs/learn/<slug>/`, the hub `/calcs/learn/` (`public/learn/index.html`), `public/sitemap.xml` and `public/robots.txt` are
+written by `node tools/make_learn_pages.mjs` from `tools/learn/pages.mjs` (it runs every quoted calculation through the
+engine, so it needs `target/release/Cli` and the sheet wasm). Run it after a change to the pages, the guide's table of
+contents or a sample a page quotes, then `node tools/make_llms_txt.mjs` (it reads the pages), and commit the output. Both
+take `--check`. The sitemap, llms.txt and every link to the guide use the extensionless chapter addresses
+(`tools/guide_url.mjs`).
+
+Before a release, with the guide built: `node web/e2e/seo-check.mjs` (titles, descriptions, canonicals, h1s, JSON-LD,
+breadcrumbs, sitemap and llms.txt URL forms, and every internal link of the landing pages, the hub, What's new and the
+guide) and, after a `CALCS_BASE=/calcs/` build, `node web/e2e/learn-check.mjs`.
+
 ## llms.txt
 
 `https://civilkit.io/calcs/llms.txt` is an index of the guide for language models and other tools (one line per chapter, the

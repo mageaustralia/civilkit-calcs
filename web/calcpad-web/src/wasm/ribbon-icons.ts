@@ -119,6 +119,9 @@ export const ICONS_BIG: Record<string, string> = {
     source: tile(w('M12 9l-5 6 5 6M20 9l5 6-5 6M17 8l-3 14')),
     info: tile(t(16, 22, 17, 'i')),
     help: tile(t(16, 22, 17, '?')),
+    // An open book: the calculators and guides on the web site.
+    learn: '<path class="h" d="M3 7c4-2 9-2 13 1v19c-4-3-9-3-13-1z"/><path class="l" d="M29 7c-4-2-9-2-13 1v19c4-3 9-3 13-1z"/>' +
+        '<path class="o" d="M3 7c4-2 9-2 13 1 4-3 9-3 13-1v19c-4-2-9-2-13 1-4-3-9-3-13-1zM16 8v19"/>' + w('M6 12.500h7M6 17h7M19 12.500h7M19 17h7'),
     keyboard: tile('<rect class="k" x="6" y="9" width="20" height="12" rx="2" opacity=".25"/>' + w('M9 12h1M13 12h1M17 12h1M21 12h1M10 17h12')),
     pdf: page('<rect class="m" x="7" y="16" width="19" height="8"/>', t(16.500, 22.500, 7, 'PDF')),
     word: page('<rect class="m" x="7" y="16" width="19" height="8"/>', t(16.500, 22.500, 8, 'W')),
@@ -222,6 +225,8 @@ export const ICONS_SMALL: Record<string, string> = {
     settings: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.500 5.500l2 2M16.500 16.500l2 2M5.500 18.500l2-2M16.500 7.500l2-2"/>',
     auto: '<path d="M7 4l10 8-10 8z"/><path d="M19 5v6M16 8h6" />',
     help: '<circle cx="12" cy="12" r="9"/><path d="M9.500 9.500a2.500 2.500 0 115 0c0 2-2.500 2-2.500 4M12 17h.01"/>',
+    learn: '<path d="M2 6c3-1.500 7-1.500 10 1 3-2.500 7-2.500 10-1v13c-3-1.500-7-1.500-10 1-3-2.500-7-2.500-10-1zM12 7v13"/>',
+    notes: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 19h4"/>',
     keyboard: '<rect x="2" y="6" width="20" height="12" rx="1"/><path d="M6 10h1M10 10h1M14 10h1M18 10h1M7 14h10"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>',
     link: '<path d="M10 14a4 4 0 005 0l3-3a4 4 0 00-5-5l-1 1M14 10a4 4 0 00-5 0l-3 3a4 4 0 005 5l1-1"/>',

@@ -1,6 +1,6 @@
 // Checks the static landing pages under /calcs/learn/ in a build (no browser needed).
 //   node e2e/learn-check.mjs [--dist DIR]        (after: cd web && CALCS_BASE=/calcs/ npm run build)
-//   - each of the ten pages is in the build, has one h1, a title of 15 to 60 and a description of 70 to 159 characters,
+//   - each landing page is in the build, has one h1, a title of 15 to 60 and a description of 70 to 159 characters,
 //     the right canonical URL, Open Graph and Twitter tags, JSON-LD that parses (breadcrumb, FAQ matching the visible
 //     questions, software application where it belongs), 500 to 1100 words of content and no script besides JSON-LD;
 //   - every /calcs/ link and src resolves: to a file of the build, to a guide chapter or video of the book, or to a sample
@@ -8,7 +8,7 @@
 //   - no design standard, internal path, work address or em-dash anywhere in the pages, the stylesheet, the sitemap;
 //   - every quoted number (span.v) equals a fresh run of the engine, the code blocks are the shipped samples, and
 //     the page on disk equals what tools/make_learn_pages.mjs would write now;
-//   - the sitemap lists the ten pages with absolute URLs, robots.txt points to it, and the service worker's precache
+//   - the sitemap lists every page with absolute URLs, robots.txt points to it, and the service worker's precache
 //     leaves learn/ out.
 import { existsSync, readFileSync, statSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { pages } from '../../tools/learn/pages.mjs';
 import { renderPage, runAll, urlOf, SITE } from '../../tools/learn/render.mjs';
 import { valueOf, root } from '../../tools/learn/engine.mjs';
+import { guidePath } from '../../tools/guide_url.mjs';
 
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
@@ -45,7 +46,8 @@ const manifest = JSON.parse(readFileSync(join(web, 'calcpad-web', 'public', 'she
 const sampleIds = new Set(manifest.samples.flatMap((s) => [s.id, s.id.replace(/^template-/, '')]));
 const chapters = new Set();
 const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]));
-for (const f of walk(join(root, 'book', 'src'))) if (f.endsWith('.md')) chapters.add(f.slice(join(root, 'book', 'src').length + 1).replace(/\.md$/, '.html'));
+// Guide links use the canonical extensionless form (/calcs/guide/units, /calcs/guide/sheet/); the .html form only redirects.
+for (const f of walk(join(root, 'book', 'src'))) if (f.endsWith('.md')) chapters.add(guidePath(f.slice(join(root, 'book', 'src').length + 1)));
 const videoNames = new Set(readdirSync(join(root, 'book', 'videos')).filter((f) => /^\d\d-.*\.md$/.test(f)).map((f) => f.replace(/\.md$/, '.mp4')));
 
 /** Does an internal URL path (as written in a page) resolve? */
@@ -60,9 +62,9 @@ function resolves(href) {
     }
     if (rel.startsWith('guide/')) {
         const g = rel.slice('guide/'.length);
-        if (g === '' || g === 'index.html') return null;
+        if (g === '') return null;
         if (g.startsWith('videos/')) return videoNames.has(g.slice(7)) ? null : `no video ${href}`;
-        return chapters.has(g) ? null : `no guide chapter ${href}`;
+        return chapters.has(g) ? null : `no guide chapter at the canonical address ${href}`;
     }
     const file = join(dist, rel.endsWith('/') || rel === '' ? rel + 'index.html' : rel);
     return existsSync(file) && statSync(file).isFile() ? null : `not in the build: ${href}`;

@@ -8,6 +8,11 @@ PDF, and keep working with no network connection.
 Everything is calculated on your own computer. The engine is compiled to WebAssembly and runs
 inside the page, so a calculation is never sent to a server.
 
+> **Try it.** [Open CivilKit Calcs](https://civilkit.io/calcs/) in a new tab and start typing, or
+> begin from a worked example in [Calculators and guides](https://civilkit.io/calcs/learn/): a beam,
+> a retaining wall, a pad footing, a pipe or a pump, each of which opens as a form. The
+> [product page](https://civilkit.io/calc/) gives the short overview.
+
 ## What you get
 
 * **Real units.** `6 m`, `12 kN/m`, `300 MPa`. The engine multiplies, divides and converts

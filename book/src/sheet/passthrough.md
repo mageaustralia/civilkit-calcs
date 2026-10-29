@@ -1,5 +1,7 @@
 # Mixing in Calcpad, Show compiled and errors
 
+<!-- description: Reach every Calcpad feature from a sheet with >> lines and calcpad fences, see the compiled worksheet, read errors and format the document. -->
+
 Every feature of the Calcpad language stays reachable from a sheet.
 
 ## `>>` lines and `calcpad` fences
