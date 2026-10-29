@@ -234,7 +234,7 @@
 <ul>
 <li><strong>Units</strong> - The dot operators and the micro sign <code>µ</code> are read correctly (<code>5 µm</code> failed before).</li>
 <li><strong>Radio and drop-down defaults</strong> - A default with a divided or multiplied unit (<code>25 kN/m</code>, <code>N/mm^2</code>) now selects its option instead of opening empty.</li>
-<li>**Names from <code>&gt;&gt; #UI</code>** - A name defined by a raw <code>&gt;&gt; #UI</code> line can be used by later sheet lines (it failed with <code>Undefined φ</code>).</li>
+<li><strong>Names from <code>&gt;&gt; #UI</code></strong> - A name defined by a raw <code>&gt;&gt; #UI</code> line can be used by later sheet lines (it failed with <code>Undefined φ</code>).</li>
 <li><strong>Save values</strong> - The comment is now written under the <code>&lt;!--sheet--&gt;</code> marker, so the file stays a sheet.</li>
 <li><strong>Browser check</strong> - <code>e2e/browser-check.mjs</code> follows the three-tab sidebar and the new dialogs.</li>
 </ul>
@@ -265,7 +265,7 @@
 <li><strong>Plots sample</strong> - A plot gallery of four plots on a grid, covering implicit curves, functions, parametric curves, noise, markers, a legend and a second y axis.</li>
 <li><strong>3D plot samples</strong> - Five samples (plate deflection, column interaction surface, space frame, mode shape explorer with a dropdown, footing reactions bar chart), each checked in light and dark themes.</li>
 <li><strong>Importer text values</strong> - Programs and functions that set, return or take a text (<code>check &lt;- &quot;OK&quot;</code>) and tables mixing text names with numbers now convert live; across a local set of 16 structural worksheets the live share rose from 82.7 % to 87.4 %.</li>
-<li>**Clearer <code>string-value</code> gaps** - The gap now names what stopped it, such as a text-and-number mix or the text function called, which were previously reported as <code>builtin-missing</code>.</li>
+<li><strong>Clearer <code>string-value</code> gaps</strong> - The gap now names what stopped it, such as a text-and-number mix or the text function called, which were previously reported as <code>builtin-missing</code>.</li>
 <li><strong>Importer external libraries</strong> - A definition blocked only by an external library call takes the value the source saved, shown frozen and labelled; the import dialog counts these and the batch example lists why functions did not convert.</li>
 </ul>
 <h4>Changed</h4>
@@ -304,7 +304,7 @@
 <li><strong>Editor above the keyboard</strong> - The in-place editor follows the window when an on-screen keyboard opens and keeps its buttons above the bottom bar.</li>
 <li><strong>Touch key row</strong> - A scrolling row under the line editor inserts symbols (<code>^ * / ( ) = &lt; &gt; ≤ ≥ √ π °</code>) and common units at the cursor without closing the keyboard.</li>
 <li><strong>Phone results toolbar</strong> - The toolbar drops its label, scrolls sideways instead of wrapping, and the plot hover toolbar is left out; pinch and drag still work.</li>
-<li>**<code>polyroots(v)</code>** - Returns the real roots of a polynomial in ascending order from a coefficient vector with the constant term first.</li>
+<li><strong><code>polyroots(v)</code></strong> - Returns the real roots of a polynomial in ascending order from a coefficient vector with the constant term first.</li>
 <li><strong>Sample: Laguerre polynomial roots</strong> - Coefficients from a loop, all real roots from one <code>polyroots</code> call, a residual check and the curve.</li>
 <li><strong>Sample: Beam deflection derived symbolically</strong> - Derives the midspan deflection of a simply supported beam with the Symbolic dialog, then checks it numerically against the curve.</li>
 </ul>
@@ -369,10 +369,10 @@
 <li><strong>Importer early exits</strong> - <code>return</code>, <code>break</code> and <code>continue</code> inside function bodies convert, and locals that may be unset on some path give undefined rather than zero.</li>
 <li><strong>Importer ranges and arrays</strong> - Stepped ranges (<code>x := 0, 5 .. 100</code>) work as tables, plot domains and loops; arrays grown by element, element assignments on existing arrays, whole-column writes, and arrays of vectors (<code>V[k][j]</code>) all convert, and <code>[A, B] := program</code> defines each name.</li>
 <li><strong>Importer complex numbers</strong> - Complex values are handled as real and imaginary pairs (<code>z__re</code>, <code>z__im</code>) with products, quotients, powers 2 to 4, <code>Re</code>, <code>Im</code>, <code>abs</code> and <code>conj</code>; a complex value where a real is needed is a clear gap.</li>
-<li>**Importer <code>try ... on error</code>** - Now looks through single-expression functions and common math functions, and functions whose value is an <code>if</code> or loop convert without a block.</li>
+<li><strong>Importer <code>try ... on error</code></strong> - Now looks through single-expression functions and common math functions, and functions whose value is an <code>if</code> or loop convert without a block.</li>
 <li><strong>Importer solve blocks</strong> - <code>.mcdx</code> solve blocks with one or two unknowns convert to an iterating solver that keeps the result only if every equation agrees, and solve-block regions are reported individually; solvers with a saved value take it frozen and labelled.</li>
-<li>**Importer lazy <code>if</code>** - One-line definitions whose branches call functions or index arrays are evaluated in an expression block so the untaken branch cannot fail.</li>
-<li>**Importer <code>Ceil</code> and <code>Floor</code> with a multiple** - <code>Ceil(L, in)</code> rounds up to a multiple of the second argument, noted as <code>round-digits</code>.</li>
+<li><strong>Importer lazy <code>if</code></strong> - One-line definitions whose branches call functions or index arrays are evaluated in an expression block so the untaken branch cannot fail.</li>
+<li><strong>Importer <code>Ceil</code> and <code>Floor</code> with a multiple</strong> - <code>Ceil(L, in)</code> rounds up to a multiple of the second argument, noted as <code>round-digits</code>.</li>
 <li><strong>Importer worksheet references</strong> - A referenced worksheet found in the package is followed: its definitions are computed in a hidden block, closing many undefined-name gaps.</li>
 <li><strong>Importer text-or-number values</strong> - Values that are a number on some paths and text on others compute where numeric, undefined where text, and print either; vectors of texts become vectors of codes, while vectors mixing texts and numbers stay gaps.</li>
 <li><strong>Importer controls and button values</strong> - Combo, text and list boxes convert to their stored selection, scripted buttons and check boxes to their stored value (note <code>control-input</code>), and bare names or products with no result show as written (<code>inert-expression</code>).</li>
@@ -380,19 +380,19 @@
 <li><strong>Importer plot lengths</strong> - A plot of arrays of different lengths stops at the shorter array instead of reading past its end.</li>
 <li><strong>Importer readable names</strong> - Names the engine cannot spell (dots, <code>#</code>, <code>/</code>, <code>:</code>, spaces, leading digit) get one readable spelling sheet-wide (<code>SF_crack.step2</code> becomes <code>SF_crack_step2</code>) while typeset equations keep the author&#39;s name, closing most <code>invalid-name</code> gaps.</li>
 <li><strong>Importer text checks</strong> - Text values in checks (<code>if(c; &quot;OK&quot;; &quot;NG&quot;)</code>, comparisons, names and functions holding text) compute, and evaluations show the text; text used as a number, joined or sliced is still a <code>string-value</code> gap.</li>
-<li>**Importer last-<code>if</code> programs** - Programs whose value is their last <code>if</code> convert, along with <code>alsoif</code>, <code>return x &lt;- e</code>, chained comparisons (<code>a &lt; b &lt;= c</code>) and programs ending in an assignment, and paths where nothing ran are undefined with note <code>uncovered-path</code>.</li>
+<li><strong>Importer last-<code>if</code> programs</strong> - Programs whose value is their last <code>if</code> convert, along with <code>alsoif</code>, <code>return x &lt;- e</code>, chained comparisons (<code>a &lt; b &lt;= c</code>) and programs ending in an assignment, and paths where nothing ran are undefined with note <code>uncovered-path</code>.</li>
 <li><strong>Importer data-file tables</strong> - Tables read from files the importer cannot see (<code>READEXCEL</code>, <code>READPRN</code>) take the saved value, frozen and labelled; unset paths stay undefined.</li>
 <li><strong>Importer collapsed regions</strong> - Regions inside collapsed areas are calculated in file order, and names defined in hidden regions are defined before use.</li>
 <li><strong>Importer small additions</strong> - <code>linterp(xs, ys, x)</code> maps to <code>interp(x; xs; ys)</code>, and <code>x%</code>, <code>nthRoot</code> with a degree, the units <code>plf</code>, <code>pcf</code>, <code>klf</code>, <code>kcf</code>, <code>pli</code> and <code>kips</code>, and sub and superscript text are supported.</li>
-<li>**<code>engine_check</code> example** - Takes region markers from the importer, prints engine error messages and draws plots as vector graphics; new helpers <code>run_cpd</code> and <code>dump_region</code>.</li>
+<li><strong><code>engine_check</code> example</strong> - Takes region markers from the importer, prints engine error messages and draws plots as vector graphics; new helpers <code>run_cpd</code> and <code>dump_region</code>.</li>
 <li><strong>Engine statistics</strong> - <code>median</code>, <code>stdev</code>, <code>stdevp</code>, <code>var</code>, <code>varp</code>, <code>cumsum</code>, <code>convolve</code>, <code>linspace</code>, <code>polyfit(x; y; n)</code> and <code>interp(x; xs; ys)</code> (error outside the table) are in autocomplete, help and the ribbon.</li>
 <li><strong>Importer x-y plots</strong> - Plot regions convert to <code>$Plot{...}</code> with multiple traces, axis units, range variables, titles and labels; unsupported styles are dropped with a <code>plot-style</code> note and other plot kinds stay named gaps.</li>
 <li><strong>Importer function bodies</strong> - Functions with run-time loop bounds, <code>while</code> loops and element writes to an argument copy convert to expression blocks, and ones that fill an array by element without making it create it first as zeros.</li>
 <li><strong>Engine nested loops (D12)</strong> - A loop inside an expression block now updates the enclosing block&#39;s variables, so function bodies can accumulate.</li>
-<li>**<code>linterp(x; xs; ys)</code>** - Linear interpolation that extends along the first or last segment outside the table (<code>interp</code> errors there).</li>
+<li><strong><code>linterp(x; xs; ys)</code></strong> - Linear interpolation that extends along the first or last segment outside the table (<code>interp</code> errors there).</li>
 <li><strong>Importer program results</strong> - Programs return their last statement&#39;s value, including sequential <code>if</code>s and trailing assignments; a path with no value is undefined, never zero.</li>
 <li><strong>Importer function mappings</strong> - <code>matcol</code>/<code>matrow</code> become <code>col</code>/<code>row</code>, <code>nthRoot(n, x)</code> becomes <code>root(x; n)</code>, <code>%</code> is the percent unit, elements of non-names use <code>take(i; array)</code>, and sums with <code>lowerBound</code>/<code>upperBound</code> convert.</li>
-<li>**Importer division-safe <code>try</code>** - <code>try expr on error fallback</code> converts when only a divide by zero can fail, by testing every divisor; anything else is a gap that says so.</li>
+<li><strong>Importer division-safe <code>try</code></strong> - <code>try expr on error fallback</code> converts when only a divide by zero can fail, by testing every divisor; anything else is a gap that says so.</li>
 <li><strong>Importer gap reporting</strong> - Element writes that depend on an earlier gap are reported against it, so <code>ranked_gaps()</code> points at the real cause.</li>
 </ul>
 <h4>Changed</h4>
@@ -406,7 +406,7 @@
 <li><strong>Importer list and text boxes</strong> - A list box is its selected position from 0, and an empty text box read by <code>str2num</code> is 0.</li>
 <li><strong>Importer array values</strong> - An array value is no longer put into one element of a vector; the region is an <code>element-assignment</code> gap with the reason.</li>
 <li><strong>Importer equation indent</strong> - An equation&#39;s page indent shrinks before the equation does, so far-right matrices keep their width in narrow previews.</li>
-<li>**Nested <code>if</code> spacing** - Nested <code>if</code> results have more line height and room between braces.</li>
+<li><strong>Nested <code>if</code> spacing</strong> - Nested <code>if</code> results have more line height and room between braces.</li>
 <li><strong>Importer vector products</strong> - The product of two column vectors is <code>dot(a; b)</code>, and arrays assigned from another array name are copied.</li>
 <li><strong>Importer function names</strong> - A worksheet function named like an engine function (<code>Norm</code>, <code>Max</code>, <code>Sin</code>) gets an <code>_f</code> suffix.</li>
 </ul>
@@ -442,7 +442,7 @@
 <li><strong>More maths converts</strong> - <code>kN·m</code> units, integrals (<code>$Integral</code>), first derivatives (<code>$Slope</code>), sums and products over bounds or a range variable, and range-variable tables now convert.</li>
 <li><strong>Programs convert</strong> - Local definitions, <code>for</code>, <code>while</code>, <code>if</code>/<code>else</code>, <code>break</code>/<code>continue</code> and final values become <code>#for</code>/<code>#while</code>/<code>#if</code> statements, or one expression when straight-line. A program that cannot convert faithfully stays a gap that says why.</li>
 <li><strong>More functions and arrays</strong> - <code>lsolve</code>, <code>submatrix</code>, <code>augment</code>/<code>stack</code>, <code>vectorSum</code>, <code>last</code> and <code>vectorize</code> map to engine functions, and element-by-element arrays are allocated first.</li>
-<li>**Import <code>.mcdx</code> files** - File &gt; Open, the Import button and drag and drop now accept <code>.mcdx</code>, with unsupported parts listed as skipped with a reason. Details in docs/worksheet-import.md.</li>
+<li><strong>Import <code>.mcdx</code> files</strong> - File &gt; Open, the Import button and drag and drop now accept <code>.mcdx</code>, with unsupported parts listed as skipped with a reason. Details in docs/worksheet-import.md.</li>
 <li><strong>Installable and offline</strong> - The app can be added to a home screen or installed, and it opens and calculates without a network. Interactive charts need their script loaded once while online.</li>
 <li><strong>Python highlighting</strong> - <code>#python</code> blocks and sheet python fences are coloured with the Python grammar.</li>
 <li><strong>Side-by-side regions</strong> - Regions that share a row in the source are laid out side by side while keeping their evaluation order.</li>
@@ -507,7 +507,7 @@
 <h3>Release notes</h3>
 <h4>Added</h4>
 <ul>
-<li>**<code>#python</code> pair in sheets** - A sheet accepts <code>#python</code> ... <code>#end python</code> as a Python block, the same as a <code>python</code> fence.</li>
+<li><strong><code>#python</code> pair in sheets</strong> - A sheet accepts <code>#python</code> ... <code>#end python</code> as a Python block, the same as a <code>python</code> fence.</li>
 <li><strong>Linear algebra in Python</strong> - <code>numpy.linalg</code> and <code>scipy.linalg</code> calls such as <code>solve</code>, <code>inv</code>, <code>det</code>, <code>cholesky</code>, <code>eigh</code> and <code>svd</code> run on the engine, so Python and worksheet lines give one answer. Large matrix products are about 7 times faster, and a 120 by 120 solve takes 87 ms instead of 1.5 s. See docs/python-blocks.md.</li>
 <li><strong>Build script</strong> - <code>tools/build_wasm.sh linalg</code> builds the new module.</li>
 <li><strong>Plane Truss sample</strong> - &quot;Plane Truss by the Stiffness Method&quot; assembles and solves a truss in Python, draws forces and deflections, and checks results against hand values.</li>
@@ -645,7 +645,7 @@
 <li><strong>Rust calculation engine</strong> - Compiled to WebAssembly, so no calculation request leaves the page.</li>
 <li><strong>Editor services module</strong> - A second WebAssembly module, loaded on first use, provides highlighting, linting, prettifier, definitions and the snippet library.</li>
 <li><strong>Word and Excel export</strong> - Word export writes equations as Office Math; Excel export has a Report sheet plus Variables, Inputs and Plot data sheets, with native charts. Both are built in the page.</li>
-<li>**<code>#UI</code> input forms** - Select, radio and checkbox values carry into the report, and the preview has a dark theme.</li>
+<li><strong><code>#UI</code> input forms</strong> - Select, radio and checkbox values carry into the report, and the preview has a dark theme.</li>
 <li><strong>Samples browser</strong> - 101 example worksheets with their input fields rewritten as <code>#UI</code>.</li>
 <li><strong>Ribbon interface</strong> - Ten tabs, palette popovers with a Common section above the full snippet library, and light and dark icons.</li>
 <li><strong>Model bindings</strong> - <code>civilkit: bind</code> comments have a specification, parser and in-app display; connecting a model is not implemented yet.</li>

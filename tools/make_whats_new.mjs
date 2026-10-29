@@ -49,13 +49,13 @@ export function parseChangelog(text) {
 const CODE = /`([^`]+)`/g;
 /** Inline markdown to HTML: code spans, [text](http...) links and **bold**; everything else is escaped text. */
 export function inline(md) {
-    let out = '', last = 0, m;
-    const plain = (s) => esc(s)
+    // Code spans are set aside first so that bold and links may contain them, then put back.
+    const codes = [];
+    const held = md.replace(CODE, (_, c) => { codes.push(`<code>${esc(c)}</code>`); return `\u0000${codes.length - 1}\u0000`; });
+    return esc(held)
         .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (_, t, u) => `<a href="${u}">${t}</a>`)
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    CODE.lastIndex = 0;
-    while ((m = CODE.exec(md))) { out += plain(md.slice(last, m.index)) + `<code>${esc(m[1])}</code>`; last = m.index + m[0].length; }
-    return out + plain(md.slice(last));
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\u0000(\d+)\u0000/g, (_, i) => codes[Number(i)]);
 }
 
 /** What a reader sees of an inline markdown string: the same text with the markup removed. */
