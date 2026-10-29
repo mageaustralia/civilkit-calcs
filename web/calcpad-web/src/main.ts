@@ -1830,6 +1830,19 @@ async function bootstrap(): Promise<void> {
                 text: text.join('\n'),
             }]);
         },
+        revealBlock: (groupId: string, line: number) => {
+            const ed = groups.get(groupId)?.editor;
+            const model = ed?.getModel();
+            if (!ed || !model || line > model.getLineCount()) return false;
+            const open = model.getLineContent(line).trim();
+            const closer = open === '$$' ? (t: string) => t.trim() === '$$' : (t: string) => t.trim().startsWith(open.slice(0, 3));
+            let end = line;
+            for (let n = line + 1; n <= model.getLineCount(); n++) { end = n; if (closer(model.getLineContent(n))) break; }
+            ed.setSelection({ startLineNumber: line, startColumn: 1, endLineNumber: end, endColumn: model.getLineMaxColumn(end) });
+            ed.revealLinesInCenterIfOutsideViewport(line, end);
+            ed.focus();
+            return true;
+        },
         apply: (groupId: string, line: number, text: string) => {
             const ed = groups.get(groupId)?.editor;
             const model = ed?.getModel();

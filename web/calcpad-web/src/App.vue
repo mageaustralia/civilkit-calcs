@@ -1070,6 +1070,8 @@ const onOpenFullHtmlRequest = ref<((groupId: string, html: string) => void) | nu
 const onLineEditRequest = ref<{
   text: (groupId: string, line: number) => string | null
   apply: (groupId: string, line: number, text: string) => void
+  /** Selects the fenced block (or $$ pair) that starts at `line` in the editor and focuses it; false when it does not apply. */
+  revealBlock?: (groupId: string, line: number) => boolean
   /** All lines of the group's editor, to find the #md block around a line. */
   lines?: (groupId: string) => string[] | null
   /** The Markdown prose around a line (a #markdown block, or a run of prose in a sheet), or null. */
@@ -1446,6 +1448,12 @@ async function openLineEdit(groupId: string, frameId: string, data: Record<strin
   if (!req || !iframe || !Number.isInteger(line) || line < 1) return
   const text = req.text(groupId, line)
   if (text === null) return
+  // A fenced block (a diagram, code) or a $$ pair runs over several lines and the line editor holds one: select the whole
+  // block in the editor instead, so it can be edited there.
+  if (/^\s*(```|~~~)/.test(text) || text.trim() === '$$') {
+    if (req.revealBlock?.(groupId, line)) { if (narrow.value) mobilePane.value = 'edit' }
+    return
+  }
   const r = (data.rect ?? {}) as Record<string, unknown>
   const box = iframe.getBoundingClientRect()
   // The editor opens over the rendered text, as wide as it was (not narrower than a line of source).
