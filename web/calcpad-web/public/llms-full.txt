@@ -4652,6 +4652,10 @@ Unwrapped, **Input**, Report), or **Input form** on the Input/Output tab. Then:
 
 * Each input line is a control. A box holds the number only; the unit stays beside it, so a number
   cannot be typed in the wrong unit. A box accepts digits, a decimal point and a sign.
+* Consecutive input lines are drawn as one block, so the names, the boxes, the sliders, the units and the notes
+  start at the same place on every row. The names are right aligned so the equals signs meet, a very long name is
+  held to 40% of the width and wraps, and a text line, a heading or a blank line starts a new block. This is how
+  the form looks only; the report, print and the exports are unchanged. (The docked panel, described above, is laid out on its own.)
 * Type a value and press Enter, or leave the box, and the sheet recalculates. Lists, buttons and
   the checkbox act at once.
 * The **Insert** panel says "Unavailable in input mode": it acts on the source, which the form does

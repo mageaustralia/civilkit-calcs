@@ -11,7 +11,9 @@
 //   6. a phone-wide pane: no horizontal overflow, and the rows of a run still share one x for their boxes;
 //   7. print keeps the plain flow (the widths are screen rules), values and tab order are unchanged, and a box edited
 //      in the form still re-runs the sheet;
-//   8. a label edited in the sheet text makes the next render line up on the new widest label.
+//   8. a label edited in the sheet text makes the next render line up on the new widest label;
+//   9. the docked inputs panel (a sheet with a slider opens docked): the form's own rows are hidden and left alone; turning
+//      Dock inputs off draws the rows again, lined up. Checks 1 to 8 pin the dock off (it is covered by input-dock-check.mjs).
 import { createServer } from 'node:http';
 import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
@@ -73,8 +75,10 @@ const browser = await chromium.launch();
 const pageErrors = [];
 
 /** A page with the sheet open in the Input mode, and the frame that holds the form. */
-async function open(opts = {}, text = SHEET) {
+async function open({ dock = false, ...opts } = {}, text = SHEET) {
     const context = await browser.newContext({ viewport: { width: 1300, height: 900 }, ...opts });
+    // The sheet has sliders, so the inputs would open docked and the form's own rows would be hidden.
+    if (!dock) await context.addInitScript(() => { try { sessionStorage.setItem('calcpad.inputDock', 'off'); } catch { /* storage refused */ } });
     await context.addInitScript(() => { if (window === window.top) { delete window.showSaveFilePicker; delete window.showOpenFilePicker; } });
     const page = await context.newPage();
     page.on('pageerror', (e) => { if (e.message !== 'Canceled' && e.message !== 'Event') pageErrors.push(e.message); });
@@ -91,6 +95,9 @@ async function formFrame(page, marker = 'Align check', tries = 120) {
     for (let i = 0; i < tries; i++) {
         for (const f of page.frames()) {
             if (f === page.mainFrame()) continue;
+            // The preview is two stacked frames; the one in front is on screen (the other may hold the render before).
+            const front = await f.frameElement().then((e) => e.evaluate((x) => !x.classList.contains('preview-frame-back'))).catch(() => false);
+            if (!front) continue;
             const ok = await f.evaluate((m) => !!document.querySelector('input.calcpad-ui-slider') && (document.body.innerText || '').includes(m), marker).catch(() => false);
             if (ok) { await page.waitForTimeout(700); return f; }
         }
@@ -230,6 +237,40 @@ for (const scheme of ['light', 'dark']) {
         check(top <= 1, `phone ${scheme}: the app page itself does not scroll sideways (${top})`);
         await f.evaluate(() => window.scrollTo(0, 0));
         if (shots) await page.screenshot({ path: join(shots, `align-phone-${scheme}.png`) });
+    }
+    await context.close();
+}
+
+// ---- 9. the docked inputs panel, then undocked -------------------------------------------------------------------------------
+{
+    const { context, page } = await open({ dock: true });
+    const dockSlider = page.locator('.input-dock-host .input-dock .ce-slider').first();
+    const docked = await dockSlider.waitFor({ timeout: 60000 }).then(() => true).catch(() => false);
+    check(docked, 'docked: the panel holds the sheet inputs');
+    let hidden = false;
+    for (let i = 0; i < 40 && !hidden; i++) {
+        for (const fr of page.frames()) {
+            if (fr === page.mainFrame()) continue;
+            hidden = hidden || await fr.evaluate(() => { const p = document.querySelector('p[data-ui-type]'); return !!p && p.getClientRects().length === 0; }).catch(() => false);
+        }
+        if (!hidden) await page.waitForTimeout(250);
+    }
+    check(hidden, 'docked: the form rows are hidden and the pass leaves them alone');
+    if (shots) await page.screenshot({ path: join(shots, 'align-docked.png') });
+    await page.locator('.input-dock-btn').click();
+    // the form is drawn again, with its rows shown: wait for a front frame whose rows have been given widths
+    let f = null;
+    for (let i = 0; i < 60 && !f; i++) {
+        const ff = await formFrame(page, 'Align check', 2);
+        if (ff && await ff.evaluate(() => { const p = document.querySelector('p[data-ui-type]'); return !!p && p.getClientRects().length > 0 && !!p.querySelector('.cprs-lbl'); }).catch(() => false)) f = ff;
+        else await page.waitForTimeout(300);
+    }
+    check(f != null, 'undocked: the form rows are back');
+    if (f) {
+        const g = await geometry(f);
+        check(same(col(g, A, 'box')) && same(col(g, A, 'slider')) && same(col(g, A, 'unit')) && same(col(g, A, 'note')) && same(col(g, A, 'lblRight')),
+            `undocked: run A lines up again ${fmt(col(g, A, 'box'))} ${fmt(col(g, A, 'lblRight'))}`);
+        check(g.len.cssVars.includes('--cprs-lw') && !/--cprs-lw:\s*0px/.test(g.len.cssVars), `undocked: the label width is a real width (${g.len.cssVars.slice(0, 60)})`);
     }
     await context.close();
 }

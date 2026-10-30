@@ -14,7 +14,7 @@
 // every export keep the plain flow. The pass only wraps existing nodes in spans (no node is removed, so tab order,
 // events and the values the controls post are untouched) and runs again when the pane is resized.
 // A run is rows that are siblings with nothing between them; a text line, a heading or a blank line ends it.
-// A run of one row is left as it is.
+// A run of one row is left as it is. Rows that are hidden (display none, as the docked inputs panel does) are left out.
 
 export const INPUT_ALIGN_CSS = '<style>'
     // The gap the engine writes as a space before a unit; the same in print, where nothing else of this applies.
@@ -139,7 +139,10 @@ function inputAlignMain(): void {
             for (let n: Element | null = first; isRow(n); n = n.nextElementSibling) { run.push(n); seen.add(n); }
             runs.push(run);
         });
-        for (const run of runs) {
+        for (const all of runs) {
+            // A row that is not drawn (the docked panel hides the form's own input lines) has no width to measure.
+            const run = all.filter((p) => p.getClientRects().length > 0);
+            all.forEach((p) => { if (!run.includes(p)) clear(p); });
             if (run.length < 2) { run.forEach(clear); continue; }
             const rows = run.map(prepare).filter((r): r is Row => r !== null);
             if (rows.length < 2) { run.forEach(clear); continue; }
