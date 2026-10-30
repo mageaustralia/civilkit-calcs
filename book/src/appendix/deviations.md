@@ -10,7 +10,7 @@ page is a summary for users.
 | --- | --- | --- |
 | A failing `#if` condition | A condition that throws (a misspelled name) is false, so the `#else` branch runs without a word. | The block is left unresolved: no branch runs, and an error paragraph says why. |
 | Plot loops | A plot grid with a NaN step never ends. | Grid loops stop after 100,000 lines. Finite grids are unchanged. |
-| Scripts in a worksheet | Any `<script>` in a worksheet runs from any address. | Scripts run only from a library list (Settings, Libraries), under a content security policy, with exact file addresses and integrity hashes. A script that is not on the list is replaced by a note naming its address. Scripts cannot send data anywhere. The print frame has no scripts. |
+| Scripts in a worksheet | Any `<script>` in a worksheet runs from any address. | Scripts run only from a library list (Settings, Advanced, Libraries), under a content security policy, with exact file addresses and integrity hashes. A script that is not on the list is replaced by a note naming its address. Scripts cannot send data anywhere. The print frame has no scripts. |
 | C-style operators | The desktop app converts `==`, `!=`, `>=`, `<=`, `%%`, `&&`, `\|\|`, `<<`, `<*` when it reads a file. | The browser does the same when it opens a worksheet. |
 | Input fields | Many examples use the old `name = ? {default}` form. | The bundled samples are rewritten with `#UI`, and the editor offers a "Convert to #UI" quick fix. |
 | Select, radio and checkbox | A select or radio that names a text box does nothing in the web front end. | It fills the text boxes it names and recalculates; the choice is carried into the Report, PDF and Word. |

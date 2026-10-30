@@ -6,7 +6,8 @@ so a file reads the same on every machine.
 
 ## Choosing a format
 
-Open **Calculation > Calculation settings** in the ribbon. **Number format** is the first section.
+Open **Settings** (the gear at the right end of the top strip). **Number format** is on the **General** tab, under
+Language.
 
 | Choice | Looks like |
 |---|---|

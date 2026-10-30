@@ -507,6 +507,8 @@ await cdp.send('Network.setCacheDisabled', { cacheDisabled: false });
     const btn = page.locator('[data-ribbon-btn=k-settings]').first();
     if (!(await btn.isVisible())) await page.locator('.ribbon-tab, [role=tab]', { hasText: /^\s*Calculation\s*$/ }).first().click();
     await btn.click({ timeout: 10000 });
+    // Libraries is on the Advanced tab of the dialog.
+    await page.locator('.tab-content.as-dialog [role=tab][data-settings-tab=advanced]').click({ timeout: 10000 });
     await page.locator('.tab-content.as-dialog .cprs-libraries .section-header').waitFor({ timeout: 10000 });
 }
 await page.locator('.cprs-libraries .section-header').click();

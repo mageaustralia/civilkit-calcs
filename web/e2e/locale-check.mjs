@@ -70,6 +70,8 @@ async function openSettings(page) {
     const b = page.locator('[data-ribbon-btn=k-settings]').first();
     if (!await b.isVisible()) await page.locator('.ribbon-tab, [role=tab]', { hasText: /^\s*Calculation\s*$/ }).first().click();
     await b.click();
+    // Calculation settings opens the Calculation tab of the dialog; Number format is on General.
+    await page.locator('.tab-content.as-dialog [role=tab][data-settings-tab=general]').click();
     await page.locator('#cprs-numfmt-choice').waitFor({ timeout: 10000 });
 }
 async function closeSettings(page) {

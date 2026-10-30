@@ -8,6 +8,7 @@ import { sheetInsert } from './sheet-insert';
 import { diagramEdit } from './diagram-starters.ts';
 import { SymbolicDialog } from './symbolic';
 import { t } from '../i18n';
+import { requestSettingsTab } from 'calcpad-frontend/vue/settings-tab-request';
 
 /** The editor's file is a sheet (its Monaco language, which follows the marker line). */
 export const isSheetEditor = (editor: any): boolean => editor?.getModel?.()?.getLanguageId?.() === 'calcpad-sheet';
@@ -145,7 +146,8 @@ export const ACTIONS: Record<string, Handler> = {
     togglePreview: c => c.app.togglePreview?.(),
     sidebar: c => c.app.toggleSidebar?.(),
     tab: (c, id) => c.showSidebarTab(id),
-    settings: c => c.showSidebarTab('settings'),
+    // `settings:calculation` opens Settings on that tab (a tab, section or setting name); plain `settings` on the last one.
+    settings: (c, tab) => { if (tab) requestSettingsTab(tab); c.showSidebarTab('settings'); },
     theme: (c, t) => c.bridge?.handleMessage({ type: 'updateColorTheme', theme: t }),
     zoomIn: c => zoom(c, 1),
     zoomOut: c => zoom(c, -1),

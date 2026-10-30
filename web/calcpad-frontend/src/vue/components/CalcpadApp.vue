@@ -1120,6 +1120,15 @@ onUnmounted(() => {
   border-radius: 8px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
+/* Settings keeps one height whichever of its tabs is open, and scrolls inside (CalcpadSettingsTab). */
+.tab-content.as-dialog:where(:has(> .settings-tab)) {
+  height: min(88vh, 760px);
+}
+.tab-content.as-dialog > .settings-tab {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
 .cpd-dialog-head {
   position: sticky;
   top: 0;

@@ -102,8 +102,8 @@ plot M(x) for x in 0..L
 | `PlotShadows` | 1 to shade colour maps. |
 | `PlotLightDir` | Direction of the light, 0 to 7 clockwise from north. |
 
-The same settings are in the Settings dialog, which sets the defaults for every worksheet. The
-Plots & Diagrams tab of the ribbon has buttons for each form and for these lines.
+The same settings are on the Calculation tab of the Settings dialog, which sets the defaults for every
+worksheet. The Plots & Diagrams tab of the ribbon has buttons for each form and for these lines.
 
 ## The buttons under a plot
 
