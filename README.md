@@ -31,6 +31,8 @@ Status: early. The project is not affiliated with the authors of CalcpadCE.
 * **Import worksheets:** drop a `.xmcd` or `.mcdx` file on the page to convert it locally, with a report of what did not convert ([docs/worksheet-import.md](docs/worksheet-import.md)).
 * **Samples and templates:** more than 150 worksheets and fill-in templates, grouped and searchable, with a preview.
 * **Installable and offline:** a web app manifest and service worker let the page install on a phone or desktop and calculate without a connection.
+* **Interface languages:** the ribbon, settings and menus can be shown in Spanish, Portuguese, French, German or Chinese (Simplified), with a number format setting for comma decimals. The translations are machine drafts that no native speaker has reviewed yet ([translations/README.md](web/calcpad-web/translations/README.md)).
+* **Interactive panels:** a Python block can define sliders and drop-downs that redraw a chart and table in place, without recalculating the sheet.
 * **Phone layout:** the ribbon, editor and results rearrange on a narrow screen, with larger touch targets.
 * **Ribbon interface:** ten tabs and a quick-access strip replace the menu bar, with every snippet of the library reachable from it.
 * **User guide:** a guide whose examples are all run by the test suite, at https://civilkit.io/calcs/guide/.
@@ -165,6 +167,25 @@ node e2e/symbolic-check.mjs       # Symbolic dialog: each operation, typeset res
 node e2e/embed-check.mjs          # ?embed=1: form and results, postMessage API, embed.js on another origin, no stored state (CALCS_BASE=/ build)
 node ../tools/set_version.mjs --check
 ```
+
+## Checked at 26.10.18
+
+On the release tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded) passed 6120 tests (3 ignored) and `calcpad-sheet` 107,
+with no failures. Browser checks on the release build, served at the root: `sheet-check` (50 checks), `inputs-check` (71), `ribbon-check` (with
+`--lint`, 58), `ribbon-layout-check` (31), `fence-click-check`, `diagram-ribbon-check` (96), `diagram-samples-check` (58), `mermaid-check`
+(37), `shortcuts-check`, `locale-check` (67), `panels-check` (44), `i18n-check` (German and Chinese in a browser, the picker and the first-visit
+prompt), `i18n-english-check` (941 interface strings compared with the English snapshot; the snapshot's version line was updated for this
+release), `browser-check` (123 checks) and `verify-ribbon-snippets` (435 snippets run, 4 skipped, 0 failed); without a browser, `i18n-unit-check`
+(54 checks), `tools/i18n/check.mjs` (816 English keys; each of the five languages has 697 of them, 85.4%, with 12 length warnings) and
+`version-json-check`. On the build with the `/calcs/` base: `browser-check` (123 checks), `sample-link-check`, `pwa-check` (with
+`PWA_BASE=/calcs/`; the precache holds 607 files, none of them an interface language catalogue) and `learn-check` (720 links, 221 quoted
+engine values compared with a fresh run, 21 pages re-rendered) all passed, and `whats-new-check` passed. `embed-check` (41 checks, on the build
+with `CALCS_BASE=/`) passed. `seo-check` (3214 checks, 2143 internal links followed) passed on the guide built with `book/build.sh`, and the
+user guide's 136 examples all run (`book/check-examples.sh`). `whats-new-browser-check` passed with all 56 clip files (105 checks). The
+interface translations are machine drafts: no native speaker has reviewed them, and the checks only prove that they load, fit the placeholders
+and render, not that the wording is right. Not run for this release: `plot3d-check`, `symbolic-check`, `import-check`, `python-check` and the
+other smaller checks. Not tested: a real phone, other browsers than headless Chromium, the MCP Worker in `mcp/`, `tsc` beyond the build,
+`clippy` on the whole workspace, `cargo fmt --check`.
 
 ## Checked at 26.10.17
 
