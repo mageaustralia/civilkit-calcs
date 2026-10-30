@@ -111,6 +111,8 @@ test('calcs_search_docs and calcs_get_guide_page', async () => {
     assert.doesNotMatch(first.snippet, /<!--/);
     const t = await call('calcs_search_docs', { query: 'templates with inputs slider' });
     assert.ok(t.structured.results.some((r) => r.page === 'templates' || r.page === 'sheet-syntax'));
+    const p = await call('calcs_search_docs', { query: 'slider chart' });
+    assert.ok(p.structured.results.some((r) => r.page === 'python-panels'), 'the interactive panels chapter is found for "slider chart"');
     for (const key of ['units', 'units.md', 'https://civilkit.io/calcs/guide/units', 'Units']) {
         const g = await call('calcs_get_guide_page', { page: key });
         assert.equal(g.structured.page, 'units', key);

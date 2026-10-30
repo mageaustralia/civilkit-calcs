@@ -131,6 +131,7 @@ See [Exporting](exporting.md).
 ## Python plots
 
 For interactive charts, subplots, 3D surfaces and plots of computed arrays, use a Python block.
-See [Python blocks](python.md).
+See [Python blocks](python.md). For a chart that redraws while you drag a slider, see
+[Interactive panels](python-panels.md).
 
 **Related calculators:** [Moment and shear diagrams](https://civilkit.io/calcs/learn/bending-moment-shear-force-diagram/), [Pump operating point](https://civilkit.io/calcs/learn/pump-operating-point-calculator/), [Concrete strength gain](https://civilkit.io/calcs/learn/concrete-strength-gain-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).

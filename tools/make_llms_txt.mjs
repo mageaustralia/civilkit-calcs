@@ -53,6 +53,7 @@ export function outputs() {
     index.push('- An input line is `L: ? 6 m` (a number box in Input mode); `L: ? 6 m [2 .. 12 step 0.5]` adds a slider.');
     index.push('- Units are checked: a stress times a section modulus comes out as a moment. `-> %` shows a ratio as a percentage.');
     index.push('- Diagrams are Mermaid fences written in the sheet; plots, Python blocks and symbolic algebra are built in.');
+    index.push(`- A slider that redraws a chart live is a Python block with \`import ui\` and \`@ui.panel(ui.slider(...))\` on a function that returns a Plotly figure: see ${guideUrl('python-panels.md')} .`);
     index.push('');
     index.push(`The whole guide in one file: ${SITE}llms-full.txt`);
     index.push('');

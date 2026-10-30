@@ -13,6 +13,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ### Added
 - **Settings gear** - A gear at the right end of the top strip opens Settings from any tab, on a phone too; the ribbon icon for Settings is now a cog.
+- **Interactive panels guide** - A new guide chapter shows how to build a Python panel whose sliders redraw a chart, a 3D surface or a table, with its limits and a short summary written for AI assistants.
 - **Settings tabs** - The Settings dialog is split into General, Calculation, Editor, Export and Advanced tabs, and its search box still looks through every tab at once. It reopens on the tab last used, and Calculation settings and Header and footer open their own tab.
 - **Plot legends** - A curve on a sheet `plot` line takes a name with `as "name"` (`plot sin(x) as "sine", cos(x) as "cosine" for x in 0..6`), and the plot then shows a legend with a colour swatch per curve, in print, PDF and Word too; the Excel chart uses the names for its series.
 - **Solve, integral and slope lines** - A sheet quantity can be `x0: solve f(x) = 4 for x in 0..5`, `A: integral of f(x) for x in 0..3` or `k: slope of f(x) at x = 3`, with units and `-> unit` as on any quantity line; the Functions palette inserts them in a sheet.
