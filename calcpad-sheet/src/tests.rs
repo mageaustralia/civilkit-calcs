@@ -1364,6 +1364,10 @@ fn template_pump_values_and_inputs() {
     ] {
         assert!(t.contains(want), "{want}: {t}");
     }
+    // The `solve` line finds the same crossing numerically, and the plot has a legend.
+    assert!(t.contains("Q num = $Root { H p ( Q ) − H s ( Q ) = 0; Q ∈ [ 0 L s ; Q max ]} = 40.9 L"), "{t}");
+    let (_, html, _) = render(&sample(name));
+    assert!(html.contains(">pump </text>") && html.contains(">pipeline </text>"));
     // An aged pipe has a larger friction factor: less flow.
     let (errs, t) = with_inputs(name, &[("aged:1", "1")]);
     assert!(errs.is_empty(), "{errs:?}");
@@ -1376,6 +1380,7 @@ fn template_pump_values_and_inputs() {
     let (errs, t) = with_inputs(name, &[("pump:1", "1"), ("H_st:1", "35")]);
     assert!(errs.is_empty(), "{errs:?}");
     assert!(t.contains("cannot lift the water") && t.contains("= 0 L"), "{t}");
+    assert!(!t.contains("Q num"), "no numerical solve without a crossing: {t}");
 }
 
 // ---- compiled samples stay as they were -------------------------------------------------------

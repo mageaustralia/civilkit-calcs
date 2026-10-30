@@ -156,14 +156,16 @@ const fence = (py) => `# Fact ${++factN}\n\n\`\`\`python\n${py}\n\`\`\`\n`;
     }
 }
 for (const [py, re, what] of [
-    ['import numpy as np\nX, Y = np.meshgrid([1, 2], [3, 4])', /NotImplementedError/, 'numpy.meshgrid raises NotImplementedError'],
-    ['import math\nprint(math.hypot(3, 4))', /AttributeError/, 'math.hypot is missing (AttributeError)'],
-    ['z = [' + Array.from({ length: 4000 }, (_, i) => (i % 97) / 10).join(', ') + ']\nprint(len(z))', /pystack exhausted/, 'a 4,000-number list literal fails with pystack exhausted'],
-    ['z = []\nfor i in range(4000):\n    z.append((i % 97) / 10)\nprint("built", len(z))', null, 'the same list built in a loop works'],
+    ['import numpy as np\nX, Y = np.meshgrid([1, 2], [3, 4])\nprint("grid", len(X), len(X[0]))', /grid 2 2/, 'numpy.meshgrid works'],
+    ['import math\nprint("hyp", math.hypot(3, 4))', /hyp 5/, 'math.hypot works'],
+    ['import numpy as np\nprint("v", np.vstack([[1, 2], [3, 4]]))', /NotImplementedError/, 'numpy.vstack raises NotImplementedError'],
+    ['z = [' + Array.from({ length: 4000 }, (_, i) => (i % 97) / 10).join(', ') + ']\nprint("built", len(z))', null, 'a 4,000-number list literal works'],
+    ['z = [' + Array.from({ length: 17000 }, (_, i) => (i % 97) / 10).join(', ') + ']\nprint("built", len(z))', /list literals are limited|long list literals/, 'a 17,000-number list literal is refused with a hint'],
+    ['z = []\nfor i in range(17000):\n    z.append((i % 97) / 10)\nprint("built", len(z))', null, 'the same list built in a loop works'],
 ]) {
-    const fr = await run(fence(py), async (f) => /Python error|built 4000/.test(await f.locator('body').innerText()));
+    const fr = await run(fence(py), async (f) => /Python error|built \d+|hyp 5|grid 2 2/.test(await f.locator('body').innerText()));
     const body = fr ? await fr.locator('body').innerText() : '';
-    check(re ? re.test(body) : /built 4000/.test(body) && !/Python error/.test(body), `fact: ${what}${fr ? '' : ' (no result)'}`);
+    check(re ? re.test(body) : /built \d+/.test(body) && !/Python error/.test(body), `fact: ${what}${fr ? '' : ' (no result)'}`);
     if (process.argv.includes('--show')) console.log('     ' + body.replace(/\s+/g, ' ').slice(0, 300));
 }
 

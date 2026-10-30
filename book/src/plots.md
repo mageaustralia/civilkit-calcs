@@ -32,6 +32,22 @@ Several expressions, separated by commas, are drawn together, each in its own co
 `y =` before the expressions is dropped (`plot y = f(x) for x in 0..10`). A malformed `plot` line
 is reported on its line in the report and in the editor.
 
+### A legend
+
+Give a curve a name with `as "name"` after its expression, and the plot gets a legend in its top
+right corner: a colour swatch and the name of each curve.
+
+```sheet
+>> #rad
+plot sin(x) as "sine", cos(x) as "cosine" for x in 0..2*π
+```
+
+A curve without a name is listed by its expression, and a plot where no curve has a name has no
+legend, as before. A name cannot contain quotes, `&`, `|`, `@` or braces. The legend is part of the
+SVG, so it is in the printout and the PDF and in the Word picture; in Excel the names are the
+series names of the chart. In Calcpad text the name follows the expression in double quotes,
+`$Plot{sin(x) "sine" & cos(x) "cosine" @ x = 0 : 2*π}` (this is not in CalcpadCE).
+
 The plot is an SVG drawing. It is sharp at any zoom, it prints well, and its data is exported to
 Excel as a native chart.
 
@@ -71,6 +87,7 @@ A sheet reaches the rest of the plotting commands through `>>` lines.
 | --- | --- |
 | `$Plot{y(x) @ x = a : b}` | A function of one variable. |
 | `$Plot{y1(x) & y2(x) @ x = a : b}` | Several functions on one plot. |
+| `$Plot{y1(x) "name 1" & y2(x) "name 2" @ x = a : b}` | The same, with a legend. |
 | `$Plot{x(t) \| y(t) @ t = a : b}` | A parametric curve. |
 | `$Plot{x1(t) \| y1(t) & x2(t) \| y2(t) @ t = a : b}` | Several parametric curves. |
 | `$Map{f(x; y) @ x = a : b & y = c : d}` | A colour map of a surface. |

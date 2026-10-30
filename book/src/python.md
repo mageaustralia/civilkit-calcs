@@ -92,7 +92,10 @@ The stand-ins are small subsets that mimic those packages. What works:
 
 * numpy: `array`, `linspace`, `arange`, `zeros`, `ones`, `full`, arithmetic and `**`, `@`, `dot`,
   `sum`, `mean`, `max`, `argmax`, `cumsum`, `abs`, `clip`, `maximum`, `where`, `sqrt`, `exp`,
-  `sin`, `cos`, `diff`, `trapz`, `eye`, boolean masks.
+  `sin`, `cos`, `diff`, `trapz`, `eye`, boolean masks, and for plotting `hypot`, `arctan2`,
+  `meshgrid` (`indexing="xy"` or `"ij"`), `outer`, `interp`, `polyfit`, `polyval`.
+* math: everything in MicroPython's `math`, plus `hypot`, `dist`, `prod`, `fsum`, `isqrt`, `comb`,
+  `perm`, `gcd` and `lcm`, which the page adds.
 * numpy.linalg and scipy.linalg: `solve`, `inv`, `det`, `cholesky`, `eigh`, `svd`, `matrix_rank`,
   `cond`, `pinv`, `norm`. The numbers come from the same engine as the sheet's `lsolve`, `inverse`
   and `det`.
@@ -101,7 +104,7 @@ The stand-ins are small subsets that mimic those packages. What works:
   `suptitle`, `axis("equal")`, log axes, `show`, `savefig`.
 
 Missing functions raise a named error rather than a wrong answer. Not available: `vstack`, `hstack`,
-`reshape`, `meshgrid`, `sort`, `interp`, `polyfit`, `random` in numpy; `hist`, `pie`, `errorbar`,
+`reshape`, `sort`, `random`, `poly1d`, `roots` in numpy; `hist`, `pie`, `errorbar`,
 `step`, `annotate`, `imshow`, `contour`, `twinx` in matplotlib; non-symmetric `eig` and `lstsq` in
 linalg.
 
@@ -110,6 +113,9 @@ NotImplementedError: numpy.linalg.lstsq is not available in the light Python sta
 ```
 
 A singular matrix raises `LinAlgError: Matrix is singular.` on the Python line that made the call.
+A list written out in the source can hold up to 16,000 numbers; a longer one is refused with
+an error that says what to do instead. For thousands of values, build the list in a loop or
+parse a text string (`[float(v) for v in "1.5 2.5 3.5".split()]`), which is also much faster.
 
 ````sheet python
 # Linear algebra in a block

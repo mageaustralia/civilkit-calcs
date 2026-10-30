@@ -561,6 +561,9 @@ M_star = 54 kN·m
   `Delta`, `Theta`, `Lambda`, `Xi`, `Pi`, `Sigma`, `Upsilon`, `Phi`, `Psi`, `Omega`.
 * A name that ends in `star` after a capital or a digit (`Mstar`) is that name with the subscript
   `star`.
+* The first `_` in a name starts the subscript: `my_long_name_2` is shown as `my` with the subscript
+  `long_name_2`, as Calcpad writes it. Names with digits and several underscores calculate normally;
+  only the way they are typeset changes.
 
 The same rule renames every use of a name, so you spell it one way throughout the sheet. Inside
 `>>` lines and `calcpad` fences the sheet's spelling is used too: `phi` in a raw line is φ.
@@ -1707,8 +1710,10 @@ g(t) = 2·t
 r = f(3; 4) + g(1) = 7
 ```
 
-Calls take commas in a sheet; the compiler writes the engine's `;`. Functions can use any
-quantity defined above them, and may be used in plots (`plot g(t) for t in 0..5`).
+Calls take commas in a sheet; the compiler writes the engine's `;`. Calcpad's own `;` works too,
+in a definition and in a call (`f(x; y): x + y`, `max(3; 7)`): inside brackets it means the same as
+a comma. Functions can use any quantity defined above them, and may be used in plots
+(`plot g(t) for t in 0..5`).
 
 ### Keeping functions for reuse
 
@@ -1756,10 +1761,34 @@ A function whose name is also a variable name needs the Calcpad spelling (a name
 or `beta` used as a variable only keeps working if you write it the Calcpad way). Function calls
 are not renamed unless the sheet defines the function.
 
+## Solving, integrating and slopes
+
+Three numerical operations have a sheet form of their own, written like a `plot` line:
+
+<!-- expect: = 1.41 the positive root | d x = 9 | x = 3 = 6 -->
+```sheet
+f(x): x^2
+x0: solve f(x) = 2 for x in 0..2 | the positive root
+A: integral of f(x) for x in 0..3
+k: slope of f(x) at x = 3
+```
+
+* `solve f(x) = c for x in a..b` finds the `x` between `a` and `b` where both sides are equal
+  (Calcpad's `$Root{f(x) = c @ x = a : b}`). Without `= c` it solves `f(x) = 0`. Both sides may
+  use the variable (`solve f(x) = g(x) for x in 0..5` finds where two curves cross). The difference
+  of the sides must change sign once across the range.
+* `integral of f(x) for x in a..b` is the numerical integral (`$Integral`).
+* `slope of f(x) at x = a` is the derivative at a point (`$Slope`).
+
+`root(27, 3)` is something else: the cube root of 27. The bounds may carry units, and a bare `0`
+takes the unit of the other bound, so `solve x^2 = 4 m^2 for x in 0..5 m -> mm` gives 2000 mm. A
+line that starts like one of these but is malformed (`for 2 in 0..5`, two `=` signs) is an error on
+its line.
+
 ## Numerical commands
 
-The `$Root`, `$Area`, `$Sum`, `$Find` and similar commands are Calcpad commands. In a sheet
-they go through `>>`:
+The `$Root`, `$Area`, `$Sum`, `$Find` and similar commands are Calcpad commands. Apart from the three
+above, in a sheet they go through `>>`:
 
 ```sheet
 >> f(x) = x^2 - 2
@@ -3714,6 +3743,22 @@ Several expressions, separated by commas, are drawn together, each in its own co
 `y =` before the expressions is dropped (`plot y = f(x) for x in 0..10`). A malformed `plot` line
 is reported on its line in the report and in the editor.
 
+### A legend
+
+Give a curve a name with `as "name"` after its expression, and the plot gets a legend in its top
+right corner: a colour swatch and the name of each curve.
+
+```sheet
+>> #rad
+plot sin(x) as "sine", cos(x) as "cosine" for x in 0..2*π
+```
+
+A curve without a name is listed by its expression, and a plot where no curve has a name has no
+legend, as before. A name cannot contain quotes, `&`, `|`, `@` or braces. The legend is part of the
+SVG, so it is in the printout and the PDF and in the Word picture; in Excel the names are the
+series names of the chart. In Calcpad text the name follows the expression in double quotes,
+`$Plot{sin(x) "sine" & cos(x) "cosine" @ x = 0 : 2*π}` (this is not in CalcpadCE).
+
 The plot is an SVG drawing. It is sharp at any zoom, it prints well, and its data is exported to
 Excel as a native chart.
 
@@ -3753,6 +3798,7 @@ A sheet reaches the rest of the plotting commands through `>>` lines.
 | --- | --- |
 | `$Plot{y(x) @ x = a : b}` | A function of one variable. |
 | `$Plot{y1(x) & y2(x) @ x = a : b}` | Several functions on one plot. |
+| `$Plot{y1(x) "name 1" & y2(x) "name 2" @ x = a : b}` | The same, with a legend. |
 | `$Plot{x(t) \| y(t) @ t = a : b}` | A parametric curve. |
 | `$Plot{x1(t) \| y1(t) & x2(t) \| y2(t) @ t = a : b}` | Several parametric curves. |
 | `$Map{f(x; y) @ x = a : b & y = c : d}` | A colour map of a surface. |
@@ -3917,7 +3963,10 @@ The stand-ins are small subsets that mimic those packages. What works:
 
 * numpy: `array`, `linspace`, `arange`, `zeros`, `ones`, `full`, arithmetic and `**`, `@`, `dot`,
   `sum`, `mean`, `max`, `argmax`, `cumsum`, `abs`, `clip`, `maximum`, `where`, `sqrt`, `exp`,
-  `sin`, `cos`, `diff`, `trapz`, `eye`, boolean masks.
+  `sin`, `cos`, `diff`, `trapz`, `eye`, boolean masks, and for plotting `hypot`, `arctan2`,
+  `meshgrid` (`indexing="xy"` or `"ij"`), `outer`, `interp`, `polyfit`, `polyval`.
+* math: everything in MicroPython's `math`, plus `hypot`, `dist`, `prod`, `fsum`, `isqrt`, `comb`,
+  `perm`, `gcd` and `lcm`, which the page adds.
 * numpy.linalg and scipy.linalg: `solve`, `inv`, `det`, `cholesky`, `eigh`, `svd`, `matrix_rank`,
   `cond`, `pinv`, `norm`. The numbers come from the same engine as the sheet's `lsolve`, `inverse`
   and `det`.
@@ -3926,7 +3975,7 @@ The stand-ins are small subsets that mimic those packages. What works:
   `suptitle`, `axis("equal")`, log axes, `show`, `savefig`.
 
 Missing functions raise a named error rather than a wrong answer. Not available: `vstack`, `hstack`,
-`reshape`, `meshgrid`, `sort`, `interp`, `polyfit`, `random` in numpy; `hist`, `pie`, `errorbar`,
+`reshape`, `sort`, `random`, `poly1d`, `roots` in numpy; `hist`, `pie`, `errorbar`,
 `step`, `annotate`, `imshow`, `contour`, `twinx` in matplotlib; non-symmetric `eig` and `lstsq` in
 linalg.
 
@@ -3935,6 +3984,9 @@ NotImplementedError: numpy.linalg.lstsq is not available in the light Python sta
 ```
 
 A singular matrix raises `LinAlgError: Matrix is singular.` on the Python line that made the call.
+A list written out in the source can hold up to 16,000 numbers; a longer one is refused with
+an error that says what to do instead. For thousands of values, build the list in a loop or
+parse a text string (`[float(v) for v in "1.5 2.5 3.5".split()]`), which is also much faster.
 
 ````sheet python
 # Linear algebra in a block
@@ -4158,9 +4210,9 @@ The five rules:
    first result holds a chart.
 3. The panel cannot read the sheet's quantities, and the sheet cannot read the panel's values. Put
    every number the panel needs in the block itself.
-4. The Python is a small stand-in for numpy: `numpy.meshgrid`, `reshape`, `vstack` and `math.hypot`
-   are not there. Build grids with list comprehensions and loops, and never write a list literal
-   with thousands of numbers.
+4. The Python is a small stand-in for numpy: `reshape`, `vstack`, `hstack` and `sort` are not there
+   (`meshgrid` and `math.hypot` are). Build large lists with a loop or a comprehension: a list
+   literal of more than 16,000 numbers in the code is refused.
 5. Do the heavy work once in the block body and keep the panel function light: it runs on every
    move of a control.
 
@@ -4381,11 +4433,11 @@ sheet's calculation, use a sheet input instead (`L: ? 6 m [2 .. 12 step 0.5]`).
 not on full Python. The list of what works is in [Which numpy and
 matplotlib](python.md#which-numpy-and-matplotlib). Things that surprise people:
 
-* `numpy.meshgrid`, `reshape`, `vstack`, `hstack`, `sort`, `interp` and `polyfit` raise
-  `NotImplementedError`. Build a grid with a list comprehension, as the surface example does.
-* The `math` module has no `hypot`. Write `math.sqrt(x * x + y * y)`.
-* A list literal of a few thousand numbers written out in the code fails with `RuntimeError:
-  pystack exhausted`. Build long lists in a loop or a comprehension instead.
+* `numpy.reshape`, `vstack`, `hstack` and `sort` raise `NotImplementedError`. `numpy.meshgrid`,
+  `hypot`, `arctan2`, `outer`, `interp`, `polyfit` and `polyval` work, as does `math.hypot`.
+* A list literal of more than 16,000 numbers written out in the code is refused before it runs,
+  with a hint to build the list in a loop or parse a text string. Shorter ones, even several
+  thousand numbers, work.
 * `np.linspace` and array arithmetic work, but plain lists and comprehensions are just as quick for
   the sizes a chart needs.
 
@@ -5322,7 +5374,12 @@ T: augment(Q_v / (1 L/s), H_pv / (1 m), H_sv / (1 m)) | columns: flow in L/s, pu
 H_p(Q): H_0 * (1 - (Q / Q_max)^2) -> m | pump head at the flow Q
 H_s(Q): H_st + K * Q^2 -> m | pipeline head at the flow Q
 
-plot H_p(x * 1 L/s) / (1 m), H_s(x * 1 L/s) / (1 m) for x in 0..60
+plot H_p(x * 1 L/s) / (1 m) as "pump", H_s(x * 1 L/s) / (1 m) as "pipeline" for x in 0..60
+
+The same crossing, found numerically from the two curves:
+
+if H_net > 0 m:
+    Q_num: solve H_p(Q) = H_s(Q) for Q in 0 L/s..Q_max -> L/s | flow where the pump head equals the pipeline head
 ```
 
 </details>
@@ -6723,7 +6780,20 @@ f(x): x^2 + 1
 * **Numbers:** `1.23e6` is written as `1230000`, since the engine has no exponent notation.
 * **Operators:** `+ - * / ^ %`, `< > <= >= == != and or`, and the Unicode forms `≤ ≥ ≠ ≡ ∧ ∨ × · ÷ −`.
   In a condition a single `=` also means equal. `²` and `³` after a name or unit are `^2` and `^3`.
-* **Calls** take commas: `max(a, b)`; the compiler writes the engine's `;`.
+* **Calls** take commas: `max(a, b)`; the compiler writes the engine's `;`. Calcpad's `;` is accepted
+  as well inside parentheses, in a call (`f(1; 2)`, `max(3; 7)`) and in the parameter list of a definition
+  (`f(x; y): x + y`). Decision: `;` keeps its meanings elsewhere (outside brackets it separates the
+  statements of a line, inside `[...]` it separates rows); inside `(...)` it had none (a definition with it was
+  read as prose, a call was an error), so there it is normalised to the comma form instead of being reported.
+* **Solving, integrals and slopes:** the value of a quantity can be one of three numerical operations written
+  like a plot line: `x0: solve f(x) = c for x in a..b` is `x0 = $Root{f(x) = c @ x = a : b}` (without `= c`
+  it solves `f(x) = 0`; the engine evaluates `c` once, so a right side that uses the variable, as in
+  `solve f(x) = g(x) for ...`, is moved to the left: `$Root{f(x) - (g(x)) @ ...}`), `A: integral of f(x) for x in a..b` is `$Integral{f(x) @ x = a : b}`, and
+  `k: slope of f(x) at x = a` is `$Slope{f(x) @ x = a}`. The line takes `-> unit` and a note as any quantity
+  line does; a bare `0` bound takes the other bound's unit (`0*(5 m)`), since the engine needs both in one
+  unit. A line with the shape of one of them (a `..` range, or `at` and `=`) that does not parse is an error on
+  its line; `Note: solve this by hand` stays prose. The operation must be the whole value (`2 * solve ...` is
+  not read).
 * **Vectors and matrices:** `[1; 2; 3]` and `[1, 2, 3]` are vectors. `[1, 2; 3, 4]` is a
   matrix: columns are separated by commas and rows by semicolons. (Calcpad writes
   `[1; 2 | 3; 4]`.) Rows must have equal length. Elements are expressions. An element is
@@ -6793,6 +6863,14 @@ plot y = f(x) for x in 0..10
 becomes `$Plot{ M(x) @ x = 0 : L }`; several expressions are drawn together. An optional
 `name =` before the expressions is dropped. A malformed plot line is reported in the report and
 on its sheet line.
+
+A curve takes a name for a legend with `as "name"`: `plot sin(x) as "sine", cos(x) as "cosine" for x in 0..6`
+becomes `$Plot{ sin(x) "sine" & cos(x) "cosine" @ x = 0 : 6 }`. The engine draws a legend box (a swatch and
+the name of each curve, in the top right of the plot area) inside the SVG when at least one curve has a name;
+a curve without one is listed by its expression. Being in the SVG, the legend is in the preview, print, PDF and
+the Word picture; the Excel chart takes the names as its series names. A name cannot contain quotes, `&`, `|`,
+`@` or braces (the engine's `$Plot` delimiters); an empty name or a quoted text without `as` is an error on
+the line. The quoted name in `$Plot` is an extension of this port (DEVIATIONS.md).
 
 ## Calcpad pass-through
 

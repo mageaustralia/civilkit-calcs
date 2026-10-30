@@ -18,8 +18,10 @@ g(t) = 2·t
 r = f(3; 4) + g(1) = 7
 ```
 
-Calls take commas in a sheet; the compiler writes the engine's `;`. Functions can use any
-quantity defined above them, and may be used in plots (`plot g(t) for t in 0..5`).
+Calls take commas in a sheet; the compiler writes the engine's `;`. Calcpad's own `;` works too,
+in a definition and in a call (`f(x; y): x + y`, `max(3; 7)`): inside brackets it means the same as
+a comma. Functions can use any quantity defined above them, and may be used in plots
+(`plot g(t) for t in 0..5`).
 
 ### Keeping functions for reuse
 
@@ -67,10 +69,34 @@ A function whose name is also a variable name needs the Calcpad spelling (a name
 or `beta` used as a variable only keeps working if you write it the Calcpad way). Function calls
 are not renamed unless the sheet defines the function.
 
+## Solving, integrating and slopes
+
+Three numerical operations have a sheet form of their own, written like a `plot` line:
+
+<!-- expect: = 1.41 the positive root | d x = 9 | x = 3 = 6 -->
+```sheet
+f(x): x^2
+x0: solve f(x) = 2 for x in 0..2 | the positive root
+A: integral of f(x) for x in 0..3
+k: slope of f(x) at x = 3
+```
+
+* `solve f(x) = c for x in a..b` finds the `x` between `a` and `b` where both sides are equal
+  (Calcpad's `$Root{f(x) = c @ x = a : b}`). Without `= c` it solves `f(x) = 0`. Both sides may
+  use the variable (`solve f(x) = g(x) for x in 0..5` finds where two curves cross). The difference
+  of the sides must change sign once across the range.
+* `integral of f(x) for x in a..b` is the numerical integral (`$Integral`).
+* `slope of f(x) at x = a` is the derivative at a point (`$Slope`).
+
+`root(27, 3)` is something else: the cube root of 27. The bounds may carry units, and a bare `0`
+takes the unit of the other bound, so `solve x^2 = 4 m^2 for x in 0..5 m -> mm` gives 2000 mm. A
+line that starts like one of these but is malformed (`for 2 in 0..5`, two `=` signs) is an error on
+its line.
+
 ## Numerical commands
 
-The `$Root`, `$Area`, `$Sum`, `$Find` and similar commands are Calcpad commands. In a sheet
-they go through `>>`:
+The `$Root`, `$Area`, `$Sum`, `$Find` and similar commands are Calcpad commands. Apart from the three
+above, in a sheet they go through `>>`:
 
 ```sheet
 >> f(x) = x^2 - 2

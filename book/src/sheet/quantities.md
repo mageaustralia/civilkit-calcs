@@ -40,6 +40,9 @@ M_star = 54 kN·m
   `Delta`, `Theta`, `Lambda`, `Xi`, `Pi`, `Sigma`, `Upsilon`, `Phi`, `Psi`, `Omega`.
 * A name that ends in `star` after a capital or a digit (`Mstar`) is that name with the subscript
   `star`.
+* The first `_` in a name starts the subscript: `my_long_name_2` is shown as `my` with the subscript
+  `long_name_2`, as Calcpad writes it. Names with digits and several underscores calculate normally;
+  only the way they are typeset changes.
 
 The same rule renames every use of a name, so you spell it one way throughout the sheet. Inside
 `>>` lines and `calcpad` fences the sheet's spelling is used too: `phi` in a raw line is φ.

@@ -38,9 +38,9 @@ The five rules:
    first result holds a chart.
 3. The panel cannot read the sheet's quantities, and the sheet cannot read the panel's values. Put
    every number the panel needs in the block itself.
-4. The Python is a small stand-in for numpy: `numpy.meshgrid`, `reshape`, `vstack` and `math.hypot`
-   are not there. Build grids with list comprehensions and loops, and never write a list literal
-   with thousands of numbers.
+4. The Python is a small stand-in for numpy: `reshape`, `vstack`, `hstack` and `sort` are not there
+   (`meshgrid` and `math.hypot` are). Build large lists with a loop or a comprehension: a list
+   literal of more than 16,000 numbers in the code is refused.
 5. Do the heavy work once in the block body and keep the panel function light: it runs on every
    move of a control.
 
@@ -261,11 +261,11 @@ sheet's calculation, use a sheet input instead (`L: ? 6 m [2 .. 12 step 0.5]`).
 not on full Python. The list of what works is in [Which numpy and
 matplotlib](python.md#which-numpy-and-matplotlib). Things that surprise people:
 
-* `numpy.meshgrid`, `reshape`, `vstack`, `hstack`, `sort`, `interp` and `polyfit` raise
-  `NotImplementedError`. Build a grid with a list comprehension, as the surface example does.
-* The `math` module has no `hypot`. Write `math.sqrt(x * x + y * y)`.
-* A list literal of a few thousand numbers written out in the code fails with `RuntimeError:
-  pystack exhausted`. Build long lists in a loop or a comprehension instead.
+* `numpy.reshape`, `vstack`, `hstack` and `sort` raise `NotImplementedError`. `numpy.meshgrid`,
+  `hypot`, `arctan2`, `outer`, `interp`, `polyfit` and `polyval` work, as does `math.hypot`.
+* A list literal of more than 16,000 numbers written out in the code is refused before it runs,
+  with a hint to build the list in a loop or parse a text string. Shorter ones, even several
+  thousand numbers, work.
 * `np.linspace` and array arithmetic work, but plain lists and comprehensions are just as quick for
   the sizes a chart needs.
 

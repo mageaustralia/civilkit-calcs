@@ -878,7 +878,12 @@ T: augment(Q_v / (1 L/s), H_pv / (1 m), H_sv / (1 m)) | columns: flow in L/s, pu
 H_p(Q): H_0 * (1 - (Q / Q_max)^2) -> m | pump head at the flow Q
 H_s(Q): H_st + K * Q^2 -> m | pipeline head at the flow Q
 
-plot H_p(x * 1 L/s) / (1 m), H_s(x * 1 L/s) / (1 m) for x in 0..60
+plot H_p(x * 1 L/s) / (1 m) as "pump", H_s(x * 1 L/s) / (1 m) as "pipeline" for x in 0..60
+
+The same crossing, found numerically from the two curves:
+
+if H_net > 0 m:
+    Q_num: solve H_p(Q) = H_s(Q) for Q in 0 L/s..Q_max -> L/s | flow where the pump head equals the pipeline head
 ```
 
 </details>
