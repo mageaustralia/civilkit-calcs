@@ -56,8 +56,10 @@ check(fr && await fr.evaluate(() => !!document.querySelector('sub') && !!documen
 // The preview keeps a front and a back frame and swaps them after each render: measure the front one each time.
 const front = async () => { for (let i = 0; i < 40; i++) { const h = await page.locator('iframe.preview-frame:not(.preview-frame-back)').first().elementHandle().catch(() => null); const f = h ? await h.contentFrame() : null; if (f && await f.evaluate(() => !!document.querySelector('[data-source-line]')).catch(() => false)) return f; await page.waitForTimeout(250); } return fr; };
 const geo = async () => (await front()).evaluate(() => { const r = n => document.querySelector(`[data-source-line="${n}"]`).getBoundingClientRect(); return { top: Math.round(r(3).top), left: Math.round(r(3).left), next: Math.round(r(7).top) }; });
+// A tagged line of the front frame, waiting for the render that has it (the frames swap after each render).
+const lineEl = async (n) => { for (let i = 0; i < 30; i++) { const f = await front(); const l = f.locator(`[data-source-line="${n}"]`); if (await l.count().catch(() => 0)) return l.first(); await page.waitForTimeout(500); } return (await front()).locator(`[data-source-line="${n}"]`).first(); };
 const g0 = await geo();
-await fr.locator('[data-source-line="5"]').first().dblclick();
+await (await lineEl(5)).dblclick();
 await page.waitForSelector('.md-edit .ProseMirror', { timeout: 15000 });
 check(true, 'double-click on a Markdown paragraph opens the rich-text editor');
 // With a mouse the buttons are hidden: clicking away applies what was typed.
@@ -78,7 +80,7 @@ await page.waitForTimeout(400);
 const g2 = await geo();
 check(g2.next === g0.next && g2.top === g0.top, 'cancelling gives the page back exactly as it was');
 fr = await findFrame('Design basis');
-await fr.locator('[data-source-line="5"]').first().dblclick();
+await (await lineEl(5)).dblclick();
 await page.waitForSelector('.md-edit .ProseMirror', { timeout: 15000 });
 
 // 2. Apply without a change: the source is untouched.
@@ -88,7 +90,7 @@ check(await all() === src, 'applying without a change leaves the source exactly 
 
 // 3. Edit: type at the end of the paragraph, apply.
 fr = await findFrame('Design basis');
-await fr.locator('[data-source-line="5"]').first().dblclick();
+await (await lineEl(5)).dblclick();
 await page.waitForSelector('.md-edit .ProseMirror');
 await page.locator('.md-edit .ProseMirror p').first().click();
 await page.keyboard.press('End');
@@ -105,7 +107,7 @@ check(await all() === src, 'one undo restores the block');
 
 // 4. Tables: insert one with the toolbar, fill a cell, apply; the source is a plain pipe table.
 fr = await findFrame('Design basis');
-await fr.locator('[data-source-line="5"]').first().dblclick();
+await (await lineEl(5)).dblclick();
 await page.waitForSelector('.md-edit .ProseMirror');
 await page.locator('.md-edit .ProseMirror p').first().click();
 await page.keyboard.press('End');
@@ -125,20 +127,20 @@ console.log(text.split('\n').slice(0, 14).map(l => '    ' + l).join('\n'));
 check(/^\| Member +\| Load +\| *\|$/m.test(text) && /^\| *-{3,}[ |:-]*$/m.test(text), 'the table is written as a plain Markdown pipe table, no HTML');
 check(!/<table|<tr|<td/.test(text), 'no HTML in the file');
 fr = await findFrame('Member');
-check(!!fr && await fr.evaluate(() => document.querySelectorAll('table tr').length) === 4, 'the preview renders it as a table');
-const rules = await fr.evaluate(() => { const td = document.querySelector('table td'); const th = document.querySelector('table th'); const c = getComputedStyle(td); return { td: c.borderTopWidth + ' ' + c.borderTopStyle, pad: c.paddingLeft, thBg: getComputedStyle(th).backgroundColor }; });
+check(!!fr && await (await front()).evaluate(() => document.querySelectorAll('table tr').length) === 4, 'the preview renders it as a table');
+const rules = await (await front()).evaluate(() => { const td = document.querySelector('table td'); const th = document.querySelector('table th'); const c = getComputedStyle(td); return { td: c.borderTopWidth + ' ' + c.borderTopStyle, pad: c.paddingLeft, thBg: getComputedStyle(th).backgroundColor }; });
 check(rules.td === '1px solid' && rules.pad !== '0px' && rules.thBg !== 'rgba(0, 0, 0, 0)', `a table has rules, padding and a shaded header (${JSON.stringify(rules)})`);
 await page.evaluate(() => { window.calcpadActiveEditor.focus(); window.calcpadActiveEditor.trigger('t', 'undo', null); });
 check(await all() === src, 'undo removes the table in one step');
 
 // 5. Esc cancels; an equation still edits as a source line.
 fr = await findFrame('Design basis');
-await fr.locator('[data-source-line="5"]').first().dblclick();
+await (await lineEl(5)).dblclick();
 await page.waitForSelector('.md-edit .ProseMirror');
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);
 check(await page.locator('.md-edit').count() === 0 && await all() === src, 'Esc cancels without a change');
-await fr.locator('[data-source-line="8"]').first().dblclick();
+await (await lineEl(8)).dblclick();
 await page.waitForSelector('.line-edit-input', { timeout: 5000 });
 check(await page.locator('.md-edit').count() === 0 && (await page.locator('.line-edit-input').inputValue()) === 'b = a + 3', 'an equation line still opens the source-line editor');
 await page.keyboard.press('Escape');
@@ -146,7 +148,7 @@ await page.keyboard.press('Escape');
 // 6. The older `#md on` form still opens, and keeps inline HTML.
 await page.evaluate(v => window.calcpadActiveEditor.setValue(v), ["#md on", "'**f**<sub>c</sub> = 4 ksi at 28 d, a\\_b and x<sup>2</sup>", '#md off', 'q = 1'].join('\n') + '\n');
 fr = await findFrame('ksi');
-await fr.locator('[data-source-line="2"]').first().dblclick();
+await (await lineEl(2)).dblclick();
 await page.waitForSelector('.md-edit .ProseMirror');
 await page.locator('.md-edit .ProseMirror p').first().click();
 await page.keyboard.press('End');
@@ -169,8 +171,8 @@ const dbl = async (frame, n) => {
 const sheetSrc = ['<!--sheet-->', '# Design basis', '', 'The **load** is _applied_ at f~c~ midspan.', '', 'a: 3 m | first side', 'b: 4 m | second side', '', '| Member | Load |', '| --- | --- |', '| AB | 5 kN |', '', 'c: sqrt(a^2 + b^2) | hypotenuse'].join('\n') + '\n';
 await page.evaluate(v => window.calcpadActiveEditor.setValue(v), sheetSrc);
 fr = await findFrame('first side');
-console.log('  sheet tagged lines:', (await fr.evaluate(() => [...document.querySelectorAll('[data-source-line]')].map(e => e.getAttribute('data-source-line') + ':' + e.tagName + ':' + e.textContent.slice(0, 14).replace(/\s+/g, ' ')))).join(' | '));
-await fr.locator('[data-source-line="4"]').first().dblclick();
+console.log('  sheet tagged lines:', (await (await front()).evaluate(() => [...document.querySelectorAll('[data-source-line]')].map(e => e.getAttribute('data-source-line') + ':' + e.tagName + ':' + e.textContent.slice(0, 14).replace(/\s+/g, ' ')))).join(' | '));
+await (await lineEl(4)).dblclick();
 await page.waitForSelector('.md-edit .ProseMirror', { timeout: 15000 });
 const sheetShown = await page.locator('.md-edit .ProseMirror').innerText();
 check(/Design basis/.test(sheetShown) && /applied at/.test(sheetShown) && !/3 m/.test(sheetShown), `in a sheet, the paragraph and its heading open as rich text, without the input lines (${JSON.stringify(sheetShown.slice(0, 50))})`);
@@ -178,7 +180,7 @@ await away();
 await page.waitForTimeout(300);
 check(await all() === sheetSrc, 'a sheet: applying without a change leaves the source exactly as it was');
 fr = await findFrame('Design basis');
-await fr.locator('[data-source-line="4"]').first().dblclick();
+await (await lineEl(4)).dblclick();
 await page.waitForSelector('.md-edit .ProseMirror');
 await page.locator('.md-edit .ProseMirror p').first().click();
 await page.keyboard.press('End');
