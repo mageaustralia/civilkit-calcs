@@ -5762,7 +5762,7 @@ URL: https://civilkit.io/calcs/guide/importing-spreadsheets
 
 # Importing a spreadsheet
 
-<!-- description: Bring cells from an Excel or CSV file into a sheet as inputs, values, tables and labelled rows. The values are copied as plain lines; nothing is recalculated or linked. -->
+<!-- description: Bring cells from an Excel or CSV file into a sheet as inputs, values, tables and labelled rows. Values are copied as plain lines, not recalculated or linked. -->
 
 **Import spreadsheet** reads an Excel or CSV file and lets you pick cells from it and add them to a
 sheet as named quantities and tables. Use it for a schedule of loads, a list of member sizes or a
