@@ -12,5 +12,6 @@
  "plotly/__init__.py",
  "plotly/graph_objects.py",
  "plotly/graph_objs.py",
- "plotly/subplots.py"
+ "plotly/subplots.py",
+ "ui.py"
 ]

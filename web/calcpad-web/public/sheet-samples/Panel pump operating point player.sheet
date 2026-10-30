@@ -1,0 +1,36 @@
+<!--sheet-->
+# Pump operating point (interactive panel with a player)
+
+A pump curve `H = H0 n^2 - a Q^2` meets a system curve `H = Hs + k Q^2`. The speed ratio `n` is a **player**: press Play and the pump curve moves while the operating point follows it. Each frame is one call of the panel's function, made after the last one is drawn, so the speed adapts to how fast the calculation is. The static head and the pipe resistance are sliders.
+
+```python
+import ui
+import numpy as np
+import plotly.graph_objects as go
+
+H0, a = 42.0, 1800.0         # shut-off head (m) and pump curve constant (m per (m3/s)^2)
+
+Hs = ui.slider("Hs", 12, 0, 30, unit="m", label="Static head")
+k = ui.slider("k", 3500, 500, 8000, step=100, label="Pipe resistance")
+n = ui.player("n", 60, 110, fps=6, label="Speed (% of rated)")
+
+@ui.panel(Hs, k, n)
+def pump(Hs, k, n):
+    r = n / 100.0
+    Q = np.linspace(0, 0.14, 71)
+    pump_h = H0 * r * r - a * Q * Q
+    sys_h = Hs + k * Q * Q
+    top = H0 * r * r - Hs
+    if top > 0:
+        Qop = (top / (a + k)) ** 0.5
+        Hop = Hs + k * Qop * Qop
+    else:
+        Qop, Hop = 0.0, Hs
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=Q * 1000, y=pump_h, mode="lines", name="Pump at %d %%" % n))
+    fig.add_trace(go.Scatter(x=Q * 1000, y=sys_h, mode="lines", name="System"))
+    fig.add_trace(go.Scatter(x=[Qop * 1000], y=[Hop], mode="markers", marker=dict(size=12, color="#e07000"), name="Operating point"))
+    fig.update_layout(height=340, margin=dict(l=56, r=16, t=16, b=44), xaxis_title="Q (l/s)", yaxis_title="H (m)",
+                      xaxis_range=[0, 140], yaxis_range=[0, 60], legend=dict(orientation="h", y=-0.25))
+    return [fig, "Operating point: %.1f l/s at %.1f m head" % (Qop * 1000, Hop)]
+```

@@ -30,6 +30,7 @@ import { findPythonBlocks, hasPythonBlock, pythonErrors, remapErrors as remapPyt
 import { BLOCK_MS, LONG_BLOCK_MS, PythonRunner } from './python-runner';
 import { askLongerLimit, mayRunPython } from './python-consent';
 import { plotlyForExport, plotlyPage } from './python-plotly';
+import { panelForExport, panelPage, panelSeed, rememberRun } from './python-panels';
 
 const API_PREFIX = '/api/calcpad/';
 /** calcpad-wasm's UI_ASSETS_MARKER: where the datagrid libraries go. */
@@ -453,14 +454,18 @@ export function installWasmTransport(): WasmTransport {
         const blocks = findPythonBlocks(content);
         const signature = blocks.map(b => b.code).join('\0');
         let results: BlockResult[];
-        if (await mayRunPython(transport.pythonScope(), signature)) {
-            results = await python.run(blocks);
+        const scope = transport.pythonScope();
+        // Interactive panels (ui.py) start from the values they were last moved to in this tab.
+        const seed = panelSeed(scope);
+        if (await mayRunPython(scope, signature)) {
+            results = await python.run(blocks, seed);
             // A block stopped by the time limit: offer the longer limit once per tab, then run the worksheet again.
             const timedOut = (r: BlockResult[]) => r.some(x => x.error?.type === 'TimeoutError' && /ran longer than/.test(x.error.message));
             if (!python.longLimit && timedOut(results) && await askLongerLimit(BLOCK_MS / 1000, LONG_BLOCK_MS / 1000)) {
                 python.useLongLimit();
-                results = await python.run(blocks);
+                results = await python.run(blocks, seed);
             }
+            rememberRun(results[0]?.runKey, scope);
         } else {
             results = blocks.map(() => ({ parts: [], exports: [], truncated: false,
                 error: { type: '', message: 'Python was not run: this worksheet asks to run Python and the question was answered Not now. Edit the Python or reopen the tab to be asked again.', line: null } }));
@@ -530,7 +535,7 @@ export function installWasmTransport(): WasmTransport {
             if (html.includes(UI_ASSETS_MARKER)) html = html.replace(UI_ASSETS_MARKER, await uiAssetsMarkup(base));
             if (transport.resolveFile) html = libraryImages(html, transport.resolveFile);
             // Plotly figures from a Python block: the page draws them (python-plotly.ts); Plotly.js comes through the script policy below.
-            if (py && !unwrap) html = plotlyPage(html);
+            if (py && !unwrap) html = panelPage(plotlyPage(html));
             // The reader's number format (Settings > Number format): the text only, the source stays canonical.
             if (!unwrap) html = showInNumberFormat(html);
             html = addPreviewDark(html);
@@ -564,7 +569,7 @@ export function installWasmTransport(): WasmTransport {
             };
             if (out.status) return new Response(out.error ?? '', { status: out.status });
             let html = out.html ?? '';
-            if (pyE) html = plotlyForExport(resolvePythonLines(html, n => (shE ? sheetLine(shE.sheet, n) : n)));
+            if (pyE) html = plotlyForExport(panelForExport(resolvePythonLines(html, n => (shE ? sheetLine(shE.sheet, n) : n))));
             if (transport.resolveFile) html = libraryImages(html, transport.resolveFile);
             if (out.files?.length && transport.onFilesWritten) {
                 transport.onFilesWritten(out.files.map(f => ({ path: f.path, data: fromBase64(f.data) })));
@@ -620,7 +625,7 @@ export function installWasmTransport(): WasmTransport {
                 return new Response('The worksheet could not be calculated (check it for macro errors).', { status: 422 });
             }
             let html = out.html ?? '';
-            if (pyE) html = plotlyForExport(resolvePythonLines(html, n => (shE ? sheetLine(shE.sheet, n) : n)));
+            if (pyE) html = plotlyForExport(panelForExport(resolvePythonLines(html, n => (shE ? sheetLine(shE.sheet, n) : n))));
             if (transport.resolveFile) html = libraryImages(html, transport.resolveFile);
             // The Report sheet's text follows the number format; the Variables sheets keep real numbers.
             const nf = activeFormat();

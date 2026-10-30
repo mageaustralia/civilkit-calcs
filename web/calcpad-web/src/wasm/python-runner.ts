@@ -11,6 +11,13 @@ export const TOTAL_MS = 30_000;
 export const LONG_BLOCK_MS = 60_000;
 export const LONG_TOTAL_MS = 180_000;
 
+/** A short stable name for a run (FNV-1a over its key): it travels in the page, the key itself would be the whole worksheet. */
+function hashKey(key: string): string {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return h.toString(16);
+}
+
 const fail = (b: PyBlock, type: string, message: string): BlockResult => ({
     parts: [], exports: [], truncated: false, error: { type, message, line: b.start },
 });
@@ -46,7 +53,13 @@ class Session {
         });
     }
 
-    start(): Promise<void> { return this.ask('start', { type: 'start', base: this.base }, BLOCK_MS * 3); }
+    start(seed: string): Promise<void> { return this.ask('start', { type: 'start', base: this.base, seed }, BLOCK_MS * 3); }
+
+    /** One widget change of an interactive panel (ui.py): the panel's function runs again in this session's interpreter. */
+    panel(payload: string, ms: number): Promise<string> {
+        const id = ++this.seq;
+        return this.ask(String(id), { type: 'panel', id, payload }, ms);
+    }
 
     run(b: PyBlock, ms: number): Promise<BlockResult> {
         const id = ++this.seq;
@@ -65,6 +78,8 @@ export class PythonRunner {
     private cache = new Map<string, BlockResult[]>();
     private longer = false;
     private inflight: { key: string; promise: Promise<BlockResult[]>; session: Session } | null = null;
+    /** The key of the run whose interpreter is alive in the worker, or null (panels ask this interpreter for their updates). */
+    private live: string | null = null;
 
     constructor(private readonly base: string) {}
 
@@ -75,30 +90,63 @@ export class PythonRunner {
     get longLimit(): boolean { return this.longer; }
     useLongLimit(): void { this.longer = true; this.cache.clear(); }
 
-    run(blocks: PyBlock[]): Promise<BlockResult[]> {
-        const key = JSON.stringify(blocks.map((b) => [b.first, b.code]));
+    /**
+     * `seed` is the panel widget values to start from (python-panels.ts), JSON text; it is part of the cache key, so a worksheet
+     * whose panels were moved is run again from those values. Results that hold a panel are served from the cache only while
+     * their interpreter is still the live one: a panel's updates are answered by that interpreter and no other.
+     */
+    run(blocks: PyBlock[], seed = '{}'): Promise<BlockResult[]> {
+        const key = JSON.stringify([blocks.map((b) => [b.first, b.code]), seed]);
         const hit = this.cache.get(key);
-        if (hit) return Promise.resolve(hit);
+        if (hit && (this.live === key || !hit.some((r) => r.parts.some((p) => 'panel' in p)))) return Promise.resolve(hit);
         if (this.inflight?.key === key) return this.inflight.promise;
         // A different worksheet text supersedes the run in progress.
         if (this.inflight) { this.inflight.session.kill(new Error('superseded')); this.session = null; }
         const session = this.session ??= new Session(this.base);
-        const promise = this.runAll(session, blocks).then((r) => {
+        this.live = null;
+        const runKey = hashKey(key);
+        const promise = this.runAll(session, blocks, seed).then((r) => {
+            for (const x of r) x.runKey = runKey;
             if (this.cache.size > 8) this.cache.delete(this.cache.keys().next().value as string);
             this.cache.set(key, r);
+            if (this.session === session) { this.live = key; this.liveRun = runKey; }
             return r;
         }).finally(() => { if (this.inflight?.promise === promise) this.inflight = null; });
         this.inflight = { key, promise, session };
         return promise;
     }
 
-    private async runAll(session: Session, blocks: PyBlock[]): Promise<BlockResult[]> {
+    private liveRun = '';
+
+    /**
+     * A widget change from a panel's page. `runKey` names the run the page was made from; if that interpreter is not the live one
+     * the answer is `stale` (the page is replaced by the next calculation anyway). A function that runs past the block limit
+     * ends the interpreter, which is gone until the worksheet is calculated again.
+     */
+    async panelEvent(runKey: string, payload: string): Promise<{ stale?: true; error?: string; json?: string }> {
+        const session = this.session;
+        if (!session || this.live === null || runKey !== this.liveRun) return { stale: true };
+        const ms = this.longer ? LONG_BLOCK_MS : BLOCK_MS;
+        try {
+            return { json: await session.panel(payload, ms) };
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            if (/^timeout:/.test(msg)) {
+                this.session = null;
+                this.live = null;
+                return { error: `the panel took longer than ${ms / 1000} s and was stopped; calculate the worksheet again to reset it` };
+            }
+            return { error: msg };
+        }
+    }
+
+    private async runAll(session: Session, blocks: PyBlock[], seed: string): Promise<BlockResult[]> {
         const out: BlockResult[] = [];
         const t0 = performance.now();
         const blockMs = this.longer ? LONG_BLOCK_MS : BLOCK_MS;
         const totalMs = this.longer ? LONG_TOTAL_MS : TOTAL_MS;
         try {
-            await session.start();
+            await session.start(seed);
             for (const b of blocks) {
                 if (b.end < 0) { out.push(fail(b, 'SyntaxError', 'the block has no "#end python" line')); continue; }
                 if (performance.now() - t0 > totalMs) { out.push(fail(b, 'TimeoutError', 'skipped: the worksheet has used its Python time budget')); continue; }

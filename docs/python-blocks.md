@@ -149,6 +149,24 @@ unexpressed, or precompute them (one step per combination). The beam sample does
 shown, the factor slider restyles the y data of those traces, and the position slider moves a separate point-load trace. For controls that
 must combine freely or compute a readout on every change, write the chart as raw HTML and JavaScript (next section).
 
+### Interactive panels (prototype)
+
+`import ui` gives a block sliders, drop-downs, checkboxes and players whose changes run one Python function again and redraw its chart,
+table or text in place, without recalculating the sheet:
+
+```python
+import ui
+L = ui.slider("L", 6, 2, 12, unit="m")
+
+@ui.panel(L)
+def beam(L):
+    return "span %g m" % L
+```
+
+The design, the semantics (state, time limits, exports, saved values), the security model and the three example sheets are in
+[interactive-panels-design.md](interactive-panels-design.md). Print, Word and Excel carry the panel's first output and a note with the
+values it was left at, not the widgets.
+
 ### Python results driving a chart written in JavaScript (raw)
 
 The raw route is still available, and the sample "Beam Explorer: Python Results in Raw JS Plotly" shows it. `export_data(M_u=..., x_s=...)`

@@ -1102,6 +1102,7 @@ import type { BlockOp } from './wasm/block-ops'
 import { withPageBreakMarks } from './wasm/page-break'
 import { pasteSource, peekClipboard, rememberedBlock } from './wasm/block-clipboard'
 import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
+import { handlePanelEvent } from './wasm/python-panels'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
@@ -1901,6 +1902,11 @@ function onPreviewWindowMessage(e: MessageEvent): void {
   }
   if (data.type === 'plotChip') {
     void plotChipHost(data).catch(() => {})
+    return
+  }
+  if (data.type === 'panelEvent') {
+    // A widget of an interactive panel (ui.py) changed: the Python session that made this page answers, and only this frame hears it.
+    void handlePanelEvent(e.source, data)
     return
   }
   if (data.type === 'editAnchor') {
