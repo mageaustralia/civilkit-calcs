@@ -120,7 +120,20 @@ f(x): x^2 + 1
 * **Numbers:** `1.23e6` is written as `1230000`, since the engine has no exponent notation.
 * **Operators:** `+ - * / ^ %`, `< > <= >= == != and or`, and the Unicode forms `≤ ≥ ≠ ≡ ∧ ∨ × · ÷ −`.
   In a condition a single `=` also means equal. `²` and `³` after a name or unit are `^2` and `^3`.
-* **Calls** take commas: `max(a, b)`; the compiler writes the engine's `;`.
+* **Calls** take commas: `max(a, b)`; the compiler writes the engine's `;`. Calcpad's `;` is accepted
+  as well inside parentheses, in a call (`f(1; 2)`, `max(3; 7)`) and in the parameter list of a definition
+  (`f(x; y): x + y`). Decision: `;` keeps its meanings elsewhere (outside brackets it separates the
+  statements of a line, inside `[...]` it separates rows); inside `(...)` it had none (a definition with it was
+  read as prose, a call was an error), so there it is normalised to the comma form instead of being reported.
+* **Solving, integrals and slopes:** the value of a quantity can be one of three numerical operations written
+  like a plot line: `x0: solve f(x) = c for x in a..b` is `x0 = $Root{f(x) = c @ x = a : b}` (without `= c`
+  it solves `f(x) = 0`; the engine evaluates `c` once, so a right side that uses the variable, as in
+  `solve f(x) = g(x) for ...`, is moved to the left: `$Root{f(x) - (g(x)) @ ...}`), `A: integral of f(x) for x in a..b` is `$Integral{f(x) @ x = a : b}`, and
+  `k: slope of f(x) at x = a` is `$Slope{f(x) @ x = a}`. The line takes `-> unit` and a note as any quantity
+  line does; a bare `0` bound takes the other bound's unit (`0*(5 m)`), since the engine needs both in one
+  unit. A line with the shape of one of them (a `..` range, or `at` and `=`) that does not parse is an error on
+  its line; `Note: solve this by hand` stays prose. The operation must be the whole value (`2 * solve ...` is
+  not read).
 * **Vectors and matrices:** `[1; 2; 3]` and `[1, 2, 3]` are vectors. `[1, 2; 3, 4]` is a
   matrix: columns are separated by commas and rows by semicolons. (Calcpad writes
   `[1; 2 | 3; 4]`.) Rows must have equal length. Elements are expressions. An element is
@@ -190,6 +203,14 @@ plot y = f(x) for x in 0..10
 becomes `$Plot{ M(x) @ x = 0 : L }`; several expressions are drawn together. An optional
 `name =` before the expressions is dropped. A malformed plot line is reported in the report and
 on its sheet line.
+
+A curve takes a name for a legend with `as "name"`: `plot sin(x) as "sine", cos(x) as "cosine" for x in 0..6`
+becomes `$Plot{ sin(x) "sine" & cos(x) "cosine" @ x = 0 : 6 }`. The engine draws a legend box (a swatch and
+the name of each curve, in the top right of the plot area) inside the SVG when at least one curve has a name;
+a curve without one is listed by its expression. Being in the SVG, the legend is in the preview, print, PDF and
+the Word picture; the Excel chart takes the names as its series names. A name cannot contain quotes, `&`, `|`,
+`@` or braces (the engine's `$Plot` delimiters); an empty name or a quoted text without `as` is an error on
+the line. The quoted name in `$Plot` is an extension of this port (DEVIATIONS.md).
 
 ## Calcpad pass-through
 

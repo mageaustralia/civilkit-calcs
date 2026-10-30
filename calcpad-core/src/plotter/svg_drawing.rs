@@ -78,6 +78,19 @@ impl SvgDrawing {
         ));
     }
 
+    /// The frame of a plot legend: white, slightly see-through, with the plot frame's grey border.
+    pub fn draw_legend_box(&mut self, x: f64, y: f64, w: f64, h: f64, scale_factor: f64) {
+        self.sb.push_str(&format!(
+            "<rect class=\"Legend\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"{}\" fill=\"white\" fill-opacity=\"0.9\" stroke=\"rgba(0, 0, 0, 0.24)\" stroke-width=\"{}\" />\n",
+            convert(x),
+            convert(y),
+            convert(w),
+            convert(h),
+            convert(2.0 * scale_factor),
+            convert(scale_factor)
+        ));
+    }
+
     pub fn fill_polygon(&mut self, points: &[SvgPoint], svg_class: &str) {
         self.sb.push_str("<polygon");
         self.draw_points(points);

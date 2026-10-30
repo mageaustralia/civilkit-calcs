@@ -1753,3 +1753,76 @@ fn an_apostrophe_in_prose_is_an_entity_not_the_start_of_an_expression() {
     let n = compile("<!--sheet-->\na: 1 m | the beam's span\n#unit bag = 25 kg | the site's bag\n");
     assert!(n.text.contains("the beam&#39;s span") && n.text.contains("the site&#39;s bag"), "{}", n.text);
 }
+
+#[test]
+fn semicolons_between_arguments_work_like_commas() {
+    let c = compile("f(x; y): x + y\ng(x, y): x * y\na: f(1; 2)\nb: max(3; 7)\nc: g(2, f(1; 1))");
+    let l = lines(&c);
+    assert_eq!(l[0], "f(x; y) = x + y");
+    assert!(l[1].starts_with("g(x; y) = x"), "{}", l[1]);
+    assert_eq!(l[2], "a = f(1; 2)");
+    assert_eq!(l[3], "b = max(3; 7)");
+    assert_eq!(l[4], "c = g(2; f(1; 1))");
+    assert!(c.diagnostics.is_empty(), "{:?}", c.diagnostics);
+    let (html, errs) = run(&c.text);
+    assert!(errs.is_empty(), "{errs:?}");
+    let t = text(&html);
+    assert!(t.contains("a = f ( 1; 2 ) = 3"), "{t}");
+    assert!(t.contains("b = max ( 3; 7 ) = 7"), "{t}");
+    // A `;` outside brackets still separates statements, and inside brackets makes rows.
+    let c = compile("x: 1; y: 2\nv: [1; 2]");
+    assert_eq!(lines(&c), ["x = 1", "y = 2", "v = [1; 2]"]);
+}
+
+#[test]
+fn plot_curve_names_draw_a_legend() {
+    let c = compile("plot sin(x) as \"sine\", cos(x) as \"cosine\" for x in 0..6");
+    assert_eq!(lines(&c), ["$Plot{ sin(x) \"sine\" & cos(x) \"cosine\" @ x = 0 : 6 }"]);
+    let (html, errs) = run(&c.text);
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(html.contains("class=\"Legend\""), "a legend box is drawn");
+    assert!(html.contains(">sine </text>") && html.contains(">cosine </text>"), "{html}");
+    // Without names there is no legend, as before.
+    let c = compile("plot sin(x), cos(x) for x in 0..6");
+    assert_eq!(lines(&c), ["$Plot{ sin(x) & cos(x) @ x = 0 : 6 }"]);
+    let (html, _) = run(&c.text);
+    assert!(!html.contains("Legend"));
+    // One named curve: the other is listed by its expression.
+    let c = compile("plot sin(x) as \"a < b\", cos(x) for x in 0..6");
+    let (html, _) = run(&c.text);
+    assert!(html.contains(">a &lt; b </text>") && html.contains(">cos(x) </text>"), "{html}");
+    for bad in ["plot sin(x) \"sine\" for x in 0..6", "plot sin(x) as \"\" for x in 0..6", "plot sin(x) as \"a & b\" for x in 0..6"] {
+        let c = compile(bad);
+        assert_eq!(c.diagnostics.len(), 1, "{bad}");
+    }
+}
+
+#[test]
+fn solve_integral_and_slope_lines() {
+    let src = "f(x): x^2\nx0: solve f(x) = 4 for x in 0..5\nx1: solve f(x) - 9 for x in 0..5\nA: integral of f(x) for x in 0..3\nk: slope of f(x) at x = 3\nL: solve x^2 = 4 m^2 for x in 0..5 m -> mm\nx2: solve f(x) = 2*x + 3 for x in 0..5";
+    let c = compile(src);
+    assert!(c.diagnostics.is_empty(), "{:?}", c.diagnostics);
+    let l = lines(&c);
+    assert_eq!(l[1], "x0 = $Root{f(x) = 4 @ x = 0 : 5}");
+    assert_eq!(l[2], "x1 = $Root{f(x) - 9 @ x = 0 : 5}");
+    assert_eq!(l[3], "A = $Integral{f(x) @ x = 0 : 3}");
+    assert_eq!(l[4], "k = $Slope{f(x) @ x = 3}");
+    assert_eq!(l[5], "L = $Root{x^2 = 4 m^2 @ x = 0*(5 m) : 5 m}|mm");
+    // The engine takes the right side as a constant, so one that uses the variable moves to the left.
+    assert_eq!(l[6], "x2 = $Root{f(x) - (2*x + 3) @ x = 0 : 5}");
+    let (html, errs) = run(&c.text);
+    assert!(errs.is_empty(), "{errs:?}\n{}", c.text);
+    let t = text(&html);
+    for want in ["x ∈ [0; 5]} = 2 x1", "x ∈ [0; 5]} = 3 A", "d x = 9 k", "x = 3 = 6 L", "5 m ]} = 2000 mm", "x ∈ [0; 5]} = 3"] {
+        assert!(t.contains(want), "{want} in {t}");
+    }
+    // A line shaped like one of them but wrong is an error on its line; prose stays prose.
+    for bad in ["x0: solve f(x) = 4 for 2 in 0..5", "x0: solve f(x) = 4 = 3 for x in 0..5", "k: slope of f(x) at 3 = 3"] {
+        let c = compile(&format!("f(x): x^2\n{bad}"));
+        assert_eq!(c.diagnostics.len(), 1, "{bad}: {:?}", c.diagnostics);
+        assert!(c.text.contains("Sheet syntax"), "{bad}");
+    }
+    let c = compile("Note: solve this one by hand for the beam in the drawing.");
+    assert!(c.diagnostics.is_empty());
+    assert!(c.text.starts_with("'Note: solve"), "{}", c.text);
+}

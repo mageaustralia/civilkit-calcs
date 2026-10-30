@@ -29,7 +29,7 @@ pub fn parse(parser: &MathParser, settings: &PlotSettings, script: &str, calcula
     let mut input: Vec<String> = input.into_iter().map(|s| s.unwrap_or_default()).collect();
     if calculate {
         let input0 = input[0].clone();
-        let charts: Vec<&str> = input0.split('&').collect();
+        let (charts, legend): (Vec<&str>, Vec<Option<String>>) = input0.split('&').map(series_name).unzip();
         input[1] = crate::extension_methods::trim(&input[1]).to_string();
         let parameters = [Parameter::new(&input[1])];
         let count = charts.len();
@@ -65,8 +65,13 @@ pub fn parse(parser: &MathParser, settings: &PlotSettings, script: &str, calcula
         let mut plotter = ChartPlotter::new(parser, settings);
         plotter.names = charts
             .iter()
-            .map(|c| crate::extension_methods::trim(c).to_string())
+            .zip(&legend)
+            .map(|(c, n)| {
+                n.clone()
+                    .unwrap_or_else(|| crate::extension_methods::trim(c).to_string())
+            })
             .collect();
+        plotter.legend = legend;
         let svg = plotter.plot(&fx, &fy, &parameters[0].variable, left, right, &left_units)?;
         // The data of the plot, for the Excel export (ExpressionParser::capture_values).
         *parser.last_captured_chart.borrow_mut() = plotter.captured.take().map(|mut c| {
@@ -79,8 +84,23 @@ pub fn parse(parser: &MathParser, settings: &PlotSettings, script: &str, calcula
     }
 }
 
+/// A curve with a name for the legend: `sin(x) "sine"` (not in CalcpadCE). The name is the quoted text at
+/// the end; without one the curve is unnamed.
+fn series_name(chart: &str) -> (&str, Option<String>) {
+    let t = chart.trim_end();
+    if let Some(body) = t.strip_suffix('"') {
+        if let Some(q) = body.rfind('"') {
+            let expr = &body[..q];
+            if !expr.trim().is_empty() && !expr.contains('"') {
+                return (expr, Some(body[q + 1..].trim().to_string()));
+            }
+        }
+    }
+    (chart, None)
+}
+
 fn get_html_text(parser: &MathParser, input: &mut [String]) -> CResult<String> {
-    let mut charts: Vec<String> = input[0].split('&').map(|s| s.to_string()).collect();
+    let mut charts: Vec<String> = input[0].split('&').map(|s| series_name(s).0.to_string()).collect();
     input[1] = crate::extension_methods::trim(&input[1]).to_string();
     for chart in charts.iter_mut() {
         let xy: Vec<&str> = chart.split('|').collect();

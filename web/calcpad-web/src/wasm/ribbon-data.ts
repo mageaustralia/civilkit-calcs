@@ -321,9 +321,9 @@ const PAL_MSOLVE: Section[] = [
                 ];
 const PAL_CALCULUS: Section[] = [lines('Sums and calculus', [
                         ['Σ', '$Sum{k @ k = 1 : n}\n', 'Sum'], ['Π', '$Product{k @ k = 1 : n}\n', 'Product'],
-                        ['∫', '$Integral{f(x) @ x = 0 : 1}\n', 'Integral'], ['Area', '$Area{f(x) @ x = 0 : 1}\n', 'Area under a curve'],
-                        ['Slope', '$Slope{f(x) @ x = 1}\n', 'Numerical slope'],
-                        ['Root', '$Root{f(x) = 4 @ x = 0 : 5}\n', 'Solve f(x) = value'], ['Min', '$Inf{f(x) @ x = 0 : 5}\n', 'Minimum'], ['Max', '$Sup{f(x) @ x = 0 : 5}\n', 'Maximum'],
+                        ['∫', '$Integral{f(x) @ x = 0 : 1}\n', 'Integral', 'I: integral of f(x) for x in 0..1\n'], ['Area', '$Area{f(x) @ x = 0 : 1}\n', 'Area under a curve'],
+                        ['Slope', '$Slope{f(x) @ x = 1}\n', 'Numerical slope', 'k: slope of f(x) at x = 1\n'],
+                        ['Root', '$Root{f(x) = 4 @ x = 0 : 5}\n', 'Solve f(x) = value', 'x0: solve f(x) = 4 for x in 0..5\n'], ['Min', '$Inf{f(x) @ x = 0 : 5}\n', 'Minimum'], ['Max', '$Sup{f(x) @ x = 0 : 5}\n', 'Maximum'],
                     ], { nox: true })];
 
 

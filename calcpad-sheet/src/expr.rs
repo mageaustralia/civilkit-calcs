@@ -384,6 +384,11 @@ fn slice(t: &[(Tok, bool)], ctx: &Ctx) -> Result<String, String> {
                 piece = ";".into();
                 kind = K::Op;
             }
+            // Inside a call or index, Calcpad's `;` is the same as a comma.
+            Tok::Semi if paren > 0 => {
+                piece = ";".into();
+                kind = K::Op;
+            }
             Tok::Semi => return Err("unexpected ';'".into()),
             Tok::Dot => {
                 if !matches!(prev, K::Ident | K::Close) {

@@ -42,6 +42,10 @@ const monarch: monaco.languages.IMonarchLanguage = {
             [/\$[^\s$][^$]*\$/, 'string.math'],
             [/^\s*(if|else if|else|while|repeat|for|plot)\b/, 'keyword'],
             [/\b(in)\b/, 'keyword'],
+            // `x0: solve f(x) = 4 for x in 0..5`, `integral of ... for`, `slope of ... at`, and a curve name `as "sine"`.
+            [/\b(solve|integral of|slope of)\b(?=.*\b(for|at)\s)/, 'keyword'],
+            [/\b(at)\b(?=\s+[\p{L}_][\p{L}\p{N}_]*\s*=)/u, 'keyword'],
+            [/\bas\b(?=\s+")/, 'keyword'],
             [new RegExp(`^(\\s*)(${ID}(?:\\([^)]*\\))?)(\\s*)(:|=(?!=))`), ['', 'variable.name', '', 'delimiter']],
             [/\|\s.*?(?=\s*\{key\}\s*$|$)/, 'comment'],
             [/\{key\}\s*$|^\s*\{key results\}\s*$/, 'keyword'],

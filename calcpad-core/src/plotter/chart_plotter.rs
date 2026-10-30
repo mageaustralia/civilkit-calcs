@@ -64,6 +64,8 @@ pub struct ChartPlotter<'a> {
     y_units: OptUnit,
     /// The expression of each curve as written, for the data of the Excel export.
     pub names: Vec<String>,
+    /// The name given to each curve (`sin(x) "sine"`), drawn in a legend when any curve has one.
+    pub legend: Vec<Option<String>>,
     /// The plot's data, set by `plot` (the Excel export).
     pub captured: Option<CapturedChart>,
 }
@@ -108,6 +110,7 @@ impl<'a> ChartPlotter<'a> {
             x_units: None,
             y_units: None,
             names: Vec::new(),
+            legend: Vec::new(),
             captured: None,
         }
     }
@@ -345,9 +348,59 @@ impl<'a> ChartPlotter<'a> {
                 pen_no = 1;
             }
         }
+        self.draw_legend(&mut svg, charts);
         let s = svg.to_string();
         Ok(format!("<svg class=\"plot\" data-plot=\"svg\" {}", &s[4..]))
     }
+
+    /// A box in the top right corner of the plot area with a swatch and the name of each curve, drawn
+    /// when at least one curve has a name (a curve without one is listed by its expression).
+    fn draw_legend(&self, svg: &mut SvgDrawing, charts: &[Chart]) {
+        if !self.legend.iter().any(|n| n.is_some()) {
+            return;
+        }
+        let b = &self.base;
+        let sf = b.screen_scale_factor as f64;
+        let mut rows = Vec::new();
+        let mut pen_no = 1;
+        for (i, c) in charts.iter().enumerate() {
+            if c.point_count() == 0 {
+                continue;
+            }
+            let name = match self.legend.get(i) {
+                Some(Some(n)) => n.clone(),
+                _ => self.names.get(i).cloned().unwrap_or_default(),
+            };
+            rows.push((pen_no, escape_xml(&name), name.chars().count()));
+            pen_no += 1;
+            if pen_no > 10 {
+                pen_no = 1;
+            }
+        }
+        if rows.is_empty() {
+            return;
+        }
+        let fs = 11.0 * sf;
+        let row_h = 1.4 * fs;
+        let pad = 0.5 * fs;
+        let swatch = 2.0 * fs;
+        let chars = rows.iter().map(|r| r.2).max().unwrap_or(0) as f64;
+        let w = pad * 3.0 + swatch + 0.6 * fs * chars;
+        let h = pad * 2.0 + row_h * rows.len() as f64;
+        let x = b.width as f64 - b.right as f64 - w - pad;
+        let y = b.margin as f64 + pad;
+        svg.draw_legend_box(x, y, w, h, sf);
+        for (k, (pen, name, _)) in rows.iter().enumerate() {
+            let cy = y + pad + row_h * (k as f64 + 0.5);
+            let pts = [SvgPoint::new(x + pad, cy), SvgPoint::new(x + pad + swatch, cy)];
+            svg.draw_polyline(&pts, &format!("Series{}", pen));
+            svg.draw_text(name, x + 2.0 * pad + swatch, cy + 0.35 * fs, "left");
+        }
+    }
+}
+
+fn escape_xml(s: &str) -> String {
+    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 
 /// `FixLimits(Box limits)`

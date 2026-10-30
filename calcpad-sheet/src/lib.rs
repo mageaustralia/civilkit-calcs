@@ -954,6 +954,9 @@ impl<'a> Comp<'a> {
         let ok = self.quantities(content, idx);
         if ok {
             self.mark(idx, LineKind::Quantity);
+        } else if let Some(m) = self.numeric_error(content) {
+            self.error_line(idx, &m);
+            return true;
         }
         ok
     }
@@ -1236,8 +1239,18 @@ impl<'a> Comp<'a> {
         parts.push(&left[start..]);
         let mut es = Vec::new();
         for part in parts {
+            let (part, label) = match plot_label(part) {
+                Ok(v) => v,
+                Err(m) => {
+                    self.error_line(idx, &format!("plot: {m}"));
+                    return true;
+                }
+            };
             match expr::translate(part, &self.ctx(false)) {
-                Ok(e) => es.push(e),
+                Ok(e) => es.push(match label {
+                    Some(l) => format!("{e} \"{l}\""),
+                    None => e,
+                }),
                 Err(m) => {
                     self.error_line(idx, &format!("plot: {m}"));
                     return true;
@@ -1359,7 +1372,8 @@ impl<'a> Comp<'a> {
         let mut cp = names::rename(name);
         if let Some(ps) = params {
             let mut v = Vec::new();
-            for q in ps.split(',') {
+            // Commas, or Calcpad's `;`, between the parameters.
+            for q in ps.split([',', ';']) {
                 let q = q.trim();
                 if !names::is_name(q) {
                     return None;
@@ -1379,8 +1393,12 @@ impl<'a> Comp<'a> {
             }
             None => (rhs_all, None),
         };
-        let e = expr::translate(rhs, &self.ctx(false)).ok()?;
+        let e = match self.numeric(rhs) {
+            Some(r) => r.ok()?,
+            None => expr::translate(rhs, &self.ctx(false)).ok()?,
+        };
         let sheet = match params {
+            Some(ps) if ps.contains(';') => format!("{name}({})", ps.split(';').map(str::trim).collect::<Vec<_>>().join(", ")),
             Some(ps) => format!("{name}({})", ps.trim()),
             None => name.to_string(),
         };
@@ -1391,6 +1409,159 @@ impl<'a> Comp<'a> {
             unit,
         })
     }
+}
+
+impl Comp<'_> {
+    /// The numerical operations a quantity can be: `solve f(x) = c for x in a..b` (`$Root`),
+    /// `integral of f(x) for x in a..b` (`$Integral`) and `slope of f(x) at x = a` (`$Slope`).
+    /// None if `rhs` is none of them; `Err` if it starts like one but is malformed.
+    fn numeric(&self, rhs: &str) -> Option<Result<String, String>> {
+        let ctx = self.ctx(false);
+        let tr = |e: &str, what: &str| expr::translate(e, &ctx).map_err(|m| format!("{what}: {m}"));
+        if let Some(r) = rhs.strip_prefix("solve ") {
+            return Some((|| {
+                let (body, var, a, b) = for_range(r, &tr)?;
+                let top = expr::top_level(body);
+                let eqs: Vec<usize> = top
+                    .iter()
+                    .filter(|&&(p, c)| {
+                        c == '='
+                            && !matches!(body[..p].chars().last(), Some('<' | '>' | '!' | '='))
+                            && !body[p + 1..].starts_with('=')
+                    })
+                    .map(|&(p, _)| p)
+                    .collect();
+                // The engine takes the right side of `f(x) = c` as a constant: a side that uses the variable is
+                // moved to the left (`f(x) - (g(x))`).
+                let uses = |e: &str| {
+                    e.split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '′' || c == '″')).any(|w| w == var)
+                };
+                let eq = match eqs[..] {
+                    // Without `= c` the engine solves f(x) = 0 in the unit of f (an explicit `= 0` would be unitless).
+                    [] => tr(body, "solve")?,
+                    [p] => {
+                        let (l, r) = (tr(&body[..p], "solve")?, tr(&body[p + 1..], "solve")?);
+                        if uses(&r) {
+                            format!("{l} - ({r})")
+                        } else {
+                            format!("{l} = {r}")
+                        }
+                    }
+                    _ => return Err("solve: write one equation, f(x) = c".into()),
+                };
+                Ok(format!("$Root{{{eq} @ {var} = {a} : {b}}}"))
+            })());
+        }
+        if let Some(r) = rhs.strip_prefix("integral of ") {
+            return Some((|| {
+                let (body, var, a, b) = for_range(r, &tr)?;
+                Ok(format!("$Integral{{{} @ {var} = {a} : {b}}}", tr(body, "integral")?))
+            })());
+        }
+        if let Some(r) = rhs.strip_prefix("slope of ") {
+            return Some((|| {
+                let Some(at) = r.rfind(" at ") else {
+                    return Err("slope: write `slope of f(x) at x = a`".into());
+                };
+                let (body, pt) = (r[..at].trim(), r[at + 4..].trim());
+                let Some(eq) = pt.find('=') else {
+                    return Err("slope: write `slope of f(x) at x = a`".into());
+                };
+                let var = pt[..eq].trim();
+                if !names::is_name(var) {
+                    return Err(format!("slope: '{var}' is not a name"));
+                }
+                Ok(format!(
+                    "$Slope{{{} @ {} = {}}}",
+                    tr(body, "slope")?,
+                    names::rename(var),
+                    tr(pt[eq + 1..].trim(), "slope")?
+                ))
+            })());
+        }
+        None
+    }
+
+    /// A malformed `solve`, `integral of` or `slope of` line: the message for it. Only a line that
+    /// has the shape of one (a `..` range, or `at` and `=`) is reported, so prose such as
+    /// `Note: solve this by hand` stays prose.
+    fn numeric_error(&self, content: &str) -> Option<String> {
+        let (parts, _) = split_line(content, true);
+        for part in parts {
+            let part = part.trim();
+            let Some(p) = find_sep(part) else { continue };
+            let rhs = part[p + 1..].trim();
+            let shaped = (rhs.starts_with("solve ") || rhs.starts_with("integral of ")) && rhs.contains(" for ") && rhs.contains("..")
+                || rhs.starts_with("slope of ") && rhs.contains(" at ") && rhs.contains('=');
+            if !shaped {
+                continue;
+            }
+            let rhs = match expr::top_level(rhs).iter().rev().find(|&&(q, c)| c == '-' && rhs[q..].starts_with("->")) {
+                Some(&(q, _)) => {
+                    if let Err(m) = expr::translate_unit(rhs[q + 2..].trim()) {
+                        return Some(format!("unit: {m}"));
+                    }
+                    rhs[..q].trim()
+                }
+                None => rhs,
+            };
+            if let Some(Err(m)) = self.numeric(rhs) {
+                return Some(m);
+            }
+        }
+        None
+    }
+}
+
+/// `body for x in a..b`: the body, the (renamed) variable and the translated bounds. A bound that
+/// is a bare 0 takes the other bound's units (`0*(5 m)`), since the engine needs both in one unit.
+fn for_range<'s>(
+    r: &'s str,
+    tr: &dyn Fn(&str, &str) -> Result<String, String>,
+) -> Result<(&'s str, String, String, String), String> {
+    let usage = "write `... for x in a..b`";
+    let Some(fpos) = r.rfind(" for ") else { return Err(usage.into()) };
+    let (body, right) = (r[..fpos].trim(), r[fpos + 5..].trim());
+    let Some(ip) = right.find(" in ") else { return Err(usage.into()) };
+    let var = right[..ip].trim();
+    if !names::is_name(var) {
+        return Err(format!("'{var}' is not a name"));
+    }
+    let range = right[ip + 4..].trim();
+    let Some(d) = expr::top_level(range)
+        .windows(2)
+        .find(|w| w[0].1 == '.' && w[1].1 == '.' && w[1].0 == w[0].0 + 1)
+        .map(|w| w[0].0)
+    else {
+        return Err(format!("the range needs '..': {usage}"));
+    };
+    let mut a = tr(range[..d].trim(), "range")?;
+    let mut b = tr(range[d + 2..].trim(), "range")?;
+    let plain = |v: &str| v.trim_start_matches('-').parse::<f64>().is_ok();
+    if a == "0" && !plain(&b) {
+        a = format!("0*({b})");
+    } else if b == "0" && !plain(&a) {
+        b = format!("0*({a})");
+    }
+    Ok((body, names::rename(var), a, b))
+}
+
+/// `sin(x) as "sine"`: the expression and the name of a curve for the plot's legend.
+fn plot_label(part: &str) -> Result<(&str, Option<&str>), String> {
+    let t = part.trim();
+    let Some(body) = t.strip_suffix('"') else { return Ok((part, None)) };
+    let Some(q) = body.rfind('"') else { return Err("a curve name needs quotes on both sides".into()) };
+    let name = body[q + 1..].trim();
+    let Some(e) = body[..q].trim_end().strip_suffix(" as") else {
+        return Err("write a curve name as `expression as \"name\"`".into());
+    };
+    if name.is_empty() {
+        return Err("empty curve name".into());
+    }
+    if let Some(c) = name.chars().find(|c| matches!(c, '"' | '\'' | '&' | '|' | '@' | '{' | '}')) {
+        return Err(format!("a curve name cannot contain '{c}'"));
+    }
+    Ok((e, Some(name)))
 }
 
 /// A quantity line split into its statements (on `;` outside brackets) and its `| note`

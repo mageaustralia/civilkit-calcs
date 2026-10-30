@@ -320,6 +320,22 @@ symmetric matrix was a stumbling block.
 **Tests:** `calcpad-core/src/matrix/general_eigen.rs` (residuals of random and defective matrices),
 `calcpad-core/tests/general_eigen_functions.rs`, `web/e2e/eigen-check.mjs`.
 
+## D19. A `$Plot` curve can carry a name, and named curves get a legend (addition)
+
+**CalcpadCE:** `$Plot{sin(x) & cos(x) @ x = 0 : 6}` draws the curves in their colours with no legend, and there is
+no way to name a curve; a quoted text in the curve is an error.
+
+**Here:** a curve may end with a name in double quotes, `$Plot{sin(x) "sine" & cos(x) "cosine" @ x = 0 : 6}`. When
+at least one curve has a name, the SVG gets a legend in the top right corner of the plot area: a white box with the
+plot frame's grey border and, for each curve drawn, a short line in its series colour and its name (a curve without
+a name shows its expression). The captured data of the plot (the Excel chart) takes the names as series names. A
+plot without names is byte for byte what it was. The formula view (not calculated) leaves the names out. The sheet
+writes `plot sin(x) as "sine", ... for x in 0..6` (docs/sheet-syntax.md).
+
+**Why:** a plot of several curves cannot be read without knowing which is which.
+
+**Tests:** `calcpad-core/tests/plot_legend.rs`, `calcpad-sheet/src/tests.rs` (`plot_curve_names_draw_a_legend`).
+
 ## Not deviations (scope and known differences)
 
 These are not deliberate behaviour changes, but they can make output differ:
