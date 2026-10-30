@@ -6957,6 +6957,10 @@ first), radio buttons (the same options in round brackets), a checkbox and a sli
 * **A checkbox** is `on` or `off` (`true` and `false` also work) and the name is `1` or `0`: `if ribs == 1:`.
 * **The note** after `|` is shown after a number, as on a quantity line. A drop-down, radio buttons and a checkbox
   show no name, so their note is the label in front of the control (the name is used when there is no note).
+* In Input mode, consecutive input lines are drawn as one block: the names, the number boxes (and drop-downs), the sliders,
+  the units and the notes line up in columns. The names are right aligned so the equals signs meet, a very long name is
+  held to 40% of the width and wraps, and a text line, a heading or a blank line starts a new block. A single input line
+  is drawn on its own. This is how the form looks only; the report and the exports are not affected.
 * One input per line, and the name is a plain name (Greek spellings as always). `name = ? 6 m` works too.
   The name is defined like any quantity: later lines, `>>` lines and Go to definition use it.
 * A choice gives one number. To choose among several properties at once (a material with its modulus, strength and
