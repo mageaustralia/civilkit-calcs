@@ -44,7 +44,8 @@ const COLLECT = (arg) => {
     const root = document.querySelector(sel);
     if (!root) return null;
     const out = [];
-    const norm = (s) => s.replace(/\s+/g, ' ').trim();
+    // The release number is masked: it changes at every release and is not a string of the interface.
+    const norm = (s) => s.replace(/\s+/g, ' ').trim().replace(/\b\d{2}\.\d{1,2}\.\d+\b/g, '<version>');
     const walk = (n) => {
         if (n.nodeType === 3) { const t = norm(n.nodeValue); if (t) out.push(t); return; }
         if (n.nodeType !== 1) return;

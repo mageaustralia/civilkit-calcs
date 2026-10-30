@@ -621,8 +621,8 @@
    "@aria-label=\\: Integer division"
   ],
   "about": [
-   "@aria-label=CivilKit Calcs 26.10.15",
-   "CivilKit Calcs 26.10.15",
+   "@aria-label=CivilKit Calcs <version>",
+   "CivilKit Calcs <version>",
    "Built on CalcpadCE 8.0.0-beta3-preview (MIT), by Nedelcho Ganchovski (Proektsoft) and contributors. The engine is reimplemented in Rust and runs in your browser.",
    "CalcpadCE:",
    "https://github.com/imartincei/CalcpadCE",
@@ -665,6 +665,18 @@
    "@placeholder=Search settings...",
    "@title=Collapse all",
    "Collapse All",
+   "▼",
+   "Number format",
+   "How results and input boxes show numbers. The worksheet itself always uses a decimal point, so files stay the same wherever they are opened.",
+   "Number format:",
+   "Automatic (point, from the browser language)",
+   "Point (1,234.5)",
+   "Comma (1.234,5)",
+   "Space and comma (1 234,5)",
+   "Group digits (thousands separator)",
+   "Example:",
+   "1234567.5",
+   "In an input box with a decimal comma, both 6,5 and 6.5 are accepted. Plots, code listings and spreadsheet-style grids keep the decimal point.",
    "▼",
    "Math Settings",
    "Decimals:",
@@ -944,7 +956,7 @@
    "Add library",
    "@placeholder=https://cdn.jsdelivr.net/npm/name@1.2.3/dist/name.min.js",
    "Fetch",
-   "CivilKit Calcs v26.10.15"
+   "CivilKit Calcs v26.10.17"
   ],
   "settingsHead": [
    "Settings",
