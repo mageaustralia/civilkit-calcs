@@ -1,7 +1,7 @@
 """The host side of a Calcpad worksheet's Python block: `export`, the sandbox guard and the runner.
 
 The worker calls `install(raw)` once per interpreter, with the host object that offers `figure(json_text)`,
-`plotly(json_text)`, `export(json_text)` and `linalg(json_text)`, then `run(source, name)` for each block. The host object is kept in a closure and the module that
+`plotly(json_text)`, `export(json_text)`, `linalg(json_text)` and, for `ui` panels, `panel`, `panelOut` and `seed`, then `run(source, name)` for each block. The host object is kept in a closure and the module that
 carried it is removed, so a script cannot reach it by name.
 """
 import builtins
@@ -86,6 +86,9 @@ def install(raw):
     exp = raw.export
     lin = raw.linalg
     plo = raw.plotly
+    pan = getattr(raw, "panel", None)
+    pout = getattr(raw, "panelOut", None)
+    sed = getattr(raw, "seed", None)
     _state["export"] = lambda t: exp(t)
     _state["figure"] = lambda t: fig(t)
     sys.modules.pop("_cp_raw", None)
@@ -94,6 +97,9 @@ def install(raw):
         figure = staticmethod(lambda t: fig(str(t)))
         plotly = staticmethod(lambda t: plo(str(t)))
         linalg = staticmethod(lambda t: lin(str(t)))
+        panel = staticmethod(lambda t: pan(str(t)))
+        panelOut = staticmethod(lambda t: pout(str(t)))
+        seed = staticmethod(lambda: str(sed()) if sed else "{}")
 
     sys.modules["_cp_host"] = Host()
     orig = builtins.__import__

@@ -1,0 +1,32 @@
+<!--sheet-->
+# Column buckling (interactive panel with a player)
+
+An axially loaded pinned-pinned-type column with a small initial bow. The player raises the load as a fraction of the Euler load `P_cr`; the chart shows the bowed shape growing as `1 / (1 - P/P_cr)`. Choose the end condition and the length; the player restarts from the value it is at.
+
+```python
+import ui
+import math
+import numpy as np
+import plotly.graph_objects as go
+
+E = 200e9            # Pa
+I = 3.5e-6           # m^4
+e0 = 0.004           # m, initial bow at mid-height (L/1500 is typical; fixed here)
+
+L = ui.slider("L", 4, 2, 10, step=0.5, unit="m", label="Length")
+ends = ui.select("ends", [("Pinned - pinned", 1.0), ("Fixed - pinned", 0.7), ("Fixed - free", 2.0), ("Fixed - fixed", 0.5)], label="End condition")
+f = ui.player("f", 0, 19, fps=5, label="Load P / Pcr (%, step 5)")
+
+@ui.panel(L, ends, f)
+def column(L, ends, f):
+    K = ends
+    Pcr = math.pi**2 * E * I / (K * L)**2 / 1000.0       # kN
+    ratio = f * 0.05
+    amp = 1.0 / (1.0 - ratio)
+    x = np.linspace(0, L, 41)
+    y = e0 * amp * 1000.0 * np.sin(math.pi * x / L)       # mm
+    fig = go.Figure(go.Scatter(x=y, y=x, mode="lines", line_width=3, name="Bowed shape"))
+    fig.update_layout(height=340, margin=dict(l=56, r=16, t=16, b=44), xaxis_title="Lateral displacement (mm)", yaxis_title="Height (m)",
+                      xaxis_range=[-1, 90], yaxis_range=[0, L])
+    return [fig, "P = %.0f kN (%.0f %% of Pcr = %.0f kN); mid-height bow = %.1f mm" % (ratio * Pcr, ratio * 100, Pcr, e0 * amp * 1000.0)]
+```
