@@ -65,6 +65,17 @@ d: sum([1, 2, 3])
 e: interp(2.5, [1, 2, 3], [10, 20, 30])
 ```
 
+There is no `hypot` in a sheet. For the hypotenuse, or the resultant of any number of components,
+use `srss` (square root of the sum of squares), which keeps the unit:
+
+```sheet
+a: 3 m
+b: 4 m
+c: srss(a, b)
+```
+
+The result is 5 m, and `srss(3 m, 4 m, 12 m)` is 13 m. (In a Python block `math.hypot` exists.)
+
 A function whose name is also a variable name needs the Calcpad spelling (a name like `gamma`
 or `beta` used as a variable only keeps working if you write it the Calcpad way). Function calls
 are not renamed unless the sheet defines the function.
