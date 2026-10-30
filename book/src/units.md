@@ -34,6 +34,21 @@ Without `->`, a sum comes out in the first unit it meets. With `-> unit` the res
 to the unit you choose. In the Calcpad language the same conversion is a vertical bar:
 `a = 1.23m + 35cm + 12mm | cm`.
 
+### SI base units
+
+`-> base` shows a result in the SI base units of its dimensions, so you do not have to spell them out:
+
+```sheet
+F: 5 kN
+L: 2 m
+M: F * L -> base
+P: 3 MPa -> base
+```
+
+The moment comes out as `10000 kg·m²/s²` and the pressure as `3000000 kg·m⁻¹·s⁻²`. The units used are
+kg, m, s, A, mol and cd. A value with no unit is left as it is, and so is one with a temperature or an
+angle in it. In the Calcpad language the same thing is `M = F*L | base`.
+
 Prefixes work on every unit that takes them: `kN` is 10³ N, `MPa` is 10⁶ Pa, `mm` is 10⁻³ m. See
 "Prefixes" below for the full list.
 

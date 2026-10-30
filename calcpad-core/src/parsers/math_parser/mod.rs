@@ -483,6 +483,7 @@ impl MathParser {
                         if let Some(var) = var {
                             if let Some(mut val) = var.value() {
                                 let tu = self.target_units.borrow().clone();
+                                let tu = self.resolve_target_units(&val, &tu)?;
                                 let u = evaluator::apply_units(&mut val, &tu)?;
                                 // ApplyUnits works on the variable's value by reference.
                                 var.set_value_silent(val);

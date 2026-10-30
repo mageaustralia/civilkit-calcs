@@ -168,6 +168,31 @@ for (const { file, url, page } of learnPages) {
     }
 }
 
+// ---- the quick reference (tools/learn/reference.mjs) ----------------------------------------------------------------------
+{
+    const where = 'reference page';
+    const url = `${SITE}/calcs/reference/`;
+    const file = join(pub, 'reference', 'index.html');
+    if (!isFile(file)) check(false, `${where}: ${file} exists (run node tools/make_learn_pages.mjs)`);
+    else {
+        const html = read(file);
+        const title = unesc(/<title>([^<]*)<\/title>/.exec(html)?.[1] ?? '');
+        const desc = meta(html, 'name', 'description');
+        check(title.length >= 15 && title.length <= 60, `${where}: title of ${title.length} characters is 15 to 60`);
+        check(desc.length === 1 && desc[0].length >= 70 && desc[0].length <= 160, `${where}: one description of 70 to 160 characters (${desc[0]?.length})`);
+        unique(titles, title, where, 'title');
+        unique(descriptions, desc[0], where, 'description');
+        check(h1s(html) === 1, `${where}: one h1`);
+        check(JSON.stringify(canonicals(html)) === JSON.stringify([url]), `${where}: one canonical, ${url}`);
+        check(meta(html, 'property', 'og:url')[0] === url && !!meta(html, 'property', 'og:title')[0] && /^https:\/\//.test(meta(html, 'property', 'og:image')[0] ?? ''), `${where}: og:url, og:title and an absolute og:image`);
+        const bc = nodes(ldOf(html, where)).find((n) => n['@type'] === 'BreadcrumbList')?.itemListElement ?? [];
+        const want = [['CivilKit', `${SITE}/`], ['Calcs', PRODUCT], ['Quick reference', url]];
+        check(JSON.stringify(bc.map((i) => [i.name, i.item])) === JSON.stringify(want), `${where}: BreadcrumbList is CivilKit > Calcs > Quick reference`);
+        check(html.includes('href="/calcs/guide/"') && read(join(pub, 'learn', 'index.html')).includes('href="/calcs/reference/"'), `${where}: links the guide, and the hub links it`);
+        links += checkLinks(html, where, '/calcs/reference/');
+    }
+}
+
 // ---- What's new ----------------------------------------------------------------------------------------------------------------------------
 {
     const html = read(join(pub, 'whats-new', 'index.html'));
@@ -247,7 +272,7 @@ const toPath = (u) => { const x = new URL(u); return [decodeURIComponent(x.pathn
         if (p.startsWith('/calcs/learn/') || p === '/calcs/whats-new' ) check(p.endsWith('/'), `sitemap: ${u} ends with a slash`);
     }
     for (const c of chapters) check(c.file === 'introduction.md' ? locs.includes(GUIDE) : locs.includes(guideUrl(c.file)), `sitemap lists guide ${c.file} at ${guideUrl(c.file)}`);
-    for (const x of [HUB, APP, `${SITE}/calcs/embed/`, `${SITE}/calcs/whats-new/`, ...pages.map((p) => `${HUB}${p.slug}/`)]) check(locs.includes(x), `sitemap lists ${x}`);
+    for (const x of [HUB, APP, `${SITE}/calcs/embed/`, `${SITE}/calcs/reference/`, `${SITE}/calcs/whats-new/`, ...pages.map((p) => `${HUB}${p.slug}/`)]) check(locs.includes(x), `sitemap lists ${x}`);
 }
 for (const f of ['llms.txt', 'llms-full.txt']) {
     const t = read(join(pub, f));

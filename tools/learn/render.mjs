@@ -277,6 +277,10 @@ ${crumbs([['Calculators and guides']])}
 </div>
 <p class="cta"><a class="button" href="/calcs/">Open Calcs</a> <a class="button ghost" href="/calcs/guide/">Read the user guide</a></p>
 ${sections}
+<section id="reference">
+<h2>Quick reference</h2>
+<p>The sheet language on one printable page: every line kind, input, function, constant and unit. See the <a href="/calcs/reference/">quick reference</a>.</p>
+</section>
 <section id="embed">
 <h2>Embed a calculator</h2>
 <p>The calculators can also live on your own site: a free, copy and paste frame that calculates in the reader's browser. See <a href="/calcs/embed/">Embed a calculator</a>.</p>

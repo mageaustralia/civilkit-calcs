@@ -94,3 +94,17 @@ fn own_unit_errors() {
     assert!(c.diagnostics.is_empty(), "{:?}", c.diagnostics);
     assert!(!c.text.contains(".unit"), "{}", c.text);
 }
+
+#[test]
+fn convert_to_base_units() {
+    let (cp, text, errs) = run("<!--sheet-->\nF: 5 kN\nL: 2 m\nM: F * L -> base\nP: 3 MPa -> base\nf: 3 kHz -> base\nA: 2 cm * 3 cm -> base\nn: 12 -> base\nt: 20 °C -> base\n");
+    assert!(errs.is_empty(), "{errs:?}");
+    assert!(cp.contains("M = F * L|base"), "{cp}");
+    assert!(text.contains("M = F · L = 5 kN · 2 m = 10000 kg · m 2 ∕ s 2"), "{text}");
+    assert!(text.contains("P = 3 MPa = 3000000 kg · m -1 · s -2"), "{text}");
+    assert!(text.contains("f = 3 kHz = 3000 s -1"), "{text}");
+    assert!(text.contains("A = 2 cm · 3 cm = 0.0006 m 2"), "{text}");
+    // A plain number has no units to write, and a temperature is left as it is.
+    assert!(text.contains("n = 12"), "{text}");
+    assert!(text.contains("t = 20"), "{text}");
+}

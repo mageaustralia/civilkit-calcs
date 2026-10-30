@@ -47,6 +47,10 @@ pub struct Unit {
     fc: [Cell<f64>; MAX_DIMS],
 }
 
+/// The text of the target unit `base` (`expr | base`): show the result in SI base units. A control character
+/// keeps it from clashing with any name.
+pub const BASE_TARGET: &str = "\u{1}base";
+
 const COMPOSITE_UNIT_CHARS: [char; 3] = [NEG_CHAR, '\u{2215}', '^'];
 const NAMES: [&str; 9] = ["g", "m", "s", "A", "\u{00B0}C", "mol", "cd", "rad", ""];
 const UNIT_NAMES: [&str; 12] = [
@@ -371,6 +375,46 @@ impl Unit {
 
     pub fn is_dimensionless(&self) -> bool {
         self.n == 0
+    }
+
+    /// The coherent SI base units of this unit as text a unit parser reads (`kg*m^2/s^2`), for the target `base`.
+    /// None when the unit has a temperature or an angle in it, or no dimension at all: those are left as they are.
+    pub fn si_base_text(&self) -> Option<String> {
+        const SYMBOLS: [&str; 7] = ["kg", "m", "s", "A", "", "mol", "cd"];
+        let n = (self.n as usize).min(8);
+        // Temperature (an offset scale) and angle are not converted.
+        if (n > 4 && self.pw[4] != 0.0) || (n > 7 && self.pw[7] != 0.0) {
+            return None;
+        }
+        let power = |name: &str, p: f32| -> String {
+            if p == 1.0 { name.to_string() } else if p.fract() == 0.0 { format!("{name}^{}", p as i32) } else { format!("{name}^{p}") }
+        };
+        let mut num = Vec::new();
+        let mut den = Vec::new();
+        for i in 0..n.min(7) {
+            let p = self.pw[i];
+            if p == 0.0 || SYMBOLS[i].is_empty() {
+                continue;
+            }
+            if p > 0.0 { num.push(power(SYMBOLS[i], p)); } else { den.push((SYMBOLS[i], -p)); }
+        }
+        if num.is_empty() && den.is_empty() {
+            return None;
+        }
+        if num.is_empty() {
+            return Some(den.iter().map(|(name, p)| power(name, -p)).collect::<Vec<_>>().join("*"));
+        }
+        let mut text = num.join("*");
+        match den.len() {
+            0 => {}
+            1 => text.push_str(&format!("/{}", power(den[0].0, den[0].1))),
+            _ => {
+                for (name, p) in &den {
+                    text.push_str(&format!("*{}", power(name, -p)));
+                }
+            }
+        }
+        Some(text)
     }
 
     /// `Unit.Text`

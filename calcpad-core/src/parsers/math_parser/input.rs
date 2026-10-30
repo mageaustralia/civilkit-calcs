@@ -465,6 +465,10 @@ impl MathParser {
                 *self.target_units.borrow_mut() = None;
                 return Ok(len);
             }
+            if trim(&unit) == "base" {
+                *self.target_units.borrow_mut() = Some(Unit::get_formatting_unit(crate::base_types::unit::BASE_TARGET));
+                return Ok(n);
+            }
             let units = self.units.borrow().clone();
             let u = units_parser::parse(trim(&unit), Some(&units), self.is_us.get())?;
             *self.target_units.borrow_mut() = u;

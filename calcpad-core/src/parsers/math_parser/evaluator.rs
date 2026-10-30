@@ -278,6 +278,7 @@ impl MathParser {
         if stack.len() > stack.base {
             let mut v = stack.values.pop().unwrap();
             let tu = self.target_units.borrow().clone();
+            let tu = self.resolve_target_units(&v, &tu)?;
             let u = apply_units(&mut v, &tu)?;
             self.set_result_units(u);
             return Ok(v);
@@ -478,9 +479,23 @@ impl MathParser {
         v.value().ok_or_else(|| exceptions::UndefinedVariableOrUnits(&content))
     }
 
+    /// The target unit for `ival`: as given, except the target `base`, which is the value's own dimensions written
+    /// in SI base units (`kg*m^2/s^2`). A value with no unit, a temperature or an angle is left as it is.
+    pub(crate) fn resolve_target_units(&self, ival: &Value, tu: &OptUnit) -> CResult<OptUnit> {
+        let Some(t) = tu else { return Ok(None) };
+        if !(t.is_empty() && t.raw_text().as_deref() == Some(crate::base_types::unit::BASE_TARGET)) {
+            return Ok(tu.clone());
+        }
+        let Some(own) = ival.units() else { return Ok(None) };
+        let Some(text) = own.si_base_text() else { return Ok(Some(own.clone())) };
+        let units = self.units.borrow().clone();
+        crate::parsers::units_parser::parse(&text, Some(&units), self.is_us.get())
+    }
+
     fn evaluate_assignment(&self, b: Value, rpn: &Rpn, is_visible: bool) -> CResult<Value> {
         let mut b = b;
         let tu = self.target_units.borrow().clone();
+        let tu = self.resolve_target_units(&b, &tu)?;
         let u = apply_units(&mut b, &tu)?;
         self.set_result_units(u);
         if is_visible {

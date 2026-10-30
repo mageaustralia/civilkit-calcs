@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engineering calculation sheet quick reference</title>
+<meta name="description" content="One printable page of the CivilKit Calcs sheet language: line kinds, inputs, plots, every function, constant and unit. Free, and it prints to PDF.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://civilkit.io/calcs/reference/">
+<link rel="stylesheet" href="/calcs/learn/learn.css">
+<link rel="icon" href="/calcs/icon-192.png" sizes="192x192">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CivilKit Calcs">
+<meta property="og:title" content="Engineering calculation sheet quick reference">
+<meta property="og:description" content="One printable page of the CivilKit Calcs sheet language: line kinds, inputs, plots, every function, constant and unit. Free, and it prints to PDF.">
+<meta property="og:url" content="https://civilkit.io/calcs/reference/">
+<meta property="og:image" content="https://civilkit.io/calcs/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Engineering calculation sheet quick reference">
+<meta name="twitter:description" content="One printable page of the CivilKit Calcs sheet language: line kinds, inputs, plots, every function, constant and unit. Free, and it prints to PDF.">
+<meta name="twitter:image" content="https://civilkit.io/calcs/icon-512.png">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "CivilKit",
+     "item": "https://civilkit.io/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Calcs",
+     "item": "https://civilkit.io/calc/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Quick reference",
+     "item": "https://civilkit.io/calcs/reference/"
+    }
+   ]
+  },
+  {
+   "@type": "WebPage",
+   "name": "Engineering calculation sheet quick reference",
+   "url": "https://civilkit.io/calcs/reference/",
+   "description": "One printable page of the CivilKit Calcs sheet language: line kinds, inputs, plots, every function, constant and unit. Free, and it prints to PDF.",
+   "isPartOf": {
+    "@type": "WebSite",
+    "name": "CivilKit",
+    "url": "https://civilkit.io/"
+   },
+   "about": {
+    "@type": "SoftwareApplication",
+    "name": "CivilKit Calcs",
+    "url": "https://civilkit.io/calc/",
+    "description": "A free, open source engineering calculation sheet that runs in the browser. Real units, plots, input forms, Word, Excel and PDF export, offline use.",
+    "applicationCategory": "EngineeringApplication",
+    "applicationSubCategory": "Engineering calculation",
+    "operatingSystem": "Any",
+    "browserRequirements": "A current web browser with WebAssembly",
+    "isAccessibleForFree": true,
+    "license": "https://opensource.org/license/mit",
+    "offers": {
+     "@type": "Offer",
+     "price": "0",
+     "priceCurrency": "USD"
+    }
+   }
+  }
+ ]
+}
+</script>
+<style>
+.ref { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 0.5rem 0 1rem; }
+.ref th, .ref td { text-align: left; vertical-align: top; padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--line); }
+.ref code { white-space: pre-wrap; }
+.names { line-height: 1.9; }
+.names code { margin-right: 0.35rem; white-space: nowrap; }
+h4 { margin: 1rem 0 0.2rem; font-size: 0.95rem; color: var(--dim); }
+.print { margin: 0.5rem 0 1rem; }
+.print button { font: inherit; padding: 0.5rem 1rem; border-radius: 6px; border: 2px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+@media print {
+  body { font-size: 9pt; }
+  main { max-width: none; padding: 0; }
+  .print, .lead, .skip, header.site, footer.site, .crumbs { display: none; }
+  section { break-inside: auto; }
+  h2, h3, h4 { break-after: avoid; }
+  .ref tr { break-inside: avoid; }
+  .ref { font-size: 8.5pt; }
+  .names { line-height: 1.55; columns: 2; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+<a class="brand" href="https://civilkit.io/calc/">CivilKit Calcs</a>
+<nav aria-label="Site">
+<a href="https://civilkit.io/calc/">Calcs home</a>
+<a href="/calcs/learn/">Calculators and guides</a>
+<a href="/calcs/guide/">User guide</a>
+<a href="/calcs/whats-new/">What's new</a>
+<a href="/calcs/">Open Calcs</a>
+</nav>
+</header>
+<main id="main">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="https://civilkit.io/">CivilKit</a> / <a href="https://civilkit.io/calc/">Calcs</a> / <span>Quick reference</span></nav>
+<h1>Sheet language quick reference</h1>
+<div class="lead">
+<p>Every kind of line a CivilKit Calcs sheet takes, its inputs, and the functions, constants, operators and units of the engine, on one page that prints well. Use <strong>Print</strong> and choose Save as PDF to keep a copy. The full account is in the <a href="/calcs/guide/">user guide</a>.</p>
+</div>
+<p class="print"><button type="button" id="print-ref" hidden>Print this page</button> <a class="button" href="/calcs/">Open Calcs</a></p>
+<section>
+<h2>Lines of a sheet</h2>
+<table class="ref">
+<thead><tr><th>Line</th><th>You write</th><th>You get</th></tr></thead>
+<tbody>
+<tr><td>Heading</td><td><code># Beam check</code></td><td>A heading, level 1 to 6 with more #.</td></tr>
+<tr><td>Prose</td><td><code>Plain text, **bold**, *italic*, lists and tables.</code></td><td>Markdown. A line that reads as a calculation but is not one can start with a backslash.</td></tr>
+<tr><td>Formula in text</td><td><code>The moment is $M = wL^2/8$.</code></td><td>A formula typeset in the text.</td></tr>
+<tr><td>Quantity</td><td><code>L: 6 m | span</code></td><td>A name with a value and a unit; the text after | is a note.</td></tr>
+<tr><td>Calculation</td><td><code>M: w * L^2 / 8 -&gt; kN*m</code></td><td>The working shown with the values put in, converted to kN·m.</td></tr>
+<tr><td>Several on a line</td><td><code>a: 1; b: 2 | note for b</code></td><td>Two quantities; the note belongs to the last.</td></tr>
+<tr><td>Your own function</td><td><code>f(x, y): sqrt(x^2 + y^2)</code></td><td>Used as f(3, 4) in later lines and in plots.</td></tr>
+<tr><td>A unit of your own</td><td><code>#unit bag = 25 kg</code></td><td>Then 3 bag, or -&gt; bag.</td></tr>
+<tr><td>Vector and matrix</td><td><code>v: [1, 2, 3]<br>A: [1, 2; 3, 4]</code></td><td>Commas across, semicolons between rows. v.2 and A.(1, 2) pick an element.</td></tr>
+<tr><td>Condition</td><td><code>if u &lt;= 1: &quot;OK&quot; else: &quot;Fails&quot;</code></td><td>A block with a body uses an indented body after if, else, for, while or repeat.</td></tr>
+<tr><td>Loop</td><td><code>for i in 1..5:<br>    P: 10 kN * i</code></td><td>for x in v, for i in 0..10 step 2, while, repeat n, break and continue also work.</td></tr>
+<tr><td>Solve</td><td><code>x0: solve f(x) = 4 for x in 0..5</code></td><td>Root finding on a range.</td></tr>
+<tr><td>Integral and slope</td><td><code>A: integral of f(x) for x in 0..3<br>k: slope of f(x) at x = 3</code></td><td>Numerical integral and derivative.</td></tr>
+<tr><td>Plot</td><td><code>plot sin(x) as &quot;sine&quot;, cos(x) for x in 0..6</code></td><td>Curves on one plot; as &quot;name&quot; adds a legend entry.</td></tr>
+<tr><td>Page break</td><td><code>&lt;div style=&quot;page-break-after:always&quot;&gt;&lt;/div&gt;</code></td><td>Starts a new page in print, PDF and Word.</td></tr>
+<tr><td>Raw engine line</td><td><code>&gt;&gt; #deg</code></td><td>A line passed to the Calcpad engine as written.</td></tr>
+</tbody>
+</table>
+</section>
+<section>
+<h2>Inputs (a question mark makes the value a form field)</h2>
+<table class="ref">
+<thead><tr><th>Line</th><th>You write</th><th>You get</th></tr></thead>
+<tbody>
+<tr><td>Number</td><td><code>L: ? 6 m | span</code></td><td>A box with its unit; the value is the default.</td></tr>
+<tr><td>Slider</td><td><code>w: ? 12 kN/m [2 .. 30 step 0.5] | load</code></td><td>A box with a slider between the bounds.</td></tr>
+<tr><td>Drop-down</td><td><code>E: ? [Steel = 200 GPa, *Timber = 11 GPa]</code></td><td>The name takes the value of the chosen option; * marks the default.</td></tr>
+<tr><td>Radio buttons</td><td><code>k: ? (Low = 1, High = 2)</code></td><td>The same with round brackets.</td></tr>
+<tr><td>Checkbox</td><td><code>ribs: ? on</code></td><td>on is 1 and off is 0.</td></tr>
+</tbody>
+</table>
+</section>
+<section>
+<h2>Constants and operators</h2>
+<table class="ref">
+<thead><tr><th>Constant</th><th>Symbol</th></tr></thead>
+<tbody>
+<tr><td>Pi - ratio of circumference to diameter</td><td><code>π</code></td></tr>
+<tr><td>Pi - ratio of circumference to diameter (spelled out)</td><td><code>pi</code></td></tr>
+<tr><td>Euler's number - base of natural logarithm</td><td><code>e</code></td></tr>
+<tr><td>Golden ratio</td><td><code>φ = 1.618033988749894</code></td></tr>
+<tr><td>Euler-Mascheroni constant</td><td><code>γ = 0.5772156649015328</code></td></tr>
+<tr><td>Standard gravitational acceleration</td><td><code>g = 9.80665m/s^2</code></td></tr>
+<tr><td>Gravitational constant</td><td><code>G = 6.67430*10^-11*(m^3/(kg*s^2))</code></td></tr>
+<tr><td>Earth mass</td><td><code>M_E = 5.9722*10^24*kg</code></td></tr>
+<tr><td>Solar mass</td><td><code>M_S = 1.98847*10^30*kg</code></td></tr>
+<tr><td>Speed of light in vacuum</td><td><code>c = 299792458m/s</code></td></tr>
+<tr><td>Planck constant</td><td><code>h = 6.62607015*10^-34*J/Hz</code></td></tr>
+<tr><td>Vacuum permeability</td><td><code>μ_0 = 1.25663706212*10^-6*N/A^2</code></td></tr>
+<tr><td>Vacuum permittivity</td><td><code>ε_0 = 8.8541878128*10^-12*F/m</code></td></tr>
+<tr><td>Coulomb constant</td><td><code>k_e = 8.9875517923*10^9*N*m^2/C^2</code></td></tr>
+<tr><td>Elementary charge</td><td><code>e = 1.602176634*10^-19*C</code></td></tr>
+<tr><td>Electron mass</td><td><code>m_e = 9.1093837015*10^-31*kg</code></td></tr>
+<tr><td>Proton mass</td><td><code>m_p = 1.67262192369*10^-27*kg</code></td></tr>
+<tr><td>Neutron mass</td><td><code>m_n = 1.67492749804*10^-27*kg</code></td></tr>
+<tr><td>Avogadro constant</td><td><code>N_A = 6.02214076*10^23*mol^-1</code></td></tr>
+<tr><td>Stefan-Boltzmann constant</td><td><code>σ = 5.670374419*10^-8*W*m^-2*K^-4</code></td></tr>
+<tr><td>Boltzmann constant</td><td><code>k_B = 1.380649*10^-23*J/K</code></td></tr>
+<tr><td>Molar gas constant</td><td><code>R = 8.31446261815324*(J/(mol*K))</code></td></tr>
+<tr><td>Faraday constant</td><td><code>F = 96485.33212331C/mol</code></td></tr>
+<tr><td>Unit weight of concrete</td><td><code>γ_c = 25kN/m^3</code></td></tr>
+<tr><td>Unit weight of steel</td><td><code>γ_s = 78.5kN/m^3</code></td></tr>
+<tr><td>Unit weight of aluminium</td><td><code>γ_a = 27kN/m^3</code></td></tr>
+<tr><td>Unit weight of glass</td><td><code>γ_g = 25kN/m^3</code></td></tr>
+<tr><td>Unit weight of water</td><td><code>γ_w = 10kN/m^3</code></td></tr>
+</tbody>
+</table>
+<table class="ref">
+<thead><tr><th>Operator</th><th>Symbol</th></tr></thead>
+<tbody>
+<tr><td>Factorial</td><td><code>!</code></td></tr>
+<tr><td>Exponent (power)</td><td><code>^</code></td></tr>
+<tr><td>Division</td><td><code>/</code></td></tr>
+<tr><td>Division bar (inline) / slash (pro mode)</td><td><code>÷</code></td></tr>
+<tr><td>Integer division</td><td><code>\</code></td></tr>
+<tr><td>Modulo (remainder)</td><td><code>⦼</code></td></tr>
+<tr><td>Multiplication</td><td><code>*</code></td></tr>
+<tr><td>Subtraction / Negation</td><td><code>-</code></td></tr>
+<tr><td>Addition</td><td><code>+</code></td></tr>
+<tr><td>Equal to</td><td><code>≡</code></td></tr>
+<tr><td>Not equal to</td><td><code>≠</code></td></tr>
+<tr><td>Less than</td><td><code>&lt;</code></td></tr>
+<tr><td>Greater than</td><td><code>&gt;</code></td></tr>
+<tr><td>Less than or equal</td><td><code>≤</code></td></tr>
+<tr><td>Greater than or equal</td><td><code>≥</code></td></tr>
+<tr><td>Logical AND</td><td><code>∧</code></td></tr>
+<tr><td>Logical OR</td><td><code>∨</code></td></tr>
+<tr><td>Logical XOR</td><td><code>⊕</code></td></tr>
+<tr><td>Phasor angle operator A∠φ</td><td><code>∠</code></td></tr>
+<tr><td>Assignment</td><td><code>=</code></td></tr>
+<tr><td>Outer scope assignment</td><td><code>←</code></td></tr>
+</tbody>
+</table>
+<p>In a sheet: <code>+ - * / ^ %</code>, <code>&lt; &gt; &lt;= &gt;= == !=</code>, <code>and or</code>, and the forms <code>≤ ≥ ≠ ∧ ∨ × · ÷</code>. <code>²</code> and <code>³</code> after a name or unit mean <code>^2</code> and <code>^3</code>.</p>
+</section>
+<section class="wide">
+<h2>Functions</h2>
+<p>Arguments are separated by commas in a sheet (the engine's semicolon also works inside brackets). A function written with a unit-bearing argument returns its result with the right unit.</p>
+<h3>Functions of numbers</h3>
+<h4>Trigonometric</h4>
+<p class="names"><code>sin(x)</code> <code>cos(x)</code> <code>tan(x)</code> <code>csc(x)</code> <code>sec(x)</code> <code>cot(x)</code></p>
+<h4>Inverse Trigonometric</h4>
+<p class="names"><code>asin(x)</code> <code>acos(x)</code> <code>atan(x)</code> <code>atan2(x; y)</code> <code>acsc(x)</code> <code>asec(x)</code> <code>acot(x)</code></p>
+<h4>Hyperbolic</h4>
+<p class="names"><code>sinh(x)</code> <code>cosh(x)</code> <code>tanh(x)</code> <code>csch(x)</code> <code>sech(x)</code> <code>coth(x)</code></p>
+<h4>Inverse Hyperbolic</h4>
+<p class="names"><code>asinh(x)</code> <code>acosh(x)</code> <code>atanh(x)</code> <code>acsch(x)</code> <code>asech(x)</code> <code>acoth(x)</code></p>
+<h4>Logarithmic, Exponential and Roots</h4>
+<p class="names"><code>log(x)</code> <code>ln(x)</code> <code>log_2(x)</code> <code>exp(x)</code> <code>sqr(x)</code> <code>sqrt(x)</code> <code>cbrt(x)</code> <code>root(x; n)</code></p>
+<h4>Rounding</h4>
+<p class="names"><code>round(x)</code> <code>floor(x)</code> <code>ceiling(x)</code> <code>trunc(x)</code></p>
+<h4>Integer</h4>
+<p class="names"><code>mod(x; y)</code> <code>gcd(values; …)</code> <code>lcm(values; …)</code> <code>fact(n)</code></p>
+<h4>Complex</h4>
+<p class="names"><code>re(z)</code> <code>im(z)</code> <code>abs(z)</code> <code>phase(z)</code> <code>conj(z)</code></p>
+<h4>Aggregate and Interpolation</h4>
+<p class="names"><code>min(v₁; v₂; ...)</code> <code>min(v)</code> <code>min(M)</code> <code>max(v₁; v₂; ...)</code> <code>max(v)</code> <code>max(M)</code> <code>sum(v₁; v₂; ...)</code> <code>sum(v)</code> <code>sum(M)</code> <code>sumsq(v₁; v₂; ...)</code> <code>sumsq(v)</code> <code>sumsq(M)</code> <code>srss(v₁; v₂; ...)</code> <code>srss(v)</code> <code>srss(M)</code> <code>average(v₁; v₂; ...)</code> <code>average(v)</code> <code>average(M)</code> <code>product(v₁; v₂; ...)</code> <code>product(v)</code> <code>product(M)</code> <code>mean(v₁; v₂; ...)</code> <code>mean(v)</code> <code>mean(M)</code> <code>median(v₁; v₂; ...)</code> <code>stdev(v₁; v₂; ...)</code> <code>stdevp(v₁; v₂; ...)</code> <code>var(v₁; v₂; ...)</code> <code>varp(v₁; v₂; ...)</code> <code>take(n; values)</code> <code>take(n; v)</code> <code>take(n; m)</code> <code>line(x; data)</code> <code>line(x; xData; yData)</code> <code>line(x; m)</code> <code>spline(x; data)</code> <code>spline(x; xData; yData)</code> <code>spline(x; m)</code></p>
+<h4>Conditional and Logical</h4>
+<p class="names"><code>if(cond; value-if-true; value-if-false)</code> <code>switch(c₁; v₁; c₂; v₂; …; def)</code> <code>not(x)</code> <code>and(values; …)</code> <code>or(values; …)</code> <code>xor(values; …)</code></p>
+<h4>Other</h4>
+<p class="names"><code>sign(x)</code> <code>random(x)</code> <code>getunits(x)</code> <code>setunits(x; u)</code> <code>clrunits(x)</code> <code>hp(x)</code> <code>ishp(x)</code> <code>timer(x)</code> <code>mandelbrot(x; y)</code></p>
+<h3>Vector functions</h3>
+<h4>Creational</h4>
+<p class="names"><code>vector(n)</code> <code>vector_hp(n)</code> <code>range(x1; xn; s)</code> <code>range_hp(x1; xn; s)</code> <code>linspace(a; b; n)</code></p>
+<h4>Structural</h4>
+<p class="names"><code>len(v)</code> <code>size(v)</code> <code>resize(v; n)</code> <code>fill(v; x)</code> <code>join(items)</code> <code>slice(v; i1; i2)</code> <code>first(v; n)</code> <code>last(v; n)</code> <code>extract(v; i)</code></p>
+<h4>Data</h4>
+<p class="names"><code>sort(v)</code> <code>rsort(v)</code> <code>order(v)</code> <code>revorder(v)</code> <code>reverse(v)</code> <code>count(v; x; i)</code> <code>search(v; x; i)</code> <code>find(v; x; i)</code> <code>find_eq(v; x; i)</code> <code>find_ne(v; x; i)</code> <code>find_lt(v; x; i)</code> <code>find_le(v; x; i)</code> <code>find_gt(v; x; i)</code> <code>find_ge(v; x; i)</code> <code>lookup(a; b; x)</code> <code>lookup_eq(a; b; x)</code> <code>lookup_ne(a; b; x)</code> <code>lookup_lt(a; b; x)</code> <code>lookup_le(a; b; x)</code> <code>lookup_gt(a; b; x)</code> <code>lookup_ge(a; b; x)</code> <code>polyfit(x; y; n)</code> <code>interp(x; xs; ys)</code> <code>linterp(x; xs; ys)</code></p>
+<h4>Math</h4>
+<p class="names"><code>norm(v)</code> <code>norm_1(v)</code> <code>norm_2(v)</code> <code>norm_e(v)</code> <code>norm_p(v; p)</code> <code>norm_i(v)</code> <code>unit(v)</code> <code>cumsum(v)</code> <code>convolve(a; b)</code> <code>dot(a; b)</code> <code>cross(a; b)</code></p>
+<h3>Matrix functions</h3>
+<h4>Creational</h4>
+<p class="names"><code>matrix(m; n)</code> <code>identity(n)</code> <code>diagonal(n; d)</code> <code>column(m; c)</code> <code>utriang(n)</code> <code>ltriang(n)</code> <code>symmetric(n)</code> <code>matrix_hp(m; n)</code> <code>identity_hp(n)</code> <code>diagonal_hp(n; d)</code> <code>column_hp(m; c)</code> <code>utriang_hp(n)</code> <code>ltriang_hp(n)</code> <code>symmetric_hp(n)</code> <code>vec2diag(v)</code> <code>vec2row(v)</code> <code>vec2col(v)</code> <code>join_cols(columns; …)</code> <code>join_rows(rows; …)</code> <code>augment(matrices; …)</code> <code>stack(matrices; …)</code></p>
+<h4>Structural</h4>
+<p class="names"><code>n_rows(M)</code> <code>n_cols(M)</code> <code>mresize(M; m; n)</code> <code>mfill(M; x)</code> <code>fill_row(M; i; x)</code> <code>fill_col(M; j; x)</code> <code>copy(A; B; i; j)</code> <code>add(A; B; i; j)</code> <code>row(M; i)</code> <code>col(M; j)</code> <code>extract_rows(M; i)</code> <code>extract_cols(M; j)</code> <code>diag2vec(M)</code> <code>submatrix(M; i1; i2; j1; j2)</code></p>
+<h4>Data</h4>
+<p class="names"><code>sort_cols(M; i)</code> <code>rsort_cols(M; i)</code> <code>sort_rows(M; j)</code> <code>rsort_rows(M; j)</code> <code>order_cols(M; i)</code> <code>revorder_cols(M; i)</code> <code>order_rows(M; j)</code> <code>revorder_rows(M; j)</code> <code>mcount(M; x)</code> <code>msearch(M; x; i; j)</code> <code>mfind(M; x)</code> <code>mfind_eq(M; x)</code> <code>mfind_ne(M; x)</code> <code>mfind_lt(M; x)</code> <code>mfind_le(M; x)</code> <code>mfind_gt(M; x)</code> <code>mfind_ge(M; x)</code> <code>hlookup(M; x; i1; i2)</code> <code>hlookup_eq(M; x; i1; i2)</code> <code>hlookup_ne(M; x; i1; i2)</code> <code>hlookup_lt(M; x; i1; i2)</code> <code>hlookup_le(M; x; i1; i2)</code> <code>hlookup_gt(M; x; i1; i2)</code> <code>hlookup_ge(M; x; i1; i2)</code> <code>vlookup(M; x; j1; j2)</code> <code>vlookup_eq(M; x; j1; j2)</code> <code>vlookup_ne(M; x; j1; j2)</code> <code>vlookup_lt(M; x; j1; j2)</code> <code>vlookup_le(M; x; j1; j2)</code> <code>vlookup_gt(M; x; j1; j2)</code> <code>vlookup_ge(M; x; j1; j2)</code></p>
+<h4>Math</h4>
+<p class="names"><code>hprod(A; B)</code> <code>fprod(A; B)</code> <code>kprod(A; B)</code> <code>mnorm(M)</code> <code>mnorm_1(M)</code> <code>mnorm_2(M)</code> <code>mnorm_e(M)</code> <code>mnorm_i(M)</code> <code>cond(M)</code> <code>cond_1(M)</code> <code>cond_2(M)</code> <code>cond_e(M)</code> <code>cond_i(M)</code> <code>det(M)</code> <code>rank(M)</code> <code>trace(M)</code> <code>transp(M)</code> <code>adj(M)</code> <code>cofactor(M)</code> <code>polyroots(v)</code> <code>eigenvals(M; ne)</code> <code>eigenvecs(M; ne)</code> <code>eigen(M; ne)</code> <code>ceigenvals(M)</code> <code>ceigenvecs(M)</code> <code>cholesky(M)</code> <code>lu(M)</code> <code>qr(M)</code> <code>svd(M)</code> <code>inverse(M)</code> <code>lsolve(A; b)</code> <code>clsolve(A; b)</code> <code>slsolve(A; b)</code> <code>msolve(A; B)</code> <code>cmsolve(A; B)</code> <code>smsolve(A; B)</code> <code>fft(M)</code> <code>ift(M)</code> <code>take(x; y; M)</code> <code>line(x; y; M)</code> <code>spline(x; y; M)</code></p>
+</section>
+<section class="wide">
+<h2>Units</h2>
+<p>Write a unit after a number (<code>300 MPa</code>, <code>9.81 m/s²</code>, <code>5 kN*m</code>). The engine combines and checks them, so a unit error is a mistake caught. Prefixes (k, M, G, m, µ, n and the rest of the SI set) apply to the metric units. Convert a result with <code>-> unit</code>, show a ratio as a percentage with <code>-> %</code>, and show a result in SI base units with <code>-> base</code>. Point at a unit for its meaning.</p>
+<h4>Dimensionless</h4>
+<p class="names"><code title="Percent">%</code> <code title="Per mille (per thousand)">‰</code> <code title="Per myriad (per ten thousand)">‱</code> <code title="Per 100,000">pcm</code> <code title="Parts per million">ppm</code> <code title="Parts per billion">ppb</code> <code title="Parts per trillion">ppt</code> <code title="Parts per quadrillion">ppq</code></p>
+<h4>Angles</h4>
+<p class="names"><code title="Degrees">°</code> <code title="Arc minutes">′</code> <code title="Arc seconds">″</code> <code title="Degrees">deg</code> <code title="Radians">rad</code> <code title="Gradians">grad</code> <code title="Revolutions">rev</code></p>
+<h4>Metric: Mass</h4>
+<p class="names"><code title="Gram">g</code> <code title="Decagram">dag</code> <code title="Hectogram">hg</code> <code title="Kilogram">kg</code> <code title="Metric ton">t</code> <code title="Kiloton">kt</code> <code title="Megaton">Mt</code> <code title="Gigaton">Gt</code> <code title="Decigram">dg</code> <code title="Centigram">cg</code> <code title="Milligram">mg</code> <code title="Microgram">μg</code> <code title="Nanogram">ng</code> <code title="Picogram">pg</code> <code title="Dalton (atomic mass unit)">Da</code> <code title="Unified atomic mass unit">u</code></p>
+<h4>Metric: Length</h4>
+<p class="names"><code title="Meter">m</code> <code title="Kilometer">km</code> <code title="Decimeter">dm</code> <code title="Centimeter">cm</code> <code title="Millimeter">mm</code> <code title="Micrometer">μm</code> <code title="Nanometer">nm</code> <code title="Picometer">pm</code> <code title="Astronomical unit">AU</code> <code title="Light year">ly</code></p>
+<h4>Metric: Area</h4>
+<p class="names"><code title="Are (100 m²)">a</code> <code title="Decare">daa</code> <code title="Hectare">ha</code></p>
+<h4>Metric: Volume</h4>
+<p class="names"><code title="Liter">L</code> <code title="Decaliter">daL</code> <code title="Hectoliter">hL</code> <code title="Deciliter">dL</code> <code title="Centiliter">cL</code> <code title="Milliliter">mL</code> <code title="Microliter">μL</code> <code title="Nanoliter">nL</code> <code title="Picoliter">pL</code></p>
+<h4>Time</h4>
+<p class="names"><code title="Second">s</code> <code title="Millisecond">ms</code> <code title="Microsecond">μs</code> <code title="Nanosecond">ns</code> <code title="Picosecond">ps</code> <code title="Minute">min</code> <code title="Hour">h</code> <code title="Day">d</code> <code title="Week">w</code> <code title="Year">y</code></p>
+<h4>Frequency</h4>
+<p class="names"><code title="Hertz">Hz</code> <code title="Kilohertz">kHz</code> <code title="Megahertz">MHz</code> <code title="Gigahertz">GHz</code> <code title="Terahertz">THz</code> <code title="Millihertz">mHz</code> <code title="Microhertz">μHz</code> <code title="Nanohertz">nHz</code> <code title="Picohertz">pHz</code> <code title="Revolutions per minute">rpm</code></p>
+<h4>Speed</h4>
+<p class="names"><code title="Kilometers per hour">kmh</code></p>
+<h4>Temperature</h4>
+<p class="names"><code title="Degrees Celsius">°C</code> <code title="Temperature difference in Celsius">Δ°C</code> <code title="Kelvin">K</code></p>
+<h4>Metric: Force</h4>
+<p class="names"><code title="Newton">N</code> <code title="Decanewton">daN</code> <code title="Hectonewton">hN</code> <code title="Kilonewton">kN</code> <code title="Meganewton">MN</code> <code title="Giganewton">GN</code> <code title="Teranewton">TN</code> <code title="Gram-force">gf</code> <code title="Kilogram-force">kgf</code> <code title="Tonne-force">tf</code> <code title="Dyne">dyn</code></p>
+<h4>Metric: Moment</h4>
+<p class="names"><code title="Newton-meter">Nm</code> <code title="Kilonewton-meter">kNm</code></p>
+<h4>Metric: Pressure</h4>
+<p class="names"><code title="Pascal">Pa</code> <code title="Decapascal">daPa</code> <code title="Hectopascal">hPa</code> <code title="Kilopascal">kPa</code> <code title="Megapascal">MPa</code> <code title="Gigapascal">GPa</code> <code title="Terapascal">TPa</code> <code title="Decipascal">dPa</code> <code title="Centipascal">cPa</code> <code title="Millipascal">mPa</code> <code title="Micropascal">μPa</code> <code title="Nanopascal">nPa</code> <code title="Picopascal">pPa</code> <code title="Bar">bar</code> <code title="Millibar">mbar</code> <code title="Microbar">μbar</code> <code title="Standard atmosphere">atm</code> <code title="Technical atmosphere">at</code> <code title="Torr">Torr</code> <code title="Millimeters of mercury">mmHg</code></p>
+<h4>Metric: Viscosity</h4>
+<p class="names"><code title="Poise">P</code> <code title="Centipoise">cP</code> <code title="Stokes">St</code> <code title="Centistokes">cSt</code></p>
+<h4>Metric: Energy</h4>
+<p class="names"><code title="Joule">J</code> <code title="Kilojoule">kJ</code> <code title="Megajoule">MJ</code> <code title="Gigajoule">GJ</code> <code title="Terajoule">TJ</code> <code title="Millijoule">mJ</code> <code title="Microjoule">μJ</code> <code title="Nanojoule">nJ</code> <code title="Picojoule">pJ</code> <code title="Watt-hour">Wh</code> <code title="Kilowatt-hour">kWh</code> <code title="Megawatt-hour">MWh</code> <code title="Gigawatt-hour">GWh</code> <code title="Terawatt-hour">TWh</code> <code title="Milliwatt-hour">mWh</code> <code title="Microwatt-hour">μWh</code> <code title="Nanowatt-hour">nWh</code> <code title="Picowatt-hour">pWh</code> <code title="Volt-ampere-hour">VAh</code> <code title="Kilovolt-ampere-hour">kVAh</code> <code title="Megavolt-ampere-hour">MVAh</code> <code title="Gigavolt-ampere-hour">GVAh</code> <code title="Volt-ampere-reactive-hour">VARh</code> <code title="Kilovolt-ampere-reactive-hour">kVARh</code> <code title="Megavolt-ampere-reactive-hour">MVARh</code> <code title="Gigavolt-ampere-reactive-hour">GVARh</code> <code title="Electronvolt">eV</code> <code title="Kiloelectronvolt">keV</code> <code title="Megaelectronvolt">MeV</code> <code title="Gigaelectronvolt">GeV</code> <code title="Teraelectronvolt">TeV</code> <code title="Petaelectronvolt">PeV</code> <code title="Exaelectronvolt">EeV</code> <code title="Calorie">cal</code> <code title="Kilocalorie">kcal</code> <code title="Erg">erg</code></p>
+<h4>Metric: Power</h4>
+<p class="names"><code title="Watt">W</code> <code title="Kilowatt">kW</code> <code title="Megawatt">MW</code> <code title="Gigawatt">GW</code> <code title="Terawatt">TW</code> <code title="Milliwatt">mW</code> <code title="Microwatt">μW</code> <code title="Nanowatt">nW</code> <code title="Picowatt">pW</code> <code title="Volt-ampere">VA</code> <code title="Kilovolt-ampere">kVA</code> <code title="Megavolt-ampere">MVA</code> <code title="Gigavolt-ampere">GVA</code> <code title="Teravolt-ampere">TVA</code> <code title="Millivolt-ampere">mVA</code> <code title="Microvolt-ampere">μVA</code> <code title="Nanovolt-ampere">nVA</code> <code title="Picovolt-ampere">pVA</code> <code title="Volt-ampere reactive">VAR</code> <code title="Kilovolt-ampere reactive">kVAR</code> <code title="Megavolt-ampere reactive">MVAR</code> <code title="Gigavolt-ampere reactive">GVAR</code> <code title="Teravolt-ampere reactive">TVAR</code> <code title="Millivolt-ampere reactive">mVAR</code> <code title="Microvolt-ampere reactive">μVAR</code> <code title="Nanovolt-ampere reactive">nVAR</code> <code title="Picovolt-ampere reactive">pVAR</code></p>
+<h4>Electrical: Current</h4>
+<p class="names"><code title="Ampere">A</code> <code title="Kiloampere">kA</code> <code title="Megaampere">MA</code> <code title="Gigaampere">GA</code> <code title="Teraampere">TA</code> <code title="Milliampere">mA</code> <code title="Microampere">μA</code> <code title="Nanoampere">nA</code> <code title="Picoampere">pA</code></p>
+<h4>Electrical: Charge</h4>
+<p class="names"><code title="Coulomb">C</code> <code title="Kilocoulomb">kC</code> <code title="Megacoulomb">MC</code> <code title="Gigacoulomb">GC</code> <code title="Teracoulomb">TC</code> <code title="Millicoulomb">mC</code> <code title="Microcoulomb">μC</code> <code title="Nanocoulomb">nC</code> <code title="Picocoulomb">pC</code> <code title="Ampere-hour">Ah</code> <code title="Milliampere-hour">mAh</code></p>
+<h4>Electrical: Potential</h4>
+<p class="names"><code title="Volt">V</code> <code title="Kilovolt">kV</code> <code title="Megavolt">MV</code> <code title="Gigavolt">GV</code> <code title="Teravolt">TV</code> <code title="Millivolt">mV</code> <code title="Microvolt">μV</code> <code title="Nanovolt">nV</code> <code title="Picovolt">pV</code></p>
+<h4>Electrical: Capacitance</h4>
+<p class="names"><code title="Farad">F</code> <code title="Kilofarad">kF</code> <code title="Megafarad">MF</code> <code title="Gigafarad">GF</code> <code title="Terafarad">TF</code> <code title="Millifarad">mF</code> <code title="Microfarad">μF</code> <code title="Nanofarad">nF</code> <code title="Picofarad">pF</code></p>
+<h4>Electrical: Resistance</h4>
+<p class="names"><code title="Ohm">Ω</code> <code title="Kilohm">kΩ</code> <code title="Megohm">MΩ</code> <code title="Gigohm">GΩ</code> <code title="Teraohm">TΩ</code> <code title="Milliohm">mΩ</code> <code title="Microhm">μΩ</code> <code title="Nanoohm">nΩ</code> <code title="Picoohm">pΩ</code></p>
+<h4>Electrical: Conductance</h4>
+<p class="names"><code title="Siemens">S</code> <code title="Kilosiemens">kS</code> <code title="Megasiemens">MS</code> <code title="Gigasiemens">GS</code> <code title="Terasiemens">TS</code> <code title="Millisiemens">mS</code> <code title="Microsiemens">μS</code> <code title="Nanosiemens">nS</code> <code title="Picosiemens">pS</code> <code title="Mho">℧</code> <code title="Kilomho">k℧</code> <code title="Megamho">M℧</code> <code title="Gigamho">G℧</code> <code title="Teramho">T℧</code> <code title="Millimho">m℧</code> <code title="Micromho">μ℧</code> <code title="Nanomho">n℧</code> <code title="Picomho">p℧</code></p>
+<h4>Electrical: Magnetic Flux</h4>
+<p class="names"><code title="Weber">Wb</code> <code title="Kiloweber">kWb</code> <code title="Megaweber">MWb</code> <code title="Gigaweber">GWb</code> <code title="Teraweber">TWb</code> <code title="Milliweber">mWb</code> <code title="Microweber">μWb</code> <code title="Nanoweber">nWb</code> <code title="Picoweber">pWb</code></p>
+<h4>Electrical: Magnetic Flux Density</h4>
+<p class="names"><code title="Tesla">T</code> <code title="Kilotesla">kT</code> <code title="Megatesla">MT</code> <code title="Gigatesla">GT</code> <code title="Teratesla">TT</code> <code title="Millitesla">mT</code> <code title="Microtesla">μT</code> <code title="Nanotesla">nT</code> <code title="Picotesla">pT</code></p>
+<h4>Electrical: Inductance</h4>
+<p class="names"><code title="Henry">H</code> <code title="Kilohenry">kH</code> <code title="Megahenry">MH</code> <code title="Gigahenry">GH</code> <code title="Terahenry">TH</code> <code title="Millihenry">mH</code> <code title="Microhenry">μH</code> <code title="Nanohenry">nH</code> <code title="Picohenry">pH</code></p>
+<h4>Luminous</h4>
+<p class="names"><code title="Candela">cd</code> <code title="Lumen">lm</code> <code title="Lux">lx</code></p>
+<h4>Radioactivity</h4>
+<p class="names"><code title="Becquerel">Bq</code> <code title="Kilobecquerel">kBq</code> <code title="Megabecquerel">MBq</code> <code title="Gigabecquerel">GBq</code> <code title="Terabecquerel">TBq</code> <code title="Millibecquerel">mBq</code> <code title="Microbecquerel">μBq</code> <code title="Nanobecquerel">nBq</code> <code title="Picobecquerel">pBq</code> <code title="Curie">Ci</code> <code title="Rutherford">Rd</code></p>
+<h4>Dose: Absorbed</h4>
+<p class="names"><code title="Gray">Gy</code> <code title="Kilogray">kGy</code> <code title="Megagray">MGy</code> <code title="Gigagray">GGy</code> <code title="Teragray">TGy</code> <code title="Milligray">mGy</code> <code title="Microgray">μGy</code> <code title="Nanogray">nGy</code> <code title="Picogray">pGy</code></p>
+<h4>Dose: Equivalent</h4>
+<p class="names"><code title="Sievert">Sv</code> <code title="Kilosievert">kSv</code> <code title="Megasievert">MSv</code> <code title="Gigasievert">GSv</code> <code title="Terasievert">TSv</code> <code title="Millisievert">mSv</code> <code title="Microsievert">μSv</code> <code title="Nanosievert">nSv</code> <code title="Picosievert">pSv</code></p>
+<h4>Catalytic Activity</h4>
+<p class="names"><code title="Katal">kat</code></p>
+<h4>Amount of Substance</h4>
+<p class="names"><code title="Mole">mol</code></p>
+<h4>Imperial: Mass</h4>
+<p class="names"><code title="Grain">gr</code> <code title="Dram">dr</code> <code title="Ounce">oz</code> <code title="Pound">lb</code> <code title="Pound-mass">lbm</code> <code title="Pound-mass">lb_m</code> <code title="Kip-mass (1000 lbm)">kipm</code> <code title="Kip-mass (1000 lbm)">kip_m</code> <code title="Kilopound (1000 lbm)">klb</code> <code title="Stone">st</code> <code title="Quarter">qr</code> <code title="Hundredweight">cwt</code> <code title="US hundredweight">cwt_US</code> <code title="UK hundredweight">cwt_UK</code> <code title="Short/Long ton">ton</code> <code title="US short ton">ton_US</code> <code title="UK long ton">ton_UK</code> <code title="Slug">slug</code></p>
+<h4>Imperial: Length</h4>
+<p class="names"><code title="Thou (mil)">th</code> <code title="Inch">in</code> <code title="Foot">ft</code> <code title="Yard">yd</code> <code title="Chain">ch</code> <code title="Furlong">fur</code> <code title="Mile">mi</code> <code title="Fathom">ftm</code> <code title="UK fathom">ftm_UK</code> <code title="US fathom">ftm_US</code> <code title="Cable length">cable</code> <code title="UK cable length">cable_UK</code> <code title="US cable length">cable_US</code> <code title="Nautical mile">nmi</code> <code title="Link">li</code> <code title="Rod">rod</code> <code title="Pole">pole</code> <code title="Perch">perch</code> <code title="League">lea</code></p>
+<h4>Imperial: Speed</h4>
+<p class="names"><code title="Miles per hour">mph</code> <code title="Knot">knot</code></p>
+<h4>Imperial: Temperature</h4>
+<p class="names"><code title="Degrees Fahrenheit">°F</code> <code title="Temperature difference in Fahrenheit">Δ°F</code> <code title="Degrees Rankine">°R</code></p>
+<h4>Imperial: Area</h4>
+<p class="names"><code title="Rood">rood</code> <code title="Acre">ac</code></p>
+<h4>Imperial: Volume</h4>
+<p class="names"><code title="UK fluid dram">fl_dr_UK</code> <code title="US fluid dram">fl_dr_US</code> <code title="Fluid ounce">fl_oz</code> <code title="UK fluid ounce">fl_oz_UK</code> <code title="US fluid ounce">fl_oz_US</code> <code title="Gill">gi</code> <code title="UK gill">gi_UK</code> <code title="US gill">gi_US</code> <code title="Pint">pt</code> <code title="UK pint">pt_UK</code> <code title="US pint">pt_US</code> <code title="US dry pint">pt_dry</code> <code title="Quart">qt</code> <code title="UK quart">qt_UK</code> <code title="US quart">qt_US</code> <code title="US dry quart">qt_dry</code> <code title="Gallon">gal</code> <code title="UK gallon">gal_UK</code> <code title="US gallon">gal_US</code> <code title="US dry gallon">gal_dry</code> <code title="Barrel">bbl</code> <code title="UK barrel">bbl_UK</code> <code title="US barrel (oil)">bbl_US</code> <code title="US dry barrel">bbl_dry</code> <code title="UK peck">pk_UK</code> <code title="US dry peck">pk_US</code> <code title="UK bushel">bu_UK</code> <code title="US dry bushel">bu_US</code></p>
+<h4>Imperial: Force</h4>
+<p class="names"><code title="Ounce-force">ozf</code> <code title="Ounce-force">oz_f</code> <code title="Pound-force">lbf</code> <code title="Pound-force">lb_f</code> <code title="Kip (1000 lbf)">kip</code> <code title="Kip-force (1000 lbf)">kipf</code> <code title="Kip-force (1000 lbf)">kip_f</code> <code title="Ton-force">tonf</code> <code title="US short ton-force">tonf_US</code> <code title="UK long ton-force">tonf_UK</code> <code title="Poundal">pdl</code></p>
+<h4>Imperial: Pressure</h4>
+<p class="names"><code title="Ounces per square inch">osi</code> <code title="Ounces per square foot">osf</code> <code title="Pounds per square inch">psi</code> <code title="Pounds per square foot">psf</code> <code title="Kips per square inch">ksi</code> <code title="Kips per square foot">ksf</code> <code title="Tons per square inch">tsi</code> <code title="Tons per square foot">tsf</code> <code title="Inches of mercury">inHg</code></p>
+<h4>Imperial: Energy</h4>
+<p class="names"><code title="British thermal unit">BTU</code> <code title="Therm">therm</code> <code title="US therm">therm_US</code> <code title="UK therm">therm_UK</code> <code title="Quad">quad</code></p>
+<h4>Imperial: Power</h4>
+<p class="names"><code title="Mechanical horsepower">hp</code> <code title="Electrical horsepower">hp_E</code> <code title="Boiler horsepower">hp_S</code> <code title="Metric horsepower">hp_M</code> <code title="Metric horsepower (konjska snaga)">ks</code></p>
+</section>
+<section>
+<h2>More</h2>
+<ul>
+<li><a href="/calcs/guide/">The user guide</a>, with a chapter for each of these.</li>
+<li><a href="/calcs/learn/">Calculators and guides</a>: ready-made templates that open as forms.</li>
+<li><a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a> (MIT licence).</li>
+</ul>
+</section>
+</main>
+<footer class="site">
+<p><a href="https://civilkit.io/">CivilKit</a> · <a href="https://civilkit.io/calc/">CivilKit Calcs</a> · <a href="/calcs/learn/">Calculators and guides</a> · <a href="/calcs/guide/">User guide</a> · <a href="/calcs/whats-new/">What's new</a> · <a href="https://github.com/mageaustralia/civilkit-calcs">Source on GitHub</a></p>
+<p>CivilKit Calcs is free and open source (MIT licence). It runs in your browser: your calculations are not sent to a server. It is built on <a href="https://github.com/imartincei/CalcpadCE">CalcpadCE</a> by Nedelcho Ganchovski (Proektsoft) and contributors.</p>
+<p>Product names on this page belong to their owners. CivilKit Calcs is not affiliated with or endorsed by them.</p>
+</footer>
+<script>
+var b = document.getElementById('print-ref');
+if (b && window.print) { b.hidden = false; b.addEventListener('click', function () { window.print(); }); }
+</script>
+</body>
+</html>

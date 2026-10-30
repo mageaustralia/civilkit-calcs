@@ -115,6 +115,14 @@ file, served at `/calcs/embed.js`; keep it under 3 KB. The app shell serves embe
 `node web/e2e/embed-check.mjs` checks the embed, its messages, the loader and that an embed stores nothing. Design
 notes: docs/embedding.md.
 
+## Quick reference page
+
+`/calcs/reference/` (`public/reference/index.html`) is written by `node tools/make_learn_pages.mjs` (`tools/learn/reference.mjs`):
+the sheet language's line kinds and inputs are written in that file, and the function, constant, operator and unit lists come
+from `calcpad-highlighter/src/snippets/snippets.json`, so a new function appears on it after the generator runs. It is listed in
+`sitemap.xml` and on the hub, left out of the service worker's precache (like the other static pages) and checked by
+`node web/e2e/seo-check.mjs` and `node web/e2e/reference-check.mjs` (every example line runs on the engine).
+
 ## Interface languages
 
 The app's interface strings live in `web/calcpad-web/src/i18n/en.json` (the English source) and the draft catalogues in

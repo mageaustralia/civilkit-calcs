@@ -109,6 +109,9 @@ f(x): x^2 + 1
 * **Conversion:** `-> unit` converts the result: `Ms: fy * Ze -> kN*m` (Calcpad's `|kN*m`). It
   must come last, before any note.
   `-> %` (or `-> ‰`) shows a ratio as a percentage: `util: Ed / Rd -> %` gives `69.07 %`.
+  `-> base` shows the result in SI base units (kg, m, s, A, mol, cd): `M: F * L -> base` with `F` in kN and `L` in m
+  gives `10000 kg·m²/s²`. A value with no unit, or with a temperature or an angle in it, is left as it is. It compiles
+  to the engine's `| base` (DEVIATIONS.md D20).
 * **A unit of the sheet's own:** `#unit bag = 25 kg [| note]` defines the unit `bag` (the engine's
   custom unit `.bag = 25 kg`), which later lines use after a number (`3 bag`) and after `->`. The
   name is letters and `_` only; the value is an expression with units. A bad name or value is an

@@ -336,6 +336,21 @@ writes `plot sin(x) as "sine", ... for x in 0..6` (docs/sheet-syntax.md).
 
 **Tests:** `calcpad-core/tests/plot_legend.rs`, `calcpad-sheet/src/tests.rs` (`plot_curve_names_draw_a_legend`).
 
+## D20. The target `base` writes a result in SI base units (addition)
+
+**CalcpadCE:** `expr | unit` converts a result to a unit you name; there is no way to ask for the base units of the
+result's dimensions, so `kN·m` has to be spelled `kg*m^2/s^2` by hand.
+
+**Here:** the target `base` (`M = F*L | base`, a sheet's `M: F * L -> base`) converts the result to the coherent SI
+base units of its dimensions: the powers of kg, m, s, A, mol and cd, written as the engine reads them (`kg*m^2/s^2`,
+`kg*m^-1*s^-2` when more than one unit is under the line). A value with no unit is left alone, and so is one with a
+temperature (an offset scale) or an angle in it. `base` is read only as a whole target, so a unit or variable of
+that name is not affected elsewhere.
+
+**Why:** reading a result in base units is how a unit check is usually done by hand.
+
+**Tests:** `calcpad-sheet/tests/units.rs` (`convert_to_base_units`).
+
 ## Not deviations (scope and known differences)
 
 These are not deliberate behaviour changes, but they can make output differ:
