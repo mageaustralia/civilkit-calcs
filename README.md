@@ -33,6 +33,8 @@ Status: early. The project is not affiliated with the authors of CalcpadCE.
 * **Installable and offline:** a web app manifest and service worker let the page install on a phone or desktop and calculate without a connection.
 * **Interface languages:** the ribbon, settings and menus can be shown in Spanish, Portuguese, French, German or Chinese (Simplified), with a number format setting for comma decimals. The translations are machine drafts that no native speaker has reviewed yet ([translations/README.md](web/calcpad-web/translations/README.md)).
 * **Interactive panels:** a Python block can define sliders and drop-downs that redraw a chart and table in place, without recalculating the sheet.
+* **Docked inputs:** in Input mode a panel beside the results holds every input, so a slider can be dragged with the plot it moves in view; the input rows of the form line up in columns.
+* **Plot legends and numerical lines:** sheet plots take curve names with `as "name"` for a legend, and a quantity line can solve for a root, integrate or take a slope.
 * **Phone layout:** the ribbon, editor and results rearrange on a narrow screen, with larger touch targets.
 * **Ribbon interface:** ten tabs and a quick-access strip replace the menu bar, with every snippet of the library reachable from it.
 * **User guide:** a guide whose examples are all run by the test suite, at https://civilkit.io/calcs/guide/.
@@ -167,6 +169,27 @@ node e2e/symbolic-check.mjs       # Symbolic dialog: each operation, typeset res
 node e2e/embed-check.mjs          # ?embed=1: form and results, postMessage API, embed.js on another origin, no stored state (CALCS_BASE=/ build)
 node ../tools/set_version.mjs --check
 ```
+
+## Checked at 26.10.19
+
+On the release tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded) passed 6123 tests (3 ignored) and `calcpad-sheet` 110,
+with no failures. Browser checks on the release build, served at the root: `sheet-check` (50 checks), `inputs-check` (71), `input-align-check`
+(40, with a new case for the docked panel turned off), `input-dock-check` (102), `ribbon-check` (with `--lint`, 58), `ribbon-layout-check` (31),
+`fence-click-check`, `diagram-ribbon-check` (96), `diagram-samples-check` (58), `mermaid-check` (37), `shortcuts-check`, `locale-check` (67),
+`panels-check` (44), `panels-guide-check` (54), `python-check` (182), `settings-gear-check` (12), `settings-tabs-check` (100),
+`block-clipboard-check` (41), `md-edit-check` (34), `i18n-check` (65), `i18n-english-check` (967 interface strings compared with the English
+snapshot; the snapshot's version line was updated for this release), `browser-check` (118 checks) and `verify-ribbon-snippets` (435 snippets
+run, 4 skipped, 0 failed); without a browser, `i18n-unit-check` (54 checks), `tools/i18n/check.mjs` (829 English keys; each of the five
+languages has 693 of them, 83.6%, with 12 length warnings) and `version-json-check`. On the build with the `/calcs/` base: `browser-check`
+(118 checks), `sample-link-check`, `pwa-check` (with `PWA_BASE=/calcs/`; the precache holds 608 files) and `learn-check` (720 links, 221 quoted
+engine values compared with a fresh run, 21 pages re-rendered) all passed, and `whats-new-check` (337 checks) passed. `embed-check` (41 checks,
+on the build with `CALCS_BASE=/`) passed. `seo-check` (3315 checks, 2226 internal links followed) passed on the guide built with
+`book/build.sh`, and the user guide's 145 examples all run (`book/check-examples.sh`). `whats-new-browser-check` passed with all 72 clip files
+(121 checks). One run of `panels-check` timed out clicking Results on the phone layout, behind the Python consent bar, under a heavily loaded
+machine; the next run of the same check passed all 44. The interface translations are machine drafts: no native speaker has reviewed them, and
+the checks only prove that they load, fit the placeholders and render, not that the wording is right. Not run for this release: `plot3d-check`,
+`symbolic-check`, `import-check` and the other smaller checks. Not tested: a real phone, other browsers than headless Chromium, the MCP Worker
+in `mcp/`, `tsc` beyond the build, `clippy` on the whole workspace, `cargo fmt --check`.
 
 ## Checked at 26.10.18
 

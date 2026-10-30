@@ -11,19 +11,22 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+## [26.10.19] - 2026-10-30
+
 ### Added
 - **Input rows line up** - In Input mode, a run of consecutive input lines now shares its columns: the names (right aligned, so the equals signs meet), the number boxes and drop-downs, the sliders, the units and the notes start at the same place on every row, whatever the length of the name. A text line, a heading or a blank line starts a new run, a single row is left as it was, a very long name is held to 40% of the row and wraps, and on a phone the rows stay lined up without sideways scrolling. Screen only: the report, print and the Word, Excel and PDF exports are unchanged, and nothing about what the controls send back changed.
+- **Docked inputs** - In Input mode, Dock inputs keeps every input of the sheet in a panel beside or above the results while they scroll, so a plot redraws in view as you drag its slider. It is on by default for a sheet with a slider; see Docked inputs in the Templates chapter of the guide.
 - **Settings gear** - A gear at the right end of the top strip opens Settings from any tab, on a phone too; the ribbon icon for Settings is now a cog.
 - **Interactive panels guide** - A new guide chapter shows how to build a Python panel whose sliders redraw a chart, a 3D surface or a table, with its limits and a short summary written for AI assistants.
 - **Settings tabs** - The Settings dialog is split into General, Calculation, Editor, Export and Advanced tabs, and its search box still looks through every tab at once. It reopens on the tab last used, and Calculation settings and Header and footer open their own tab.
 - **Plot legends** - A curve on a sheet `plot` line takes a name with `as "name"` (`plot sin(x) as "sine", cos(x) as "cosine" for x in 0..6`), and the plot then shows a legend with a colour swatch per curve, in print, PDF and Word too; the Excel chart uses the names for its series.
 - **Solve, integral and slope lines** - A sheet quantity can be `x0: solve f(x) = 4 for x in 0..5`, `A: integral of f(x) for x in 0..3` or `k: slope of f(x) at x = 3`, with units and `-> unit` as on any quantity line; the Functions palette inserts them in a sheet.
 - **More Python functions** - Python blocks gain `math.hypot`, `math.prod`, `math.fsum` and a few more, and `numpy.hypot`, `arctan2`, `meshgrid`, `outer`, `interp`, `polyfit` and `polyval`.
+- **What's new clips** - Eight more clips on the What's new page: three under 26.10.18 (the number format, the interface language and interactive panels) and five for this release (docked inputs, input rows lining up, plot legends with solve, integral and slope lines, the new Python functions, and the Settings tabs).
 
 ### Fixed
 - **Semicolons in sheet functions** - A sheet definition such as `f(x; y): x + y` was read as plain text, and a call such as `max(3; 7)` was an error; inside brackets `;` now works the same as a comma.
 - **Long Python lists** - A list of numbers written out in a Python block stopped at about 2,000 elements with `pystack exhausted`; it now takes 16,000, and a longer one is refused with a note on how to build the list instead.
-- **Docked inputs** - In Input mode, Dock inputs keeps every input of the sheet in a panel beside or above the results while they scroll, so a plot redraws in view as you drag its slider. It is on by default for a sheet with a slider; see Docked inputs in the Templates chapter of the guide.
 
 ## [26.10.18] - 2026-10-30
 
