@@ -119,6 +119,7 @@ export const ACTIONS: Record<string, Handler> = {
     filemenu: c => c.files.toggleMenu(c.anchor),
     samples: c => c.files.o.openSamples?.(),
     importWorksheet: c => void c.files.o.importer?.pick(),
+    importSpreadsheet: c => void c.files.o.sheetImport?.pick(),
     tidyText: c => void c.files.o.importer?.transformActive('tidy'),
     markdownText: c => void c.files.o.importer?.transformActive('markdown'),
     symbolic: c => {

@@ -47,6 +47,7 @@ export interface WebFilesOptions {
     /** Saves the report as a Word document. */
     exportDocx?: () => void;
     /** Imports foreign worksheets (.xmcd, .mcdx); see worksheet-import.ts. */
+    sheetImport?: { pick(): Promise<void> };
     importer?: { pick(): Promise<void>; importFile(file: File): Promise<void>; transformActive(op: 'tidy' | 'markdown'): Promise<void> };
 }
 
@@ -411,6 +412,7 @@ body{display:flex;flex-direction:column}
         item('New Calcpad worksheet', () => this.newWorksheet());
         item('Open...', () => void this.open());
         if (this.o.importer) item('Import worksheet...', () => void this.o.importer!.pick());
+        if (this.o.sheetImport) item('Import spreadsheet...', () => void this.o.sheetImport!.pick());
         if (this.o.openSamples) item('Samples...', () => this.o.openSamples!());
         item('Save', () => void this.save(), `${mod}+S`);
         item('Save as...', () => void this.save(true), `${mod}+Shift+S`);

@@ -241,6 +241,17 @@ line assigns (`sigma = 3`), is spelled the way the sheet spells it: `phi` in a r
 
 A raw block inside a sheet block keeps the block's indentation rules like any other line.
 
+## Importing spreadsheet cells
+
+**Import spreadsheet** (Document tab, and the File menu) reads a `.xlsx`, `.xlsm`, `.csv` or `.tsv` file and writes
+cells into the sheet as ordinary lines at the cursor: `name: ? 6 m` for a constant (an input), `name: 56.25 kN*m` for a
+value, `name: [1, 2; 3, 4]` for a range of numbers, one quantity line per row for a label and value range, and a pipe table for
+text. Each group has a source comment above it, `<!-- file.xlsx, Sheet1!B1 -->`, an HTML comment that prose passes through
+and the page does not show. The values are copied: formulas are not recalculated (the value the file stored is used) and there is
+no live link to the file. Names come from the label beside or above the cell and follow the rules under "Quantity lines".
+The guide chapter "Importing a spreadsheet" (`book/src/importing-spreadsheets.md`) describes the panel;
+`web/e2e/sheet-import-check.mjs` and `web/e2e/sheet-import-logic-check.mjs` test it.
+
 ## Inputs and templates
 
 An input line makes a value the reader of the sheet can change. It is a quantity line whose right side

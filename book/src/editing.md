@@ -129,7 +129,7 @@ Edit a sheet *where it stands*, in the preview.
 
 In a Calcpad worksheet, prose written as Markdown (a `#markdown` ... `#end markdown` block) is edited
 the same way, by **double-clicking** it. The worksheet importer's Tidy and Markdown options write
-this form (see [Importing worksheets](importing.md)).
+this form (see [Importing worksheets](importing.md)). To bring numbers from an Excel or CSV file into a sheet as inputs, values and tables, see [Importing a spreadsheet](importing-spreadsheets.md).
 
 What the rich-text editor writes is plain Markdown: `**bold**`, `_italic_`, `~x~` subscript, `^x^`
 superscript, `++x++` underline, `-` lists and pipe tables (no merged cells; a cell is one line).
