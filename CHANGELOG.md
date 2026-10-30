@@ -14,6 +14,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ### Added
 - **Settings gear** - A gear at the right end of the top strip opens Settings from any tab, on a phone too; the ribbon icon for Settings is now a cog.
 - **Settings tabs** - The Settings dialog is split into General, Calculation, Editor, Export and Advanced tabs, and its search box still looks through every tab at once. It reopens on the tab last used, and Calculation settings and Header and footer open their own tab.
+- **Docked inputs** - In Input mode, Dock inputs keeps every input of the sheet in a panel beside or above the results while they scroll, so a plot redraws in view as you drag its slider. It is on by default for a sheet with a slider; see Docked inputs in the Templates chapter of the guide.
 
 ## [26.10.18] - 2026-10-30
 

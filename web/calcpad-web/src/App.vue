@@ -333,6 +333,16 @@
         </div>
         <span class="spacer"></span>
         <button
+          v-if="uiModeFullscreen && inputDockAvailable"
+          type="button"
+          class="toolbar-btn input-dock-btn"
+          :class="{ active: inputDockOn }"
+          :aria-pressed="inputDockOn"
+          @click="toggleInputDock"
+          :title="td('inputDock.buttonTitle', {}, 'Keep every input beside the results while they scroll')"
+          :aria-label="td('inputDock.button', {}, 'Dock inputs')"
+        ><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10.2 1.6l4.2 4.2-1.3.4-2.3 2.3.3 3-1.1 1.1-2.9-2.9-3.6 3.6-.9.1.1-.9 3.6-3.6-2.9-2.9 1.1-1.1 3 .3 2.3-2.3z" fill="currentColor"/></svg><span class="input-dock-btn-text">{{ td('inputDock.button', {}, 'Dock inputs') }}</span></button>
+        <button
           v-if="uiModeFullscreen"
           class="toolbar-btn"
           :class="{ active: uiPrintVisible }"
@@ -385,6 +395,10 @@
         <button class="preview-find-btn" title="Close (Esc)" @click="closePreviewFind">✕</button>
       </div>
 
+      <!-- Docked inputs (input-dock.ts): Input mode keeps the sheet's inputs here, outside the result frames, so a
+           re-render never interrupts a drag. Above the results, or at their left from 900 px wide. -->
+      <div class="preview-body" :class="{ 'dock-side': inputDockShown && inputDockSide }" :ref="setPreviewBodyRef">
+      <div v-show="inputDockShown" class="input-dock-host" :ref="mountInputDock"></div>
       <div class="preview-frames">
         <template v-for="(group, gi) in visibleGroups" :key="'pv-' + group.id">
           <div
@@ -420,6 +434,7 @@
           <span>Calculating…</span>
         </div>
       </div>
+      </div><!-- /.preview-body -->
     </div>
 
     <!-- Draggable divider between the input form and its report companion. -->
@@ -725,6 +740,48 @@ const uiModeFullscreen = computed(() => previewVisible.value && resultMode.value
 // The report pane beside the input form.
 const uiPrintVisible = ref(false)
 const onUiPrintToggled = ref<((visible: boolean) => void) | null>(null)
+
+// Docked inputs (input-dock.ts). main.ts owns the panel and says whether the sheet has inputs and whether it is docked.
+const inputDockAvailable = ref(false)
+const inputDockOn = ref(false)
+const inputDockShown = computed(() => uiModeFullscreen.value && inputDockAvailable.value && inputDockOn.value)
+/** At the side of the results from this width of the results pane, above them below it. */
+const INPUT_DOCK_SIDE_PX = 900
+const inputDockSide = ref(false)
+const onInputDockToggled = ref<((on: boolean) => void) | null>(null)
+let inputDockEl: HTMLElement | null = null
+// The style that hides the docked inputs' own lines in the form: screen only, never in what is stored or exported.
+let inputDockHideStyle = ''
+function mountInputDock(el: unknown): void {
+  if (el instanceof HTMLElement && inputDockEl && inputDockEl.parentNode !== el) el.append(inputDockEl)
+}
+let previewBodyObserver: ResizeObserver | null = null
+let previewBodyEl: HTMLElement | null = null
+function setPreviewBodyRef(el: unknown): void {
+  const next = el instanceof HTMLElement ? el : null
+  if (next === previewBodyEl) return
+  if (previewBodyEl) previewBodyObserver?.unobserve(previewBodyEl)
+  previewBodyEl = next
+  if (!next || typeof ResizeObserver === 'undefined') return
+  previewBodyObserver ??= new ResizeObserver((entries) => {
+    for (const e of entries) inputDockSide.value = e.contentRect.width >= INPUT_DOCK_SIDE_PX
+  })
+  previewBodyObserver.observe(next)
+}
+function attachInputDock(el: HTMLElement): void {
+  inputDockEl = el
+  const host = document.querySelector('.input-dock-host')
+  if (host) mountInputDock(host)
+}
+function setInputDock(state: { available: boolean; on: boolean; hideStyle: string }): void {
+  inputDockAvailable.value = state.available
+  inputDockOn.value = state.on
+  inputDockHideStyle = state.available && state.on ? state.hideStyle : ''
+}
+function toggleInputDock(): void {
+  inputDockOn.value = !inputDockOn.value
+  onInputDockToggled.value?.(inputDockOn.value)
+}
 
 // ---- Tab strip / editor groups ----
 export interface TabUiState {
@@ -1097,7 +1154,7 @@ const onLineEditRequest = ref<{
 // Rich-text editing of a Markdown block; Milkdown is fetched when the first block is edited.
 import MathKeyboard from './editor/MathKeyboard.vue'
 import { INSERT_BLOCKS, type InsertBlock } from './wasm/sheet-blocks'
-import { t } from './i18n'
+import { t, td } from './i18n'
 import { injectTableSort, type TableSortState } from './wasm/table-sort'
 import type { BlockOp } from './wasm/block-ops'
 import { withPageBreakMarks } from './wasm/page-break'
@@ -2318,6 +2375,7 @@ function setPreviewHtml(groupId: string, html: string, scrollToLine?: number, do
   )
   out = injectPreviewConsole(out, groupId)
   out = injectUiPosition(out, groupId)
+  if (isUi && inputDockHideStyle) out = withHeadStyle(out, inputDockHideStyle)
   out = withPageBreakMarks(out)
   if (!isUi && onLineEditRequest.value?.isSheet?.(groupId)) out = injectTableSort(out, groupId, tableSortByDoc.get(docKey || groupId) ?? {})
   previewHtmlByGroup.set(groupId, html)
@@ -2340,6 +2398,12 @@ function setUiPrintHtml(groupId: string, html: string, docKey = ''): Promise<voi
     scrollByFrameDoc.get(scrollKey(frameId, docKey)),
   )
   return commitToBuffer(frameId, out)
+}
+
+/** A style element put at the end of the head of a rendered page (or at its start, when it has none). */
+function withHeadStyle(html: string, style: string): string {
+  const i = html.search(/<\/head>/i)
+  return i < 0 ? style + html : html.slice(0, i) + style + html.slice(i)
 }
 
 function isUiPrintVisible(): boolean {
@@ -3339,6 +3403,9 @@ defineExpose({
   setUiPrintHtml,
   isUiPrintVisible,
   onUiPrintToggled,
+  attachInputDock,
+  setInputDock,
+  onInputDockToggled,
   appendOutput,
   clearOutput,
   showOutput,

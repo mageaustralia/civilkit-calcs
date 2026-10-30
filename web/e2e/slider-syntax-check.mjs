@@ -42,6 +42,8 @@ if (!external) {
 const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1500, height: 900 }, acceptDownloads: true });
 await context.addInitScript(() => { if (window === window.top) { delete window.showSaveFilePicker; delete window.showOpenFilePicker; } });
+// This check drives the sheet's own controls in the input form, so the inputs are not docked (input-dock-check.mjs covers the dock).
+await context.addInitScript(() => { try { sessionStorage.setItem('calcpad.inputDock', 'off'); } catch { /* storage refused */ } });
 const page = await context.newPage();
 const pageErrors = [];
 page.on('pageerror', (e) => { if (e.message !== 'Canceled' && e.message !== 'Event') pageErrors.push(e.message); });
