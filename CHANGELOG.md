@@ -11,6 +11,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- **Settings gear** - A gear at the right end of the top strip opens Settings from any tab, on a phone too; the ribbon icon for Settings is now a cog.
+
 ## [26.10.18] - 2026-10-30
 
 ### Added

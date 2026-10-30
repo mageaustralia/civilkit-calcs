@@ -377,6 +377,8 @@
   "ribbon.btn.q-redo.title": "Redo (Ctrl+Shift+Z)",
   "ribbon.btn.q-save.label": "Save",
   "ribbon.btn.q-save.title": "Save (Ctrl+S)",
+  "ribbon.btn.q-settings.label": "Settings",
+  "ribbon.btn.q-settings.title": "Settings: calculation, editor, appearance, language and number format",
   "ribbon.btn.q-undo.label": "Undo",
   "ribbon.btn.q-undo.title": "Undo (Ctrl+Z)",
   "ribbon.btn.r-heading.label": "Heading",

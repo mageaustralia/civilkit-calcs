@@ -11,6 +11,12 @@
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
           stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL[b.icon!]"></svg>
       </button>
+      <span class="rb-spacer"></span>
+      <button class="rb-q rb-gear" :title="tip(btnTitle(GEAR))" :aria-label="btnLabel(GEAR)"
+        :data-ribbon-btn="GEAR.id" @mousedown.prevent @click="fire(GEAR, $event)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL.settings"></svg>
+      </button>
     </div>
     <div class="rb-tabs" role="tablist">
       <button v-for="t in RIBBON" :key="t.id" class="rb-tab" :class="{ on: t.id === active }" role="tab"
@@ -57,7 +63,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import { MORE, QUICK, RIBBON } from './ribbon-data';
+import { GEAR, MORE, QUICK, RIBBON } from './ribbon-data';
 import type { Entry, RibbonButton, RibbonGroup, Section } from './ribbon-data';
 import { ICONS_BIG, ICONS_SMALL } from './ribbon-icons';
 import { insertLibrarySnippet, loadSnippets, sectionsFor } from './ribbon-snippets';
@@ -240,6 +246,7 @@ onBeforeUnmount(() => {
   border-radius:12px;background:var(--vscode-button-background,#0060c0);color:var(--vscode-button-foreground,#fff);font:inherit;font-weight:600;cursor:pointer}
 .rb-file:hover{filter:brightness(1.12)}
 .rb-q{display:flex;align-items:center;justify-content:center;width:26px;height:24px;border:1px solid transparent;border-radius:3px;background:none;color:inherit;cursor:pointer}
+.rb-spacer{flex:1}
 .rb-q:hover{background:var(--vscode-toolbar-hoverBackground,rgba(0,0,0,.08));border-color:var(--vscode-panel-border,#ccc)}
 .rb-tabs{display:flex;overflow-x:auto;padding:0 4px;scrollbar-width:none;border-top:1px solid var(--vscode-panel-border,#ddd)}
 .rb-tab{flex:none;height:26px;padding:0 10px;border:0;border-bottom:2px solid transparent;background:none;color:inherit;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}

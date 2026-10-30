@@ -336,6 +336,9 @@ export const QUICK: RibbonButton[] = [
     action('q-redo', 'Redo', 'redo', 'Redo (Ctrl+Shift+Z)', 'redo'),
 ];
 
+/** The gear at the right end of the quick strip: the Settings dialog from any tab, on a phone too. */
+export const GEAR: RibbonButton = action('q-settings', 'Settings', 'settings', 'Settings: calculation, editor, appearance, language and number format', 'settings');
+
 const TABLE_WS = "'<table class=\"bordered\"><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>\n";
 const TABLE_SHEET = '| A | B |\n|---|---|\n| 1 | 2 |\n';
 const IMAGE_WS = '\'<img src="./image.png" alt="Image">\n';

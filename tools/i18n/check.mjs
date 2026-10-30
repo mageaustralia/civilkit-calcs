@@ -150,6 +150,7 @@ for (const t of ribbonData.RIBBON) {
     }
 }
 for (const b of ribbonData.QUICK) noteBtn(b, 'quick bar');
+noteBtn(ribbonData.GEAR, 'quick bar');
 
 const settings = await tsImport(pathToFileURL(join(feSrc, 'types', 'settings.ts')).href, import.meta.url);
 const pdf = await tsImport(pathToFileURL(join(feSrc, 'types', 'pdf-settings.ts')).href, import.meta.url);
