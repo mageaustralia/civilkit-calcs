@@ -8,6 +8,7 @@ Key facts for tools and assistants:
 - An input line is `L: ? 6 m` (a number box in Input mode); `L: ? 6 m [2 .. 12 step 0.5]` adds a slider.
 - Units are checked: a stress times a section modulus comes out as a moment. `-> %` shows a ratio as a percentage.
 - Diagrams are Mermaid fences written in the sheet; plots, Python blocks and symbolic algebra are built in.
+- A slider that redraws a chart live is a Python block with `import ui` and `@ui.panel(ui.slider(...))` on a function that returns a Plotly figure: see https://civilkit.io/calcs/guide/python-panels .
 
 The whole guide in one file: https://civilkit.io/calcs/llms-full.txt
 
@@ -42,6 +43,7 @@ The whole guide in one file: https://civilkit.io/calcs/llms-full.txt
 
 - [Plots](https://civilkit.io/calcs/guide/plots): There are three ways to draw: the plot line of the sheet format, the Calcpad $Plot and $Map commands, and Python blocks, which are covered in Python blocks.
 - [Python blocks](https://civilkit.io/calcs/guide/python): A sheet can hold small Python programs.
+- [Interactive panels](https://civilkit.io/calcs/guide/python-panels): An interactive panel is a set of controls drawn above a chart, a table or a line of text, all made by one Python block.
 
 ## Tools
 

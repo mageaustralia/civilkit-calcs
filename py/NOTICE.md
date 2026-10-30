@@ -10,7 +10,8 @@
 
 - `lib/numpy/` and `lib/matplotlib/`: small stand-ins for the parts of numpy and matplotlib.pyplot that calculation scripts
   use. They are not the real packages and say so when a script reaches for something they lack (see docs/python-blocks.md).
-  `lib/calcpad_py.py` is the host side of the block runner.
+  `lib/calcpad_py.py` is the host side of the block runner. `lib/_mathx.py` is this project's own code: it adds the functions of
+  Python's `math` module that MicroPython lacks (`hypot`, `prod`, `fsum` and a few more) and stands in for `math`.
 
 - `lib/numpy/linalg.py`, `lib/scipy/`: `numpy.linalg` and `scipy.linalg` for the stand-ins above. They are this project's own
   small modules, not the real packages; the numbers come from the Calcpad engine through `wasm/calcpad_linalg_wasm*`

@@ -329,6 +329,24 @@ snippet (a click inserts it at the cursor), and tabs for the table of **Contents
 dialogs over the page. Hide the sidebar with the button at its top right, or Resources > Sidebar
 (Ctrl+Shift+B in the desktop app).
 
+## Settings
+
+The gear at the right end of the top strip opens **Settings** (so do Calculation > Calculation settings and
+Resources > Settings). It has five tabs:
+
+| Tab | What is on it |
+| --- | --- |
+| General | Language, number format, and the appearance (colour theme, preview theme). |
+| Calculation | Decimals, angle units, complex numbers and the other math settings, plot defaults, US or UK units. |
+| Editor | Quick typing, comment format, formatting keys, auto-run, cursor sync, the linter. |
+| Export | The PDF page: paper size, orientation, margins, header and footer. |
+| Advanced | Script libraries, logging and limits, the server address, saved configurations. |
+
+The search box above the tabs looks through all of them and lists each match under its tab's name; clear it to
+get the tabs back. Settings opens on the tab you last used, until the browser tab is closed. Calculation settings
+opens it on Calculation, and Document > Header and footer on Export. On the tab strip, the arrow keys, Home and End
+move between the tabs.
+
 ## On a phone
 
 At 760 pixels wide or less, one pane shows at a time, switched from a bar along the bottom:
@@ -543,6 +561,9 @@ M_star = 54 kN·m
   `Delta`, `Theta`, `Lambda`, `Xi`, `Pi`, `Sigma`, `Upsilon`, `Phi`, `Psi`, `Omega`.
 * A name that ends in `star` after a capital or a digit (`Mstar`) is that name with the subscript
   `star`.
+* The first `_` in a name starts the subscript: `my_long_name_2` is shown as `my` with the subscript
+  `long_name_2`, as Calcpad writes it. Names with digits and several underscores calculate normally;
+  only the way they are typeset changes.
 
 The same rule renames every use of a name, so you spell it one way throughout the sheet. Inside
 `>>` lines and `calcpad` fences the sheet's spelling is used too: `phi` in a raw line is φ.
@@ -1689,8 +1710,10 @@ g(t) = 2·t
 r = f(3; 4) + g(1) = 7
 ```
 
-Calls take commas in a sheet; the compiler writes the engine's `;`. Functions can use any
-quantity defined above them, and may be used in plots (`plot g(t) for t in 0..5`).
+Calls take commas in a sheet; the compiler writes the engine's `;`. Calcpad's own `;` works too,
+in a definition and in a call (`f(x; y): x + y`, `max(3; 7)`): inside brackets it means the same as
+a comma. Functions can use any quantity defined above them, and may be used in plots
+(`plot g(t) for t in 0..5`).
 
 ### Keeping functions for reuse
 
@@ -1734,14 +1757,49 @@ d: sum([1, 2, 3])
 e: interp(2.5, [1, 2, 3], [10, 20, 30])
 ```
 
+There is no `hypot` in a sheet. For the hypotenuse, or the resultant of any number of components,
+use `srss` (square root of the sum of squares), which keeps the unit:
+
+```sheet
+a: 3 m
+b: 4 m
+c: srss(a, b)
+```
+
+The result is 5 m, and `srss(3 m, 4 m, 12 m)` is 13 m. (In a Python block `math.hypot` exists.)
+
 A function whose name is also a variable name needs the Calcpad spelling (a name like `gamma`
 or `beta` used as a variable only keeps working if you write it the Calcpad way). Function calls
 are not renamed unless the sheet defines the function.
 
+## Solving, integrating and slopes
+
+Three numerical operations have a sheet form of their own, written like a `plot` line:
+
+<!-- expect: = 1.41 the positive root | d x = 9 | x = 3 = 6 -->
+```sheet
+f(x): x^2
+x0: solve f(x) = 2 for x in 0..2 | the positive root
+A: integral of f(x) for x in 0..3
+k: slope of f(x) at x = 3
+```
+
+* `solve f(x) = c for x in a..b` finds the `x` between `a` and `b` where both sides are equal
+  (Calcpad's `$Root{f(x) = c @ x = a : b}`). Without `= c` it solves `f(x) = 0`. Both sides may
+  use the variable (`solve f(x) = g(x) for x in 0..5` finds where two curves cross). The difference
+  of the sides must change sign once across the range.
+* `integral of f(x) for x in a..b` is the numerical integral (`$Integral`).
+* `slope of f(x) at x = a` is the derivative at a point (`$Slope`).
+
+`root(27, 3)` is something else: the cube root of 27. The bounds may carry units, and a bare `0`
+takes the unit of the other bound, so `solve x^2 = 4 m^2 for x in 0..5 m -> mm` gives 2000 mm. A
+line that starts like one of these but is malformed (`for 2 in 0..5`, two `=` signs) is an error on
+its line.
+
 ## Numerical commands
 
-The `$Root`, `$Area`, `$Sum`, `$Find` and similar commands are Calcpad commands. In a sheet
-they go through `>>`:
+The `$Root`, `$Area`, `$Sum`, `$Find` and similar commands are Calcpad commands. Apart from the three
+above, in a sheet they go through `>>`:
 
 ```sheet
 >> f(x) = x^2 - 2
@@ -3696,6 +3754,22 @@ Several expressions, separated by commas, are drawn together, each in its own co
 `y =` before the expressions is dropped (`plot y = f(x) for x in 0..10`). A malformed `plot` line
 is reported on its line in the report and in the editor.
 
+### A legend
+
+Give a curve a name with `as "name"` after its expression, and the plot gets a legend in its top
+right corner: a colour swatch and the name of each curve.
+
+```sheet
+>> #rad
+plot sin(x) as "sine", cos(x) as "cosine" for x in 0..2*π
+```
+
+A curve without a name is listed by its expression, and a plot where no curve has a name has no
+legend, as before. A name cannot contain quotes, `&`, `|`, `@` or braces. The legend is part of the
+SVG, so it is in the printout and the PDF and in the Word picture; in Excel the names are the
+series names of the chart. In Calcpad text the name follows the expression in double quotes,
+`$Plot{sin(x) "sine" & cos(x) "cosine" @ x = 0 : 2*π}` (this is not in CalcpadCE).
+
 The plot is an SVG drawing. It is sharp at any zoom, it prints well, and its data is exported to
 Excel as a native chart.
 
@@ -3735,6 +3809,7 @@ A sheet reaches the rest of the plotting commands through `>>` lines.
 | --- | --- |
 | `$Plot{y(x) @ x = a : b}` | A function of one variable. |
 | `$Plot{y1(x) & y2(x) @ x = a : b}` | Several functions on one plot. |
+| `$Plot{y1(x) "name 1" & y2(x) "name 2" @ x = a : b}` | The same, with a legend. |
 | `$Plot{x(t) \| y(t) @ t = a : b}` | A parametric curve. |
 | `$Plot{x1(t) \| y1(t) & x2(t) \| y2(t) @ t = a : b}` | Several parametric curves. |
 | `$Map{f(x; y) @ x = a : b & y = c : d}` | A colour map of a surface. |
@@ -3766,8 +3841,8 @@ plot M(x) for x in 0..L
 | `PlotShadows` | 1 to shade colour maps. |
 | `PlotLightDir` | Direction of the light, 0 to 7 clockwise from north. |
 
-The same settings are in the Settings dialog, which sets the defaults for every worksheet. The
-Plots & Diagrams tab of the ribbon has buttons for each form and for these lines.
+The same settings are on the Calculation tab of the Settings dialog, which sets the defaults for every
+worksheet. The Plots & Diagrams tab of the ribbon has buttons for each form and for these lines.
 
 ## The buttons under a plot
 
@@ -3795,7 +3870,8 @@ See [Exporting](exporting.md).
 ## Python plots
 
 For interactive charts, subplots, 3D surfaces and plots of computed arrays, use a Python block.
-See [Python blocks](python.md).
+See [Python blocks](python.md). For a chart that redraws while you drag a slider, see
+[Interactive panels](python-panels.md).
 
 **Related calculators:** [Moment and shear diagrams](https://civilkit.io/calcs/learn/bending-moment-shear-force-diagram/), [Pump operating point](https://civilkit.io/calcs/learn/pump-operating-point-calculator/), [Concrete strength gain](https://civilkit.io/calcs/learn/concrete-strength-gain-calculator/). More pages are in [Calculators and guides](https://civilkit.io/calcs/learn/).
 
@@ -3898,7 +3974,10 @@ The stand-ins are small subsets that mimic those packages. What works:
 
 * numpy: `array`, `linspace`, `arange`, `zeros`, `ones`, `full`, arithmetic and `**`, `@`, `dot`,
   `sum`, `mean`, `max`, `argmax`, `cumsum`, `abs`, `clip`, `maximum`, `where`, `sqrt`, `exp`,
-  `sin`, `cos`, `diff`, `trapz`, `eye`, boolean masks.
+  `sin`, `cos`, `diff`, `trapz`, `eye`, boolean masks, and for plotting `hypot`, `arctan2`,
+  `meshgrid` (`indexing="xy"` or `"ij"`), `outer`, `interp`, `polyfit`, `polyval`.
+* math: everything in MicroPython's `math`, plus `hypot`, `dist`, `prod`, `fsum`, `isqrt`, `comb`,
+  `perm`, `gcd` and `lcm`, which the page adds.
 * numpy.linalg and scipy.linalg: `solve`, `inv`, `det`, `cholesky`, `eigh`, `svd`, `matrix_rank`,
   `cond`, `pinv`, `norm`. The numbers come from the same engine as the sheet's `lsolve`, `inverse`
   and `det`.
@@ -3907,7 +3986,7 @@ The stand-ins are small subsets that mimic those packages. What works:
   `suptitle`, `axis("equal")`, log axes, `show`, `savefig`.
 
 Missing functions raise a named error rather than a wrong answer. Not available: `vstack`, `hstack`,
-`reshape`, `meshgrid`, `sort`, `interp`, `polyfit`, `random` in numpy; `hist`, `pie`, `errorbar`,
+`reshape`, `sort`, `random`, `poly1d`, `roots` in numpy; `hist`, `pie`, `errorbar`,
 `step`, `annotate`, `imshow`, `contour`, `twinx` in matplotlib; non-symmetric `eig` and `lstsq` in
 linalg.
 
@@ -3916,6 +3995,9 @@ NotImplementedError: numpy.linalg.lstsq is not available in the light Python sta
 ```
 
 A singular matrix raises `LinAlgError: Matrix is singular.` on the Python line that made the call.
+A list written out in the source can hold up to 16,000 numbers; a longer one is refused with
+an error that says what to do instead. For thousands of values, build the list in a loop or
+parse a text string (`[float(v) for v in "1.5 2.5 3.5".split()]`), which is also much faster.
 
 ````sheet python
 # Linear algebra in a block
@@ -3996,6 +4078,12 @@ NotImplementedError: go.Figure.write_html is not available in the light plotly s
 update that Plotly applies; it cannot read another control or run Python. For controls that
 combine, precompute one step per combination or give each control its own traces. The "Beam
 explorer" sample shows both.
+
+### Sliders that run the Python again
+
+For a control that runs Python again on every move, use an [interactive panel](python-panels.md):
+a function decorated with `@ui.panel(ui.slider("L", 6, 2, 12, unit="m"))` that returns a Plotly
+figure is called again each time the slider moves, and only its chart is redrawn.
 
 ### Plotly offline, printing and exports
 
@@ -4090,6 +4178,330 @@ sheet accepts that pair too.
 
 ---
 
+Chapter: Interactive panels
+URL: https://civilkit.io/calcs/guide/python-panels
+
+# Interactive panels
+
+<!-- description: Sliders, drop-downs and checkboxes in a Python block that redraw a Plotly chart, a table or text in place as you move them, without recalculating the sheet. -->
+
+An interactive panel is a set of controls drawn above a chart, a table or a line of text, all made
+by one Python block. Move a slider and one Python function runs again with the new value, and its
+chart or table is redrawn in place. The rest of the sheet is not recalculated, so a panel stays
+quick even when the sheet is long.
+
+The samples in the **Panels** group show three of them: a beam deflection explorer, a pump
+operating point with a play button, and a column buckling player.
+
+## Prompt-friendly summary
+
+A complete sheet with a slider that redraws a chart:
+
+````sheet python
+# Moment explorer
+
+```python
+import ui
+import plotly.graph_objects as go
+L = ui.slider("L", 6, 2, 12, step=0.5, unit="m", label="Span")
+@ui.panel(L)
+def moment(L):
+    x = [L * i / 40 for i in range(41)]
+    return go.Figure(go.Scatter(x=x, y=[12 * v * (L - v) / 2 for v in x]))
+```
+````
+
+The five rules:
+
+1. Write it in a ` ```python ` fence of a sheet, `import ui`, make the widgets with `ui.slider`,
+   `ui.select`, `ui.checkbox` or `ui.player`, and decorate one function with `@ui.panel(widget, ...)`.
+   The function takes one argument per widget, in the same order, and receives plain values.
+2. Return a Plotly figure (do not call `fig.show()`), a string, `ui.table(rows, header=[...])`, or a
+   list of these. Return the chart from the very first call too: Plotly is loaded only when the
+   first result holds a chart.
+3. The panel cannot read the sheet's quantities, and the sheet cannot read the panel's values. Put
+   every number the panel needs in the block itself.
+4. The Python is a small stand-in for numpy: `reshape`, `vstack`, `hstack` and `sort` are not there
+   (`meshgrid` and `math.hypot` are). Build large lists with a loop or a comprehension: a list
+   literal of more than 16,000 numbers in the code is refused.
+5. Do the heavy work once in the block body and keep the panel function light: it runs on every
+   move of a control.
+
+## A panel, a sheet slider or an input form
+
+There are three ways to put a slider in front of a reader. Choose by what has to change.
+
+| You want | Use | What a move does |
+| --- | --- | --- |
+| A chart, table or text redrawn live while dragging | An interactive panel | Runs one Python function again. Nothing else is recalculated. |
+| A sheet input with a slider, `L: ? 6 m [2 .. 12 step 0.5]` | [Templates with inputs](templates.md) | Recalculates the whole sheet with the new value, a moment after you stop. |
+| A fill-in form of several inputs | Input mode, see [Templates with inputs](templates.md) | Recalculates the whole sheet; every quantity line follows. |
+
+A sheet slider changes a quantity that the lines below use, with its unit, and the report shows the
+working. A panel is for exploring: the chart follows your finger, but its numbers stay inside the
+panel.
+
+## The first run
+
+A panel is part of a Python block, so the first calculation of the sheet in a tab asks "This
+worksheet runs Python code" with **Run Python** and **Not now**. The block runs in a sandbox in the
+page, see [Python blocks](python.md#the-sandbox). The first run takes several seconds while Python
+starts and, for a chart, while Plotly loads from its CDN; after that a move of a control usually
+redraws in a fraction of a second.
+
+## A chart: the beam moment
+
+````sheet python
+# Beam moment explorer
+
+```python
+import ui
+import plotly.graph_objects as go
+
+L = ui.slider("L", 6, 2, 12, step=0.5, unit="m", label="Span")
+w = ui.slider("w", 12, 1, 40, unit="kN/m", label="Load")
+
+@ui.panel(L, w)
+def moment(L, w):
+    x = [L * i / 60 for i in range(61)]
+    M = [w * v * (L - v) / 2 for v in x]
+    fig = go.Figure(go.Scatter(x=x, y=M, mode="lines", fill="tozeroy", name="M"))
+    fig.update_layout(height=320, xaxis_title="x (m)", yaxis_title="M (kN.m)")
+    return [fig, "Maximum moment %.1f kN.m at midspan" % (w * L * L / 8)]
+```
+````
+
+The page shows two sliders, Span and Load, each with its value and unit beside it, then the chart
+and the line of text. At the start it reads `Maximum moment 54.0 kN.m at midspan`. Drag Span to
+10 m and the curve and the text follow: `Maximum moment 150.0 kN.m at midspan`.
+
+What happens, in order:
+
+1. The block runs once, top to bottom, like any Python block.
+2. At `@ui.panel(L, w)` the function `moment` is called with the starting values, 6 and 12, and its
+   result is drawn under the controls.
+3. Each move of a control calls `moment` again with the new values, in the same Python session, and
+   only the panel is redrawn. The function's name, `moment`, is the panel's name.
+
+## A 3D surface
+
+A 3D trace works the same way. Here one slider sets the amplitude of a surface:
+
+````sheet python
+# Surface explorer
+
+```python
+import ui
+import math
+import plotly.graph_objects as go
+
+a = ui.slider("a", 1.0, 0.2, 3.0, step=0.1, label="Amplitude")
+xs = [-3 + 0.2 * i for i in range(31)]
+
+@ui.panel(a)
+def surface(a):
+    Z = [[a * math.sin(x) * math.cos(y) for x in xs] for y in xs]
+    fig = go.Figure(go.Surface(x=xs, y=xs, z=Z))
+    fig.update_layout(height=420, scene=dict(zaxis=dict(range=[-3, 3])))
+    return fig
+```
+````
+
+The grid `xs` is made once, in the block body. The fixed `zaxis` range keeps the box the same size
+while the surface grows and shrinks; without it, Plotly rescales the axis on every move. A rotated
+view is kept when the surface is redrawn.
+
+## A table, a drop-down and a checkbox
+
+A panel does not need a chart. This one returns only a table:
+
+````sheet python
+# Timber joist spans
+
+```python
+import ui
+
+d = ui.select("d", [("200 mm", 0.2), ("300 mm", 0.3), ("400 mm", 0.4)], default="300 mm", label="Depth")
+b = ui.slider("b", 90, 45, 200, step=5, unit="mm", label="Width")
+sw = ui.checkbox("sw", True, label="Include own weight")
+
+@ui.panel(d, b, sw)
+def spans(d, b, sw):
+    Z = b / 1000 * d * d / 6
+    g = 5.0 * b / 1000 * d if sw else 0.0
+    rows = []
+    for L in [3, 4, 5, 6]:
+        M = (2.0 + g) * L * L / 8
+        rows.append([L, "%.2f" % M, "%.1f" % (M / Z / 1000)])
+    return ui.table(rows, header=["Span (m)", "M (kN.m)", "Stress (MPa)"])
+```
+````
+
+The drop-down shows the labels (`200 mm`, ...) and the function receives the value paired with the
+chosen label (`0.3`). The checkbox gives `True` or `False`. A table without a chart never loads
+Plotly, so it also works offline once the page has been visited.
+
+## A player
+
+`ui.player` is a frame number with a **Play** and **Pause** button. Each frame is one call of the
+function, and the next frame is asked for only after the last one is drawn, so a slow function plays
+slower rather than piling up.
+
+````sheet python
+# Travelling wave
+
+```python
+import ui
+import math
+import plotly.graph_objects as go
+
+t = ui.player("t", 0, 39, fps=8, label="Frame")
+xs = [i * 0.1 for i in range(101)]
+
+@ui.panel(t)
+def wave(t):
+    y = [math.sin(x - t * 0.3) for x in xs]
+    fig = go.Figure(go.Scatter(x=xs, y=y, mode="lines"))
+    fig.update_layout(height=260, yaxis_range=[-1.2, 1.2])
+    return fig
+```
+````
+
+A player never starts by itself, and it pauses when the browser tab is hidden. With `loop=False` it
+stops at the last frame.
+
+## The `ui` reference
+
+| Call | Draws | The function receives |
+| --- | --- | --- |
+| `ui.slider(name, default, min, max, step=None, unit="", label=None)` | A slider with its value and unit beside it | A number between `min` and `max`, on a step. An `int` when `default`, `min`, `max` and `step` are all whole numbers, otherwise a `float`. |
+| `ui.select(name, options, default=None, label=None)` | A drop-down | The value of the chosen option |
+| `ui.checkbox(name, default=False, label=None)` | A checkbox | `True` or `False` |
+| `ui.player(name, start, stop, fps=5, loop=True, label=None)` | A slider with Play and Pause | A whole frame number from `start` to `stop` |
+| `@ui.panel(widget, ...)` | The controls, then the function's result | (a decorator) |
+| `ui.table(rows, header=None)` | A table | (a return value) |
+| `ui.text(s)` | A line of plain text | (a return value) |
+
+Details that matter:
+
+* **name** is the first argument of every widget. It must be unique within a panel. **label** is
+  what the reader sees; it defaults to the name.
+* **step**: without one, a slider of whole numbers moves by 1, and any other slider takes a round
+  step that gives 100 to 200 steps across its range. A value is always kept between `min` and `max`
+  and snapped to a step.
+* **unit** is only shown beside the value. The function receives a plain number, so write the
+  conversions yourself (`w * 1000` for kN/m to N/m).
+* **options** of `ui.select` is a list of labels (`["Steel", "Timber"]`, the value is the label
+  itself) or of `(label, value)` pairs. A `dict` works, but its order is not promised. `default` is
+  a label or a value; without it the first option is chosen. A select needs two options or more.
+* **fps** of a player is at most 30. A frame waits for the last one, so the real rate can be lower.
+* **Return values**: a Plotly figure from `plotly.graph_objects`, a `str` or `ui.text(...)` (always
+  shown as text, never as HTML), a number, `ui.table(...)`, or a list of these in the order they are
+  drawn. `None` draws nothing. Anything else is a `TypeError` that names the type.
+* Numbers in a `ui.table` are written with six significant digits. Format them yourself
+  (`"%.2f" % M`) to fix the decimals.
+
+## Several outputs, several panels
+
+To drive two charts with the same slider, return both from one function: `return [fig1, fig2]`.
+
+A block can hold several panels, each with its own `@ui.panel` and its own controls. A widget given
+to two panels is drawn in each of them, and the two copies do not move together. Moving one control
+reruns only its own panel's function.
+
+## Errors
+
+* An error during the first call is a normal Python error: one red line naming the sheet line.
+* An error after a move (a division by zero at one end of a slider, say) is shown in the panel,
+  with its type. The panel recovers at the next value that works.
+* A function that runs for more than 10 seconds is stopped. The panel says so, and it stays out of
+  date until the sheet is calculated again (edit any line, or press calculate).
+* `print()` inside the panel function shows only on the first call. Return a string to show text
+  that follows the controls.
+
+## Printing and exports
+
+Print, PDF, Word and Excel cannot run Python. They show the panel at the values the controls were
+left at, without the controls, and a note under it, for example: "Interactive panel moment: Span =
+10 m, Load = 12 kN/m. It is drawn in the browser; print and export show it at these values." Text
+and tables are carried as they are. A chart is carried as a note naming it, as for any
+[Plotly chart](python.md#plotly-offline-printing-and-exports).
+
+The values the controls were left at are kept while the tab is open, so a recalculation (an edit
+elsewhere in the sheet) starts the panel where you left it. They are not saved in the file: opening
+the file again starts from the defaults.
+
+## Limits
+
+**A panel cannot read the sheet, and the sheet cannot read the panel.** Python runs before the
+sheet's quantity lines and cannot see them, and a slider's value never reaches a quantity line.
+A panel therefore holds its own data and inputs: write the section properties, loads and lengths
+in the block. An `export()` from the block body works as in any block, but it is done once, before
+any control moves; do not call `export()` in a panel function. When a value has to drive the
+sheet's calculation, use a sheet input instead (`L: ? 6 m [2 .. 12 step 0.5]`).
+
+**The numpy stand-in is small.** The block runs on MicroPython with a light stand-in for numpy,
+not on full Python. The list of what works is in [Which numpy and
+matplotlib](python.md#which-numpy-and-matplotlib). Things that surprise people:
+
+* `numpy.reshape`, `vstack`, `hstack` and `sort` raise `NotImplementedError`. `numpy.meshgrid`,
+  `hypot`, `arctan2`, `outer`, `interp`, `polyfit` and `polyval` work, as does `math.hypot`.
+* A list literal of more than 16,000 numbers written out in the code is refused before it runs,
+  with a hint to build the list in a loop or parse a text string. Shorter ones, even several
+  thousand numbers, work.
+* `np.linspace` and array arithmetic work, but plain lists and comprehensions are just as quick for
+  the sizes a chart needs.
+
+**It runs only in the browser.** The [MCP server](mcp.md) does not run Python blocks, so it cannot
+evaluate a sheet with a panel. Word and Excel get the snapshot described above.
+
+**Plotly comes from its CDN.** A chart needs a connection the first time (the controls, tables and
+text work without one). Plotly is loaded only when the first result of a panel holds a chart, so a
+panel that returns a chart only after some move shows a note instead of the chart. Return a chart
+on the first call too.
+
+**The usual Python limits apply**: 10 seconds per call, and an answer of at most 2 MB (a figure and
+its data) per move. See [Python blocks](python.md#limits).
+
+## Keeping it fast
+
+The function runs on every move of a control, so keep in it only what depends on the controls. Work
+that does not, such as a grid, a stiffness matrix or a solved model, belongs in the block body, which
+runs once. The function can read the variables the block made before it.
+
+````sheet python
+# Precomputed surface
+
+```python
+import ui
+import math
+import plotly.graph_objects as go
+
+xs = [-3 + 0.1 * i for i in range(61)]
+base = [[math.sin(x) * math.cos(y) for x in xs] for y in xs]
+
+k = ui.slider("k", 1.0, 0.1, 2.0, step=0.1, label="Scale")
+
+@ui.panel(k)
+def scaled(k):
+    Z = [[k * v for v in row] for row in base]
+    fig = go.Figure(go.Surface(x=xs, y=xs, z=Z))
+    fig.update_layout(height=420, scene=dict(zaxis=dict(range=[-2, 2])))
+    return fig
+```
+````
+
+The sines and cosines of the 61 by 61 grid are worked out once; each move only multiplies.
+
+* Keep charts to a few thousand points. The whole figure is sent on every move.
+* Do not change globals in the function. A function that depends only on its arguments and on what
+  the block computed before it gives the same picture for the same control values, whatever order
+  the reader moved them in.
+* Fix axis ranges (`yaxis_range`, `scene=dict(zaxis=dict(range=...))`) so the chart does not jump
+  while dragging.
+
+---
+
 Chapter: Templates with inputs
 URL: https://civilkit.io/calcs/guide/templates
 
@@ -4167,6 +4579,18 @@ number does not have to land on a step. Preview, Report, PDF and the Word and Ex
 they do for a plain input, so a sheet with sliders reads the same when it is printed. Two of the sample
 templates, the beam check and the cantilever, use sliders for their span, length and loads.
 
+### Docked inputs
+
+A slider is most use when you can see what it moves. In Input mode the **Dock inputs** button (a pin) in the
+results bar gathers every input of the sheet into one panel that stays put while the results scroll: at the left
+of the results when the pane is wide, in a strip above them when it is narrow or on a phone. Scroll the results to
+the plot, drag a slider in the panel, and the plot is drawn again as you drag. The panel holds the same values as
+the input lines (they are hidden while it is docked), with the same checks: a number typed outside the bounds is
+refused, with the message beside the box. The arrow in the panel's header folds it to one line of values.
+
+The panel is docked when a sheet has a slider, and not otherwise; your choice is kept until the browser tab is
+closed. A sheet without inputs has no panel. Nothing printed or exported shows it.
+
 ### Drop-downs and radio buttons
 
 A choice is a list of `label = value` entries between square brackets (a drop-down) or round
@@ -4228,6 +4652,10 @@ Unwrapped, **Input**, Report), or **Input form** on the Input/Output tab. Then:
 
 * Each input line is a control. A box holds the number only; the unit stays beside it, so a number
   cannot be typed in the wrong unit. A box accepts digits, a decimal point and a sign.
+* Consecutive input lines are drawn as one block, so the names, the boxes, the sliders, the units and the notes
+  start at the same place on every row. The names are right aligned so the equals signs meet, a very long name is
+  held to 40% of the width and wraps, and a text line, a heading or a blank line starts a new block. This is how
+  the form looks only; the report, print and the exports are unchanged. (The docked panel, described above, is laid out on its own.)
 * Type a value and press Enter, or leave the box, and the sheet recalculates. Lists, buttons and
   the checkbox act at once.
 * The **Insert** panel says "Unavailable in input mode": it acts on the source, which the form does
@@ -4973,7 +5401,12 @@ T: augment(Q_v / (1 L/s), H_pv / (1 m), H_sv / (1 m)) | columns: flow in L/s, pu
 H_p(Q): H_0 * (1 - (Q / Q_max)^2) -> m | pump head at the flow Q
 H_s(Q): H_st + K * Q^2 -> m | pipeline head at the flow Q
 
-plot H_p(x * 1 L/s) / (1 m), H_s(x * 1 L/s) / (1 m) for x in 0..60
+plot H_p(x * 1 L/s) / (1 m) as "pump", H_s(x * 1 L/s) / (1 m) as "pipeline" for x in 0..60
+
+The same crossing, found numerically from the two curves:
+
+if H_net > 0 m:
+    Q_num: solve H_p(Q) = H_s(Q) for Q in 0 L/s..Q_max -> L/s | flow where the pump head equals the pipeline head
 ```
 
 </details>
@@ -5299,7 +5732,8 @@ so a file reads the same on every machine.
 
 ## Choosing a format
 
-Open **Calculation > Calculation settings** in the ribbon. **Number format** is the first section.
+Open **Settings** (the gear at the right end of the top strip). **Number format** is on the **General** tab, under
+Language.
 
 | Choice | Looks like |
 |---|---|
@@ -5440,7 +5874,7 @@ The workbook opens in LibreOffice and a Python reader. It has not been tried in 
 ## PDF
 
 **Print PDF** opens the browser's print dialog on the report. Choose "Save as PDF" as the destination.
-The page size, orientation and margins come from the PDF settings (Settings, Header and footer).
+The page size, orientation and margins come from the PDF settings (Settings, Export tab; Document > Header and footer opens it there).
 The printed page carries the browser's own header and footer in place of title, date and page
 numbers; turn "Headers and footers" off in the print dialog if you do not want them.
 
@@ -6057,7 +6491,7 @@ Click the line number in the report to jump to the source.
   (`g = 9.80665m/s^2`) before you use `g` as an acceleration.
 * **A variable called `m`, `s` or `L`.** After a number `m` is still the metre. A variable called `m`
   is a variable when it stands alone. In Python `export` names, avoid names that are units.
-* **Rounding.** The result shows two decimals by default (Settings, Decimals), and a number below
+* **Rounding.** The result shows two decimals by default (Settings, Calculation, Decimals), and a number below
   one keeps three significant figures (`0.163`, `0.0856`). The number inside is full precision: a
   utilisation of 1.004 is shown as `1`, and a check on it (`if util <= 1`) still sees 1.004.
 * **Every line of a sheet shows an error such as `Invalid symbol: "#"`.** The first line of the
@@ -6156,7 +6590,7 @@ page is a summary for users.
 | --- | --- | --- |
 | A failing `#if` condition | A condition that throws (a misspelled name) is false, so the `#else` branch runs without a word. | The block is left unresolved: no branch runs, and an error paragraph says why. |
 | Plot loops | A plot grid with a NaN step never ends. | Grid loops stop after 100,000 lines. Finite grids are unchanged. |
-| Scripts in a worksheet | Any `<script>` in a worksheet runs from any address. | Scripts run only from a library list (Settings, Libraries), under a content security policy, with exact file addresses and integrity hashes. A script that is not on the list is replaced by a note naming its address. Scripts cannot send data anywhere. The print frame has no scripts. |
+| Scripts in a worksheet | Any `<script>` in a worksheet runs from any address. | Scripts run only from a library list (Settings, Advanced, Libraries), under a content security policy, with exact file addresses and integrity hashes. A script that is not on the list is replaced by a note naming its address. Scripts cannot send data anywhere. The print frame has no scripts. |
 | C-style operators | The desktop app converts `==`, `!=`, `>=`, `<=`, `%%`, `&&`, `\|\|`, `<<`, `<*` when it reads a file. | The browser does the same when it opens a worksheet. |
 | Input fields | Many examples use the old `name = ? {default}` form. | The bundled samples are rewritten with `#UI`, and the editor offers a "Convert to #UI" quick fix. |
 | Select, radio and checkbox | A select or radio that names a text box does nothing in the web front end. | It fills the text boxes it names and recalculates; the choice is carried into the Report, PDF and Word. |
@@ -6373,7 +6807,20 @@ f(x): x^2 + 1
 * **Numbers:** `1.23e6` is written as `1230000`, since the engine has no exponent notation.
 * **Operators:** `+ - * / ^ %`, `< > <= >= == != and or`, and the Unicode forms `≤ ≥ ≠ ≡ ∧ ∨ × · ÷ −`.
   In a condition a single `=` also means equal. `²` and `³` after a name or unit are `^2` and `^3`.
-* **Calls** take commas: `max(a, b)`; the compiler writes the engine's `;`.
+* **Calls** take commas: `max(a, b)`; the compiler writes the engine's `;`. Calcpad's `;` is accepted
+  as well inside parentheses, in a call (`f(1; 2)`, `max(3; 7)`) and in the parameter list of a definition
+  (`f(x; y): x + y`). Decision: `;` keeps its meanings elsewhere (outside brackets it separates the
+  statements of a line, inside `[...]` it separates rows); inside `(...)` it had none (a definition with it was
+  read as prose, a call was an error), so there it is normalised to the comma form instead of being reported.
+* **Solving, integrals and slopes:** the value of a quantity can be one of three numerical operations written
+  like a plot line: `x0: solve f(x) = c for x in a..b` is `x0 = $Root{f(x) = c @ x = a : b}` (without `= c`
+  it solves `f(x) = 0`; the engine evaluates `c` once, so a right side that uses the variable, as in
+  `solve f(x) = g(x) for ...`, is moved to the left: `$Root{f(x) - (g(x)) @ ...}`), `A: integral of f(x) for x in a..b` is `$Integral{f(x) @ x = a : b}`, and
+  `k: slope of f(x) at x = a` is `$Slope{f(x) @ x = a}`. The line takes `-> unit` and a note as any quantity
+  line does; a bare `0` bound takes the other bound's unit (`0*(5 m)`), since the engine needs both in one
+  unit. A line with the shape of one of them (a `..` range, or `at` and `=`) that does not parse is an error on
+  its line; `Note: solve this by hand` stays prose. The operation must be the whole value (`2 * solve ...` is
+  not read).
 * **Vectors and matrices:** `[1; 2; 3]` and `[1, 2, 3]` are vectors. `[1, 2; 3, 4]` is a
   matrix: columns are separated by commas and rows by semicolons. (Calcpad writes
   `[1; 2 | 3; 4]`.) Rows must have equal length. Elements are expressions. An element is
@@ -6444,6 +6891,14 @@ becomes `$Plot{ M(x) @ x = 0 : L }`; several expressions are drawn together. An 
 `name =` before the expressions is dropped. A malformed plot line is reported in the report and
 on its sheet line.
 
+A curve takes a name for a legend with `as "name"`: `plot sin(x) as "sine", cos(x) as "cosine" for x in 0..6`
+becomes `$Plot{ sin(x) "sine" & cos(x) "cosine" @ x = 0 : 6 }`. The engine draws a legend box (a swatch and
+the name of each curve, in the top right of the plot area) inside the SVG when at least one curve has a name;
+a curve without one is listed by its expression. Being in the SVG, the legend is in the preview, print, PDF and
+the Word picture; the Excel chart takes the names as its series names. A name cannot contain quotes, `&`, `|`,
+`@` or braces (the engine's `$Plot` delimiters); an empty name or a quoted text without `as` is an error on
+the line. The quoted name in `$Plot` is an extension of this port (DEVIATIONS.md).
+
 ## Calcpad pass-through
 
 Every engine feature stays reachable. (Number, choice and checkbox inputs have a sheet form of their own,
@@ -6462,6 +6917,7 @@ written, and so is everything between a `calcpad` fence:
 A fence with the language `python` is a Python block (docs/python-blocks.md); so is Calcpad's own `#python` ... `#end python` pair written on lines of their own, which a sheet accepts as the same block. It compiles to `#python` ... `#end python`, its lines
 are copied as written (no renaming, indentation kept), and what it prints, draws and `export`s becomes part of the sheet. Names it
 exports can be used by the quantity lines after it, under the sheet's spelling of the name (`export(sigma_c=2)` is `σ_c` below the block, as `phi` is `φ`).
+A block that does `import ui` can draw interactive panels: sliders, drop-downs and checkboxes whose moves run one Python function again and redraw its chart, table or text, without recalculating the sheet (the guide chapter "Interactive panels", book/src/python-panels.md).
 
 Sheet lines and raw lines share one worksheet, so they alternate freely: a raw block reads
 the variables defined by sheet lines above it and defines variables that sheet lines below it
@@ -6505,6 +6961,10 @@ first), radio buttons (the same options in round brackets), a checkbox and a sli
 * **A checkbox** is `on` or `off` (`true` and `false` also work) and the name is `1` or `0`: `if ribs == 1:`.
 * **The note** after `|` is shown after a number, as on a quantity line. A drop-down, radio buttons and a checkbox
   show no name, so their note is the label in front of the control (the name is used when there is no note).
+* In Input mode, consecutive input lines are drawn as one block: the names, the number boxes (and drop-downs), the sliders,
+  the units and the notes line up in columns. The names are right aligned so the equals signs meet, a very long name is
+  held to 40% of the width and wraps, and a text line, a heading or a blank line starts a new block. A single input line
+  is drawn on its own. This is how the form looks only; the report and the exports are not affected.
 * One input per line, and the name is a plain name (Greek spellings as always). `name = ? 6 m` works too.
   The name is defined like any quantity: later lines, `>>` lines and Go to definition use it.
 * A choice gives one number. To choose among several properties at once (a material with its modulus, strength and
