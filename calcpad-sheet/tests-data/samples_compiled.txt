@@ -60,6 +60,12 @@ Mermaid load path.sheet|false|de6de5f07554b10d
 Mermaid load path.sheet|true|f9b770fe6de3d7af
 Mixing with Calcpad.sheet|false|46d90eb28ff8835a
 Mixing with Calcpad.sheet|true|88b27e7df56a066d
+Panel beam deflection explorer.sheet|false|9059cd8e4ca82ee4
+Panel beam deflection explorer.sheet|true|b13a690c6fca19be
+Panel column buckling player.sheet|false|ae6eb3afcc8edfd4
+Panel column buckling player.sheet|true|ae6eb3afcc8edfd4
+Panel pump operating point player.sheet|false|b7fd99033a9c7dc2
+Panel pump operating point player.sheet|true|b7fd99033a9c7dc2
 Plot gallery implicit curves.sheet|false|6df03be9c77abd14
 Plot gallery implicit curves.sheet|true|cf40277b8b6f6899
 Plot.sheet|false|2ae5dea050da795d

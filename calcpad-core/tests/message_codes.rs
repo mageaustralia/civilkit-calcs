@@ -35,7 +35,9 @@ fn a_message_that_is_not_coded_has_no_code() {
 fn every_code_is_the_name_of_its_message_constant() {
     let src = include_str!("../src/exceptions.rs");
     let mut n = 0;
-    for part in src.split("MathParserException::coded(\"").skip(1) {
+    // The call may be written on one line or broken after the parenthesis.
+    for part in src.split("MathParserException::coded(").skip(1) {
+        let part = part.trim_start().strip_prefix('"').expect("the first argument is the code");
         let code = &part[..part.find('"').unwrap()];
         let rest = &part[part.find("messages::").unwrap() + "messages::".len()..];
         let name: String = rest.chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
