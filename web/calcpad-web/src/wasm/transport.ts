@@ -20,6 +20,7 @@
 import { reportHeadMarkup } from './report-fonts';
 import { activeFormat, localiseHtml, localiseOmml, withNumberFormatShim } from './number-format';
 import { showEngineMessages, withMessageCodes } from '../i18n/engine-messages';
+import { inputAlign } from './input-align';
 import { uiAssetsMarkup } from './ui-assets';
 import { libraries } from './library-list';
 import { applyScriptPolicy } from './script-policy';
@@ -143,7 +144,7 @@ function showInNumberFormat(html: string): string {
 
 function addPreviewDark(html: string): string {
     const i = html.toLowerCase().lastIndexOf('</head>');
-    return i < 0 ? html : html.slice(0, i) + PREVIEW_DARK + PREVIEW_MATRIX + PREVIEW_TABLE + PREVIEW_PHONE + html.slice(i);
+    return i < 0 ? html : html.slice(0, i) + PREVIEW_DARK + PREVIEW_MATRIX + PREVIEW_TABLE + PREVIEW_PHONE + inputAlign(html) + html.slice(i);
 }
 
 /** A file the engine can read (#include, #read): an absolute path and its bytes. */
