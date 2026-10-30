@@ -44,6 +44,8 @@ async function openSettings(page) {
         await page.locator('[data-ribbon-btn="k-settings"]').first().click();
         await page.waitForSelector('.tab-content.as-dialog .settings-tab');
     }
+    // Calculation settings opens the Calculation tab; Language is on General.
+    await page.locator('.tab-content.as-dialog [role=tab][data-settings-tab=general]').click();
     return page.locator('.tab-content.as-dialog');
 }
 const closeDialog = async (page) => { await page.keyboard.press('Escape'); await page.waitForTimeout(200); };
@@ -71,14 +73,14 @@ if (dist) {
     check(options.join('|') === 'English|Español (España)|Português (Brasil)|Français|Deutsch|简体中文', `the picker lists each language in its own name (${options.join(', ')})`);
     check(await dlg.locator('#cprs-language-select').inputValue() === 'en', 'the picker shows English');
     check(!(await dlg.innerText()).includes('[!!'), 'no pseudo-language text in English');
-    check((await dlg.locator('[data-settings-section=language]').count()) === 1 && (await dlg.locator('.settings-container > :first-child').getAttribute('data-settings-section')) === 'language', 'Language is the first section of the Settings dialog');
+    check((await dlg.locator('[data-settings-section=language]').count()) === 1 && (await dlg.evaluate((d) => d.querySelector('.settings-container [role=tabpanel]').firstElementChild.getAttribute('data-settings-section'))) === 'language', 'Language is the first section of the Settings dialog (on its first tab)');
     await shot(page, 'en-settings');
 
     // ---- German
     await dlg.locator('#cprs-language-select').selectOption('de');
     await page.waitForFunction(() => document.documentElement.lang === 'de');
     await page.waitForTimeout(300);
-    const text = await dlg.innerText();
+    const text = await dlg.textContent(); // every tab, the hidden ones too
     check(text.includes('Mathematik-Einstellungen') && text.includes('Dezimalstellen') && text.includes('Papierformat'), 'the Settings dialog is in German at once, without a reload');
     check(await dlg.locator('.search-input').getAttribute('placeholder') === 'Einstellungen durchsuchen...', 'the search placeholder is in German');
     check((await dlg.locator('#cprs-language-select').inputValue()) === 'de' && text.includes('Sprache der Oberfläche:'), 'the picker itself is in German and shows Deutsch');
@@ -137,7 +139,7 @@ if (dist) {
     await openSettings(page);
     await page.locator('#cprs-language-select').selectOption('en');
     await page.waitForFunction(() => document.documentElement.lang === 'en');
-    check((await page.locator('.tab-content.as-dialog').innerText()).includes('Math Settings') && (await tabText(page, 'calc')) === 'Calculation', 'switching back to English restores the English text at once');
+    check((await page.locator('.tab-content.as-dialog').textContent()).includes('Math Settings') && (await tabText(page, 'calc')) === 'Calculation', 'switching back to English restores the English text at once');
     check(await stored(page) === 'en', 'English is stored as the choice');
     await closeDialog(page);
     await ctx.close();
@@ -278,7 +280,7 @@ for (const [locale, want] of [['ja-JP', false], ['zh-TW', false], ['en-GB', fals
     check(Math.abs(drift.caret - drift.textRight) <= 3, `Chinese: the caret at the end of a line of Chinese is ${Math.abs(drift.caret - drift.textRight).toFixed(1)}px from the end of the text`);
     await shot(page, 'zh-editor');
     const dlg = await openSettings(page);
-    check((await dlg.innerText()).includes('数学设置') && (await dlg.innerText()).includes('界面语言：'), 'Chinese: the Settings dialog is in Chinese');
+    check((await dlg.textContent()).includes('数学设置') && (await dlg.textContent()).includes('界面语言：'), 'Chinese: the Settings dialog is in Chinese');
     await shot(page, 'zh-settings');
     await closeDialog(page);
     await page.locator('[data-ribbon-tab="functions"]').click();

@@ -75,6 +75,24 @@ snippet (a click inserts it at the cursor), and tabs for the table of **Contents
 dialogs over the page. Hide the sidebar with the button at its top right, or Resources > Sidebar
 (Ctrl+Shift+B in the desktop app).
 
+## Settings
+
+The gear at the right end of the top strip opens **Settings** (so do Calculation > Calculation settings and
+Resources > Settings). It has five tabs:
+
+| Tab | What is on it |
+| --- | --- |
+| General | Language, number format, and the appearance (colour theme, preview theme). |
+| Calculation | Decimals, angle units, complex numbers and the other math settings, plot defaults, US or UK units. |
+| Editor | Quick typing, comment format, formatting keys, auto-run, cursor sync, the linter. |
+| Export | The PDF page: paper size, orientation, margins, header and footer. |
+| Advanced | Script libraries, logging and limits, the server address, saved configurations. |
+
+The search box above the tabs looks through all of them and lists each match under its tab's name; clear it to
+get the tabs back. Settings opens on the tab you last used, until the browser tab is closed. Calculation settings
+opens it on Calculation, and Document > Header and footer on Export. On the tab strip, the arrow keys, Home and End
+move between the tabs.
+
 ## On a phone
 
 At 760 pixels wide or less, one pane shows at a time, switched from a bar along the bottom:

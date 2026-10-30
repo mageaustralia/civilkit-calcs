@@ -464,7 +464,7 @@ export const RIBBON: RibbonTab[] = [
                 action('k-toggle', 'Show results', 'pane', 'Show or hide the results pane', 'togglePreview'),
             ] },
             { name: 'Settings', buttons: [
-                action('k-settings', 'Calculation settings', 'settings', 'Decimals, precision, complex mode and plot options (the Settings dialog)', 'settings'),
+                action('k-settings', 'Calculation settings', 'settings', 'Decimals, precision, complex mode and plot options (the Settings dialog)', 'settings:calculation'),
                 more('a-numset', 'Numerical settings', 'settings', 'Lines that set the precision and tolerance of the numerical methods', 'numSettings'),
             ] },
             { name: 'Check', buttons: [
@@ -569,7 +569,7 @@ export const RIBBON: RibbonTab[] = [
                 action('d-markdown', 'Text to Markdown', 'markdown', 'Tidy, then write simple paragraphs as Markdown (#md on blocks)', 'markdownText'),
             ] },
             { name: 'Page', buttons: [
-                action('d-pdfsettings', 'Header and footer', 'headfoot', 'Page numbers, date and title for PDF export (the Settings dialog)', 'settings'),
+                action('d-pdfsettings', 'Header and footer', 'headfoot', 'Page numbers, date and title for PDF export (the Settings dialog)', 'settings:export'),
                 big('d-pagebreak', 'Page break', 'page', PAGE_BREAK_TITLE, { text: PAGE_BREAK, line: true, sheet: PAGE_BREAK_SHEET }),
             ] },
             { name: 'Report', buttons: [

@@ -28,7 +28,7 @@ Click the line number in the report to jump to the source.
   (`g = 9.80665m/s^2`) before you use `g` as an acceleration.
 * **A variable called `m`, `s` or `L`.** After a number `m` is still the metre. A variable called `m`
   is a variable when it stands alone. In Python `export` names, avoid names that are units.
-* **Rounding.** The result shows two decimals by default (Settings, Decimals), and a number below
+* **Rounding.** The result shows two decimals by default (Settings, Calculation, Decimals), and a number below
   one keeps three significant figures (`0.163`, `0.0856`). The number inside is full precision: a
   utilisation of 1.004 is shown as `1`, and a check on it (`if util <= 1`) still sees 1.004.
 * **Every line of a sheet shows an error such as `Invalid symbol: "#"`.** The first line of the

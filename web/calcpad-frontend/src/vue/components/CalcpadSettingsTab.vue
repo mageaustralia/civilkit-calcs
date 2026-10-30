@@ -7,627 +7,704 @@
         class="search-input"
         :placeholder="tr('settings.search.placeholder', {}, 'Search settings...')"
       />
+    </div>
+
+    <!-- The tabs; a search looks through all of them, so they step aside while it is on (the results name their tab). -->
+    <div
+      v-show="!searchActive"
+      class="settings-tabs"
+      role="tablist"
+      :aria-label="tr('settings.tabs.label', {}, 'Settings sections')"
+      @keydown="onTabKey"
+    >
       <button
-        class="toolbar-btn"
-        :title="allCollapsed ? tr('settings.collapse.expandTip', {}, 'Expand all') : tr('settings.collapse.collapseTip', {}, 'Collapse all')"
-        @click="setAll(!allCollapsed)"
-      >
-        {{ allCollapsed ? tr('settings.collapse.expandAll', {}, 'Expand All') : tr('settings.collapse.collapseAll', {}, 'Collapse All') }}
-      </button>
+        v-for="tab in TABS"
+        :id="'settings-tab-' + tab.id"
+        :key="tab.id"
+        type="button"
+        role="tab"
+        class="settings-tab-btn"
+        :data-settings-tab="tab.id"
+        :aria-selected="activeTab === tab.id ? 'true' : 'false'"
+        :aria-controls="'settings-panel-' + tab.id"
+        :tabindex="activeTab === tab.id ? 0 : -1"
+        @click="selectTab(tab.id)"
+      >{{ tab.label() }}</button>
     </div>
 
     <div class="settings-container">
-      <!-- Sections a host app puts first (provide('calcpadExtensions', { settingsFirstSections })). -->
-      <component :is="section" v-for="(section, i) in extensions.settingsFirstSections ?? []" :key="'first-' + i" />
+      <div
+        id="settings-panel-general"
+        v-show="panelShown('general')"
+        class="settings-panel"
+        v-bind="panelAttrs('general')"
+      >
+        <h2 v-if="searchActive" class="panel-heading">{{ tabLabel('general') }}</h2>
+        <!-- Sections a host app puts first (provide('calcpadExtensions', { settingsFirstSections })): the General tab. -->
+        <component
+          :is="section"
+          v-for="(section, i) in extensions.settingsFirstSections ?? []"
+          v-show="extShown('first-' + i)"
+          :key="'first-' + i"
+          :ref="(el: any) => setExt('first-' + i, el)"
+        />
 
-      <section v-show="sectionVisible('math')" class="settings-section">
-        <h3 class="section-header" @click="toggle('math')">
-          <span class="expand-icon" :class="{ collapsed: isCollapsed('math') }">&#x25BC;</span>
-          {{ tr('settings.section.math', {}, 'Math Settings') }}
-        </h3>
-        <div v-show="bodyVisible('math')" class="section-body">
-          <div
-            v-for="spec in MATH_KEYS"
-            :key="spec.key"
-            v-show="rowVisible('math', spec.key)"
-            class="setting-group"
-          >
-            <label v-if="spec.type === 'boolean'">
+        <section v-show="sectionVisible('appearance')" class="settings-section">
+          <h3 class="section-header" @click="toggle('appearance')">
+            <span class="expand-icon" :class="{ collapsed: isCollapsed('appearance') }">&#x25BC;</span>
+            {{ tr('settings.section.appearance', {}, 'Appearance') }}
+          </h3>
+          <div v-show="bodyVisible('appearance')" class="section-body">
+            <div v-show="rowVisible('appearance', 'previewTheme')" class="setting-group">
+              <label for="previewTheme">{{ tr('settings.editor.previewTheme', {}, 'Preview Theme:') }}</label>
+              <select
+                id="previewTheme"
+                v-model="previewTheme"
+                @change="updatePreviewTheme"
+              >
+                <option value="system">{{ tr('settings.editor.themeSystem', {}, 'Same as app') }}</option>
+                <option value="light">{{ tr('settings.editor.themeLight', {}, 'Light') }}</option>
+                <option value="dark">{{ tr('settings.editor.themeDark', {}, 'Dark') }}</option>
+              </select>
+            </div>
+
+            <div v-show="rowVisible('appearance', 'darkBackground')" class="setting-group">
+              <label for="darkBackground">{{ tr('settings.editor.darkBackground', {}, 'Dark Mode Background:') }}</label>
+              <div class="color-input-row">
+                <input
+                  id="darkBackground"
+                  v-model="darkBackground"
+                  type="text"
+                  placeholder="#1e1e1e"
+                  @input="updateDarkBackground"
+                />
+                <button
+                  class="reset-inline-btn"
+                  :title="tr('settings.editor.darkBackgroundResetTip', {}, 'Reset to default (#1e1e1e)')"
+                  @click="resetDarkBackground"
+                >
+                  {{ tr('settings.common.reset', {}, 'Reset') }}
+                </button>
+              </div>
+            </div>
+
+            <div v-show="rowVisible('appearance', 'colorTheme')" class="setting-group">
+              <label for="colorTheme">{{ tr('settings.editor.colorTheme', {}, 'Color Theme:') }}</label>
+              <select
+                id="colorTheme"
+                v-model="colorTheme"
+                @change="updateColorTheme"
+              >
+                <option
+                  v-if="colorTheme && !knownThemeLabels.has(colorTheme) && colorTheme !== 'System'"
+                  :value="colorTheme"
+                >{{ colorTheme }}</option>
+                <option value="System">{{ tr('settings.editor.colorSystem', {}, 'System') }}</option>
+                <optgroup v-if="darkThemes.length" :label="tr('settings.editor.colorDark', {}, 'Dark')">
+                  <option
+                    v-for="t in darkThemes"
+                    :key="t.label"
+                    :value="t.label"
+                  >{{ t.label }}</option>
+                </optgroup>
+                <optgroup v-if="lightThemes.length" :label="tr('settings.editor.colorLight', {}, 'Light')">
+                  <option
+                    v-for="t in lightThemes"
+                    :key="t.label"
+                    :value="t.label"
+                  >{{ t.label }}</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div
+        id="settings-panel-calculation"
+        v-show="panelShown('calculation')"
+        class="settings-panel"
+        v-bind="panelAttrs('calculation')"
+      >
+        <h2 v-if="searchActive" class="panel-heading">{{ tabLabel('calculation') }}</h2>
+        <section v-show="sectionVisible('math')" class="settings-section">
+          <h3 class="section-header" @click="toggle('math')">
+            <span class="expand-icon" :class="{ collapsed: isCollapsed('math') }">&#x25BC;</span>
+            {{ tr('settings.section.math', {}, 'Math Settings') }}
+          </h3>
+          <div v-show="bodyVisible('math')" class="section-body">
+            <div
+              v-for="spec in MATH_KEYS"
+              :key="spec.key"
+              v-show="rowVisible('math', spec.key)"
+              class="setting-group"
+            >
+              <label v-if="spec.type === 'boolean'">
+                <input
+                  type="checkbox"
+                  v-model="settingModel(spec.key).value"
+                  @change="updateSettings"
+                />
+                {{ sl(spec) }}
+                <span v-if="spec.detail" class="setting-info" :title="sd(spec)">ⓘ</span>
+              </label>
+              <template v-else>
+                <label :for="spec.key">
+                  {{ sl(spec) }}:
+                  <span v-if="spec.detail" class="setting-info" :title="sd(spec)">ⓘ</span>
+                </label>
+                <select
+                  v-if="spec.type === 'enum'"
+                  :id="spec.key"
+                  v-model="settingModel(spec.key).value"
+                  @change="updateSettings"
+                >
+                  <option v-for="opt in spec.options" :key="opt.value" :value="opt.value">{{ so(spec, opt) }}</option>
+                </select>
+                <input
+                  v-else-if="spec.type === 'number'"
+                  :id="spec.key"
+                  type="number"
+                  v-model="settingModel(spec.key).value"
+                  :min="spec.min"
+                  :max="spec.max"
+                  :step="numberStep(spec.key)"
+                  :class="{ 'input-invalid': settingErrors[spec.key] }"
+                  :title="settingErrors[spec.key] || undefined"
+                  @input="updateSettings"
+                />
+                <input
+                  v-else
+                  :id="spec.key"
+                  type="text"
+                  v-model="settingModel(spec.key).value"
+                  @input="updateSettings"
+                />
+              </template>
+            </div>
+          </div>
+        </section>
+
+        <section v-show="sectionVisible('plot')" class="settings-section">
+          <h3 class="section-header" @click="toggle('plot')">
+            <span class="expand-icon" :class="{ collapsed: isCollapsed('plot') }">&#x25BC;</span>
+            {{ tr('settings.section.plot', {}, 'Plot Settings') }}
+          </h3>
+          <div v-show="bodyVisible('plot')" class="section-body">
+            <div
+              v-for="spec in PLOT_KEYS_A"
+              :key="spec.key"
+              v-show="rowVisible('plot', spec.key)"
+              class="setting-group"
+            >
+              <label>
+                <input type="checkbox" v-model="settingModel(spec.key).value" @change="updateSettings" />
+                {{ sl(spec) }}
+                <span v-if="spec.detail" class="setting-info" :title="sd(spec)">ⓘ</span>
+              </label>
+            </div>
+
+            <div v-show="rowVisible('plot', 'screenScale')" class="setting-group">
+              <label for="screenScaleFactor">{{ tr('settings.plot.screenScale', {}, 'Screen Scale Factor:') }}</label>
               <input
-                type="checkbox"
-                v-model="settingModel(spec.key).value"
-                @change="updateSettings"
+                id="screenScaleFactor"
+                v-model.number="localSettings.plot.screenScaleFactor"
+                type="number"
+                min="0.1"
+                max="5"
+                step="0.1"
+                @input="updateSettings"
               />
-              {{ sl(spec) }}
-              <span v-if="spec.detail" class="setting-info" :title="sd(spec)">ⓘ</span>
-            </label>
-            <template v-else>
+            </div>
+
+            <div
+              v-for="spec in PLOT_KEYS_B"
+              :key="spec.key"
+              v-show="rowVisible('plot', spec.key)"
+              class="setting-group"
+            >
+              <label v-if="spec.type === 'boolean'">
+                <input type="checkbox" v-model="settingModel(spec.key).value" @change="updateSettings" />
+                {{ sl(spec) }}
+                <span v-if="spec.detail" class="setting-info" :title="sd(spec)">ⓘ</span>
+              </label>
+              <template v-else>
+                <label :for="spec.key">
+                  {{ sl(spec) }}:
+                  <span v-if="spec.detail" class="setting-info" :title="sd(spec)">ⓘ</span>
+                </label>
+                <select
+                  v-if="spec.type === 'enum'"
+                  :id="spec.key"
+                  v-model="settingModel(spec.key).value"
+                  @change="updateSettings"
+                >
+                  <option v-for="opt in spec.options" :key="opt.value" :value="opt.value">{{ so(spec, opt) }}</option>
+                </select>
+                <input
+                  v-else
+                  :id="spec.key"
+                  type="text"
+                  v-model="settingModel(spec.key).value"
+                  @input="updateSettings"
+                />
+              </template>
+            </div>
+
+            <div v-show="rowVisible('plot', 'lightDirection')" class="setting-group">
+              <label for="lightDirection">{{ tr('settings.plot.lightDirection', {}, 'Light Direction:') }}</label>
+              <select
+                id="lightDirection"
+                v-model="localSettings.plot.lightDirection"
+                @change="updateSettings"
+              >
+                <option value="NorthWest">{{ tr('settings.plot.light.NorthWest', {}, 'NorthWest') }}</option>
+                <option value="North">{{ tr('settings.plot.light.North', {}, 'North') }}</option>
+                <option value="NorthEast">{{ tr('settings.plot.light.NorthEast', {}, 'NorthEast') }}</option>
+                <option value="West">{{ tr('settings.plot.light.West', {}, 'West') }}</option>
+                <option value="East">{{ tr('settings.plot.light.East', {}, 'East') }}</option>
+                <option value="SouthWest">{{ tr('settings.plot.light.SouthWest', {}, 'SouthWest') }}</option>
+                <option value="South">{{ tr('settings.plot.light.South', {}, 'South') }}</option>
+                <option value="SouthEast">{{ tr('settings.plot.light.SouthEast', {}, 'SouthEast') }}</option>
+              </select>
+            </div>
+
+            <div
+              v-for="spec in PLOT_KEYS_C"
+              :key="spec.key"
+              v-show="rowVisible('plot', spec.key)"
+              class="setting-group"
+            >
               <label :for="spec.key">
                 {{ sl(spec) }}:
                 <span v-if="spec.detail" class="setting-info" :title="sd(spec)">ⓘ</span>
               </label>
-              <select
-                v-if="spec.type === 'enum'"
-                :id="spec.key"
-                v-model="settingModel(spec.key).value"
-                @change="updateSettings"
-              >
-                <option v-for="opt in spec.options" :key="opt.value" :value="opt.value">{{ so(spec, opt) }}</option>
-              </select>
               <input
-                v-else-if="spec.type === 'number'"
                 :id="spec.key"
                 type="number"
                 v-model="settingModel(spec.key).value"
                 :min="spec.min"
                 :max="spec.max"
-                :step="numberStep(spec.key)"
                 :class="{ 'input-invalid': settingErrors[spec.key] }"
                 :title="settingErrors[spec.key] || undefined"
                 @input="updateSettings"
               />
-              <input
-                v-else
-                :id="spec.key"
-                type="text"
-                v-model="settingModel(spec.key).value"
-                @input="updateSettings"
-              />
-            </template>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section v-show="sectionVisible('plot')" class="settings-section">
-        <h3 class="section-header" @click="toggle('plot')">
-          <span class="expand-icon" :class="{ collapsed: isCollapsed('plot') }">&#x25BC;</span>
-          {{ tr('settings.section.plot', {}, 'Plot Settings') }}
-        </h3>
-        <div v-show="bodyVisible('plot')" class="section-body">
-          <div
-            v-for="spec in PLOT_KEYS_A"
-            :key="spec.key"
-            v-show="rowVisible('plot', spec.key)"
-            class="setting-group"
-          >
-            <label>
-              <input type="checkbox" v-model="settingModel(spec.key).value" @change="updateSettings" />
-              {{ sl(spec) }}
-              <span v-if="spec.detail" class="setting-info" :title="sd(spec)">ⓘ</span>
-            </label>
-          </div>
-
-          <div v-show="rowVisible('plot', 'screenScale')" class="setting-group">
-            <label for="screenScaleFactor">{{ tr('settings.plot.screenScale', {}, 'Screen Scale Factor:') }}</label>
-            <input
-              id="screenScaleFactor"
-              v-model.number="localSettings.plot.screenScaleFactor"
-              type="number"
-              min="0.1"
-              max="5"
-              step="0.1"
-              @input="updateSettings"
-            />
-          </div>
-
-          <div
-            v-for="spec in PLOT_KEYS_B"
-            :key="spec.key"
-            v-show="rowVisible('plot', spec.key)"
-            class="setting-group"
-          >
-            <label v-if="spec.type === 'boolean'">
-              <input type="checkbox" v-model="settingModel(spec.key).value" @change="updateSettings" />
-              {{ sl(spec) }}
-              <span v-if="spec.detail" class="setting-info" :title="sd(spec)">ⓘ</span>
-            </label>
-            <template v-else>
-              <label :for="spec.key">
-                {{ sl(spec) }}:
-                <span v-if="spec.detail" class="setting-info" :title="sd(spec)">ⓘ</span>
+        <section v-show="sectionVisible('units')" class="settings-section">
+          <h3 class="section-header" @click="toggle('units')">
+            <span class="expand-icon" :class="{ collapsed: isCollapsed('units') }">&#x25BC;</span>
+            {{ tr('settings.section.units', {}, 'Units') }}
+          </h3>
+          <div v-show="bodyVisible('units')" class="section-body">
+            <div v-show="rowVisible('units', 'isUs')" class="setting-group">
+              <label for="nonMetricUnits">
+                {{ tr('settings.units.nonMetric', {}, 'Non-Metric Units:') }}
+                <span class="setting-info" :title="tr('settings.units.nonMetricTip', {}, 'Selects US or UK definitions for bare unit names that differ between the two systems (gal, ton, cwt, pt, qt, bbl, tonf, therm, etc.).')">ⓘ</span>
               </label>
               <select
-                v-if="spec.type === 'enum'"
-                :id="spec.key"
-                v-model="settingModel(spec.key).value"
+                id="nonMetricUnits"
+                v-model="localSettings.isUs"
                 @change="updateSettings"
               >
-                <option v-for="opt in spec.options" :key="opt.value" :value="opt.value">{{ so(spec, opt) }}</option>
+                <option :value="false">{{ tr('settings.units.uk', {}, 'UK (Imperial)') }}</option>
+                <option :value="true">{{ tr('settings.units.us', {}, 'US Customary') }}</option>
+              </select>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div
+        id="settings-panel-editor"
+        v-show="panelShown('editor')"
+        class="settings-panel"
+        v-bind="panelAttrs('editor')"
+      >
+        <h2 v-if="searchActive" class="panel-heading">{{ tabLabel('editor') }}</h2>
+        <section v-show="sectionVisible('editor')" class="settings-section">
+          <h3 class="section-header" @click="toggle('editor')">
+            <span class="expand-icon" :class="{ collapsed: isCollapsed('editor') }">&#x25BC;</span>
+            {{ tr('settings.section.editor', {}, 'Editor') }}
+          </h3>
+          <div v-show="bodyVisible('editor')" class="section-body">
+            <div v-show="rowVisible('editor', 'quickTyping')" class="setting-group">
+              <label>
+                <input
+                  v-model="enableQuickTyping"
+                  type="checkbox"
+                  @change="updateQuickTyping"
+                />
+                {{ tr('settings.editor.quickTyping', {}, 'Enable Quick Typing') }}
+                <span class="setting-info" :title="tr('settings.editor.quickTypingTip', {}, 'Type shortcuts like ~a → α, ~\' → ′')">ⓘ</span>
+              </label>
+            </div>
+
+            <div v-show="rowVisible('editor', 'commentFormat')" class="setting-group">
+              <label for="commentFormat">{{ tr('settings.editor.commentFormat', {}, 'Comment Format:') }}</label>
+              <select
+                id="commentFormat"
+                v-model="commentFormat"
+                @change="updateCommentFormat"
+              >
+                <option value="auto">{{ tr('settings.editor.commentAuto', {}, 'Auto (detect #md on/off)') }}</option>
+                <option value="html">{{ tr('settings.editor.commentHtml', {}, 'HTML') }}</option>
+                <option value="markdown">{{ tr('settings.editor.commentMarkdown', {}, 'Markdown') }}</option>
+              </select>
+            </div>
+
+            <div v-show="rowVisible('editor', 'formattingHotkeys')" class="setting-group">
+              <label>
+                <input
+                  v-model="enableFormattingHotkeys"
+                  type="checkbox"
+                  @change="updateFormattingHotkeys"
+                />
+                {{ tr('settings.editor.formattingHotkeys', {}, 'Enable Formatting Hotkeys') }}
+                <span class="setting-info" :title="tr('settings.editor.formattingHotkeysTip', {}, 'Ctrl+B for bold, Ctrl+I for italic, etc.')">ⓘ</span>
+              </label>
+            </div>
+
+            <div v-show="rowVisible('editor', 'previewCursorSync')" class="setting-group">
+              <label>
+                <input
+                  v-model="enablePreviewCursorSync"
+                  type="checkbox"
+                  @change="updatePreviewCursorSync"
+                />
+                {{ tr('settings.editor.cursorSync', {}, 'Sync Preview to Cursor Line') }}
+                <span class="setting-info" :title="tr('settings.editor.cursorSyncTip', {}, 'Scroll the preview to follow the line the cursor is on in the editor.')">ⓘ</span>
+              </label>
+            </div>
+
+            <div v-show="rowVisible('editor', 'autoRun')" class="setting-group">
+              <label>
+                <input
+                  v-model="enableAutoRun"
+                  type="checkbox"
+                  @change="updateAutoRun"
+                />
+                {{ tr('settings.editor.autoRun', {}, 'Auto-Run Preview') }}
+                <span class="setting-info" :title="tr('settings.editor.autoRunTip', {}, 'When off, the preview only re-renders when it is first opened or a manual run is triggered.')">ⓘ</span>
+              </label>
+            </div>
+
+            <div v-if="!versionConfig.isWeb" v-show="rowVisible('editor', 'autoInputMode')" class="setting-group">
+              <label>
+                <input
+                  v-model="enableAutoInputMode"
+                  type="checkbox"
+                  @change="updateAutoInputMode"
+                />
+                {{ tr('settings.editor.autoInputMode', {}, 'Open #UI Documents in Input Mode') }}
+                <span class="setting-info" :title="tr('settings.editor.autoInputModeTip', {}, 'A document declaring #UI controls opens as its input form the first time you open it.')">ⓘ</span>
+              </label>
+            </div>
+
+            <div v-show="rowVisible('editor', 'previewUiOverrides')" class="setting-group">
+              <label>
+                <input
+                  v-model="enablePreviewUiOverrides"
+                  type="checkbox"
+                  @change="updatePreviewUiOverrides"
+                />
+                {{ tr('settings.editor.uiOverrides', {}, 'Apply #UI Values in Preview') }}
+                <span class="setting-info" :title="tr('settings.editor.uiOverridesTip', {}, 'Preview normally shows the document\'s own values. Turn this on to render it with the values entered into the input form instead, for tracking down an error that only appears once a form is filled in.')">ⓘ</span>
+              </label>
+            </div>
+
+            <div v-if="versionConfig.isDesktop" v-show="rowVisible('editor', 'fontFamily')" class="setting-group">
+              <label for="editorFontFamily">
+                {{ tr('settings.editor.fontFamily', {}, 'Font Family:') }}
+                <span class="setting-info" :title="tr('settings.editor.fontFamilyTip', {}, 'JuliaMono is the bundled default. Drop .woff2/.woff/.ttf/.otf files into the fonts folder to make them available here.')">ⓘ</span>
+              </label>
+              <select
+                id="editorFontFamily"
+                v-model="editorFontFamily"
+                @mousedown="requestFontRescan"
+                @focus="requestFontRescan"
+                @change="updateEditorFontFamily"
+              >
+                <option value="JuliaMono">{{ tr('settings.editor.fontDefault', {}, 'JuliaMono (default)') }}</option>
+                <option value="system">{{ tr('settings.editor.fontSystem', {}, 'System Default') }}</option>
+                <optgroup v-if="userFontOptions.length" :label="tr('settings.editor.fontsFolderGroup', {}, 'From fonts folder')">
+                  <option
+                    v-for="name in userFontOptions"
+                    :key="name"
+                    :value="name"
+                  >{{ name }}</option>
+                </optgroup>
+                <option
+                  v-if="editorFontFamily && !isKnownFont"
+                  :value="editorFontFamily"
+                >{{ tr('settings.editor.fontMissing', { name: editorFontFamily }, '{name} (missing)') }}</option>
+              </select>
+            </div>
+            <div v-if="versionConfig.isDesktop" v-show="rowVisible('editor', 'fontsFolder')" class="setting-group">
+              <button
+                class="diagnostics-button"
+                :title="tr('settings.editor.fontsFolderTip', {}, 'Open the folder where custom fonts can be dropped. Reopen the Font Family picker to pick up new fonts.')"
+                @click="openFontsFolder"
+              >
+                {{ tr('settings.editor.fontsFolder', {}, 'Open Fonts Folder') }}
+              </button>
+            </div>
+
+
+            <div v-show="rowVisible('editor', 'linterMinSeverity')" class="setting-group">
+              <label for="linterMinSeverity">{{ tr('settings.editor.linterSeverity', {}, 'Linter Minimum Severity:') }}</label>
+              <select
+                id="linterMinSeverity"
+                v-model="linterMinSeverity"
+                @change="updateLinterMinSeverity"
+              >
+                <option value="error">{{ tr('settings.editor.sevError', {}, 'Error') }}</option>
+                <option value="warning">{{ tr('settings.editor.sevWarning', {}, 'Warning') }}</option>
+                <option value="information">{{ tr('settings.editor.sevInfo', {}, 'Information (all)') }}</option>
+              </select>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div
+        id="settings-panel-export"
+        v-show="panelShown('export')"
+        class="settings-panel"
+        v-bind="panelAttrs('export')"
+      >
+        <h2 v-if="searchActive" class="panel-heading">{{ tabLabel('export') }}</h2>
+        <section v-show="sectionVisible('pdf')" class="settings-section">
+          <h3 class="section-header" @click="toggle('pdf')">
+            <span class="expand-icon" :class="{ collapsed: isCollapsed('pdf') }">&#x25BC;</span>
+            {{ tr('settings.section.pdf', {}, 'PDF Export') }}
+          </h3>
+          <div v-show="bodyVisible('pdf')" class="section-body">
+            <div
+              v-for="spec in pdfKeys"
+              :key="spec.key"
+              v-show="rowVisible('pdf', spec.key)"
+              class="setting-group"
+            >
+              <label :for="'pdf-' + spec.key">
+                {{ pl(spec) }}:
+                <span class="setting-info" :title="pd(spec)">ⓘ</span>
+              </label>
+              <select
+                v-if="spec.type === 'boolean'"
+                :id="'pdf-' + spec.key"
+                v-model="localPdfSettings[spec.key]"
+                @change="updatePdfSettings"
+              >
+                <option :value="true">{{ tr('settings.common.yes', {}, 'Yes') }}</option>
+                <option :value="false">{{ tr('settings.common.no', {}, 'No') }}</option>
+              </select>
+              <select
+                v-else-if="spec.type === 'enum'"
+                :id="'pdf-' + spec.key"
+                v-model="localPdfSettings[spec.key]"
+                @change="updatePdfSettings"
+              >
+                <option v-for="opt in spec.options" :key="opt.value" :value="opt.value">{{ po(spec, opt) }}</option>
               </select>
               <input
                 v-else
-                :id="spec.key"
+                :id="'pdf-' + spec.key"
                 type="text"
-                v-model="settingModel(spec.key).value"
+                v-model="localPdfSettings[spec.key]"
+                :class="{ 'input-invalid': pdfErrors[spec.key] }"
+                :title="pdfErrors[spec.key] || undefined"
+                @input="updatePdfSettings"
+              />
+              <span v-if="pdfErrors[spec.key]" class="setting-error">{{ pdfErrors[spec.key] }}</span>
+            </div>
+
+            <div v-show="rowVisible('pdf', 'reset')" class="settings-actions">
+              <button @click="resetPdfSettings" class="reset-button">
+                {{ tr('settings.pdf.reset', {}, 'Reset PDF Settings') }}
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div
+        id="settings-panel-advanced"
+        v-show="panelShown('advanced')"
+        class="settings-panel"
+        v-bind="panelAttrs('advanced')"
+      >
+        <h2 v-if="searchActive" class="panel-heading">{{ tabLabel('advanced') }}</h2>
+        <section v-show="sectionVisible('server')" class="settings-section">
+          <h3 class="section-header" @click="toggle('server')">
+            <span class="expand-icon" :class="{ collapsed: isCollapsed('server') }">&#x25BC;</span>
+            {{ tr('settings.section.server', {}, 'Server Settings') }}
+          </h3>
+          <div v-show="bodyVisible('server')" class="section-body">
+            <div v-show="rowVisible('server', 'url')" class="setting-group">
+              <label for="serverUrl">{{ tr('settings.server.url', {}, 'Remote Server URL:') }}</label>
+              <input
+                id="serverUrl"
+                v-model="localSettings.server.url"
+                type="text"
                 @input="updateSettings"
               />
-            </template>
+            </div>
           </div>
+        </section>
 
-          <div v-show="rowVisible('plot', 'lightDirection')" class="setting-group">
-            <label for="lightDirection">{{ tr('settings.plot.lightDirection', {}, 'Light Direction:') }}</label>
-            <select
-              id="lightDirection"
-              v-model="localSettings.plot.lightDirection"
-              @change="updateSettings"
-            >
-              <option value="NorthWest">{{ tr('settings.plot.light.NorthWest', {}, 'NorthWest') }}</option>
-              <option value="North">{{ tr('settings.plot.light.North', {}, 'North') }}</option>
-              <option value="NorthEast">{{ tr('settings.plot.light.NorthEast', {}, 'NorthEast') }}</option>
-              <option value="West">{{ tr('settings.plot.light.West', {}, 'West') }}</option>
-              <option value="East">{{ tr('settings.plot.light.East', {}, 'East') }}</option>
-              <option value="SouthWest">{{ tr('settings.plot.light.SouthWest', {}, 'SouthWest') }}</option>
-              <option value="South">{{ tr('settings.plot.light.South', {}, 'South') }}</option>
-              <option value="SouthEast">{{ tr('settings.plot.light.SouthEast', {}, 'SouthEast') }}</option>
-            </select>
-          </div>
+        <section v-show="sectionVisible('diagnostics')" class="settings-section">
+          <h3 class="section-header" @click="toggle('diagnostics')">
+            <span class="expand-icon" :class="{ collapsed: isCollapsed('diagnostics') }">&#x25BC;</span>
+            {{ tr('settings.section.diagnostics', {}, 'Diagnostics') }}
+          </h3>
+          <div v-show="bodyVisible('diagnostics')" class="section-body">
+            <div v-show="rowVisible('diagnostics', 'logsFolder')" class="setting-group">
+              <button
+                class="diagnostics-button"
+                :title="tr('settings.diagnostics.logsFolderTip', {}, 'Opens the folder containing server logs and the most recent crash dump.')"
+                @click="openLogsFolder"
+              >
+                {{ tr('settings.diagnostics.logsFolder', {}, 'Open Logs Folder') }}
+              </button>
+            </div>
 
-          <div
-            v-for="spec in PLOT_KEYS_C"
-            :key="spec.key"
-            v-show="rowVisible('plot', spec.key)"
-            class="setting-group"
-          >
-            <label :for="spec.key">
-              {{ sl(spec) }}:
-              <span v-if="spec.detail" class="setting-info" :title="sd(spec)">ⓘ</span>
-            </label>
-            <input
-              :id="spec.key"
-              type="number"
-              v-model="settingModel(spec.key).value"
-              :min="spec.min"
-              :max="spec.max"
-              :class="{ 'input-invalid': settingErrors[spec.key] }"
-              :title="settingErrors[spec.key] || undefined"
-              @input="updateSettings"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section v-show="sectionVisible('units')" class="settings-section">
-        <h3 class="section-header" @click="toggle('units')">
-          <span class="expand-icon" :class="{ collapsed: isCollapsed('units') }">&#x25BC;</span>
-          {{ tr('settings.section.units', {}, 'Units') }}
-        </h3>
-        <div v-show="bodyVisible('units')" class="section-body">
-          <div v-show="rowVisible('units', 'isUs')" class="setting-group">
-            <label for="nonMetricUnits">
-              {{ tr('settings.units.nonMetric', {}, 'Non-Metric Units:') }}
-              <span class="setting-info" :title="tr('settings.units.nonMetricTip', {}, 'Selects US or UK definitions for bare unit names that differ between the two systems (gal, ton, cwt, pt, qt, bbl, tonf, therm, etc.).')">ⓘ</span>
-            </label>
-            <select
-              id="nonMetricUnits"
-              v-model="localSettings.isUs"
-              @change="updateSettings"
-            >
-              <option :value="false">{{ tr('settings.units.uk', {}, 'UK (Imperial)') }}</option>
-              <option :value="true">{{ tr('settings.units.us', {}, 'US Customary') }}</option>
-            </select>
-          </div>
-        </div>
-      </section>
-
-      <section v-show="sectionVisible('pdf')" class="settings-section">
-        <h3 class="section-header" @click="toggle('pdf')">
-          <span class="expand-icon" :class="{ collapsed: isCollapsed('pdf') }">&#x25BC;</span>
-          {{ tr('settings.section.pdf', {}, 'PDF Export') }}
-        </h3>
-        <div v-show="bodyVisible('pdf')" class="section-body">
-          <div
-            v-for="spec in pdfKeys"
-            :key="spec.key"
-            v-show="rowVisible('pdf', spec.key)"
-            class="setting-group"
-          >
-            <label :for="'pdf-' + spec.key">
-              {{ pl(spec) }}:
-              <span class="setting-info" :title="pd(spec)">ⓘ</span>
-            </label>
-            <select
-              v-if="spec.type === 'boolean'"
-              :id="'pdf-' + spec.key"
-              v-model="localPdfSettings[spec.key]"
-              @change="updatePdfSettings"
-            >
-              <option :value="true">{{ tr('settings.common.yes', {}, 'Yes') }}</option>
-              <option :value="false">{{ tr('settings.common.no', {}, 'No') }}</option>
-            </select>
-            <select
-              v-else-if="spec.type === 'enum'"
-              :id="'pdf-' + spec.key"
-              v-model="localPdfSettings[spec.key]"
-              @change="updatePdfSettings"
-            >
-              <option v-for="opt in spec.options" :key="opt.value" :value="opt.value">{{ po(spec, opt) }}</option>
-            </select>
-            <input
-              v-else
-              :id="'pdf-' + spec.key"
-              type="text"
-              v-model="localPdfSettings[spec.key]"
-              :class="{ 'input-invalid': pdfErrors[spec.key] }"
-              :title="pdfErrors[spec.key] || undefined"
-              @input="updatePdfSettings"
-            />
-            <span v-if="pdfErrors[spec.key]" class="setting-error">{{ pdfErrors[spec.key] }}</span>
-          </div>
-
-          <div v-show="rowVisible('pdf', 'reset')" class="settings-actions">
-            <button @click="resetPdfSettings" class="reset-button">
-              {{ tr('settings.pdf.reset', {}, 'Reset PDF Settings') }}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section v-show="sectionVisible('editor')" class="settings-section">
-        <h3 class="section-header" @click="toggle('editor')">
-          <span class="expand-icon" :class="{ collapsed: isCollapsed('editor') }">&#x25BC;</span>
-          {{ tr('settings.section.editor', {}, 'Editor') }}
-        </h3>
-        <div v-show="bodyVisible('editor')" class="section-body">
-          <div v-show="rowVisible('editor', 'quickTyping')" class="setting-group">
-            <label>
-              <input
-                v-model="enableQuickTyping"
-                type="checkbox"
-                @change="updateQuickTyping"
-              />
-              {{ tr('settings.editor.quickTyping', {}, 'Enable Quick Typing') }}
-              <span class="setting-info" :title="tr('settings.editor.quickTypingTip', {}, 'Type shortcuts like ~a → α, ~\' → ′')">ⓘ</span>
-            </label>
-          </div>
-
-          <div v-show="rowVisible('editor', 'commentFormat')" class="setting-group">
-            <label for="commentFormat">{{ tr('settings.editor.commentFormat', {}, 'Comment Format:') }}</label>
-            <select
-              id="commentFormat"
-              v-model="commentFormat"
-              @change="updateCommentFormat"
-            >
-              <option value="auto">{{ tr('settings.editor.commentAuto', {}, 'Auto (detect #md on/off)') }}</option>
-              <option value="html">{{ tr('settings.editor.commentHtml', {}, 'HTML') }}</option>
-              <option value="markdown">{{ tr('settings.editor.commentMarkdown', {}, 'Markdown') }}</option>
-            </select>
-          </div>
-
-          <div v-show="rowVisible('editor', 'formattingHotkeys')" class="setting-group">
-            <label>
-              <input
-                v-model="enableFormattingHotkeys"
-                type="checkbox"
-                @change="updateFormattingHotkeys"
-              />
-              {{ tr('settings.editor.formattingHotkeys', {}, 'Enable Formatting Hotkeys') }}
-              <span class="setting-info" :title="tr('settings.editor.formattingHotkeysTip', {}, 'Ctrl+B for bold, Ctrl+I for italic, etc.')">ⓘ</span>
-            </label>
-          </div>
-
-          <div v-show="rowVisible('editor', 'previewCursorSync')" class="setting-group">
-            <label>
-              <input
-                v-model="enablePreviewCursorSync"
-                type="checkbox"
-                @change="updatePreviewCursorSync"
-              />
-              {{ tr('settings.editor.cursorSync', {}, 'Sync Preview to Cursor Line') }}
-              <span class="setting-info" :title="tr('settings.editor.cursorSyncTip', {}, 'Scroll the preview to follow the line the cursor is on in the editor.')">ⓘ</span>
-            </label>
-          </div>
-
-          <div v-show="rowVisible('editor', 'autoRun')" class="setting-group">
-            <label>
-              <input
-                v-model="enableAutoRun"
-                type="checkbox"
-                @change="updateAutoRun"
-              />
-              {{ tr('settings.editor.autoRun', {}, 'Auto-Run Preview') }}
-              <span class="setting-info" :title="tr('settings.editor.autoRunTip', {}, 'When off, the preview only re-renders when it is first opened or a manual run is triggered.')">ⓘ</span>
-            </label>
-          </div>
-
-          <div v-if="!versionConfig.isWeb" v-show="rowVisible('editor', 'autoInputMode')" class="setting-group">
-            <label>
-              <input
-                v-model="enableAutoInputMode"
-                type="checkbox"
-                @change="updateAutoInputMode"
-              />
-              {{ tr('settings.editor.autoInputMode', {}, 'Open #UI Documents in Input Mode') }}
-              <span class="setting-info" :title="tr('settings.editor.autoInputModeTip', {}, 'A document declaring #UI controls opens as its input form the first time you open it.')">ⓘ</span>
-            </label>
-          </div>
-
-          <div v-show="rowVisible('editor', 'previewUiOverrides')" class="setting-group">
-            <label>
-              <input
-                v-model="enablePreviewUiOverrides"
-                type="checkbox"
-                @change="updatePreviewUiOverrides"
-              />
-              {{ tr('settings.editor.uiOverrides', {}, 'Apply #UI Values in Preview') }}
-              <span class="setting-info" :title="tr('settings.editor.uiOverridesTip', {}, 'Preview normally shows the document\'s own values. Turn this on to render it with the values entered into the input form instead, for tracking down an error that only appears once a form is filled in.')">ⓘ</span>
-            </label>
-          </div>
-
-          <div v-if="versionConfig.isDesktop" v-show="rowVisible('editor', 'fontFamily')" class="setting-group">
-            <label for="editorFontFamily">
-              {{ tr('settings.editor.fontFamily', {}, 'Font Family:') }}
-              <span class="setting-info" :title="tr('settings.editor.fontFamilyTip', {}, 'JuliaMono is the bundled default. Drop .woff2/.woff/.ttf/.otf files into the fonts folder to make them available here.')">ⓘ</span>
-            </label>
-            <select
-              id="editorFontFamily"
-              v-model="editorFontFamily"
-              @mousedown="requestFontRescan"
-              @focus="requestFontRescan"
-              @change="updateEditorFontFamily"
-            >
-              <option value="JuliaMono">{{ tr('settings.editor.fontDefault', {}, 'JuliaMono (default)') }}</option>
-              <option value="system">{{ tr('settings.editor.fontSystem', {}, 'System Default') }}</option>
-              <optgroup v-if="userFontOptions.length" :label="tr('settings.editor.fontsFolderGroup', {}, 'From fonts folder')">
+            <div v-show="rowVisible('diagnostics', 'logLevel')" class="setting-group">
+              <label for="logLevel">
+                {{ tr('settings.diagnostics.logLevel', {}, 'Log Level:') }}
+                <span class="setting-info" :title="logLevelDetail">&#9432;</span>
+              </label>
+              <select
+                id="logLevel"
+                v-model="logLevel"
+                @change="updateLogLevel"
+              >
                 <option
-                  v-for="name in userFontOptions"
+                  v-for="opt in LOG_LEVEL_OPTIONS"
+                  :key="opt.value"
+                  :value="opt.value"
+                >{{ lo(opt) }}</option>
+              </select>
+            </div>
+
+            <div v-if="versionConfig.isWebOrDesktop" v-show="rowVisible('diagnostics', 'maxOutputLines')" class="setting-group">
+              <label for="maxOutputLines">
+                {{ tr('settings.diagnostics.maxOutputLines', {}, 'Max Output Lines (per channel):') }}
+                <span class="setting-info" :title="tr('settings.diagnostics.maxOutputLinesTip', {}, 'Lines retained in each Output channel before older lines are dropped. Lower values reduce memory use and improve responsiveness when logs are noisy.')">ⓘ</span>
+              </label>
+              <input
+                id="maxOutputLines"
+                v-model.number="maxOutputLines"
+                type="number"
+                min="10"
+                max="100000"
+                step="100"
+                @change="updateMaxOutputLines"
+              />
+            </div>
+
+            <div v-show="rowVisible('diagnostics', 'maxPreviewSize')" class="setting-group">
+              <label for="maxPreviewSize">
+                {{ tr('settings.diagnostics.maxPreviewSize', {}, 'Max Preview Size (MB):') }}
+                <span class="setting-info" :title="tr('settings.diagnostics.maxPreviewSizeTip', {}, 'A worksheet that renders to more HTML than this is not shown in the preview - showing it risks running the app out of memory. Exporting to PDF, HTML or DOCX is unaffected. Raise it only if you need very large documents on screen.')">ⓘ</span>
+              </label>
+              <input
+                id="maxPreviewSize"
+                v-model.number="maxPreviewSizeMB"
+                type="number"
+                :min="MIN_PREVIEW_SIZE_MB"
+                :max="MAX_PREVIEW_SIZE_MB"
+                step="8"
+                @change="updateMaxPreviewSize"
+              />
+            </div>
+
+            <div v-show="rowVisible('diagnostics', 'maxPreviewConsoleMessages')" class="setting-group">
+              <label for="maxPreviewConsoleMessages">
+                {{ tr('settings.diagnostics.maxConsole', {}, 'Max Preview Console Messages:') }}
+                <span class="setting-info" :title="tr('settings.diagnostics.maxConsoleTip', {}, 'How many console lines one preview render may relay before the rest are dropped. A worksheet whose scripts log in a loop can otherwise flood the console channel. Raise it when debugging a script, lower it when a library is noisy. Each line is clipped to 4 KB regardless.')">ⓘ</span>
+              </label>
+              <input
+                id="maxPreviewConsoleMessages"
+                v-model.number="maxPreviewConsoleMessages"
+                type="number"
+                :min="MIN_CONSOLE_MESSAGES_PER_DOCUMENT"
+                :max="MAX_CONSOLE_MESSAGES_PER_DOCUMENT"
+                step="100"
+                @change="updateMaxPreviewConsoleMessages"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section v-show="sectionVisible('configuration')" class="settings-section">
+          <h3 class="section-header" @click="toggle('configuration')">
+            <span class="expand-icon" :class="{ collapsed: isCollapsed('configuration') }">&#x25BC;</span>
+            {{ tr('settings.section.configuration', {}, 'Configuration') }}
+          </h3>
+          <div v-show="bodyVisible('configuration')" class="section-body">
+            <div v-show="rowVisible('configuration', 'activeConfig')" class="setting-group">
+              <label for="activeConfig">{{ tr('settings.configuration.active', {}, 'Active Config:') }}</label>
+              <select
+                id="activeConfig"
+                :value="activeConfig"
+                @change="switchConfig(($event.target as HTMLSelectElement).value)"
+              >
+                <option
+                  v-for="name in availableConfigs"
                   :key="name"
                   :value="name"
                 >{{ name }}</option>
-              </optgroup>
-              <option
-                v-if="editorFontFamily && !isKnownFont"
-                :value="editorFontFamily"
-              >{{ tr('settings.editor.fontMissing', { name: editorFontFamily }, '{name} (missing)') }}</option>
-            </select>
-          </div>
-          <div v-if="versionConfig.isDesktop" v-show="rowVisible('editor', 'fontsFolder')" class="setting-group">
-            <button
-              class="diagnostics-button"
-              :title="tr('settings.editor.fontsFolderTip', {}, 'Open the folder where custom fonts can be dropped. Reopen the Font Family picker to pick up new fonts.')"
-              @click="openFontsFolder"
-            >
-              {{ tr('settings.editor.fontsFolder', {}, 'Open Fonts Folder') }}
-            </button>
-          </div>
+              </select>
+            </div>
 
-          <div v-show="rowVisible('editor', 'previewTheme')" class="setting-group">
-            <label for="previewTheme">{{ tr('settings.editor.previewTheme', {}, 'Preview Theme:') }}</label>
-            <select
-              id="previewTheme"
-              v-model="previewTheme"
-              @change="updatePreviewTheme"
-            >
-              <option value="system">{{ tr('settings.editor.themeSystem', {}, 'Same as app') }}</option>
-              <option value="light">{{ tr('settings.editor.themeLight', {}, 'Light') }}</option>
-              <option value="dark">{{ tr('settings.editor.themeDark', {}, 'Dark') }}</option>
-            </select>
-          </div>
+            <div v-show="rowVisible('configuration', 'saveConfig')" class="setting-group">
+              <label for="configName">{{ tr('settings.configuration.saveAs', {}, 'Save current settings as:') }}</label>
+              <div class="color-input-row">
+                <input
+                  id="configName"
+                  v-model="newConfigName"
+                  type="text"
+                  :placeholder="tr('settings.configuration.namePlaceholder', {}, 'e.g. my-config')"
+                  @keyup.enter="saveNamedConfig"
+                />
+                <button
+                  class="reset-inline-btn"
+                  :disabled="!newConfigName.trim()"
+                  @click="saveNamedConfig"
+                >
+                  {{ tr('settings.common.save', {}, 'Save') }}
+                </button>
+              </div>
+              <span v-if="saveError" class="setting-error">{{ saveError }}</span>
+            </div>
 
-          <div v-show="rowVisible('editor', 'darkBackground')" class="setting-group">
-            <label for="darkBackground">{{ tr('settings.editor.darkBackground', {}, 'Dark Mode Background:') }}</label>
-            <div class="color-input-row">
-              <input
-                id="darkBackground"
-                v-model="darkBackground"
-                type="text"
-                placeholder="#1e1e1e"
-                @input="updateDarkBackground"
-              />
-              <button
-                class="reset-inline-btn"
-                :title="tr('settings.editor.darkBackgroundResetTip', {}, 'Reset to default (#1e1e1e)')"
-                @click="resetDarkBackground"
-              >
-                {{ tr('settings.common.reset', {}, 'Reset') }}
+            <div v-show="rowVisible('configuration', 'actions')" class="settings-actions">
+              <button @click="openSettingsFolder" class="reset-button">
+                {{ tr('settings.configuration.openFolder', {}, 'Open Settings Folder') }}
+              </button>
+              <button @click="resetSettings" class="reset-button">
+                {{ tr('settings.configuration.reset', {}, 'Reset to Default') }}
               </button>
             </div>
           </div>
+        </section>
 
-          <div v-show="rowVisible('editor', 'colorTheme')" class="setting-group">
-            <label for="colorTheme">{{ tr('settings.editor.colorTheme', {}, 'Color Theme:') }}</label>
-            <select
-              id="colorTheme"
-              v-model="colorTheme"
-              @change="updateColorTheme"
-            >
-              <option
-                v-if="colorTheme && !knownThemeLabels.has(colorTheme) && colorTheme !== 'System'"
-                :value="colorTheme"
-              >{{ colorTheme }}</option>
-              <option value="System">{{ tr('settings.editor.colorSystem', {}, 'System') }}</option>
-              <optgroup v-if="darkThemes.length" :label="tr('settings.editor.colorDark', {}, 'Dark')">
-                <option
-                  v-for="t in darkThemes"
-                  :key="t.label"
-                  :value="t.label"
-                >{{ t.label }}</option>
-              </optgroup>
-              <optgroup v-if="lightThemes.length" :label="tr('settings.editor.colorLight', {}, 'Light')">
-                <option
-                  v-for="t in lightThemes"
-                  :key="t.label"
-                  :value="t.label"
-                >{{ t.label }}</option>
-              </optgroup>
-            </select>
-          </div>
-
-          <div v-show="rowVisible('editor', 'linterMinSeverity')" class="setting-group">
-            <label for="linterMinSeverity">{{ tr('settings.editor.linterSeverity', {}, 'Linter Minimum Severity:') }}</label>
-            <select
-              id="linterMinSeverity"
-              v-model="linterMinSeverity"
-              @change="updateLinterMinSeverity"
-            >
-              <option value="error">{{ tr('settings.editor.sevError', {}, 'Error') }}</option>
-              <option value="warning">{{ tr('settings.editor.sevWarning', {}, 'Warning') }}</option>
-              <option value="information">{{ tr('settings.editor.sevInfo', {}, 'Information (all)') }}</option>
-            </select>
-          </div>
-        </div>
-      </section>
-
-      <section v-show="sectionVisible('server')" class="settings-section">
-        <h3 class="section-header" @click="toggle('server')">
-          <span class="expand-icon" :class="{ collapsed: isCollapsed('server') }">&#x25BC;</span>
-          {{ tr('settings.section.server', {}, 'Server Settings') }}
-        </h3>
-        <div v-show="bodyVisible('server')" class="section-body">
-          <div v-show="rowVisible('server', 'url')" class="setting-group">
-            <label for="serverUrl">{{ tr('settings.server.url', {}, 'Remote Server URL:') }}</label>
-            <input
-              id="serverUrl"
-              v-model="localSettings.server.url"
-              type="text"
-              @input="updateSettings"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section v-show="sectionVisible('diagnostics')" class="settings-section">
-        <h3 class="section-header" @click="toggle('diagnostics')">
-          <span class="expand-icon" :class="{ collapsed: isCollapsed('diagnostics') }">&#x25BC;</span>
-          {{ tr('settings.section.diagnostics', {}, 'Diagnostics') }}
-        </h3>
-        <div v-show="bodyVisible('diagnostics')" class="section-body">
-          <div v-show="rowVisible('diagnostics', 'logsFolder')" class="setting-group">
-            <button
-              class="diagnostics-button"
-              :title="tr('settings.diagnostics.logsFolderTip', {}, 'Opens the folder containing server logs and the most recent crash dump.')"
-              @click="openLogsFolder"
-            >
-              {{ tr('settings.diagnostics.logsFolder', {}, 'Open Logs Folder') }}
-            </button>
-          </div>
-
-          <div v-show="rowVisible('diagnostics', 'logLevel')" class="setting-group">
-            <label for="logLevel">
-              {{ tr('settings.diagnostics.logLevel', {}, 'Log Level:') }}
-              <span class="setting-info" :title="logLevelDetail">&#9432;</span>
-            </label>
-            <select
-              id="logLevel"
-              v-model="logLevel"
-              @change="updateLogLevel"
-            >
-              <option
-                v-for="opt in LOG_LEVEL_OPTIONS"
-                :key="opt.value"
-                :value="opt.value"
-              >{{ lo(opt) }}</option>
-            </select>
-          </div>
-
-          <div v-if="versionConfig.isWebOrDesktop" v-show="rowVisible('diagnostics', 'maxOutputLines')" class="setting-group">
-            <label for="maxOutputLines">
-              {{ tr('settings.diagnostics.maxOutputLines', {}, 'Max Output Lines (per channel):') }}
-              <span class="setting-info" :title="tr('settings.diagnostics.maxOutputLinesTip', {}, 'Lines retained in each Output channel before older lines are dropped. Lower values reduce memory use and improve responsiveness when logs are noisy.')">ⓘ</span>
-            </label>
-            <input
-              id="maxOutputLines"
-              v-model.number="maxOutputLines"
-              type="number"
-              min="10"
-              max="100000"
-              step="100"
-              @change="updateMaxOutputLines"
-            />
-          </div>
-
-          <div v-show="rowVisible('diagnostics', 'maxPreviewSize')" class="setting-group">
-            <label for="maxPreviewSize">
-              {{ tr('settings.diagnostics.maxPreviewSize', {}, 'Max Preview Size (MB):') }}
-              <span class="setting-info" :title="tr('settings.diagnostics.maxPreviewSizeTip', {}, 'A worksheet that renders to more HTML than this is not shown in the preview - showing it risks running the app out of memory. Exporting to PDF, HTML or DOCX is unaffected. Raise it only if you need very large documents on screen.')">ⓘ</span>
-            </label>
-            <input
-              id="maxPreviewSize"
-              v-model.number="maxPreviewSizeMB"
-              type="number"
-              :min="MIN_PREVIEW_SIZE_MB"
-              :max="MAX_PREVIEW_SIZE_MB"
-              step="8"
-              @change="updateMaxPreviewSize"
-            />
-          </div>
-
-          <div v-show="rowVisible('diagnostics', 'maxPreviewConsoleMessages')" class="setting-group">
-            <label for="maxPreviewConsoleMessages">
-              {{ tr('settings.diagnostics.maxConsole', {}, 'Max Preview Console Messages:') }}
-              <span class="setting-info" :title="tr('settings.diagnostics.maxConsoleTip', {}, 'How many console lines one preview render may relay before the rest are dropped. A worksheet whose scripts log in a loop can otherwise flood the console channel. Raise it when debugging a script, lower it when a library is noisy. Each line is clipped to 4 KB regardless.')">ⓘ</span>
-            </label>
-            <input
-              id="maxPreviewConsoleMessages"
-              v-model.number="maxPreviewConsoleMessages"
-              type="number"
-              :min="MIN_CONSOLE_MESSAGES_PER_DOCUMENT"
-              :max="MAX_CONSOLE_MESSAGES_PER_DOCUMENT"
-              step="100"
-              @change="updateMaxPreviewConsoleMessages"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section v-show="sectionVisible('configuration')" class="settings-section">
-        <h3 class="section-header" @click="toggle('configuration')">
-          <span class="expand-icon" :class="{ collapsed: isCollapsed('configuration') }">&#x25BC;</span>
-          {{ tr('settings.section.configuration', {}, 'Configuration') }}
-        </h3>
-        <div v-show="bodyVisible('configuration')" class="section-body">
-          <div v-show="rowVisible('configuration', 'activeConfig')" class="setting-group">
-            <label for="activeConfig">{{ tr('settings.configuration.active', {}, 'Active Config:') }}</label>
-            <select
-              id="activeConfig"
-              :value="activeConfig"
-              @change="switchConfig(($event.target as HTMLSelectElement).value)"
-            >
-              <option
-                v-for="name in availableConfigs"
-                :key="name"
-                :value="name"
-              >{{ name }}</option>
-            </select>
-          </div>
-
-          <div v-show="rowVisible('configuration', 'saveConfig')" class="setting-group">
-            <label for="configName">{{ tr('settings.configuration.saveAs', {}, 'Save current settings as:') }}</label>
-            <div class="color-input-row">
-              <input
-                id="configName"
-                v-model="newConfigName"
-                type="text"
-                :placeholder="tr('settings.configuration.namePlaceholder', {}, 'e.g. my-config')"
-                @keyup.enter="saveNamedConfig"
-              />
-              <button
-                class="reset-inline-btn"
-                :disabled="!newConfigName.trim()"
-                @click="saveNamedConfig"
-              >
-                {{ tr('settings.common.save', {}, 'Save') }}
-              </button>
-            </div>
-            <span v-if="saveError" class="setting-error">{{ saveError }}</span>
-          </div>
-
-          <div v-show="rowVisible('configuration', 'actions')" class="settings-actions">
-            <button @click="openSettingsFolder" class="reset-button">
-              {{ tr('settings.configuration.openFolder', {}, 'Open Settings Folder') }}
-            </button>
-            <button @click="resetSettings" class="reset-button">
-              {{ tr('settings.configuration.reset', {}, 'Reset to Default') }}
-            </button>
-          </div>
-        </div>
-      </section>
+        <!-- Sections a host app adds (provide('calcpadExtensions', { settingsSections })): the Advanced tab. -->
+        <component
+          :is="section"
+          v-for="(section, i) in extensions.settingsSections ?? []"
+          v-show="extShown('ext-' + i)"
+          :key="'ext-' + i"
+          :ref="(el: any) => setExt('ext-' + i, el)"
+        />
+      </div>
 
       <div v-if="searchActive && !anyVisible" class="no-results">
         {{ tr('settings.noResults', { query: searchQuery.trim() }, 'No settings found for "{query}"') }}
       </div>
-
-      <!-- Sections a host app adds (provide('calcpadExtensions', { settingsSections })). -->
-      <component :is="section" v-for="(section, i) in extensions.settingsSections ?? []" :key="'ext-' + i" />
 
       <div v-if="appVersion" class="about-footer">
         <span class="app-version">{{ tr('settings.about.version', { version: appVersion }, 'CivilKit Calcs v{version}') }}</span>
@@ -637,7 +714,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, reactive, inject } from 'vue'
+import { ref, watch, computed, reactive, inject, nextTick } from 'vue'
+import { requestedSettingsTab } from '../settings-tab-request'
 import type { Component } from 'vue'
 import type { WritableComputedRef } from 'vue'
 import type { PdfSettings, Settings, ThemeInfo, VersionConfig } from '../types'
@@ -909,10 +987,15 @@ const SECTION_META: Record<string, { title: string; rows: Record<string, string>
       previewUiOverrides: 'apply ui values preview entered overrides debug troubleshoot',
       fontFamily: 'editor font family juliamono system',
       fontsFolder: 'open fonts folder custom',
+      linterMinSeverity: 'linter minimum severity error warning information'
+    }
+  },
+  appearance: {
+    title: 'Appearance',
+    rows: {
       previewTheme: 'preview theme system light dark',
       darkBackground: 'dark mode background color',
-      colorTheme: 'color theme syntax',
-      linterMinSeverity: 'linter minimum severity error warning information'
+      colorTheme: 'color theme syntax light dark'
     }
   },
   server: {
@@ -960,10 +1043,6 @@ const isCollapsed = (id: string) => !!collapsed[id]
 const toggle = (id: string) => { collapsed[id] = !collapsed[id] }
 const bodyVisible = (id: string) => searchActive.value || !collapsed[id]
 
-const setAll = (value: boolean) => {
-  for (const id of Object.keys(SECTION_META)) collapsed[id] = value
-}
-const allCollapsed = computed(() => Object.keys(SECTION_META).every(id => collapsed[id]))
 
 /** The section title matches in English and in the shown language (the keyword rows stay English). */
 const titleMatches = (id: string, title: string) =>
@@ -985,9 +1064,97 @@ const sectionVisible = (id: string) => {
   return Object.values(meta.rows).some(r => r.includes(query.value))
 }
 
-const anyVisible = computed(() =>
-  Object.keys(SECTION_META).some(id => sectionVisible(id))
-)
+// Tabs: the sections grouped by what a person comes to change. A host app's first sections (Language, Number format)
+// open the General tab and its added sections (Libraries) go on the Advanced tab.
+type TabId = 'general' | 'calculation' | 'editor' | 'export' | 'advanced'
+const TABS: { id: TabId; label: () => string; sections: string[] }[] = [
+  { id: 'general', label: () => tr('settings.tabs.general', {}, 'General'), sections: ['appearance'] },
+  { id: 'calculation', label: () => tr('settings.tabs.calculation', {}, 'Calculation'), sections: ['math', 'plot', 'units'] },
+  { id: 'editor', label: () => tr('settings.tabs.editor', {}, 'Editor'), sections: ['editor'] },
+  { id: 'export', label: () => tr('settings.tabs.export', {}, 'Export'), sections: ['pdf'] },
+  { id: 'advanced', label: () => tr('settings.tabs.advanced', {}, 'Advanced'), sections: ['server', 'diagnostics', 'configuration'] },
+]
+const TAB_IDS = TABS.map(t => t.id)
+const tabLabel = (id: TabId) => TABS.find(t => t.id === id)!.label()
+/** The tab of a host app's section, by the class or data-settings-section it carries (for requests by name). */
+const EXT_SECTION_TAB: Record<string, TabId> = { language: 'general', numfmt: 'general', libraries: 'advanced' }
+
+/** The tab that holds a tab id, a section id or a setting key; null when nothing matches. */
+function tabFor(target: string): TabId | null {
+  if ((TAB_IDS as string[]).includes(target)) return target as TabId
+  if (EXT_SECTION_TAB[target]) return EXT_SECTION_TAB[target]
+  for (const tab of TABS)
+    for (const id of tab.sections)
+      if (id === target || target in SECTION_META[id].rows) return tab.id
+  return null
+}
+
+// The tab last shown is kept for the session; a caller may ask for another (settings-tab-request.ts).
+const TAB_STORAGE_KEY = 'calcpad.settings.tab'
+const storedTab = (): TabId | null => {
+  try {
+    return tabFor(sessionStorage.getItem(TAB_STORAGE_KEY) || '')
+  } catch {
+    return null
+  }
+}
+const activeTab = ref<TabId>('general')
+function selectTab(id: TabId) {
+  activeTab.value = id
+  try {
+    sessionStorage.setItem(TAB_STORAGE_KEY, id)
+  } catch {
+    // ignore unavailable storage
+  }
+}
+activeTab.value = storedTab() ?? 'general'
+watch(requestedSettingsTab, (target) => {
+  if (!target) return
+  const id = tabFor(target)
+  requestedSettingsTab.value = null
+  if (!id) return
+  searchQuery.value = ''
+  selectTab(id)
+}, { immediate: true })
+
+/** Left/Right/Home/End move between the tabs (roving tabindex; a tab is shown as it takes the focus). */
+function onTabKey(e: KeyboardEvent) {
+  const i = TAB_IDS.indexOf(activeTab.value)
+  const n = TAB_IDS.length
+  const to = e.key === 'ArrowRight' ? (i + 1) % n
+    : e.key === 'ArrowLeft' ? (i - 1 + n) % n
+    : e.key === 'Home' ? 0
+    : e.key === 'End' ? n - 1
+    : -1
+  if (to < 0) return
+  e.preventDefault()
+  selectTab(TAB_IDS[to])
+  const root = (e.currentTarget as HTMLElement)
+  void nextTick(() => root.querySelector<HTMLElement>(`[data-settings-tab="${TAB_IDS[to]}"]`)?.focus())
+}
+
+// A host app's sections are found by their text, as they carry no keyword list of their own.
+const extEls: Record<string, HTMLElement | null> = {}
+const setExt = (key: string, el: any) => { extEls[key] = (el?.$el ?? el) as HTMLElement | null }
+const extMatches = (key: string) => {
+  const el = extEls[key]
+  return !!el && (el.textContent || '').toLowerCase().includes(query.value)
+}
+const extShown = (key: string) => !searchActive.value || extMatches(key)
+const extKeys = (id: TabId) =>
+  id === 'general' ? (extensions.settingsFirstSections ?? []).map((_, i) => 'first-' + i)
+    : id === 'advanced' ? (extensions.settingsSections ?? []).map((_, i) => 'ext-' + i)
+      : []
+
+const panelMatches = (id: TabId) =>
+  TABS.find(t => t.id === id)!.sections.some(s => sectionVisible(s)) || extKeys(id).some(extMatches)
+/** The open tab's panel; while searching, every panel with a match, each under its tab's name. */
+const panelShown = (id: TabId) => (searchActive.value ? panelMatches(id) : activeTab.value === id)
+const panelAttrs = (id: TabId) => (searchActive.value
+  ? { role: 'group', 'aria-label': tabLabel(id), 'data-settings-panel': id }
+  : { role: 'tabpanel', 'aria-labelledby': 'settings-tab-' + id, 'data-settings-panel': id })
+
+const anyVisible = computed(() => TAB_IDS.some(id => panelMatches(id)))
 
 // Methods
 // Per-field validation against the ranges Calcpad.Core enforces. Invalid fields
@@ -1336,19 +1503,56 @@ watch(
   border-color: var(--vscode-focusBorder);
 }
 
-.toolbar-btn {
-  padding: 6px 10px;
-  background: var(--vscode-button-secondaryBackground);
-  border: 1px solid var(--vscode-button-border);
-  color: var(--vscode-button-secondaryForeground);
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: var(--calcpad-font-size-sm);
-  white-space: nowrap;
+/* The tab strip under the search box; the tabs wrap onto a second row on a narrow screen rather than clip. */
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editor-background);
 }
 
-.toolbar-btn:hover {
-  background: var(--vscode-button-secondaryHoverBackground);
+.settings-tab-btn {
+  min-height: 40px;
+  padding: 8px 14px;
+  margin-bottom: -1px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--vscode-tab-inactiveForeground, var(--vscode-descriptionForeground));
+  font-family: inherit;
+  font-size: var(--calcpad-font-size-md);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.settings-tab-btn:hover {
+  background: var(--vscode-tab-hoverBackground);
+  color: var(--vscode-tab-activeForeground, var(--vscode-foreground));
+}
+
+.settings-tab-btn[aria-selected="true"] {
+  color: var(--vscode-tab-activeForeground, var(--vscode-foreground));
+  border-bottom-color: var(--vscode-tab-activeBorder, var(--vscode-focusBorder));
+  font-weight: 600;
+}
+
+.settings-tab-btn:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: -2px;
+}
+
+/* A phone: tighter tabs, so the five fit on one row in English (longer names still wrap). */
+@media (max-width: 480px) {
+  .settings-tabs {
+    padding: 0 2px;
+  }
+
+  .settings-tab-btn {
+    padding: 8px 9px;
+  }
 }
 
 .settings-container {
@@ -1357,6 +1561,17 @@ watch(
   flex: 1 1 auto;
   min-height: 0;
 }
+
+/* While searching, each tab's matches sit under the tab's name. */
+.panel-heading {
+  margin: 8px 0 4px;
+  font-size: var(--calcpad-font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vscode-descriptionForeground);
+}
+
 
 .section-header {
   display: flex;

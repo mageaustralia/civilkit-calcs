@@ -89,7 +89,7 @@ The workbook opens in LibreOffice and a Python reader. It has not been tried in 
 ## PDF
 
 **Print PDF** opens the browser's print dialog on the report. Choose "Save as PDF" as the destination.
-The page size, orientation and margins come from the PDF settings (Settings, Header and footer).
+The page size, orientation and margins come from the PDF settings (Settings, Export tab; Document > Header and footer opens it there).
 The printed page carries the browser's own header and footer in place of title, date and page
 numbers; turn "Headers and footers" off in the print dialog if you do not want them.
 
