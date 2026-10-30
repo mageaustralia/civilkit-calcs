@@ -415,6 +415,18 @@
               </label>
             </div>
 
+            <div v-show="rowVisible('editor', 'syncFormToSource')" class="setting-group">
+              <label>
+                <input
+                  v-model="enableSyncFormToSource"
+                  type="checkbox"
+                  @change="updateSyncFormToSource"
+                />
+                {{ tr('settings.editor.syncFormToSource', {}, 'Keep Input Form Values in the Source') }}
+                <span class="setting-info" :title="tr('settings.editor.syncFormToSourceTip', {}, 'A value entered in the input form is written into the default on its line, so the source always shows the numbers the calculation uses. A line the form cannot rewrite (a later pass of a loop) keeps its entered value.')">ⓘ</span>
+              </label>
+            </div>
+
             <div v-if="versionConfig.isDesktop" v-show="rowVisible('editor', 'fontFamily')" class="setting-group">
               <label for="editorFontFamily">
                 {{ tr('settings.editor.fontFamily', {}, 'Font Family:') }}
@@ -744,6 +756,7 @@ interface Props {
   initialEnableAutoRun?: boolean
   initialEnableAutoInputMode?: boolean
   initialEnablePreviewUiOverrides?: boolean
+  initialEnableSyncFormToSource?: boolean
   initialDarkBackground?: string
   initialLinterMinSeverity?: string
   initialLogLevel?: string
@@ -784,6 +797,7 @@ const props = withDefaults(defineProps<Props>(), {
   initialEnableAutoRun: true,
   initialEnableAutoInputMode: true,
   initialEnablePreviewUiOverrides: false,
+  initialEnableSyncFormToSource: false,
   initialDarkBackground: '#1a1a2e',
   initialLinterMinSeverity: 'information',
   initialLogLevel: 'warning',
@@ -811,6 +825,7 @@ const emit = defineEmits<{
   updateAutoRun: [enabled: boolean]
   updateAutoInputMode: [enabled: boolean]
   updatePreviewUiOverrides: [enabled: boolean]
+  updateSyncFormToSource: [enabled: boolean]
   updateDarkBackground: [color: string]
   updateLinterMinSeverity: [severity: string]
   updateLogLevel: [level: string]
@@ -897,6 +912,7 @@ const enablePreviewCursorSync = ref(props.initialEnablePreviewCursorSync)
 const enableAutoRun = ref(props.initialEnableAutoRun)
 const enableAutoInputMode = ref(props.initialEnableAutoInputMode)
 const enablePreviewUiOverrides = ref(props.initialEnablePreviewUiOverrides)
+const enableSyncFormToSource = ref(props.initialEnableSyncFormToSource)
 const darkBackground = ref(props.initialDarkBackground)
 const linterMinSeverity = ref(props.initialLinterMinSeverity)
 const logLevel = ref(props.initialLogLevel)
@@ -985,6 +1001,7 @@ const SECTION_META: Record<string, { title: string; rows: Record<string, string>
       autoRun: 'auto-run preview render',
       autoInputMode: 'auto input mode ui form first open',
       previewUiOverrides: 'apply ui values preview entered overrides debug troubleshoot',
+      syncFormToSource: 'input form values write source default keep in step synchronise sync',
       fontFamily: 'editor font family juliamono system',
       fontsFolder: 'open fonts folder custom',
       linterMinSeverity: 'linter minimum severity error warning information'
@@ -1228,6 +1245,10 @@ const updatePreviewUiOverrides = () => {
   emit('updatePreviewUiOverrides', enablePreviewUiOverrides.value)
 }
 
+const updateSyncFormToSource = () => {
+  emit('updateSyncFormToSource', enableSyncFormToSource.value)
+}
+
 const updateDarkBackground = () => {
   emit('updateDarkBackground', darkBackground.value)
 }
@@ -1373,6 +1394,13 @@ watch(
   () => props.initialEnableAutoInputMode,
   (newValue) => {
     enableAutoInputMode.value = newValue
+  }
+)
+
+watch(
+  () => props.initialEnableSyncFormToSource,
+  (newValue) => {
+    enableSyncFormToSource.value = newValue
   }
 )
 

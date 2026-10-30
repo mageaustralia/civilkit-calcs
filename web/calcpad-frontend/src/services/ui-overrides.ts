@@ -68,6 +68,11 @@ export class UiOverrideStore {
         return true;
     }
 
+    /** Forgets one entered value. */
+    public remove(docKey: string, key: string): void {
+        this.byDocument.get(docKey)?.delete(key);
+    }
+
     public get(docKey: string, key: string): string | undefined {
         return this.byDocument.get(docKey)?.get(key);
     }

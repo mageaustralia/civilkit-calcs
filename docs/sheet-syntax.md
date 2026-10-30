@@ -319,7 +319,10 @@ in the report and as editor markers, and say what to write. A line such as `Why:
   comment line directly under `<!--sheet-->` (`'<!--{"uiOverrides":{"L:1":"8"}}-->`); the compiler passes that line
   through, and they are applied again the next time the sheet is opened in Input mode or as a Report (Preview shows the
   sheet's own defaults, unless *Apply #UI Values in Preview* is on in the settings). Edit the number in the sheet itself
-  to change a default.
+  to change a default, or use **Update defaults** in the results bar, which writes the entered values into their lines
+  (a drop-down or radio group moves its `*`, a checkbox becomes `on`/`off`), and **Reset**, which drops them. An input
+  line whose entered value differs from its default carries a faint `← form: value` mark in the editor. The setting
+  *Keep Input Form Values in the Source* (Settings, Editor) writes each entered value into its line as it is entered.
 * Inputs hold numbers only (the engine's own limit), so there is no text box: a choice of names is a drop-down.
   A plain number input has no minimum or maximum; give it bounds as a slider (above) or check a range with a
   condition, `if L > 30 m: "Span out of range"`. A value outside the bounds of a slider that reaches the engine

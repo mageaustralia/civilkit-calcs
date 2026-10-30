@@ -1421,3 +1421,10 @@ select:focus,
     .input-dock-btn-text { display: none; }
 }
 @media print { .input-dock-host { display: none !important; } }
+
+/* End-of-line mark on an input line whose entered value is not the default written there (main.ts updateFormMarkers). */
+.monaco-editor .form-value-ghost {
+  font-style: italic;
+  opacity: 0.6;
+  color: var(--accent, #b7791f);
+}

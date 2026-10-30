@@ -124,6 +124,7 @@
         :initial-enable-auto-run="enableAutoRun"
         :initial-enable-auto-input-mode="enableAutoInputMode"
         :initial-enable-preview-ui-overrides="enablePreviewUiOverrides"
+        :initial-enable-sync-form-to-source="enableSyncFormToSource"
         :initial-dark-background="darkBackground"
         :initial-linter-min-severity="linterMinSeverity"
         :initial-log-level="logLevel"
@@ -149,6 +150,7 @@
         @update-auto-run="handleUpdateAutoRun"
         @update-auto-input-mode="handleUpdateAutoInputMode"
         @update-preview-ui-overrides="handleUpdatePreviewUiOverrides"
+        @update-sync-form-to-source="handleUpdateSyncFormToSource"
         @update-dark-background="handleUpdateDarkBackground"
         @update-linter-min-severity="handleUpdateLinterMinSeverity"
         @update-log-level="handleUpdateLogLevel"
@@ -302,6 +304,7 @@ const enablePreviewCursorSync = ref(false)
 const enableAutoRun = ref(true)
 const enableAutoInputMode = ref(true)
 const enablePreviewUiOverrides = ref(false)
+const enableSyncFormToSource = ref(false)
 const darkBackground = ref('#1e1e1e')
 const linterMinSeverity = ref('information')
 const logLevel = ref('warning')
@@ -609,6 +612,11 @@ const handleUpdatePreviewUiOverrides = (enabled: boolean) => {
   postMessage({ type: 'updatePreviewUiOverrides', enabled })
 }
 
+const handleUpdateSyncFormToSource = (enabled: boolean) => {
+  enableSyncFormToSource.value = enabled
+  postMessage({ type: 'updateSyncFormToSource', enabled })
+}
+
 const handleUpdateAutoRun = (enabled: boolean) => {
   enableAutoRun.value = enabled
   postMessage({ type: 'updateAutoRun', enabled })
@@ -794,6 +802,7 @@ const handleMessage = (event: MessageEvent) => {
       if (typeof message.enableAutoRun === 'boolean') enableAutoRun.value = message.enableAutoRun
       if (typeof message.enableAutoInputMode === 'boolean') enableAutoInputMode.value = message.enableAutoInputMode
       if (typeof message.enablePreviewUiOverrides === 'boolean') enablePreviewUiOverrides.value = message.enablePreviewUiOverrides
+      if (typeof message.enableSyncFormToSource === 'boolean') enableSyncFormToSource.value = message.enableSyncFormToSource
       darkBackground.value = message.darkBackground || '#1e1e1e'
       linterMinSeverity.value = message.linterMinSeverity || 'information'
       logLevel.value = message.logLevel || 'warning'

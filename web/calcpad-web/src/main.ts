@@ -19,6 +19,11 @@ import {
     UiOverrideStore,
     writeUiOverrides,
     extractUiControls,
+    readUiOverrides,
+    classifyUiOverrides,
+    applyOverridesToDefaults,
+    formDifferences,
+    locateFormRows,
     isCompiledPath,
     documentHasUiDirectives,
     DEFAULT_PREVIEW_SIZE_MB,
@@ -63,7 +68,7 @@ import { setActiveDocumentKeyResolver, getActiveDocumentKey, type EditorBridge }
 import { EditorGroup } from './editor/editor-group';
 import type { TabManager } from './tabs/tab-manager';
 import { toDisplayLogLevel } from 'calcpad-frontend';
-import type { UiControl, CalcpadLogLevel, DisplayLogLevel } from 'calcpad-frontend';
+import type { UiControl, DefaultRow, CalcpadLogLevel, DisplayLogLevel } from 'calcpad-frontend';
 import { mountSuiteBar } from './suitebar';
 import { initLanguage, onLanguageChanged, td } from './i18n';
 import { InputDock, dockHideStyle, dockInputsFromHtml, type DockInput } from './input-dock';
@@ -641,6 +646,7 @@ async function bootstrap(): Promise<void> {
 
     function refreshUiDirtyIndicator(): void {
         appInstance.setUiOverridesDirty(uiOverridesDirty.has(activeUiDocKey()));
+        appInstance.setUiOverridesPresent(formRows(activeUiDocKey(), activeGroup.editor.getValue()).length > 0);
     }
 
     // The store is keyed per document and owned here, so the bridge is handed a lookup
@@ -770,6 +776,8 @@ async function bootstrap(): Promise<void> {
         const docKey = activeUiDocKey();
         if (uiOverrides.set(docKey, key, value)) {
             uiOverridesDirty.add(docKey);
+            // A slider still moving only holds its value; the source follows when it lets go.
+            if (!live && syncsFormToSource()) writeFormToSource(activeGroup, false);
             refreshUiDirtyIndicator();
         } else if (!dockTimer) return;
         if (live) {
@@ -815,6 +823,7 @@ async function bootstrap(): Promise<void> {
         if (appInstance.getResultMode() === 'ui' && group !== activeGroup) return;
 
         const content = group.editor.getValue();
+        updateFormMarkers(group, content);
         const settings = activeBridge.getSettings();
         const apiSettings = buildApiSettings(settings);
         const mode = appInstance.getResultMode() as ResultMode;
@@ -1581,7 +1590,7 @@ async function bootstrap(): Promise<void> {
         // Settings announcements are the host talking to itself; a preview must not
         // be able to trigger a full re-render loop by forging one.
         if (data.type === 'previewThemeChanged' || data.type === 'settingsChanged'
-            || data.type === 'previewUiOverridesChanged') {
+            || data.type === 'previewUiOverridesChanged' || data.type === 'syncFormToSourceChanged') {
             if (!fromHost) return;
             refreshAllPreviews();
             return;
@@ -1595,6 +1604,7 @@ async function bootstrap(): Promise<void> {
             const docKey = uiDocKeyFor(group);
             if (!uiOverrides.set(docKey, String(data.varName), String(data.newValue))) return;
             uiOverridesDirty.add(docKey);
+            if (syncsFormToSource()) writeFormToSource(group, false);
             refreshUiDirtyIndicator();
             void refreshPreviewFor(group);
             return;
@@ -1612,6 +1622,7 @@ async function bootstrap(): Promise<void> {
             }
             if (!changed) return;
             uiOverridesDirty.add(docKey);
+            if (syncsFormToSource()) writeFormToSource(group, false);
             refreshUiDirtyIndicator();
             void refreshPreviewFor(group);
             return;
@@ -2085,6 +2096,127 @@ async function bootstrap(): Promise<void> {
     }
 
     appInstance.onSaveUiOverridesRequest = () => { void saveUiOverrides(); };
+
+    // ---- Form values and the defaults in the source ----
+    /** Whether a value entered in the form is written straight into its line (the "Keep Input Form Values in the Source" setting). */
+    function syncsFormToSource(): boolean {
+        return editorBridge.getExtraSetting('syncFormToSource') === 'true';
+    }
+
+    /** Every entered value, held or saved in the document, with the source line of its control when that is known. */
+    function formRows(docKey: string, source: string): DefaultRow[] {
+        const all = { ...(readUiOverrides(source) ?? {}), ...(uiOverrides.toRecord(docKey) ?? {}) };
+        const rows = classifyUiOverrides(all, uiControls.get(docKey) ?? [])
+            .map((r) => ({ key: r.key, value: r.value, line: r.line }));
+        return locateFormRows(source, rows).filter((r) => !r.key.startsWith('map:'));
+    }
+
+    /** Replaces a model's text changing only the lines that differ, so the cursor, folds and scroll stay where they are. */
+    function applyTextToModel(model: monaco.editor.ITextModel, text: string): void {
+        const old = model.getValue();
+        if (old === text) return;
+        const a = old.split(/\r?\n/);
+        const b = text.split(/\r?\n/);
+        model.pushStackElement();
+        if (a.length === b.length) {
+            const edits: monaco.editor.IIdentifiedSingleEditOperation[] = [];
+            for (let i = 0; i < a.length; i++) {
+                if (a[i] === b[i]) continue;
+                edits.push({ range: new monaco.Range(i + 1, 1, i + 1, model.getLineMaxColumn(i + 1)), text: b[i] });
+            }
+            model.pushEditOperations([], edits, () => null);
+        } else {
+            model.pushEditOperations([], [{ range: model.getFullModelRange(), text }], () => null);
+        }
+        model.pushStackElement();
+    }
+
+    /**
+     * Writes the entered values into the defaults of their input lines and forgets them there. A value that has no
+     * line to go to (a later pass of a loop, a name the text spells differently) stays as entered. Returns how many
+     * defaults changed.
+     */
+    function writeFormToSource(group: EditorGroup, notify: boolean): number {
+        const docKey = uiDocKeyFor(group);
+        const model = group.editor.getModel();
+        if (!model) return 0;
+        const source = model.getValue();
+        const result = applyOverridesToDefaults(source, formRows(docKey, source));
+        if (result.applied.length === 0) return 0;
+
+        const all: Record<string, string> = { ...(readUiOverrides(source) ?? {}), ...(uiOverrides.toRecord(docKey) ?? {}) };
+        const remaining: Record<string, string> = {};
+        for (const [key, value] of Object.entries(all)) {
+            if (result.applied.includes(key)) continue;
+            // A radio group's helper entry goes with the control it belongs to.
+            const owner = /^map:ui-[a-z]+-(.+?)\|/.exec(key)?.[1];
+            if (owner && result.applied.includes(owner)) continue;
+            remaining[key] = value;
+        }
+        let text = result.source;
+        if (readUiOverrides(source) !== null) text = writeUiOverrides(text, remaining);
+        applyTextToModel(model, text);
+        uiOverrides.replace(docKey, remaining);
+        if (Object.keys(remaining).length === 0) uiOverridesDirty.delete(docKey);
+        refreshUiDirtyIndicator();
+        if (notify) {
+            const left = result.kept.filter((k) => !k.startsWith('map:')).length;
+            appInstance.appendOutput('info', `Wrote ${result.applied.length} input value(s) into the source as defaults`
+                + (left ? `; ${left} could not be written and stay as entered values.` : '.'));
+        }
+        return result.applied.length;
+    }
+
+    /** "Update defaults": the entered values become the defaults in the source. */
+    appInstance.onUpdateDefaultsRequest = () => {
+        if (writeFormToSource(activeGroup, true) === 0)
+            appInstance.appendOutput('info', 'No entered value could be written into a default.');
+        void refreshPreviewFor(activeGroup);
+    };
+
+    /** "Reset to defaults": drop the entered values, held and saved, so the form shows the defaults written in the source. */
+    appInstance.onResetValuesRequest = () => {
+        const docKey = activeUiDocKey();
+        const model = activeGroup.editor.getModel();
+        if (model) {
+            const source = model.getValue();
+            if (readUiOverrides(source) !== null) applyTextToModel(model, writeUiOverrides(source, {}));
+        }
+        uiOverrides.clear(docKey);
+        uiOverridesDirty.delete(docKey);
+        refreshUiDirtyIndicator();
+        appInstance.appendOutput('info', 'Entered input values cleared; the form shows the defaults in the source.');
+        void refreshPreviewFor(activeGroup);
+    };
+
+    // A mark at the end of each input line whose entered value is not the default written there: the source says
+    // one number and the report uses another, which is what this makes visible.
+    const formMarkers = new WeakMap<EditorGroup, monaco.editor.IEditorDecorationsCollection>();
+    function updateFormMarkers(group: EditorGroup, content: string): void {
+        try {
+            const model = group.editor.getModel();
+            let collection = formMarkers.get(group);
+            if (!collection) {
+                collection = group.editor.createDecorationsCollection();
+                formMarkers.set(group, collection);
+            }
+            const diffs = model ? formDifferences(content, formRows(uiDocKeyFor(group), content)) : [];
+            collection.set(diffs.map((d) => {
+                const column = model!.getLineMaxColumn(d.line);
+                return {
+                    range: new monaco.Range(d.line, column, d.line, column),
+                    options: {
+                        showIfCollapsed: true,
+                        after: { content: `   \u2190 form: ${d.shown}`, inlineClassName: 'form-value-ghost' },
+                        hoverMessage: {
+                            value: `The input form holds **${d.shown}** for this line; the source says something else. `
+                                + 'Choose **Update defaults** in the results bar to write it here, or **Reset** to drop it.',
+                        },
+                    },
+                };
+            }));
+        } catch { /* a marker is decoration only */ }
+    }
 
     /**
      * Leaving the input form discards the entered values - they only live in memory

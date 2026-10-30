@@ -11,6 +11,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- **Input form values in the source** - Input mode gets **Update defaults** (writes the entered values into the defaults of their input lines: numbers, the `*` of a drop-down or radio group, a checkbox, with a slider keeping its bounds), **Reset** (drops the entered values), and a faint `← form: 8` mark at the end of an input line whose entered value differs from its default, so the source never silently disagrees with the report. A new setting, Keep Input Form Values in the Source (Settings, Editor), writes each value into its line as it is entered. Off by default.
+
 ## [26.10.19] - 2026-10-30
 
 ### Added

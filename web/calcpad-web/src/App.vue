@@ -356,6 +356,18 @@
           title="Export the report - #pre hidden, entered #UI values applied - as a PDF"
         >Print PDF</button>
         <button
+          v-if="resultMode === 'ui' && uiOverridesPresent"
+          class="toolbar-btn"
+          @click="onUpdateDefaults"
+          title="Write the entered values into the defaults in the source, so the source shows the numbers the calculation uses"
+        >Update defaults</button>
+        <button
+          v-if="resultMode === 'ui' && uiOverridesPresent"
+          class="toolbar-btn"
+          @click="onResetValues"
+          title="Drop the entered values and go back to the defaults written in the source"
+        >Reset</button>
+        <button
           v-if="resultMode === 'ui' && uiOverridesDirty"
           class="toolbar-btn"
           @click="onSaveUiOverrides"
@@ -729,6 +741,10 @@ const resultMode = ref<ResultMode>('preview')
 // #UI values entered but not yet written into the document source.
 const uiOverridesDirty = ref(false)
 const onSaveUiOverridesRequest = ref<(() => void) | null>(null)
+// Entered values exist (held, or saved in the document), whether or not they are unsaved.
+const uiOverridesPresent = ref(false)
+const onUpdateDefaultsRequest = ref<(() => void) | null>(null)
+const onResetValuesRequest = ref<(() => void) | null>(null)
 // Asked before the input form closes; false keeps it open.
 const onExitUiModeRequest = ref<(() => Promise<boolean>) | null>(null)
 // "Print PDF" - the host runs the export.
@@ -2281,6 +2297,18 @@ function setUiOverridesDirty(dirty: boolean): void {
   uiOverridesDirty.value = dirty
 }
 
+function setUiOverridesPresent(present: boolean): void {
+  uiOverridesPresent.value = present
+}
+
+function onUpdateDefaults(): void {
+  onUpdateDefaultsRequest.value?.()
+}
+
+function onResetValues(): void {
+  onResetValuesRequest.value?.()
+}
+
 function onSaveUiOverrides(): void {
   onSaveUiOverridesRequest.value?.()
 }
@@ -3397,7 +3425,10 @@ defineExpose({
   getResultMode,
   resultModeAvailable,
   setUiOverridesDirty,
+  setUiOverridesPresent,
   onSaveUiOverridesRequest,
+  onUpdateDefaultsRequest,
+  onResetValuesRequest,
   onExitUiModeRequest,
   onPrintReportRequest,
   setUiPrintHtml,

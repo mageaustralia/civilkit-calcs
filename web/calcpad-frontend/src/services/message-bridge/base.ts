@@ -242,6 +242,10 @@ export abstract class BaseMessageBridge {
 
     /** The `#UI` options an export of `variant` should render with. */
     /** The "Apply `#UI` Values in Preview" setting: Preview renders entered values, not declared ones. */
+    protected syncsFormToSource(): boolean {
+        return this.getExtraSetting('syncFormToSource') === 'true';
+    }
+
     protected previewAppliesUiOverrides(): boolean {
         return this.getExtraSetting('previewUiOverrides') === 'true';
     }
@@ -326,6 +330,10 @@ export abstract class BaseMessageBridge {
             // Read per open rather than cached, so there is nothing to broadcast.
             case 'updateAutoInputMode':
                 this.setExtraSetting('autoInputMode', String(message.enabled));
+                break;
+            case 'updateSyncFormToSource':
+                this.setExtraSetting('syncFormToSource', String(message.enabled));
+                this.postToVue({ type: 'syncFormToSourceChanged', enabled: !!message.enabled });
                 break;
             case 'updatePreviewUiOverrides':
                 this.setExtraSetting('previewUiOverrides', String(message.enabled));
@@ -559,6 +567,7 @@ export abstract class BaseMessageBridge {
             enableAutoRun: this.getExtraSetting('autoRun') !== 'false',
             enableAutoInputMode: this.getExtraSetting('autoInputMode') !== 'false',
             enablePreviewUiOverrides: this.previewAppliesUiOverrides(),
+            enableSyncFormToSource: this.syncsFormToSource(),
             linterMinSeverity: this.getExtraSetting('linterMinSeverity') || 'information',
             logLevel: coerceLogLevel(this.getExtraSetting('logLevel')),
             maxOutputLines: Number(this.getExtraSetting('maxOutputLines')) || 1000,

@@ -153,8 +153,9 @@ Unwrapped, **Input**, Report), or **Input form** on the Input/Output tab. Then:
   the checkbox act at once.
 * The **Insert** panel says "Unavailable in input mode": it acts on the source, which the form does
   not edit. Choose **Preview** to edit again.
-* The bar has **Report** and **Print PDF**, which use the values you entered, **Save values** (it
-  appears once you have changed a value) and **Exit input mode**.
+* The bar has **Report** and **Print PDF**, which use the values you entered, **Update defaults** and **Reset** (they
+  appear once you have entered a value), **Save values** (it appears once you have changed a value) and
+  **Exit input mode**.
 * Leaving input mode with values you did not save asks "Unsaved input values: save the values
   entered in the input form before exiting?" with Save, Don't Save and Cancel.
 
@@ -183,6 +184,26 @@ To change a default for good, edit the number in the sheet line.
 
 A saved value belongs to the input's name. Rename an input and the value saved under the old name
 is not used any more. Delete the comment line to go back to the defaults.
+
+### Keeping the source and the form the same
+
+A value held in the form and the default written in the sheet can differ, and then the report uses one number while
+the source shows another. Three things deal with that:
+
+* **A mark at the end of the line.** An input line whose entered value is not its default shows a faint
+  `← form: 8` after it in the editor, with the explanation when you point at it. It appears for held values and
+  for saved ones, in Preview and in the editor too.
+* **Update defaults** (in the results bar) writes every entered value into the default of its line and forgets the
+  value: `L: ? 6 m | span` becomes `L: ? 8 m | span`, a drop-down or a group of radio buttons moves its `*` to the chosen
+  option, a checkbox becomes `on` or `off`, and a slider keeps its bounds. A saved comment line is rewritten without
+  the values that were written, and removed when none is left. The edit is one step of undo in the editor. A value
+  that has no line to go to, such as one entered for a later pass of a `#for` loop, stays as entered.
+* **Reset** drops the entered values, held and saved, and the form shows the defaults in the source again.
+
+To have the source always show what the calculation uses, turn on **Keep Input Form Values in the Source** in
+Settings (Editor tab). A value you enter is then written into its line at once instead of being held: there is
+nothing to save and no mark to see. A slider writes when you let go of it. The setting is off by default, because a
+sheet kept as a template with defaults for others to fill in is easier to hand over when the form never changes it.
 
 ### What an input cannot do
 

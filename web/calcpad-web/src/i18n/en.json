@@ -762,6 +762,8 @@
   "settings.editor.themeSystem": "Same as app",
   "settings.editor.uiOverrides": "Apply #UI Values in Preview",
   "settings.editor.uiOverridesTip": "Preview normally shows the document's own values. Turn this on to render it with the values entered into the input form instead, for tracking down an error that only appears once a form is filled in.",
+  "settings.editor.syncFormToSource": "Keep Input Form Values in the Source",
+  "settings.editor.syncFormToSourceTip": "A value entered in the input form is written into the default on its line, so the source always shows the numbers the calculation uses. A line the form cannot rewrite (a later pass of a loop) keeps its entered value.",
   "settings.language.failed": "That language could not be loaded. Check your connection and try again.",
   "settings.language.help": "Changes the language of the menus and dialogs at once. Worksheet text, units and formulas are never translated. The languages other than English are machine drafts that no native speaker has reviewed yet, and anything not yet translated shows in English. A language you have not opened online before is not available offline.",
   "settings.language.label": "Interface language:",
