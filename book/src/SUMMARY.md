@@ -35,6 +35,7 @@
 - [Templates with inputs](templates.md)
 - [Symbolic maths](symbolic.md)
 - [Importing worksheets](importing.md)
+- [Number format](number-format.md)
 - [Exporting](exporting.md)
 - [Editing](editing.md)
 - [Embedding a calculator](embedding.md)

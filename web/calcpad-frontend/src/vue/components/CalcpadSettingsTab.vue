@@ -17,6 +17,9 @@
     </div>
 
     <div class="settings-container">
+      <!-- Sections a host app puts first (provide('calcpadExtensions', { settingsFirstSections })). -->
+      <component :is="section" v-for="(section, i) in extensions.settingsFirstSections ?? []" :key="'first-' + i" />
+
       <section v-show="sectionVisible('math')" class="settings-section">
         <h3 class="section-header" @click="toggle('math')">
           <span class="expand-icon" :class="{ collapsed: isCollapsed('math') }">&#x25BC;</span>
@@ -676,7 +679,7 @@ interface Props {
   pdfSettings?: PdfSettings
 }
 
-const extensions = inject<{ settingsSections?: Component[] }>('calcpadExtensions', {})
+const extensions = inject<{ settingsSections?: Component[]; settingsFirstSections?: Component[] }>('calcpadExtensions', {})
 
 const props = withDefaults(defineProps<Props>(), {
   settings: () => getDefaultSettings(),
