@@ -1404,6 +1404,10 @@ select:focus,
 .input-dock-list[hidden] { display: none; }
 .input-dock .ce-field:focus-within .ce-label { color: var(--ck-accent); }
 .input-dock input:focus-visible, .input-dock select:focus-visible { outline: var(--ck-focus-ring); outline-offset: 2px; }
+/* A slider keeps no square outline (it drew a box around the whole track while dragging): the label of the field in use
+   turns bold and accent-coloured, and the browser draws its own ring on the thumb for the keyboard. */
+.input-dock input[type="range"]:focus, .input-dock input[type="range"]:focus-visible { outline: none; }
+.input-dock .ce-field:focus-within .ce-label { font-weight: 600; }
 .input-dock-btn { display: inline-flex; align-items: center; gap: 5px; }
 .input-dock-btn svg { flex: none; }
 @media (max-width: 760px) {
