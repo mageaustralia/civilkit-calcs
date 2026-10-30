@@ -1,12 +1,12 @@
 <template>
   <div class="rb" role="toolbar" ref="root">
     <div class="rb-quick">
-      <button class="rb-file" data-ribbon-btn="file" title="File: recent worksheets, the library, samples, save and export"
+      <button class="rb-file" data-ribbon-btn="file" :title="td('ribbon.file.title', undefined, 'File: recent worksheets, the library, samples, save and export')"
         @mousedown.prevent @click="fire(FILE, $event)">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
-          stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL.menu"></svg><span>File</span>
+          stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL.menu"></svg><span>{{ btnLabel(FILE) }}</span>
       </button>
-      <button v-for="b in QUICK" :key="b.id" class="rb-q" :title="tip(b.title || b.label)" :aria-label="b.label"
+      <button v-for="b in QUICK" :key="b.id" class="rb-q" :title="tip(btnTitle(b))" :aria-label="btnLabel(b)"
         :data-ribbon-btn="b.id" @mousedown.prevent @click="fire(b, $event)">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
           stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL[b.icon!]"></svg>
@@ -14,43 +14,43 @@
     </div>
     <div class="rb-tabs" role="tablist">
       <button v-for="t in RIBBON" :key="t.id" class="rb-tab" :class="{ on: t.id === active }" role="tab"
-        :aria-selected="t.id === active" :aria-controls="'rb-panel'" :data-ribbon-tab="t.id" @click="selectTab(t.id)">{{ t.label }}</button>
+        :aria-selected="t.id === active" :aria-controls="'rb-panel'" :data-ribbon-tab="t.id" @click="selectTab(t.id)">{{ tabLabel(t) }}</button>
     </div>
-    <div v-show="!folded" id="rb-panel" class="rb-panel" role="tabpanel" :aria-label="tab.label" :data-ribbon-panel="active">
-      <div v-for="g in tab.groups" :key="g.name" class="rb-group" role="group" :aria-label="g.name">
+    <div v-show="!folded" id="rb-panel" class="rb-panel" role="tabpanel" :aria-label="tabLabel(tab)" :data-ribbon-panel="active">
+      <div v-for="g in tab.groups" :key="g.name" class="rb-group" role="group" :aria-label="groupName(g)">
         <div class="rb-cells">
           <template v-for="(cell, ci) in cells(g)" :key="ci">
-            <button v-if="cell.big" class="rb-big" :class="{ on: isOn(cell.big), 'rb-raw': isRaw(cell.big) }" :title="tip(cell.big.title || cell.big.label) + (isRaw(cell.big) ? RAW_NOTE : '')"
+            <button v-if="cell.big" class="rb-big" :class="{ on: isOn(cell.big), 'rb-raw': isRaw(cell.big) }" :title="tip(btnTitle(cell.big)) + (isRaw(cell.big) ? rawNote() : '')"
               :aria-haspopup="hasPop(cell.big) ? 'dialog' : undefined" :aria-expanded="hasPop(cell.big) ? pop?.id === cell.big.id : undefined"
               :data-ribbon-btn="cell.big.id" @mousedown.prevent @click="fire(cell.big, $event)">
               <svg class="rb-ic" viewBox="0 0 32 32" width="32" height="32" v-html="ICONS_BIG[cell.big.icon!] ?? ICONS_BIG.cube"></svg>
-              <span class="rb-label">{{ cell.big.label }}<i v-if="cell.big.palette || cell.big.more" class="rb-caret"></i></span>
+              <span class="rb-label">{{ btnLabel(cell.big) }}<i v-if="cell.big.palette || cell.big.more" class="rb-caret"></i></span>
             </button>
             <div v-else class="rb-stack">
-              <button v-for="b in cell.stack" :key="b.id" class="rb-small" :class="{ on: isOn(b), 'rb-raw': isRaw(b) }" :title="tip(b.title || b.label) + (isRaw(b) ? RAW_NOTE : '')"
+              <button v-for="b in cell.stack" :key="b.id" class="rb-small" :class="{ on: isOn(b), 'rb-raw': isRaw(b) }" :title="tip(btnTitle(b)) + (isRaw(b) ? rawNote() : '')"
                 :aria-haspopup="hasPop(b) ? 'dialog' : undefined" :aria-expanded="hasPop(b) ? pop?.id === b.id : undefined"
                 :data-ribbon-btn="b.id" @mousedown.prevent @click="fire(b, $event)">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
                   stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL[b.icon!]"></svg>
-                <span>{{ b.label }}</span><i v-if="b.palette || b.more" class="rb-caret"></i>
+                <span>{{ btnLabel(b) }}</span><i v-if="b.palette || b.more" class="rb-caret"></i>
               </button>
             </div>
           </template>
         </div>
-        <div class="rb-gname">{{ g.name }}</div>
+        <div class="rb-gname">{{ groupName(g) }}</div>
       </div>
     </div>
     <div v-if="pop" class="rb-pop" :class="{ wide: pop.wide }" :style="pop.style" role="dialog" :aria-label="popLabel" :data-ribbon-popover="pop.id" @mousedown="onPopDown">
-      <input v-if="pop.filter" ref="filterEl" v-model="q" class="rb-filter" type="search" placeholder="Filter" aria-label="Filter" />
-      <div v-if="pop.loading" class="rb-pop-h">Loading...</div>
+      <input v-if="pop.filter" ref="filterEl" v-model="q" class="rb-filter" type="search" :placeholder="td('ribbon.filter', undefined, 'Filter')" :aria-label="td('ribbon.filter', undefined, 'Filter')" />
+      <div v-if="pop.loading" class="rb-pop-h">{{ td('ribbon.loading', undefined, 'Loading...') }}</div>
       <template v-for="s in shown" :key="s.heading + s.items[0]?.label">
         <div v-if="s.heading" class="rb-pop-h">{{ s.heading }}</div>
         <div class="rb-pop-grid">
-          <button v-for="e in s.items" :key="(e.snipKey ?? '') + e.label + e.text" class="rb-glyph" :class="{ 'rb-raw': isRaw(e) }" :title="(e.title || e.text.replace(/\n/g, ' ').trim()) + (isRaw(e) ? RAW_NOTE : '')" :aria-label="e.title ? `${e.label}: ${e.title}` : undefined"
+          <button v-for="e in s.items" :key="(e.snipKey ?? '') + e.label + e.text" class="rb-glyph" :class="{ 'rb-raw': isRaw(e) }" :title="(e.title || e.text.replace(/\n/g, ' ').trim()) + (isRaw(e) ? rawNote() : '')" :aria-label="e.title ? `${e.label}: ${e.title}` : undefined"
             :data-ribbon-glyph="e.label" :data-snip-key="e.snipKey" @click="pick(e)">{{ e.label }}</button>
         </div>
       </template>
-      <div v-if="pop.filter && !pop.loading && !shown.length" class="rb-pop-h">No match</div>
+      <div v-if="pop.filter && !pop.loading && !shown.length" class="rb-pop-h">{{ td('ribbon.noMatch', undefined, 'No match') }}</div>
     </div>
   </div>
 </template>
@@ -64,10 +64,18 @@ import { insertLibrarySnippet, loadSnippets, sectionsFor } from './ribbon-snippe
 import type { Snip } from './ribbon-snippets';
 import { insertDiagram, insertSnippet, isActive, isSheetEditor, runAction } from './ribbon-actions';
 import { sheetInsert } from './sheet-insert';
+import { td } from '../i18n';
+import { btnKey, groupKey, sectionKey, tabKey } from './ribbon-i18n';
 import type { RibbonCtx } from './ribbon-actions';
 
 const props = defineProps<{ ctx: Omit<RibbonCtx, 'anchor'> }>();
 const FILE: RibbonButton = { id: 'file', label: 'File', action: 'filemenu' };
+// Labels, tooltips and headings come from the catalogue by key (ribbon-i18n.ts); the English in ribbon-data.ts is the fallback.
+const btnLabel = (b: RibbonButton): string => td(btnKey(b.id, 'label'), undefined, b.label);
+const btnTitle = (b: RibbonButton): string => b.title ? td(btnKey(b.id, 'title'), undefined, b.title) : btnLabel(b);
+const tabLabel = (t: { id: string; label: string }): string => td(tabKey(t.id), undefined, t.label);
+const groupName = (g: RibbonGroup): string => td(groupKey(active.value, g.name), undefined, g.name);
+const sectionLabel = (btnId: string, heading: string): string => td(sectionKey(btnId, heading), undefined, heading);
 const active = ref('math');
 const tab = computed(() => RIBBON.find(t => t.id === active.value) ?? RIBBON[0]);
 const root = ref<HTMLElement | null>(null);
@@ -95,12 +103,12 @@ const ctxWith = (anchor: HTMLElement): RibbonCtx => ({ ...props.ctx, anchor });
 const sheetMode = computed(() => (void tick.value, isSheetEditor(props.ctx.editor())));
 /** In a sheet, a text button with no sheet form inserts raw Calcpad (a `>>` line). */
 const isRaw = (b: { text?: string; line?: boolean; sheet?: string }): boolean => sheetMode.value && b.text !== undefined && sheetInsert(b.text, !!b.line, b.sheet).raw;
-const RAW_NOTE = ' (inserts raw Calcpad with >> in a sheet)';
+const rawNote = (): string => ' ' + td('ribbon.rawNote', undefined, '(inserts raw Calcpad with >> in a sheet)');
 /** Tooltips name Ctrl; a Mac's keys are Cmd. */
 const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
 const tip = (t: string): string => (MAC ? t.replace(/\bCtrl\+/g, 'Cmd+') : t);
 const hasPop = (b: RibbonButton): boolean => !!(b.palette || b.more);
-const popLabel = computed(() => { const id = pop.value?.id; for (const t of RIBBON) for (const g of t.groups) for (const b of g.buttons) if (b.id === id) return b.label; return ''; });
+const popLabel = computed(() => { const id = pop.value?.id; for (const t of RIBBON) for (const g of t.groups) for (const b of g.buttons) if (b.id === id) return btnLabel(b); return ''; });
 const isOn = (b: RibbonButton): boolean => (void tick.value, !!b.action && isActive(b.action, ctxWith(document.body)));
 
 type Cell = { big?: RibbonButton; stack?: RibbonButton[] };
@@ -141,7 +149,10 @@ function place(anchor: HTMLElement, wide: boolean): Record<string, string> {
 
 /** The hand-picked sections of a palette, headed "Common" so the library list below them reads as the rest. */
 function commonSections(b: RibbonButton): Section[] {
-  return (b.palette ?? []).map(s => ({ heading: s.heading ? `Common: ${s.heading}` : 'Common', items: s.items }));
+  return (b.palette ?? []).map(s => ({
+    heading: s.heading ? td('ribbon.commonOf', { heading: sectionLabel(b.id, s.heading) }, 'Common: {heading}') : td('ribbon.common', undefined, 'Common'),
+    items: s.items,
+  }));
 }
 
 function openPalette(b: RibbonButton, anchor: HTMLElement): void {
@@ -158,7 +169,7 @@ function openPalette(b: RibbonButton, anchor: HTMLElement): void {
       pop.value = { ...pop.value, sections: [...common, ...sectionsFor(all, spec)], loading: false };
       if (spec.filter && window.innerWidth > 700) void nextTick(() => filterEl.value?.focus());
     }).catch(() => {
-      if (pop.value?.id === b.id) pop.value = { ...pop.value, loading: false, sections: [...common, { heading: 'The snippet library could not be loaded', items: [] }] };
+      if (pop.value?.id === b.id) pop.value = { ...pop.value, loading: false, sections: [...common, { heading: td('ribbon.libraryFailed', undefined, 'The snippet library could not be loaded'), items: [] }] };
     });
     return;
   }

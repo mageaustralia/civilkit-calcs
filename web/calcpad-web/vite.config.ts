@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import path from 'path';
 import { pwaPlugin } from './pwa-plugin';
+import { i18nPlugin } from './i18n-plugin';
 
 // Tauri picks up frontendDist from tauri.conf.json (../../calcpad-web/dist),
 // so the desktop build just needs vite's default outDir. VITE_SERVER_URL
@@ -14,6 +15,7 @@ export default defineConfig(() => ({
     base: process.env.CALCS_BASE || './',
     plugins: [
         vue(),
+        i18nPlugin(),
         pwaPlugin(),
         // The version in the page head: <meta name="version">.
         { name: 'app-version-meta', transformIndexHtml: (html: string) => html.replaceAll('__APP_VERSION__', resolveVersion()) },

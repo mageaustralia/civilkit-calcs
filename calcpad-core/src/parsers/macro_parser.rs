@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::exceptions;
 use crate::extension_methods::{enumerate_comments, enumerate_lines, trim, trim_start};
-use crate::math_parser_exception::{CResult, MathParserException};
+use crate::math_parser_exception::{message_codes, CResult, MathParserException};
 use crate::messages;
 use crate::netfmt::{fmt, html_encode};
 use crate::parsers::math_parser::keyword_args::{fill_defaults, index_of_top_level};
@@ -611,7 +611,8 @@ impl<'a> MacroParser<'a> {
             "[<a href=\"#0\" data-text=\"{}\">{}</a>]",
             st.line_number, st.line_number
         );
-        st.sb.push_str(&fmt(
+        st.sb.push_str(&message_codes::format(
+            "Error_in_0_on_line_1_2",
             messages::Error_in_0_on_line_1_2,
             &[&html_encode(line_content), &line_html, error_message],
         ));

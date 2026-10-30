@@ -8,6 +8,7 @@ import LibrariesSettings from './LibrariesSettings.vue';
 import NumberFormatSettings from './NumberFormatSettings.vue';
 import LibrariesInsert from './LibrariesInsert.vue';
 import { ref } from 'vue';
+import LanguageSettings from '../i18n/LanguageSettings.vue';
 import { looksLikeLine, sheetInsert } from './sheet-insert';
 import { installEmptyEditorLink, SamplesBrowser } from './samples';
 import { WorksheetImport } from './worksheet-import';
@@ -69,7 +70,7 @@ export function webExtensions() {
         sheetMode.value = e?.getModel()?.getLanguageId() === 'calcpad-sheet';
     }, 400);
     return {
-        settingsFirstSections: [NumberFormatSettings],
+        settingsFirstSections: [LanguageSettings, NumberFormatSettings],
         settingsSections: [LibrariesSettings],
         insertSections: [LibrariesInsert],
         sheetMode,

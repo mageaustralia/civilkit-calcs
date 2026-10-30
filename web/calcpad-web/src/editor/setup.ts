@@ -37,8 +37,11 @@ export interface CalcpadEditorOptions {
     wordWrap?: 'on' | 'off';
 }
 
-const SYSTEM_FONT_STACK = "ui-monospace, 'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace";
-const JULIA_FONT_STACK = "'JuliaMono', 'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace";
+// The tail names system faces with Han glyphs: the monospace faces have none, and Chinese text in a comment would otherwise
+// fall to whatever the browser picks.
+const CJK_TAIL = "'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC'";
+const SYSTEM_FONT_STACK = `ui-monospace, 'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace, ${CJK_TAIL}`;
+const JULIA_FONT_STACK = `'JuliaMono', 'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace, ${CJK_TAIL}`;
 
 /**
  * Build the Monaco `fontFamily` value from a chosen primary font. The special value `"system"`

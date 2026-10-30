@@ -115,6 +115,18 @@ file, served at `/calcs/embed.js`; keep it under 3 KB. The app shell serves embe
 `node web/e2e/embed-check.mjs` checks the embed, its messages, the loader and that an embed stores nothing. Design
 notes: docs/embedding.md.
 
+## Interface languages
+
+The app's interface strings live in `web/calcpad-web/src/i18n/en.json` (the English source) and the draft catalogues in
+`web/calcpad-web/translations/<lang>.json` (Spanish, Portuguese, French, German, Chinese; machine drafts, see its README).
+The build publishes them as `i18n/<lang>.json`; they are fetched when a language is used and are not in the install precache.
+Before a release: `node tools/i18n/check.mjs` (coverage, missing and unused keys, placeholder mismatches; `--write` updates
+`en.json` after a UI string or a ribbon or setting definition changes), `node web/e2e/i18n-unit-check.mjs` (no browser), and
+against a build `node web/e2e/i18n-english-check.mjs --dist web/calcpad-web/dist` (the converted pieces still render the same
+English; `--record` re-takes the snapshot from a build made before a deliberate wording change) and
+`node web/e2e/i18n-check.mjs --dist web/calcpad-web/dist` (the picker, the first-visit prompt, German and Chinese in a browser).
+`docs/i18n-plan.md` has the plan and the status.
+
 ## llms.txt
 
 `https://civilkit.io/calcs/llms.txt` is an index of the guide for language models and other tools (one line per chapter, the

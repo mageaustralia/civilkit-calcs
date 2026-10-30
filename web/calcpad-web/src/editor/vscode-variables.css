@@ -22,12 +22,18 @@
     src: url('/fonts/JuliaMono-Bold.woff2') format('woff2');
 }
 
+/* Chinese: the bundled faces have no Han glyphs, so the system faces that have them are named ahead of the generic fallback
+   (the editor font above ends with the same). Nothing is downloaded. */
+:root:lang(zh-Hans) {
+    --ck-font: "DM Sans", system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "Segoe UI", Roboto, sans-serif;
+}
+
 /* The Monaco themes (theme.ts) cannot read CSS variables, so they repeat the token values. */
 :root {
     /* Fonts */
     --vscode-font-family: var(--ck-font);
     --vscode-font-size: 13px;
-    --vscode-editor-font-family: 'JuliaMono', 'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace;
+    --vscode-editor-font-family: 'JuliaMono', 'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC';
 
     /* Core colors */
     --vscode-foreground: var(--ck-text);

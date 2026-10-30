@@ -333,3 +333,6 @@ export {
     pathRootTokenOptions,
     hasDanglingCloseBrace,
 } from './text/directives';
+
+export { setTranslator } from './i18n-hook';
+export type { Translator } from './i18n-hook';

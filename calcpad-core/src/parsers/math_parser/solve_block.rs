@@ -598,9 +598,12 @@ impl SolverBlock {
                         .message
                         .replace("%F", items[0].input.as_deref().unwrap_or(""))
                         .replace("%V", items[1].input.as_deref().unwrap_or(""));
+                    // The words changed after the message was made, so it no longer carries its code.
                     return Err(MathParserException {
                         message: s,
                         unexpected: e.unexpected,
+                        code: None,
+                        args: Vec::new(),
                     });
                 }
                 return Err(e);

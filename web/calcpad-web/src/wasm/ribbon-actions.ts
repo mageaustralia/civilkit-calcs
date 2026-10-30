@@ -7,6 +7,7 @@ import { convertToCalcpad, newSheet, showCompiled } from './sheet-ui';
 import { sheetInsert } from './sheet-insert';
 import { diagramEdit } from './diagram-starters.ts';
 import { SymbolicDialog } from './symbolic';
+import { t } from '../i18n';
 
 /** The editor's file is a sheet (its Monaco language, which follows the marker line). */
 export const isSheetEditor = (editor: any): boolean => editor?.getModel?.()?.getLanguageId?.() === 'calcpad-sheet';
@@ -89,7 +90,7 @@ function dialog(title: string, paragraphs: string[]): void {
         box.append(el);
     }
     const close = document.createElement('button');
-    close.textContent = 'Close';
+    close.textContent = t('dialog.close');
     close.style.cssText = 'margin-top:12px;padding:4px 14px;font:inherit;cursor:pointer';
     const done = () => { back.remove(); document.removeEventListener('keydown', onKey, true); };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); done(); } };
@@ -152,25 +153,25 @@ export const ACTIONS: Record<string, Handler> = {
     docs: () => void window.open(DOCS_URL, '_blank', 'noopener'),
     learn: () => void window.open(LEARN_URL, '_blank', 'noopener'),
     // The browser keeps Ctrl+N, Ctrl+O, Ctrl+P, Ctrl+T and F5 for itself, so they are not listed (main.ts).
-    shortcuts: () => dialog('Keyboard shortcuts', [
-        `${mod}+S save, ${mod}+Shift+S save as`,
-        `${mod}+Alt+X calculate (in the editor)`,
-        `${mod}+F find, ${mod}+Z undo, ${mod}+Shift+Z redo`,
-        'Alt+Z wrap long lines',
-        'F2 rename the name under the cursor everywhere in the document',
-        `${mod}+; find a variable or function (Enter inserts it, Alt+Enter goes to its definition)`,
-        'F12 go to the definition, Shift+F12 find references',
-        `${mod}+Shift+/ disable or enable the block at the cursor`,
+    shortcuts: () => dialog(t('dialog.shortcuts.title'), [
+        t('dialog.shortcuts.save', { mod }),
+        t('dialog.shortcuts.calculate', { mod }),
+        t('dialog.shortcuts.findUndo', { mod }),
+        t('dialog.shortcuts.wrap'),
+        t('dialog.shortcuts.rename'),
+        t('dialog.shortcuts.findName', { mod }),
+        t('dialog.shortcuts.definition'),
+        t('dialog.shortcuts.disableBlock', { mod }),
     ]),
-    about: () => dialog(`CivilKit Calcs ${APP_VERSION}`, [
-        `Built on CalcpadCE ${UPSTREAM_VERSION} (MIT), by Nedelcho Ganchovski (Proektsoft) and contributors. The engine is reimplemented in Rust and runs in your browser.`,
-        `CalcpadCE: ${UPSTREAM_URL}`,
-        `This project: ${PROJECT_URL}`,
-        `What's new: [the changelog](${CHANGELOG_URL})`,
-        `Short clips of each release: [What's new](${WHATS_NEW_URL})`,
-        `User guide: [the CivilKit Calcs guide](${GUIDE_URL})`,
-        `Calculators and guides: [ready-made calculators](${LEARN_URL})`,
-        'MIT licence. Not affiliated with the CalcpadCE authors.',
+    about: () => dialog(t('dialog.about.title', { version: APP_VERSION }), [
+        t('dialog.about.built', { upstream: UPSTREAM_VERSION }),
+        t('dialog.about.upstream', { url: UPSTREAM_URL }),
+        t('dialog.about.project', { url: PROJECT_URL }),
+        t('dialog.about.changelog', { url: CHANGELOG_URL }),
+        t('dialog.about.whatsNew', { url: WHATS_NEW_URL }),
+        t('dialog.about.guide', { url: GUIDE_URL }),
+        t('dialog.about.learn', { url: LEARN_URL }),
+        t('dialog.about.licence'),
     ]),
 };
 
