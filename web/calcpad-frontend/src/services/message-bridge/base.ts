@@ -684,6 +684,11 @@ export abstract class BaseMessageBridge {
      * Settings tab keeps editing the stored set alone - this merge is only for the
      * request that generates a PDF.
      */
+    /** The paper size, orientation and margins a PDF of `content` would use, for the page view. */
+    public pdfPageSettings(content: string): PdfSettings {
+        return this.getEffectivePdfOptions(content);
+    }
+
     protected getEffectivePdfOptions(content: string): PdfSettings {
         return resolveEffectivePdfSettings(
             this.getStoredPdfOptions(),

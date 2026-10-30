@@ -333,6 +333,15 @@
         </div>
         <span class="spacer"></span>
         <button
+          v-if="resultMode === 'preview' || resultMode === 'report'"
+          type="button"
+          class="toolbar-btn page-view-btn"
+          :class="{ active: pageViewOn }"
+          :aria-pressed="pageViewOn"
+          @click="togglePageView"
+          :title="td('pageView.buttonTitle', {}, 'Show the report on pages of the PDF size, with the automatic page breaks')"
+        >{{ td('pageView.button', {}, 'Pages') }}</button>
+        <button
           v-if="uiModeFullscreen && inputDockAvailable"
           type="button"
           class="toolbar-btn input-dock-btn"
@@ -760,6 +769,23 @@ const onUiPrintToggled = ref<((visible: boolean) => void) | null>(null)
 // Docked inputs (input-dock.ts). main.ts owns the panel and says whether the sheet has inputs and whether it is docked.
 const inputDockAvailable = ref(false)
 const inputDockOn = ref(false)
+
+// Page view: the preview laid out on pages of the PDF's paper size and margins (wasm/page-view.ts).
+const PAGE_VIEW_KEY = 'calcpad.pageView'
+const readPageView = (): boolean => { try { return localStorage.getItem(PAGE_VIEW_KEY) === 'on' } catch { return false } }
+const pageViewOn = ref(readPageView())
+/** Supplied by the host: the active document's PDF paper settings. */
+const pageViewSettings = ref<(() => PageViewSettings) | null>(null)
+const onPageViewChanged = ref<(() => void) | null>(null)
+/** Whether the preview is on pages now: the layout is the paper's, so it is rendered in the light theme. */
+function isPageViewActive(): boolean {
+  return pageViewOn.value && (resultMode.value === 'preview' || resultMode.value === 'report')
+}
+function togglePageView(): void {
+  pageViewOn.value = !pageViewOn.value
+  try { localStorage.setItem(PAGE_VIEW_KEY, pageViewOn.value ? 'on' : 'off') } catch { /* storage refused */ }
+  onPageViewChanged.value?.()
+}
 const inputDockShown = computed(() => uiModeFullscreen.value && inputDockAvailable.value && inputDockOn.value)
 /** At the side of the results from this width of the results pane, above them below it. */
 const INPUT_DOCK_SIDE_PX = 900
@@ -1174,6 +1200,7 @@ import { t, td } from './i18n'
 import { injectTableSort, type TableSortState } from './wasm/table-sort'
 import type { BlockOp } from './wasm/block-ops'
 import { withPageBreakMarks } from './wasm/page-break'
+import { withPageView, type PageViewSettings } from './wasm/page-view'
 import { pasteSource, peekClipboard, rememberedBlock } from './wasm/block-clipboard'
 import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
 import { handlePanelEvent } from './wasm/python-panels'
@@ -2405,6 +2432,9 @@ function setPreviewHtml(groupId: string, html: string, scrollToLine?: number, do
   out = injectUiPosition(out, groupId)
   if (isUi && inputDockHideStyle) out = withHeadStyle(out, inputDockHideStyle)
   out = withPageBreakMarks(out)
+  if (isPageViewActive()) {
+    out = withPageView(out, pageViewSettings.value?.() ?? {}, td('pageView.label', { n: '{n}', total: '{total}' }, 'Page {n} of {total}'))
+  }
   if (!isUi && onLineEditRequest.value?.isSheet?.(groupId)) out = injectTableSort(out, groupId, tableSortByDoc.get(docKey || groupId) ?? {})
   previewHtmlByGroup.set(groupId, html)
   setPreviewHtmlOutput(groupId, html)
@@ -3426,6 +3456,9 @@ defineExpose({
   resultModeAvailable,
   setUiOverridesDirty,
   setUiOverridesPresent,
+  pageViewSettings,
+  onPageViewChanged,
+  isPageViewActive,
   onSaveUiOverridesRequest,
   onUpdateDefaultsRequest,
   onResetValuesRequest,

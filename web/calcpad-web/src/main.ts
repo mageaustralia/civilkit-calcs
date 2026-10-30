@@ -467,7 +467,8 @@ async function bootstrap(): Promise<void> {
         const stored = forcedThemeFromUrl() ?? editorBridge.getExtraSetting('previewTheme') ?? 'system';
         // "System" follows the app, which itself follows the OS only while its own theme is "System":
         // choosing Light in the ribbon must not leave the preview and report dark.
-        const resolved = stored === 'light' || stored === 'dark' ? stored : getResolvedAppTheme();
+        const resolved = appInstance.isPageViewActive() ? 'light'
+            : stored === 'light' || stored === 'dark' ? stored : getResolvedAppTheme();
         appInstance.setPreviewTheme(resolved);
         return resolved;
     }
@@ -2096,6 +2097,13 @@ async function bootstrap(): Promise<void> {
     }
 
     appInstance.onSaveUiOverridesRequest = () => { void saveUiOverrides(); };
+
+    // Page view: the preview on pages of the PDF's size and margins (wasm/page-view.ts).
+    appInstance.pageViewSettings = () => {
+        const o = (editorBridge as unknown as { pdfPageSettings(c: string): Record<string, string> }).pdfPageSettings(activeGroup.editor.getValue());
+        return { format: o.format, orientation: o.orientation, marginTop: o.marginTop, marginRight: o.marginRight, marginBottom: o.marginBottom, marginLeft: o.marginLeft };
+    };
+    appInstance.onPageViewChanged = () => refreshAllPreviews();
 
     // ---- Form values and the defaults in the source ----
     /** Whether a value entered in the form is written straight into its line (the "Keep Input Form Values in the Source" setting). */

@@ -47,6 +47,20 @@ not in the Word file. A Calcpad worksheet (`.cpd`) writes the same thing as an H
 Word also honours the other ways HTML forces a break on an element (`page-break-before: always`,
 `break-before: page`, `break-after: page`). Excel has no pages, so the workbook ignores page breaks.
 
+## Page view
+
+To see where the pages of a long report break without printing it, choose **Pages** in the results bar (Preview and
+Report). The results are laid out on sheets of the PDF's paper size, with its margins drawn as a faint dashed box, a
+label "Page 2 of 5" on each sheet and the manual page breaks honoured. The page is the one the PDF settings describe
+(Settings, Export tab, or the document's own PDF settings), so changing the paper size, the orientation or a margin
+changes the view at once. The sheets are always drawn in the light theme, as they print. On a narrow window the sheet
+is scaled to fit. The choice is kept.
+
+A block that would run over the bottom margin moves to the top of the next page, a heading stays with the line after it,
+and a block taller than a page is left to run on. The browser keeps long paragraphs and tables in one piece less often
+than this does, so on the last line or two of a page the print dialog's own preview has the last word. The view is on
+screen only: nothing about it is printed or exported.
+
 ## Word
 
 **Word** writes a `.docx` of the report:
