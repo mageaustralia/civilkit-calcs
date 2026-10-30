@@ -1,4 +1,24 @@
 {
+  "26.10.18": [
+    {
+      "id": "number-format",
+      "title": "Numbers in your style",
+      "blurb": "Settings has a Number format choice. Space and comma with Group digits shows this sheet's results as 1 234,5 and 15 431,2, while the source keeps its decimal points; in Input mode the load box takes 6,5 typed with a comma.",
+      "recorder": "29-number-format"
+    },
+    {
+      "id": "interface-language",
+      "title": "Menus in another language",
+      "blurb": "The Language section at the top of Settings switches the interface at once. Choosing Deutsch turns the Settings dialog and the ribbon German, and choosing English switches them back.",
+      "recorder": "30-interface-language"
+    },
+    {
+      "id": "interactive-panel",
+      "title": "Interactive panels",
+      "blurb": "The Beam deflection explorer sample asks before it runs Python, then draws sliders and a drop-down in the results. Moving the span to 10 m and choosing Bending moment redraws the chart and the table in place, without recalculating the sheet.",
+      "recorder": "31-interactive-panel"
+    }
+  ],
   "26.10.17": [
     {
       "id": "embed-mode",
