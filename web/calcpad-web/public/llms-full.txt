@@ -329,6 +329,24 @@ snippet (a click inserts it at the cursor), and tabs for the table of **Contents
 dialogs over the page. Hide the sidebar with the button at its top right, or Resources > Sidebar
 (Ctrl+Shift+B in the desktop app).
 
+## Settings
+
+The gear at the right end of the top strip opens **Settings** (so do Calculation > Calculation settings and
+Resources > Settings). It has five tabs:
+
+| Tab | What is on it |
+| --- | --- |
+| General | Language, number format, and the appearance (colour theme, preview theme). |
+| Calculation | Decimals, angle units, complex numbers and the other math settings, plot defaults, US or UK units. |
+| Editor | Quick typing, comment format, formatting keys, auto-run, cursor sync, the linter. |
+| Export | The PDF page: paper size, orientation, margins, header and footer. |
+| Advanced | Script libraries, logging and limits, the server address, saved configurations. |
+
+The search box above the tabs looks through all of them and lists each match under its tab's name; clear it to
+get the tabs back. Settings opens on the tab you last used, until the browser tab is closed. Calculation settings
+opens it on Calculation, and Document > Header and footer on Export. On the tab strip, the arrow keys, Home and End
+move between the tabs.
+
 ## On a phone
 
 At 760 pixels wide or less, one pane shows at a time, switched from a bar along the bottom:
@@ -3766,8 +3784,8 @@ plot M(x) for x in 0..L
 | `PlotShadows` | 1 to shade colour maps. |
 | `PlotLightDir` | Direction of the light, 0 to 7 clockwise from north. |
 
-The same settings are in the Settings dialog, which sets the defaults for every worksheet. The
-Plots & Diagrams tab of the ribbon has buttons for each form and for these lines.
+The same settings are on the Calculation tab of the Settings dialog, which sets the defaults for every
+worksheet. The Plots & Diagrams tab of the ribbon has buttons for each form and for these lines.
 
 ## The buttons under a plot
 
@@ -5299,7 +5317,8 @@ so a file reads the same on every machine.
 
 ## Choosing a format
 
-Open **Calculation > Calculation settings** in the ribbon. **Number format** is the first section.
+Open **Settings** (the gear at the right end of the top strip). **Number format** is on the **General** tab, under
+Language.
 
 | Choice | Looks like |
 |---|---|
@@ -5440,7 +5459,7 @@ The workbook opens in LibreOffice and a Python reader. It has not been tried in 
 ## PDF
 
 **Print PDF** opens the browser's print dialog on the report. Choose "Save as PDF" as the destination.
-The page size, orientation and margins come from the PDF settings (Settings, Header and footer).
+The page size, orientation and margins come from the PDF settings (Settings, Export tab; Document > Header and footer opens it there).
 The printed page carries the browser's own header and footer in place of title, date and page
 numbers; turn "Headers and footers" off in the print dialog if you do not want them.
 
@@ -6057,7 +6076,7 @@ Click the line number in the report to jump to the source.
   (`g = 9.80665m/s^2`) before you use `g` as an acceleration.
 * **A variable called `m`, `s` or `L`.** After a number `m` is still the metre. A variable called `m`
   is a variable when it stands alone. In Python `export` names, avoid names that are units.
-* **Rounding.** The result shows two decimals by default (Settings, Decimals), and a number below
+* **Rounding.** The result shows two decimals by default (Settings, Calculation, Decimals), and a number below
   one keeps three significant figures (`0.163`, `0.0856`). The number inside is full precision: a
   utilisation of 1.004 is shown as `1`, and a check on it (`if util <= 1`) still sees 1.004.
 * **Every line of a sheet shows an error such as `Invalid symbol: "#"`.** The first line of the
@@ -6156,7 +6175,7 @@ page is a summary for users.
 | --- | --- | --- |
 | A failing `#if` condition | A condition that throws (a misspelled name) is false, so the `#else` branch runs without a word. | The block is left unresolved: no branch runs, and an error paragraph says why. |
 | Plot loops | A plot grid with a NaN step never ends. | Grid loops stop after 100,000 lines. Finite grids are unchanged. |
-| Scripts in a worksheet | Any `<script>` in a worksheet runs from any address. | Scripts run only from a library list (Settings, Libraries), under a content security policy, with exact file addresses and integrity hashes. A script that is not on the list is replaced by a note naming its address. Scripts cannot send data anywhere. The print frame has no scripts. |
+| Scripts in a worksheet | Any `<script>` in a worksheet runs from any address. | Scripts run only from a library list (Settings, Advanced, Libraries), under a content security policy, with exact file addresses and integrity hashes. A script that is not on the list is replaced by a note naming its address. Scripts cannot send data anywhere. The print frame has no scripts. |
 | C-style operators | The desktop app converts `==`, `!=`, `>=`, `<=`, `%%`, `&&`, `\|\|`, `<<`, `<*` when it reads a file. | The browser does the same when it opens a worksheet. |
 | Input fields | Many examples use the old `name = ? {default}` form. | The bundled samples are rewritten with `#UI`, and the editor offers a "Convert to #UI" quick fix. |
 | Select, radio and checkbox | A select or radio that names a text box does nothing in the web front end. | It fills the text boxes it names and recalculates; the choice is carried into the Report, PDF and Word. |
