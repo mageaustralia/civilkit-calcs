@@ -104,6 +104,8 @@ The workbook opens in LibreOffice and a Python reader. It has not been tried in 
 
 **Print PDF** opens the browser's print dialog on the report. Choose "Save as PDF" as the destination.
 The page size, orientation and margins come from the PDF settings (Settings, Export tab; Document > Header and footer opens it there).
+Until you choose a paper size there, it follows the browser's language: Letter in the United States, Canada, Mexico, the Philippines, Chile,
+Colombia, Venezuela and Costa Rica, and A4 everywhere else. A size you have chosen is kept.
 The printed page carries the browser's own header and footer in place of title, date and page
 numbers; turn "Headers and footers" off in the print dialog if you do not want them.
 

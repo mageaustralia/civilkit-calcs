@@ -90,9 +90,31 @@ export const DEFAULT_PDF_SETTINGS: Readonly<PdfSettings> = PDF_SETTING_KEYS.redu
   {} as Record<string, unknown>,
 ) as Readonly<PdfSettings>;
 
-/** Defaults filled in for whatever `stored` doesn't set. */
+/** Countries whose default paper is Letter; everywhere else it is A4. */
+const LETTER_REGIONS = new Set(['US', 'CA', 'MX', 'PH', 'CL', 'CO', 'VE', 'CR']);
+
+/**
+ * The paper a person with this browser language would expect: Letter for the United States, Canada,
+ * Mexico, the Philippines, Chile, Colombia, Venezuela and Costa Rica, A4 elsewhere. The region comes
+ * from the tag (`en-AU`), or from the likely region of the language when the tag has none (`de`).
+ * Used only while no paper size has been chosen; a saved setting always wins.
+ */
+export function defaultPaperFormat(language?: string): 'Letter' | 'A4' {
+  const tag = language ?? (typeof navigator !== 'undefined' ? navigator.language : '') ?? '';
+  let region = '';
+  try {
+    const loc = new Intl.Locale(tag || 'en-US');
+    region = loc.region ?? loc.maximize().region ?? '';
+  } catch {
+    region = '';
+  }
+  if (!region) return 'Letter';
+  return LETTER_REGIONS.has(region.toUpperCase()) ? 'Letter' : 'A4';
+}
+
+/** Defaults filled in for whatever `stored` doesn't set; the paper size comes from the browser locale. */
 export function resolveStoredPdfSettings(stored: Partial<PdfSettings> | null | undefined): PdfSettings {
-  return { ...DEFAULT_PDF_SETTINGS, ...stored };
+  return { ...DEFAULT_PDF_SETTINGS, format: defaultPaperFormat(), ...stored };
 }
 
 /**

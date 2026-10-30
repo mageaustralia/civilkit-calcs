@@ -85,7 +85,7 @@ Resources > Settings). It has five tabs:
 | General | Language, number format, and the appearance (colour theme, preview theme). |
 | Calculation | Decimals, angle units, complex numbers and the other math settings, plot defaults, US or UK units. |
 | Editor | Quick typing, comment format, formatting keys, auto-run, cursor sync, the linter. |
-| Export | The PDF page: paper size, orientation, margins, header and footer. |
+| Export | The PDF page: paper size (A4 or Letter by the browser's region until you choose one), orientation, margins, header and footer. |
 | Advanced | Script libraries, logging and limits, the server address, saved configurations. |
 
 The search box above the tabs looks through all of them and lists each match under its tab's name; clear it to

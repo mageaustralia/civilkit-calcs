@@ -44,6 +44,7 @@ export type { PdfSettings } from './types/pdf-settings';
 export {
     DEFAULT_PDF_SETTINGS,
     resolveStoredPdfSettings,
+    defaultPaperFormat,
     resolveEffectivePdfSettings,
     PDF_SETTING_KEYS,
     pdfSpec,
