@@ -394,7 +394,7 @@ impl<'a> Comp<'a> {
                 PKind::Normal => {
                     if let Some((level, text)) = heading(&ls[0].0).filter(|_| ls.len() == 1) {
                         if !needs_md(&tex::mask(text)) {
-                            let h = tex::inline(text, plain_tex, false, false, &mut self.latex);
+                            let h = tex::apostrophes(&tex::inline(text, plain_tex, false, false, &mut self.latex));
                             plain = Some(vec![if level == 3 {
                                 format!("\"{h}")
                             } else {
@@ -403,7 +403,7 @@ impl<'a> Comp<'a> {
                         }
                     } else if ls.iter().all(|(t, _)| !needs_md(&tex::mask(t))) {
                         let joined = ls.iter().map(|(t, _)| t.trim()).collect::<Vec<_>>().join(" ");
-                        let h = tex::inline(&joined, plain_tex, false, false, &mut self.latex);
+                        let h = tex::apostrophes(&tex::inline(&joined, plain_tex, false, false, &mut self.latex));
                         plain = Some(vec![format!("'{h}")]);
                     }
                 }
@@ -528,7 +528,7 @@ impl<'a> Comp<'a> {
     }
 
     fn text_line(&mut self, s: &str) -> String {
-        let h = tex::inline(s, self.opts.plain_tex, true, false, &mut self.latex);
+        let h = tex::apostrophes(&tex::inline(s, self.opts.plain_tex, true, false, &mut self.latex));
         format!("'{h}")
     }
 
@@ -1537,6 +1537,9 @@ fn rhs_all_pos(_s: &str, from: usize, q: usize) -> bool {
 /// The comment that ends a quantity line: the note, then the star of a key line. Plain Calcpad gets
 /// plain text; the page styles the classes (SHEET_CSS in sheet.ts).
 fn comment_tail(note: Option<&str>, key: bool, plain: bool) -> String {
+    // A second apostrophe in a Calcpad comment would start an expression.
+    let owned = note.map(tex::apostrophes);
+    let note = owned.as_deref();
     match (note, key, plain) {
         (None, false, _) => String::new(),
         (Some(h), false, true) => format!(" '{h}"),

@@ -18,6 +18,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 - **Interactive panels** - A Python block can define a panel whose sliders and drop-downs re-run only one function and redraw its chart and table in place, without recalculating the sheet; three sheets in the Panels group of Samples show it.
 - **version.json** - Every build writes `/calcs/version.json` with its version, so pages that show the current release can read it instead of a number typed by hand.
 
+### Fixed
+- **Apostrophes in prose** - A sheet line of plain text, a heading or a note after `|` that contained an apostrophe (`the sheet's own`) showed an error such as `Invalid syntax: "s own"`; apostrophes are now written so they display as typed.
+
 ## [26.10.17] - 2026-10-30
 
 ### Added

@@ -1743,3 +1743,13 @@ fn the_word_form_of_a_slider_is_not_syntax() {
     let src = "<!--sheet-->\nL: ? 6 m slider 2..12\n";
     assert!(!format(src).contains('['), "{}", format(src));
 }
+
+#[test]
+fn an_apostrophe_in_prose_is_an_entity_not_the_start_of_an_expression() {
+    let c = compile("<!--sheet-->\n# Beam's check\n\nIt's the sheet's own <a href='x'>link</a>.\n\na: 1 m | x\n");
+    assert!(c.text.contains("<h1>Beam&#39;s check</h1>"), "{}", c.text);
+    assert!(c.text.contains("It&#39;s the sheet&#39;s own <a href='x'>link</a>."), "{}", c.text);
+    assert!(!c.text.contains("'It's"), "{}", c.text);
+    let n = compile("<!--sheet-->\na: 1 m | the beam's span\n#unit bag = 25 kg | the site's bag\n");
+    assert!(n.text.contains("the beam&#39;s span") && n.text.contains("the site&#39;s bag"), "{}", n.text);
+}

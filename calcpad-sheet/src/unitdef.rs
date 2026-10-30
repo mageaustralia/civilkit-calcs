@@ -68,7 +68,7 @@ impl Comp<'_> {
         };
         let mut text = format!(".{name} = {e}");
         if let Some(nt) = note {
-            let n = tex::inline(&nt, self.opts.plain_tex, true, false, &mut self.latex);
+            let n = tex::apostrophes(&tex::inline(&nt, self.opts.plain_tex, true, false, &mut self.latex));
             if self.opts.plain_tex {
                 text.push_str(&format!(" '{n}"));
             } else {

@@ -55,6 +55,28 @@ pub fn inline(line: &str, plain: bool, esc: bool, md: bool, used: &mut bool) -> 
     inline_with(line, esc, used, &|tex, display| span(tex, display, plain, md))
 }
 
+/// Writes the apostrophes of a prose line, outside HTML tags, as `&#39;`. In a Calcpad text line a second `'` starts an
+/// expression, so `'It's the sheet's own.` would be read as text followed by code; the entity shows the same character.
+pub fn apostrophes(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut in_tag = false;
+    for c in html.chars() {
+        match c {
+            '<' => {
+                in_tag = true;
+                out.push(c);
+            }
+            '>' if in_tag => {
+                in_tag = false;
+                out.push(c);
+            }
+            '\'' if !in_tag => out.push_str("&#39;"),
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 /// The line with every formula replaced by a letter, for asking what else the line contains.
 pub fn mask(line: &str) -> String {
     let mut used = false;
