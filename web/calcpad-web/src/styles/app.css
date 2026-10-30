@@ -1374,3 +1374,50 @@ select:focus,
   background: var(--vscode-editorWidget-background, #252526); color: var(--vscode-editorWidget-foreground, inherit);
   border: 1px solid var(--vscode-focusBorder, #08f); box-shadow: 0 2px 8px #0005; }
 .to-formula-chip[hidden] { display: none; }
+
+/* ---- Docked inputs (input-dock.ts) ----
+   In Input mode the sheet's inputs sit in a panel of their own beside the result frames: a strip above them, or a
+   column at their left once the results pane is 900 px wide (App.vue sets .dock-side). The fields are the embed's
+   (embed/form.css). Screen only. */
+.preview-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.preview-body.dock-side { flex-direction: row; }
+.input-dock-host { flex: none; min-width: 0; min-height: 0; display: flex; }
+.preview-body.dock-side .input-dock-host { width: 280px; border-right: 1px solid var(--ck-line); }
+.preview-body:not(.dock-side) .input-dock-host { max-height: 40%; border-bottom: 1px solid var(--ck-line); }
+.preview-body .preview-frames { min-width: 0; }
+.input-dock {
+    flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column;
+    background: var(--ck-raised); color: var(--ck-text); font: 14px/1.45 var(--ck-font);
+}
+.input-dock *, .input-dock *::before, .input-dock *::after { box-sizing: border-box; }
+.input-dock-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px; min-height: 32px; min-width: 0; }
+.input-dock-title { margin: 0; font-size: 13px; font-weight: 600; flex: none; }
+.input-dock-summary { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--ck-text-2); visibility: hidden; }
+.input-dock.collapsed .input-dock-summary { visibility: visible; }
+.input-dock-toggle {
+    flex: none; margin-left: auto; min-width: 28px; min-height: 28px; padding: 0 6px; border: 1px solid transparent; border-radius: var(--ck-radius-s);
+    background: none; color: var(--ck-text-2); font: inherit; cursor: pointer;
+}
+.input-dock-toggle:hover { background: var(--ck-sunken); color: var(--ck-text); }
+.input-dock-list { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 4px 12px 12px; display: grid; gap: 10px 18px; align-content: start; }
+.preview-body:not(.dock-side) .input-dock-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.input-dock-list[hidden] { display: none; }
+.input-dock .ce-field:focus-within .ce-label { color: var(--ck-accent); }
+.input-dock input:focus-visible, .input-dock select:focus-visible { outline: var(--ck-focus-ring); outline-offset: 2px; }
+/* A slider keeps no square outline (it drew a box around the whole track while dragging): the label of the field in use
+   turns bold and accent-coloured, and the browser draws its own ring on the thumb for the keyboard. */
+.input-dock input[type="range"]:focus, .input-dock input[type="range"]:focus-visible { outline: none; }
+.input-dock .ce-field:focus-within .ce-label { font-weight: 600; }
+.input-dock-btn { display: inline-flex; align-items: center; gap: 5px; }
+.input-dock-btn svg { flex: none; }
+@media (max-width: 760px) {
+    /* Phones: a strip at the top of the results that scrolls on its own; collapsed it is one line of values. */
+    .preview-body:not(.dock-side) .input-dock-host { max-height: 38vh; max-height: 38dvh; }
+    .input-dock-list { padding: 2px 12px 10px; gap: 8px; }
+    .input-dock .ce-slider { height: 32px; }
+    .input-dock .ce-box, .input-dock .ce-select { font-size: 16px; }
+    .input-dock-toggle { min-width: 40px; min-height: 36px; }
+    /* The pin alone in the crowded results bar; the button keeps its name for a screen reader. */
+    .input-dock-btn-text { display: none; }
+}
+@media print { .input-dock-host { display: none !important; } }

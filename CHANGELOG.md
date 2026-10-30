@@ -22,6 +22,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ### Fixed
 - **Semicolons in sheet functions** - A sheet definition such as `f(x; y): x + y` was read as plain text, and a call such as `max(3; 7)` was an error; inside brackets `;` now works the same as a comma.
 - **Long Python lists** - A list of numbers written out in a Python block stopped at about 2,000 elements with `pystack exhausted`; it now takes 16,000, and a longer one is refused with a note on how to build the list instead.
+- **Docked inputs** - In Input mode, Dock inputs keeps every input of the sheet in a panel beside or above the results while they scroll, so a plot redraws in view as you drag its slider. It is on by default for a sheet with a slider; see Docked inputs in the Templates chapter of the guide.
 
 ## [26.10.18] - 2026-10-30
 

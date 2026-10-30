@@ -72,6 +72,18 @@ number does not have to land on a step. Preview, Report, PDF and the Word and Ex
 they do for a plain input, so a sheet with sliders reads the same when it is printed. Two of the sample
 templates, the beam check and the cantilever, use sliders for their span, length and loads.
 
+### Docked inputs
+
+A slider is most use when you can see what it moves. In Input mode the **Dock inputs** button (a pin) in the
+results bar gathers every input of the sheet into one panel that stays put while the results scroll: at the left
+of the results when the pane is wide, in a strip above them when it is narrow or on a phone. Scroll the results to
+the plot, drag a slider in the panel, and the plot is drawn again as you drag. The panel holds the same values as
+the input lines (they are hidden while it is docked), with the same checks: a number typed outside the bounds is
+refused, with the message beside the box. The arrow in the panel's header folds it to one line of values.
+
+The panel is docked when a sheet has a slider, and not otherwise; your choice is kept until the browser tab is
+closed. A sheet without inputs has no panel. Nothing printed or exported shows it.
+
 ### Drop-downs and radio buttons
 
 A choice is a list of `label = value` entries between square brackets (a drop-down) or round

@@ -65,11 +65,13 @@ import type { TabManager } from './tabs/tab-manager';
 import { toDisplayLogLevel } from 'calcpad-frontend';
 import type { UiControl, CalcpadLogLevel, DisplayLogLevel } from 'calcpad-frontend';
 import { mountSuiteBar } from './suitebar';
-import { initLanguage, td } from './i18n';
+import { initLanguage, onLanguageChanged, td } from './i18n';
+import { InputDock, dockHideStyle, dockInputsFromHtml, type DockInput } from './input-dock';
 import { mountLanguagePrompt } from './i18n/prompt';
 import './styles/civilkit-tokens.css';
 import './editor/vscode-variables.css';
 import 'calcpad-frontend/vue/styles/base.css';
+import './embed/form.css';
 import './styles/app.css';
 import './styles/editor-nav.css';
 applyEarlyTheme();
@@ -739,6 +741,75 @@ async function bootstrap(): Promise<void> {
         };
     }
 
+    // ---- Docked inputs (input-dock.ts) ----
+    // The panel of the sheet's inputs beside the input form. It writes the same entered values a control in the form
+    // does (uiOverrides, then a render), and is filled from each render of the form.
+    const DOCK_KEY = 'calcpad.inputDock';
+    // The document's own slider re-runs the sheet SLIDER_MS after it moves (ui-preview-script.html). The dock uses the
+    // same interval, but as a throttle: a slider held moving still redraws every SLIDER_MS, and never more than one
+    // render runs at a time, so a slow sheet cannot fall behind the hand.
+    const DOCK_SLIDER_MS = 250;
+    const DOCK_SETTLE_MS = 60;
+    const inputDock = new InputDock({
+        value: (key) => uiOverrides.get(activeUiDocKey(), key),
+        changed: (key, value, live) => dockChanged(key, value, live),
+    });
+    appInstance.attachInputDock(inputDock.root);
+    onLanguageChanged(() => inputDock.relabel());
+    const dockPreference = (): string | null => { try { return sessionStorage.getItem(DOCK_KEY); } catch { return null; } };
+    /** Docked unless turned off in this session; by default only for a sheet with a slider. */
+    const dockWanted = (): boolean => { const p = dockPreference(); return p ? p === 'on' : inputDock.hasSlider; };
+    let dockTimer = 0;
+    let dockRunning = false;
+    let dockAgain = false;
+    // The labels and units are read from the sheet text, compiled once per text.
+    let dockSourceFor = '';
+    let dockSource = '';
+
+    function dockChanged(key: string, value: string, live: boolean): void {
+        const docKey = activeUiDocKey();
+        if (uiOverrides.set(docKey, key, value)) {
+            uiOverridesDirty.add(docKey);
+            refreshUiDirtyIndicator();
+        } else if (!dockTimer) return;
+        if (live) {
+            if (!dockTimer) dockTimer = window.setTimeout(dockRender, DOCK_SLIDER_MS);
+            return;
+        }
+        window.clearTimeout(dockTimer);
+        dockTimer = window.setTimeout(dockRender, DOCK_SETTLE_MS);
+    }
+
+    async function dockRender(): Promise<void> {
+        dockTimer = 0;
+        if (dockRunning) { dockAgain = true; return; }
+        dockRunning = true;
+        try {
+            await refreshPreviewFor(activeGroup);
+        } catch { /* the render reports its own failure */ } finally {
+            dockRunning = false;
+            if (dockAgain) { dockAgain = false; void dockRender(); }
+        }
+    }
+
+    /** Fills the dock from a render of the input form, and tells the pane whether it shows. */
+    async function updateInputDock(html: string, content: string): Promise<void> {
+        if (content !== dockSourceFor) {
+            dockSourceFor = content;
+            dockSource = isSheetText(content) ? await compileSheet(content).then((r) => r.text, () => '') : content;
+        }
+        const inputs: DockInput[] = dockInputsFromHtml(html, dockSource);
+        inputDock.update(inputs);
+        appInstance.setInputDock({ available: inputs.length > 0, on: inputs.length > 0 && dockWanted(), hideStyle: dockHideStyle(inputs) });
+    }
+
+    appInstance.onInputDockToggled = (on: boolean) => {
+        try { sessionStorage.setItem(DOCK_KEY, on ? 'on' : 'off'); } catch { /* storage refused */ }
+        appInstance.setInputDock({ available: inputDock.items.length > 0, on, hideStyle: dockHideStyle([...inputDock.items]) });
+        // The form is drawn again with its own input lines shown or hidden.
+        void refreshPreviewFor(activeGroup);
+    };
+
     async function refreshPreviewFor(group: EditorGroup): Promise<void> {
         if (!appInstance.isPreviewVisible()) return;
         if (appInstance.getResultMode() === 'ui' && group !== activeGroup) return;
@@ -804,6 +875,8 @@ async function bootstrap(): Promise<void> {
             const finalHtml = tauriBridge
                 ? await tauriBridge.inlineDocumentImages(result.html, previewImageBudget(group))
                 : result.html;
+            // The dock first: it decides whether the form is drawn with its own input lines.
+            if (mode === 'ui') await updateInputDock(result.html, content);
             const committed = appInstance.setPreviewHtml(group.id, finalHtml, scrollToLine, uiDocKeyFor(group));
             if (mode === 'ui') uiControls.set(uiDocKeyFor(group), extractUiControls(result.html));
             window.dispatchEvent(new MessageEvent('message', {

@@ -18,11 +18,13 @@
 // Inlined (?inline) rather than imported as style sheets: the entry's one dynamic import would otherwise preload the
 // app's style sheets instead of these.
 import tokensCss from '../styles/civilkit-tokens.css?inline';
+import formCss from './form.css?inline';
 import embedCss from './embed.css?inline';
 import { installWasmTransport } from '../wasm/transport';
 import { compileSheet, isSheetText } from '../wasm/sheet';
 import { loadManifest, sampleSource, type Sample } from '../wasm/samples';
 import { buildApiSettings, DEFAULT_CALCPAD_SETTINGS } from 'calcpad-frontend/types/settings';
+import { buildField, el, showValue } from './form';
 import { checkValue, parseInputs, promoteNumberLines, pythonBlocks, withoutPython, type EmbedInput } from './inputs';
 
 const DEFAULT_SAMPLE = 'template-simply-supported-beam';
@@ -47,17 +49,8 @@ const transport = installWasmTransport();
 transport.pythonScope = () => 'embed';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> & Record<string, unknown> = {}, ...kids: (Node | string)[]) => {
-    const e = document.createElement(tag);
-    for (const [k, v] of Object.entries(props)) {
-        if (k.startsWith('data-') || k.startsWith('aria-') || k === 'role' || k === 'for') e.setAttribute(k, String(v));
-        else (e as unknown as Record<string, unknown>)[k] = v;
-    }
-    e.append(...kids);
-    return e;
-};
 
-document.head.append(Object.assign(document.createElement('style'), { textContent: tokensCss + embedCss }));
+document.head.append(Object.assign(document.createElement('style'), { textContent: tokensCss + formCss + embedCss }));
 
 // ---- theme --------------------------------------------------------------------------------------------------------
 const dark = window.matchMedia('(prefers-color-scheme: dark)');
@@ -104,88 +97,17 @@ const request = () => ({
     includeLineAnchors: false, hideErrorLines: true, write: false, extraFiles, sourceFilePath: `/${sampleId}.${isSheetText(content) ? 'sheet' : 'cpd'}`,
 });
 
-// ---- the form -----------------------------------------------------------------------------------------------------
-let uid = 0;
-function field(input: EmbedInput): HTMLElement {
-    const id = `ce-in-${++uid}`;
-    const name = el('span', { className: 'ce-name' }, input.name);
-    const label = (forId?: string) => el(forId ? 'label' : 'span', forId ? { for: forId, className: 'ce-label' } : { className: 'ce-label' }, input.label || input.name, ' ', ...(input.label ? [name] : []));
-    const wrap = el('div', { className: `ce-field ce-k-${input.kind}`, 'data-name': input.name });
-    const changed = (v: string) => { values.set(input.name, v); schedule(); };
-    if (input.kind === 'number') {
-        const box = el('input', { id, type: 'text', inputMode: 'decimal', autocomplete: 'off', spellcheck: false, value: values.get(input.name) ?? input.value, className: 'ce-box', 'data-role': 'box' });
-        const err = el('span', { className: 'ce-err', id: `${id}-err`, hidden: true });
-        box.setAttribute('aria-describedby', `${id}-err`);
-        const row = el('div', { className: 'ce-row' });
-        let slider: HTMLInputElement | null = null;
-        if (input.min !== undefined && input.max !== undefined) {
-            slider = el('input', { type: 'range', min: String(input.min), max: String(input.max), step: String(input.step ?? 'any'), value: box.value, className: 'ce-slider', 'aria-label': `${input.label || input.name} slider`, 'data-role': 'slider' });
-            slider.setAttribute('aria-valuetext', `${box.value} ${input.unit}`.trim());
-            slider.addEventListener('input', () => {
-                box.value = slider!.value;
-                slider!.setAttribute('aria-valuetext', `${box.value} ${input.unit}`.trim());
-                err.hidden = true; box.removeAttribute('aria-invalid');
-                changed(slider!.value);
-            });
-            row.append(slider);
-        }
-        row.append(box);
-        if (input.unit) row.append(el('span', { className: 'ce-unit' }, input.unit));
-        const commit = () => {
-            const c = checkValue(input, box.value);
-            if (!c.ok) {
-                err.textContent = c.error.replace(`${input.name}: `, '');
-                err.hidden = false;
-                box.setAttribute('aria-invalid', 'true');
-                return;
-            }
-            err.hidden = true; box.removeAttribute('aria-invalid');
-            if (slider) slider.value = c.value;
-            if (values.get(input.name) !== c.value) changed(c.value);
-        };
-        box.addEventListener('input', () => { if (box.value.trim() !== '' && Number.isFinite(Number(box.value))) commit(); });
-        box.addEventListener('change', commit);
-        wrap.append(label(id), row, err);
-    } else if (input.kind === 'select') {
-        const sel = el('select', { id, className: 'ce-select', 'data-role': 'select' }, ...input.options!.map((o) => el('option', { value: o.value }, o.label)));
-        sel.value = values.get(input.name) ?? input.value;
-        sel.addEventListener('change', () => changed(sel.value));
-        wrap.append(label(id), sel);
-    } else if (input.kind === 'radio') {
-        const set = el('fieldset', { className: 'ce-radios' }, el('legend', {}, label()));
-        for (const o of input.options!) {
-            const r = el('input', { type: 'radio', name: id, value: o.value, checked: (values.get(input.name) ?? input.value) === o.value });
-            r.addEventListener('change', () => { if (r.checked) changed(o.value); });
-            set.append(el('label', { className: 'ce-radio' }, r, ' ', o.label));
-        }
-        wrap.append(set);
-    } else {
-        const box = el('input', { id, type: 'checkbox', checked: (values.get(input.name) ?? input.value) === '1', 'data-role': 'check' });
-        box.addEventListener('change', () => changed(box.checked ? '1' : '0'));
-        wrap.append(el('label', { for: id, className: 'ce-check' }, box, ' ', label()));
-    }
-    return wrap;
-}
-
-/** Shows a value set from outside (the host) in the form. */
-function showValue(input: EmbedInput, v: string): void {
-    const wrap = form.querySelector<HTMLElement>(`.ce-field[data-name="${CSS.escape(input.name)}"]`);
-    if (!wrap) return;
-    const box = wrap.querySelector<HTMLInputElement>('[data-role=box]');
-    const slider = wrap.querySelector<HTMLInputElement>('[data-role=slider]');
-    if (box) { box.value = v; box.removeAttribute('aria-invalid'); wrap.querySelector<HTMLElement>('.ce-err')!.hidden = true; }
-    if (slider) { slider.value = v; slider.setAttribute('aria-valuetext', `${v} ${input.unit}`.trim()); }
-    const sel = wrap.querySelector<HTMLSelectElement>('select');
-    if (sel) sel.value = v;
-    for (const r of wrap.querySelectorAll<HTMLInputElement>('input[type=radio]')) r.checked = r.value === v;
-    const check = wrap.querySelector<HTMLInputElement>('[data-role=check]');
-    if (check) check.checked = v === '1';
-}
+// ---- the form (form.ts) --------------------------------------------------------------------------------------------
+const fieldOptions = {
+    idPrefix: 'ce-in',
+    value: (name: string) => values.get(name),
+    changed: (input: EmbedInput, v: string) => { values.set(input.name, v); schedule(); },
+};
 
 function buildForm(): void {
     form.replaceChildren();
     if (!inputs.length) form.append(el('p', { className: 'ce-empty' }, 'This sheet has no inputs to change.'));
-    for (const i of inputs) form.append(field(i));
+    for (const i of inputs) form.append(buildField(i, fieldOptions));
 }
 
 // ---- calculation --------------------------------------------------------------------------------------------------
@@ -273,7 +195,7 @@ window.addEventListener('message', (e) => {
         const c = checkValue(input, raw);
         if (!c.ok) { errors.push(c.error); continue; }
         if (values.get(name) !== c.value) { values.set(name, c.value); changed = true; }
-        showValue(input, c.value);
+        showValue(form, input.name, input, c.value);
     }
     if (errors.length) toHost({ type: 'civilkit-error', errors });
     if (changed) schedule(0);
