@@ -766,6 +766,44 @@ if (online) {
     await dk.ctx.close();
 }
 
+// ---- 9z. the math and numpy functions a plotting script reaches for next, and long list literals --------------------------
+{
+    const { ctx, page } = await open();
+    const FUNCS = ['"Stand-in functions', '#python', 'import math', 'from math import hypot', 'import numpy as np',
+        'print("m1", hypot(3, 4), math.hypot(3, 4, 12), math.prod([1, 2, 3, 4]), math.fsum([0.1] * 10), math.dist((0, 0), (3, 4)))',
+        'print("m2", math.isqrt(17), math.comb(5, 2), math.gcd(12, 18), round(math.atan2(1, 1), 6), math.copysign(2, -1), math.isclose(1.0, 1.0 + 1e-10))',
+        'print("n1", np.hypot(np.array([3.0, 5.0]), np.array([4.0, 12.0])).tolist(), np.round(np.arctan2([1.0, -1.0], [-1.0, 0.0]), 6).tolist())',
+        'X, Y = np.meshgrid(np.array([1, 2, 3]), np.array([10, 20]))',
+        'print("n2", X.shape, X.tolist(), Y.tolist())',
+        'I, J = np.meshgrid([1, 2, 3], [10, 20], indexing="ij")',
+        'print("n3", I.shape, I.tolist(), J.tolist())',
+        'print("n4", np.round(np.sqrt(X ** 2 + Y ** 2), 3)[0].tolist(), np.outer([1, 2], [3, 4]).tolist())',
+        'print("n5", np.interp([0, 1.5, 4], [1, 2, 3], [3, 2, 0]).tolist(), np.round(np.polyfit([-1, 0, 1, 2], [2, 1, 2, 5], 2), 10).tolist(), np.polyval([1, 0, -1], 3))',
+        'big = [' + Array.from({ length: 4000 }, (_, i) => i).join(', ') + ']',
+        'print("n6", len(big), big[-1])',
+        '#end python'].join('\n');
+    await setText(page, FUNCS);
+    await yes(page).click({ timeout: 20000 });
+    const f = (await frameText(page, 'n6', 60000)).replace(/\s+/g, ' ');
+    check(/m1 5\.0 13\.0 24 1\.0 5\.0/.test(f), 'math.hypot (2 and 3 arguments), math.prod, math.fsum, math.dist ' + JSON.stringify(f.slice(0, 300)));
+    check(/m2 4 10 6 0\.785398 -2\.0 True/.test(f), 'math.isqrt, comb, gcd, atan2, copysign, isclose');
+    check(/n1 \[5\.0, 13\.0\] \[2\.356194, -1\.570796\]/.test(f), 'numpy.hypot and numpy.arctan2 on arrays');
+    check(/n2 \(2, 3\) \[\[1, 2, 3\], \[1, 2, 3\]\] \[\[10, 10, 10\], \[20, 20, 20\]\]/.test(f), 'numpy.meshgrid with indexing="xy" (rows follow the second vector)');
+    check(/n3 \(3, 2\) \[\[1, 1\], \[2, 2\], \[3, 3\]\] \[\[10, 20\], \[10, 20\], \[10, 20\]\]/.test(f), 'numpy.meshgrid with indexing="ij"');
+    check(/n4 \[10\.05, 10\.198, 10\.44\] \[\[3, 4\], \[6, 8\]\]/.test(f), 'numpy.sqrt of a meshgrid expression, numpy.outer');
+    check(/n5 \[3\.0, 2\.5, 0\.0\] \[1\.0, 0\.0, 1\.0\] 8/.test(f), 'numpy.interp, numpy.polyfit (x^2 + 1), numpy.polyval');
+    check(/n6 4000 3999/.test(f), 'a list literal of 4,000 numbers runs');
+    // Past the limit (16,000 elements) the block is refused before it runs, and the error says what to do instead.
+    await setText(page, ['"Too long', '#python', 'big = [' + '0,'.repeat(20000) + '0]', '#end python'].join('\n'));
+    const e = (await frameText(page, 'Python error', 60000)).replace(/\s+/g, ' ');
+    check(/Python error on line 3/.test(e) && /a literal of 20001 elements is too long \(at most 16000\)/.test(e)
+        && /long list literals are limited: build the list in a loop or parse a text string/.test(e), 'a list literal past the limit names the way round it ' + JSON.stringify(e.slice(0, 300)));
+    // A literal just under it runs.
+    await setText(page, ['"Long', '#python', 'big = [' + '1,'.repeat(15999) + '1]', 'print("n7", len(big), sum(big))', '#end python'].join('\n'));
+    check(/n7 16000 16000/.test(await frameText(page, 'n7', 60000)), 'a list literal of 16,000 numbers runs');
+    await ctx.close();
+}
+
 // ---- the longer time limit: a block that needs 13 s is stopped at 10 s, then runs when the user takes the 60 s limit --------
 {
     const lg = await open();

@@ -59,7 +59,14 @@ export async function mayRunPython(scope: string, signature: string): Promise<bo
  * Asked when a block ran out of time: run the worksheet again with the longer limit? An answer of Run again is kept for the tab
  * (the runner's `useLongLimit`), so this is asked once. A slow device (a phone) can need several times what a desktop does.
  */
+let longerOpen: Promise<boolean> | null = null;
 export function askLongerLimit(seconds: number, longSeconds: number): Promise<boolean> {
+    // One question at a time: two calculations that run out of time together (a slow or busy device) share the answer.
+    longerOpen ??= askLonger(seconds, longSeconds).finally(() => { longerOpen = null; });
+    return longerOpen;
+}
+
+function askLonger(seconds: number, longSeconds: number): Promise<boolean> {
     return new Promise((resolve) => {
         const back = document.createElement('div');
         back.id = 'cprs-python-longer';

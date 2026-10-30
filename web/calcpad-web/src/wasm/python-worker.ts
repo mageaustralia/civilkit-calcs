@@ -28,6 +28,15 @@ const PLOTLY_MAX = 4_000_000;    // characters of Plotly figure JSON per workshe
 const PANEL_MAX = 2_000_000;     // characters of one panel update (a figure and its data)
 const EXPORTS_MAX = 500;         // exported names per worksheet run
 const HEAP = 32 * 1024 * 1024;   // the interpreter's heap
+// The interpreter's Python stack, in words (MicroPython's own default is 2048). A list literal holds every element on this stack
+// while it is built, so the default stopped a literal of 2,043 numbers with "pystack exhausted"; 16384 takes 16,378.
+// It is not raised further: MicroPython counts a code block's stack in 16 bits, so a literal past 65,535 elements wraps that
+// count and can write past the stack instead of failing cleanly. Literals that long are refused before they run (LITERAL_MAX).
+const PYSTACK = 16384;
+const LITERAL_MAX = 16000;
+/** The hint added to a "pystack exhausted" error: a long list literal is the usual cause. */
+const PYSTACK_HINT = 'long list literals are limited: build the list in a loop or parse a text string, '
+    + 'for example [float(v) for v in "1.5 2.5 3.5".split()]';
 
 /** The request and answer format of the linear algebra module (calcpad-linalg-wasm); must equal its `abi()`. */
 const LINALG_ABI = 'calcpad-linalg-2';
@@ -245,7 +254,7 @@ async function start(msg: StartMsg): Promise<void> {
             try { state.exports.push(JSON.parse(String(t))); } catch { state.hostError ??= 'export: unreadable value'; }
         },
     };
-    const mp = await l.loadMicroPython({ heapsize: HEAP, stdout: write, stderr: write, linebuffer: false, url: l.wasmUrl });
+    const mp = await l.loadMicroPython({ pystack: PYSTACK, heapsize: HEAP, stdout: write, stderr: write, linebuffer: false, url: l.wasmUrl });
     mp.registerJsModule('_cp_raw', host);
     const made = new Set<string>();
     const mkdirs = (dir: string) => {
@@ -268,20 +277,56 @@ async function start(msg: StartMsg): Promise<void> {
     lockDown();
 }
 
+/** The number of elements of the longest bracketed literal in `src` (a rough scan: strings and comments are skipped). */
+function longestLiteral(src: string): { n: number; line: number } {
+    const stack: number[] = [];
+    let best = { n: 0, line: 0 };
+    let line = 1;
+    let start = 1;
+    const starts: number[] = [];
+    for (let i = 0; i < src.length; i++) {
+        const c = src[i];
+        if (c === '\n') line++;
+        else if (c === '#') { while (i + 1 < src.length && src[i + 1] !== '\n') i++; }
+        else if (c === '"' || c === "'") {
+            const q = src.startsWith(c.repeat(3), i) ? c.repeat(3) : c;
+            const end = src.indexOf(q, i + q.length);
+            const stop = end < 0 ? src.length : end + q.length - 1;
+            for (let k = i; k < stop; k++) if (src[k] === '\n') line++;
+            i = stop;
+        } else if (c === '[' || c === '(' || c === '{') { stack.push(1); starts.push(line); }
+        else if (c === ']' || c === ')' || c === '}') {
+            const n = stack.pop() ?? 0;
+            start = starts.pop() ?? line;
+            if (n > best.n) best = { n, line: start };
+        } else if (c === ',' && stack.length) stack[stack.length - 1]++;
+    }
+    return best;
+}
+
 function run(msg: RunMsg): BlockResult {
     if (!session) throw new Error('no interpreter');
+    // A literal that long is not compiled at all: the block raises the error on the literal's line instead, through the
+    // same path (and line numbering) as any other Python error.
+    let source = msg.source;
+    const big = longestLiteral(source);
+    if (big.n > LITERAL_MAX) {
+        const text = `a literal of ${big.n} elements is too long (at most ${LITERAL_MAX}): ${PYSTACK_HINT}`;
+        source = '\n'.repeat(big.line - 1) + `raise RuntimeError(${JSON.stringify(text)})\n`;
+    }
     const { mp, state } = session;
     state.parts = [];
     state.exports = [];
     state.hostError = null;
     const before = state.truncated;
     let error: BlockResult['error'] = null;
-    mp.globals.set('_cp_src', '\n'.repeat(msg.first) + msg.source);
+    mp.globals.set('_cp_src', '\n'.repeat(msg.first) + source);
     try {
         mp.runPython('_cp_run(_cp_src)');
     } catch (e) {
         const t = readTraceback(String((e as Error)?.message ?? e));
-        error = { type: t.type, message: t.message, line: t.line };
+        const deep = /pystack exhausted/.test(t.message);
+        error = { type: t.type, message: deep ? `${t.message} (${PYSTACK_HINT})` : t.message, line: t.line };
     }
     (state as SessionState & { flush?: () => void }).flush?.();
     if (!error && state.hostError) error = { type: 'Error', message: state.hostError, line: null };

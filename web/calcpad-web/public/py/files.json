@@ -1,5 +1,6 @@
 [
  "_route.py",
+ "_mathx.py",
  "calcpad_py.py",
  "matplotlib/__init__.py",
  "matplotlib/_chart.py",

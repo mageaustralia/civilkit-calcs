@@ -294,7 +294,8 @@ editor -> /api/calcpad/convert (also docx, xlsx)
 - Results are cached by the text of the blocks (last 8), so typing in Calcpad lines does not rerun Python. Each calculation that
   does run gets a fresh interpreter.
 - Limits: 10 s per block (the worker is killed and restarted), 30 s per calculation (a block that runs out of time asks once per tab whether to run again with 60 s per block and 180 s per calculation, for a slower device such as a phone), 100 000 characters of print output, 20 figures,
-  3 MB of SVG, 500 exported names, 32 MB interpreter heap.
+  3 MB of SVG, 500 exported names, 32 MB interpreter heap, a Python stack of 16,384 words, literals of at most 16,000 elements
+  (see the compatibility table).
 
 ### Lazy loading
 
@@ -360,8 +361,11 @@ Probed by running small scripts on the shipped stand-ins (24 probes; the numbers
 | `np.diff`, `np.trapz` / `trapezoid`, `np.eye` | works | added in the spike (about 25 lines) |
 | `np.linalg`: `solve`, `inv`, `det`, `cholesky`, `eigh`, `eigvalsh`, `svd`, `matrix_rank`, `cond`, `pinv`, `norm`; `scipy.linalg`: `solve`, `inv`, `det`, `cholesky`, `cho_factor`, `cho_solve`, `solve_triangular`, `eigh`, `svd` | works | computed by the Calcpad engine, see "Linear algebra" below |
 | `np.linalg.eig` of a non-symmetric matrix, `lstsq`, `qr`, `lu`, `matrix_power`, stacked (3-D) matrices | missing | `NotImplementedError` naming the function |
-| `np.vstack`, `hstack`, `reshape`, `meshgrid`, `sort`, `unique`, `interp`, `polyfit`, `random`, `cross`, `outer` | missing | raise `NotImplementedError` naming the function |
+| `np.hypot`, `np.arctan2`, `np.meshgrid` (`indexing="xy"` and `"ij"`, `sparse=True`, any number of vectors), `np.outer`, `np.interp`, `np.polyfit` (degree only), `np.polyval` | works | numpy's answers; `meshgrid` returns a tuple of arrays, `polyfit` solves the scaled least-squares problem by Householder QR |
+| `np.vstack`, `hstack`, `reshape`, `sort`, `unique`, `random`, `cross`, `cumprod`, `gradient`, `percentile`, `np.poly1d`, `np.roots`, `polyfit(full=, w=, cov=)`, `interp(period=)` | missing | raise `NotImplementedError` naming the function |
 | math, f-strings, comprehensions, lambdas, dicts, classes, `time`, `random` | works | MicroPython 1.24 |
+| `math.hypot` (any number of arguments), `math.dist`, `math.prod`, `math.fsum`, `math.isqrt`, `math.comb`, `math.perm`, `math.gcd`, `math.lcm` | works | MicroPython's `math` lacks them; `lib/_mathx.py` adds them with CPython's answers and is what `import math` gives a block. `atan2`, `copysign`, `isclose` are MicroPython's own |
+| a list (or tuple, dict, call) literal of more than 16,000 elements | refused | the worker counts the elements of every bracketed literal before the block runs and refuses one over 16,000 with an error that says to build the list in a loop or parse a text string. The interpreter starts with a Python stack of 16,384 words (MicroPython's default of 2,048 stopped a literal at 2,043 elements with `RuntimeError: pystack exhausted`; 16,384 takes 16,378). It is not larger because MicroPython counts a code block's stack in 16 bits: a literal past 65,535 elements wraps that count and can write past the stack (seen as `memory access out of bounds`, or silently) instead of failing, at any stack size; the pre-scan keeps every literal far below that. A long literal of floats is also slow to compile (MicroPython looks every float constant up in a list: about 0.8 s for 4,000 floats, roughly four times that for each doubling), so for thousands of values `[float(v) for v in "1.5 2.5 ...".split()]` is the faster form |
 | `float(0-d array)` | missing | removed so that `2.5 * array` works |
 | matplotlib: `plot` (format strings, labels), `xlabel`, `ylabel`, `title`, `legend`, `grid`, `xlim`, `ylim`, `figure(figsize)`, `show`, `savefig` | works | |
 | `scatter`, `text`, `axis("equal")`, log axes, `subplots`, `ax.plot`, `set_title`, `tight_layout`, `suptitle` | works | |
@@ -371,8 +375,10 @@ Probed by running small scripts on the shipped stand-ins (24 probes; the numbers
 | `input()` | refused | there is no keyboard |
 | `import js`, `jsffi`, network, host files | refused | see the sandbox |
 
-Missing features by importance for calculation worksheets: (1) `vstack`/`hstack`/`reshape`/`meshgrid`/`sort`;
-(2) `hist`, `annotate`, `twinx`, `set_xticks`, `step`; (3) `interp`/`polyfit`; (4) `lstsq`, `qr`, non-symmetric `eig`; (5) `contour`/`imshow`/`colorbar`; (6) `errorbar`, `pie`.
+Missing features by importance for calculation worksheets: (1) `vstack`/`hstack`/`reshape`/`sort`;
+(2) `hist`, `annotate`, `twinx`, `set_xticks`, `step`; (3) `lstsq`, `qr`, non-symmetric `eig`; (4) `contour`/`imshow`/`colorbar`; (5) `errorbar`, `pie`.
+Left out of the plotting additions on purpose: `np.poly1d` and `np.roots` (a class and an eigenvalue problem, not a few lines),
+`polyfit` with weights, `full=` or `cov=`, `interp(period=)` and the `numpy.polynomial` package; each raises `NotImplementedError`.
 
 ## What was changed in the copied stand-ins
 
@@ -385,7 +391,9 @@ packages are not copied). MicroPython's licence is in `THIRD_PARTY_LICENSES.md`.
   `axvline` and `suptitle` were added;
 - `ndarray.__float__` and `__int__` were removed: MicroPython's float operators call them on the right operand and give up when
   they raise, so `2.5 * array` failed;
-- `diff`, `trapezoid`/`trapz` and `eye` were added.
+- `diff`, `trapezoid`/`trapz` and `eye` were added;
+- `hypot`, `arctan2`, `meshgrid`, `outer`, `interp`, `polyfit` and `polyval` were added to numpy, and `lib/_mathx.py` supplies the
+  CPython `math` functions MicroPython lacks.
 
 ## Not done
 

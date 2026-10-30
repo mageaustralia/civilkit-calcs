@@ -102,6 +102,9 @@ def install(raw):
         seed = staticmethod(lambda: str(sed()) if sed else "{}")
 
     sys.modules["_cp_host"] = Host()
+    # MicroPython's math lacks hypot, prod, fsum and a few more; the wrapper adds them under the same name.
+    import _mathx
+    sys.modules["math"] = _mathx
     orig = builtins.__import__
 
     def guarded(name, *a, **k):
