@@ -12,6 +12,10 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ## [Unreleased]
 
 ### Added
+- **Interface language** - Settings has a new Language section that switches the ribbon, the Settings dialog, About, Keyboard shortcuts and the block menu between English, Spanish, Portuguese, French, German and Chinese (Simplified), and `?lang=fr` (also `es-ES`, `pt-BR`, `de` and `zh-Hans`) picks a language for one page view. A browser set to one of these languages is asked once whether to switch, and either answer is remembered. The translations are machine drafts that no native speaker has reviewed yet, anything not yet translated shows in English, and worksheets, units and formulas are never translated.
+- **Engine messages in your language** - A calculation error can be shown in the interface language where its message has been translated; the others stay English.
+- **Number format** - Settings > Number format shows results and number boxes in your language's style: Automatic (from the browser language), Point (1,234.5), Comma (1.234,5) or Space and comma (1 234,5), with digit groups as an option. Number boxes accept both 6,5 and 6.5. The worksheet, saved input values and the engine stay with the decimal point, so files read the same everywhere; `?numfmt=comma` tries a format on one page. See the number format chapter of the guide.
+- **Interactive panels** - A Python block can define a panel whose sliders and drop-downs re-run only one function and redraw its chart and table in place, without recalculating the sheet; three sheets in the Panels group of Samples show it.
 - **version.json** - Every build writes `/calcs/version.json` with its version, so pages that show the current release can read it instead of a number typed by hand.
 
 ## [26.10.17] - 2026-10-30
@@ -27,8 +31,6 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ### Fixed
 - **What's new clips in Chrome** - Five clips were encoded as full range video, which Chrome could not decode, so they never played. All 28 clips are now limited range, and a tap or hover on a poster starts a clip on touch screens and with a mouse.
-- **Interface language** - Settings has a new Language section that switches the ribbon, the Settings dialog, About, Keyboard shortcuts and the block menu between English, Spanish, Portuguese, French, German and Chinese (Simplified), and `?lang=fr` (also `es-ES`, `pt-BR`, `de` and `zh-Hans`) picks a language for one page view. A browser set to one of these languages is asked once whether to switch, and either answer is remembered. The translations are machine drafts that no native speaker has reviewed yet, anything not yet translated shows in English, and worksheets, units and formulas are never translated.
-- **Engine messages in your language** - A calculation error can be shown in the interface language where its message has been translated; the others stay English.
 
 ## [26.10.16] - 2026-10-29
 
@@ -82,7 +84,6 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ### Fixed
 - **Clicking a diagram** - Clicking a Mermaid diagram or a code block in the preview now selects the whole block in the editor, instead of opening the one-line editor on its first line.
-- **Number format** - Settings > Number format shows results and number boxes in your language's style: Automatic (from the browser language), Point (1,234.5), Comma (1.234,5) or Space and comma (1 234,5), with digit groups as an option. Number boxes accept both 6,5 and 6.5. The worksheet, saved input values and the engine stay with the decimal point, so files read the same everywhere; `?numfmt=comma` tries a format on one page. See the number format chapter of the guide.
 
 ## [26.10.13] - 2026-10-29
 
