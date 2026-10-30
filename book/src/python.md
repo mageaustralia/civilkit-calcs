@@ -191,6 +191,12 @@ update that Plotly applies; it cannot read another control or run Python. For co
 combine, precompute one step per combination or give each control its own traces. The "Beam
 explorer" sample shows both.
 
+### Sliders that run the Python again
+
+For a control that runs Python again on every move, use an [interactive panel](python-panels.md):
+a function decorated with `@ui.panel(ui.slider("L", 6, 2, 12, unit="m"))` that returns a Plotly
+figure is called again each time the slider moves, and only its chart is redrawn.
+
 ### Plotly offline, printing and exports
 
 Plotly.js is not bundled. It is fetched once from its CDN when the first chart is shown, and

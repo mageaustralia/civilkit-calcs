@@ -209,6 +209,7 @@ written, and so is everything between a `calcpad` fence:
 A fence with the language `python` is a Python block (docs/python-blocks.md); so is Calcpad's own `#python` ... `#end python` pair written on lines of their own, which a sheet accepts as the same block. It compiles to `#python` ... `#end python`, its lines
 are copied as written (no renaming, indentation kept), and what it prints, draws and `export`s becomes part of the sheet. Names it
 exports can be used by the quantity lines after it, under the sheet's spelling of the name (`export(sigma_c=2)` is `σ_c` below the block, as `phi` is `φ`).
+A block that does `import ui` can draw interactive panels: sliders, drop-downs and checkboxes whose moves run one Python function again and redraw its chart, table or text, without recalculating the sheet (the guide chapter "Interactive panels", book/src/python-panels.md).
 
 Sheet lines and raw lines share one worksheet, so they alternate freely: a raw block reads
 the variables defined by sheet lines above it and defines variables that sheet lines below it

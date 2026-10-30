@@ -13,6 +13,7 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ### Added
 - **Settings gear** - A gear at the right end of the top strip opens Settings from any tab, on a phone too; the ribbon icon for Settings is now a cog.
+- **Interactive panels guide** - A new guide chapter shows how to build a Python panel whose sliders redraw a chart, a 3D surface or a table, with its limits and a short summary written for AI assistants.
 - **Settings tabs** - The Settings dialog is split into General, Calculation, Editor, Export and Advanced tabs, and its search box still looks through every tab at once. It reopens on the tab last used, and Calculation settings and Header and footer open their own tab.
 
 ## [26.10.18] - 2026-10-30

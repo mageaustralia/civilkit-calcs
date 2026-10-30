@@ -29,6 +29,7 @@
 
 - [Plots](plots.md)
 - [Python blocks](python.md)
+- [Interactive panels](python-panels.md)
 
 # Tools
 
