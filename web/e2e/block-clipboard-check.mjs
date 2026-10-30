@@ -91,7 +91,20 @@ for (const [name, opts, phone] of [
     await btn.scrollIntoViewIfNeeded();
     if (phone) { await frame.locator('[data-source-line]').nth(2).tap(); btn = frame.locator('.ck-ins.on .ck-ins-btn').first(); }
     else { const bb = await frame.locator('.ck-ins').nth(1).boundingBox(); await page.mouse.move(bb.x + bb.width / 2 + 200, bb.y + bb.height / 2); await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 3 }); }
-    phone ? await btn.tap() : await btn.click();
+    if (phone) await btn.tap();
+    else {
+        // The preview swaps its frames after a render: look the strip up again and retry rather than click a replaced element.
+        for (let i = 0; i < 4; i++) {
+            try {
+                frame = await front();
+                const bb = await frame.locator('.ck-ins').nth(1).boundingBox();
+                await page.mouse.move(bb.x + bb.width / 2 + 200, bb.y + bb.height / 2);
+                await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 4 });
+                await frame.locator('.ck-ins-btn').nth(1).click({ timeout: 4000 });
+                break;
+            } catch (e) { if (i === 3) throw e; await page.waitForTimeout(800); }
+        }
+    }
     await page.waitForSelector('.insert-menu');
     await page.waitForTimeout(400);
     check(await page.locator('.insert-menu button', { hasText: 'Paste' }).count() === 1, `${name}: the "+" menu offers Paste`);
