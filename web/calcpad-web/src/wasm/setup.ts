@@ -12,6 +12,7 @@ import LanguageSettings from '../i18n/LanguageSettings.vue';
 import { looksLikeLine, sheetInsert } from './sheet-insert';
 import { installEmptyEditorLink, SamplesBrowser } from './samples';
 import { WorksheetImport } from './worksheet-import';
+import { SheetImport } from './sheet-import';
 
 interface Host {
     /** The active editor group's tabs (main.ts keeps them on window.calcpadTabs). */
@@ -34,6 +35,7 @@ export function installWebFiles(transport: WasmTransport, host: Host): WebFiles 
     const files = new WebFiles({
         library,
         importer,
+        sheetImport: new SheetImport(),
         tabs: host.tabs,
         log: host.appendOutput,
         print: () => host.bridge.handleMessage({ type: 'generatePdf', variant: 'report' }),

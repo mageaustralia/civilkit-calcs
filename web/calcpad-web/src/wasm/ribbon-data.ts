@@ -562,6 +562,7 @@ export const RIBBON: RibbonTab[] = [
         id: 'document', label: 'Document', groups: [
             { name: 'Import', buttons: [
                 action('d-import', 'Import worksheet', 'import', 'Bring in a worksheet from another calculation tool (.xmcd or .mcdx); it opens as a new worksheet', 'importWorksheet'),
+                action('d-importsheet', 'Import spreadsheet', 'sheetimport', 'Bring cells from an Excel or CSV file into the sheet as inputs, values and tables. Values are copied; nothing is recalculated or linked', 'importSpreadsheet'),
             ] },
             { name: 'Tidy', buttons: [
                 action('d-prettify', 'Prettify', 'indent', 'Indent the document consistently and remove trailing whitespace (the Prettify dialog)', 'tab:formatting'),

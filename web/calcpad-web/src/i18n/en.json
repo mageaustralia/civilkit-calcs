@@ -272,6 +272,8 @@
   "ribbon.btn.d-func.title": "Define your own function: g_1(t) = t^2 + 1",
   "ribbon.btn.d-import.label": "Import worksheet",
   "ribbon.btn.d-import.title": "Bring in a worksheet from another calculation tool (.xmcd or .mcdx); it opens as a new worksheet",
+  "ribbon.btn.d-importsheet.label": "Import spreadsheet",
+  "ribbon.btn.d-importsheet.title": "Bring cells from an Excel or CSV file into the sheet as inputs, values and tables. Values are copied; nothing is recalculated or linked",
   "ribbon.btn.d-markdown.label": "Text to Markdown",
   "ribbon.btn.d-markdown.title": "Tidy, then write simple paragraphs as Markdown (#md on blocks)",
   "ribbon.btn.d-pagebreak.label": "Page break",

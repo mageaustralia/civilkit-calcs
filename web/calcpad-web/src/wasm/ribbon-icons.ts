@@ -131,6 +131,8 @@ export const ICONS_BIG: Record<string, string> = {
     newcpd: page('', w('M14 14l-3 3.500 3 3.500M19 14l3 3.500-3 3.500')),
     convert: page('', w('M10 17.500h12M18 13.500l4 4-4 4')),
     import: page('', w('M3 18h12M11 14l4 4-4 4')),
+    // A small grid with an arrow into the page.
+    sheetimport: page('', w('M13 14h11v10H13zM13 19h11M18.500 14v10M2 19h8M7 16l3 3-3 3')),
     notes: page('<circle class="k" cx="11" cy="13" r="1.200"/><circle class="k" cx="11" cy="17.500" r="1.200"/><circle class="k" cx="11" cy="22" r="1.200"/>', w('M14 13h8M14 17.500h8M14 22h8')),
     open: '<path class="l" d="M3 10h8l3 3h13v14H3z"/><path class="m" d="M3 10h8l3 3h13v3H3z"/><path class="h" d="M3 16h26l-3 11H3z"/><path class="o" d="M3 10h8l3 3h13v14H3z"/>',
     save: tile('<rect class="k" x="9" y="7" width="14" height="8" rx="1" opacity=".9"/><rect class="a" x="19" y="8" width="2" height="5"/><rect class="k" x="10" y="18" width="12" height="5" rx="1"/>'),
