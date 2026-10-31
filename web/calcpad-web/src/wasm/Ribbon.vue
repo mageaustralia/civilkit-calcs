@@ -288,8 +288,9 @@ onBeforeUnmount(() => {
   .rb-q{width:44px;height:40px}
   .rb-file{height:36px}
   .rb-tab{height:40px;padding:0 12px}
-  /* Touch: small buttons tall enough to tap, so the panel grows to hold a stack of three. */
-  .rb-panel{height:118px}
+  /* Touch: small buttons tall enough to tap. The panel fits its tallest group, so a tab of
+     big buttons does not leave a gap above the group name. */
+  .rb-panel{height:auto}
   .rb-small{height:30px}
 }
 @media (max-width:700px){
