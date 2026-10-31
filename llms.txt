@@ -50,6 +50,7 @@ The whole guide in one file: https://civilkit.io/calcs/llms-full.txt
 - [Templates with inputs](https://civilkit.io/calcs/guide/templates): A template is a calculation that you fill in rather than edit.
 - [Symbolic maths](https://civilkit.io/calcs/guide/symbolic): The calculation engine is numeric: it gives you numbers.
 - [Importing worksheets](https://civilkit.io/calcs/guide/importing): The worksheet importer converts worksheet files from a spreadsheet-like calculation format, with text, equations, plots and pictures placed freely on a page (files ending .xmcd and .mcdx), into a new Calcpad worksheet that this engine calcu
+- [Importing a spreadsheet](https://civilkit.io/calcs/guide/importing-spreadsheets): Any one of.
 - [Number format](https://civilkit.io/calcs/guide/number-format): Some languages write 1,5 where others write 1.5, and group digits as 1.000,5 or 1 000,5.
 - [Exporting](https://civilkit.io/calcs/guide/exporting): A calculated sheet leaves the page in four ways: a PDF through the print dialog, a Word document, an Excel workbook and standalone HTML.
 - [Editing](https://civilkit.io/calcs/guide/editing): There are two places to edit: the source on the left and, in the results, the page itself.

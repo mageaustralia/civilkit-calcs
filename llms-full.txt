@@ -339,7 +339,7 @@ Resources > Settings). It has five tabs:
 | General | Language, number format, and the appearance (colour theme, preview theme). |
 | Calculation | Decimals, angle units, complex numbers and the other math settings, plot defaults, US or UK units. |
 | Editor | Quick typing, comment format, formatting keys, auto-run, cursor sync, the linter. |
-| Export | The PDF page: paper size, orientation, margins, header and footer. |
+| Export | The PDF page: paper size (A4 or Letter by the browser's region until you choose one), orientation, margins, header and footer. |
 | Advanced | Script libraries, logging and limits, the server address, saved configurations. |
 
 The search box above the tabs looks through all of them and lists each match under its tab's name; clear it to
@@ -500,6 +500,12 @@ Every line of a sheet is one of these.
 
 A line that looks like a quantity but is really prose (`Note: see the drawing`) is prose, because
 its right-hand side is not an expression. To force prose, start the line with a backslash.
+
+## A page to keep open
+
+The [quick reference](https://civilkit.io/calcs/reference/) puts the sheet language on one page that prints:
+every line kind and input, the functions, constants, operators and units of the engine. It has a Print button,
+and it is also what to hand to a colleague who has not used a sheet before.
 
 ## What a sheet cannot do
 
@@ -2489,6 +2495,21 @@ W = m·g0 = 70 kg · 9.81 m/s² = 686.7 N
 Without `->`, a sum comes out in the first unit it meets. With `-> unit` the result is converted
 to the unit you choose. In the Calcpad language the same conversion is a vertical bar:
 `a = 1.23m + 35cm + 12mm | cm`.
+
+### SI base units
+
+`-> base` shows a result in the SI base units of its dimensions, so you do not have to spell them out:
+
+```sheet
+F: 5 kN
+L: 2 m
+M: F * L -> base
+P: 3 MPa -> base
+```
+
+The moment comes out as `10000 kg·m²/s²` and the pressure as `3000000 kg·m⁻¹·s⁻²`. The units used are
+kg, m, s, A, mol and cd. A value with no unit is left as it is, and so is one with a temperature or an
+angle in it. In the Calcpad language the same thing is `M = F*L | base`.
 
 Prefixes work on every unit that takes them: `kN` is 10³ N, `MPa` is 10⁶ Pa, `mm` is 10⁻³ m. See
 "Prefixes" below for the full list.
@@ -4660,8 +4681,9 @@ Unwrapped, **Input**, Report), or **Input form** on the Input/Output tab. Then:
   the checkbox act at once.
 * The **Insert** panel says "Unavailable in input mode": it acts on the source, which the form does
   not edit. Choose **Preview** to edit again.
-* The bar has **Report** and **Print PDF**, which use the values you entered, **Save values** (it
-  appears once you have changed a value) and **Exit input mode**.
+* The bar has **Report** and **Print PDF**, which use the values you entered, **Update defaults** and **Reset** (they
+  appear once you have entered a value), **Save values** (it appears once you have changed a value) and
+  **Exit input mode**.
 * Leaving input mode with values you did not save asks "Unsaved input values: save the values
   entered in the input form before exiting?" with Save, Don't Save and Cancel.
 
@@ -4690,6 +4712,26 @@ To change a default for good, edit the number in the sheet line.
 
 A saved value belongs to the input's name. Rename an input and the value saved under the old name
 is not used any more. Delete the comment line to go back to the defaults.
+
+### Keeping the source and the form the same
+
+A value held in the form and the default written in the sheet can differ, and then the report uses one number while
+the source shows another. Three things deal with that:
+
+* **A mark at the end of the line.** An input line whose entered value is not its default shows a faint
+  `← form: 8` after it in the editor, with the explanation when you point at it. It appears for held values and
+  for saved ones, in Preview and in the editor too.
+* **Update defaults** (in the results bar) writes every entered value into the default of its line and forgets the
+  value: `L: ? 6 m | span` becomes `L: ? 8 m | span`, a drop-down or a group of radio buttons moves its `*` to the chosen
+  option, a checkbox becomes `on` or `off`, and a slider keeps its bounds. A saved comment line is rewritten without
+  the values that were written, and removed when none is left. The edit is one step of undo in the editor. A value
+  that has no line to go to, such as one entered for a later pass of a `#for` loop, stays as entered.
+* **Reset** drops the entered values, held and saved, and the form shows the defaults in the source again.
+
+To have the source always show what the calculation uses, turn on **Keep Input Form Values in the Source** in
+Settings (Editor tab). A value you enter is then written into its line at once instead of being held: there is
+nothing to save and no mark to see. A slider writes when you let go of it. The setting is off by default, because a
+sheet kept as a template with defaults for others to fill in is easier to hand over when the form never changes it.
 
 ### What an input cannot do
 
@@ -5721,6 +5763,109 @@ reads", "not well-formed XML", "the file is a zip package that cannot be read".
 
 ---
 
+Chapter: Importing a spreadsheet
+URL: https://civilkit.io/calcs/guide/importing-spreadsheets
+
+# Importing a spreadsheet
+
+<!-- description: Bring cells from an Excel or CSV file into a sheet as inputs, values, tables and labelled rows. Values are copied as plain lines, not recalculated or linked. -->
+
+**Import spreadsheet** reads an Excel or CSV file and lets you pick cells from it and add them to a
+sheet as named quantities and tables. Use it for a schedule of loads, a list of member sizes or a
+column of test results that already lives in a spreadsheet.
+
+**What it does and does not do.** The values are *copied* into the sheet as ordinary lines, so the
+sheet carries them and a report prints without the file. Formulas in the file are **not**
+recalculated and there is **no live link** back to the file: a formula cell gives the value the
+file stored for it (spreadsheet programs save one), and the calculation is done by your sheet from
+there. If the file changes, import the cells again. **Nothing is uploaded**; the file is read in the
+page.
+
+## How to import
+
+Any one of:
+
+* the **Import spreadsheet** button on the Document tab (next to Import worksheet)
+* **File > Import spreadsheet...**
+
+Choose a `.xlsx`, `.xlsm`, `.csv` or `.tsv` file. A panel opens over the page. It is not modal: you can
+click in the editor to move the cursor between additions, and **Close** (or Esc) puts it away.
+
+Open or create a **sheet** first. The lines are sheet lines, so adding into a Calcpad worksheet is
+refused with a message.
+
+## The panel
+
+* **Tabs** along the top, one for each sheet of the workbook (a CSV has one).
+* A **read-only grid** with column letters and row numbers. Formula cells are grey and italic, and
+  hover (or the cell's tooltip) shows the formula text. Constant cells are plain.
+* **Click a cell**, or **drag over a range**, to select it. On a touch screen tap a cell, switch on
+  **Select range**, then tap the far corner.
+* An **action bar** under the grid shows the selection, a proposed **name** and **unit** you can edit,
+  and the actions that fit the selection.
+* Cells you have added turn **green** with their name, so you can see what is already used.
+
+| Selection | Action | Writes |
+| --- | --- | --- |
+| A constant number | **Add as input** | `span: ? 6 m` (the reader can change it) |
+| A number or formula cell | **Add as value** | `Mstar: 56.25 kN*m` (the stored result) |
+| A range of numbers | **Add as table** | a vector `[1; 2; 3]` or a matrix `[1, 2; 3, 4]` |
+| A range with text | **Add as table** | a table of text for the report (not used in calculations) |
+| Two columns, label then value | **Add labelled rows** | one quantity line for each row |
+
+A formula cell cannot be an input, because its value is a result. A text cell has no number to add.
+
+The lines go at the editor cursor: on the cursor's line when it is blank, otherwise on the lines after
+it. Above them goes a short source comment, for example `<!-- loads.xlsx, Loads!B1 -->`. It is an HTML
+comment, so it shows in the editor and prints as nothing in the report.
+
+## Names and units
+
+The name is guessed from the **label** to the left of the cell, or the **header** above it, and turned
+into a sheet name (see [Quantities](sheet/quantities.md)): several words become camel case
+(`Design load` is `designLoad`), Greek letters become their spellings (`φ factor` is `phiFactor`), a
+leading digit gets an `n`, and a name that is a keyword gets a `_`. If the sheet already has the name,
+a number is added (`span2`). Edit the name before you add if you want another.
+
+The unit is taken from the label's brackets (`Length (m)`, `Load [kN/m]`, `Area (mm²)` is `mm^2`), or
+from a unit in the cell beside the value (a unit column), when it looks like a unit. Words in
+brackets such as `(optional)` are not taken. A wrong or empty unit is easy to fix in the name and
+unit boxes, or in the sheet afterwards.
+
+The label becomes the note after the value (`span: 6 m | Span`).
+
+## Tables
+
+A range of numbers becomes a vector (one row or column) or a matrix, with the unit on every
+element. If the first row is text over numbers, it is treated as a header: the matrix holds the
+numbers below, and the header names go in the source comment. Empty cells in the numbers read as 0.
+A table is limited to 5,000 cells. Reach an element with `A.(row, column)` as for any matrix.
+
+A range that has text in it is added as a plain table of the cells as shown, for the report only.
+
+## Labelled rows
+
+Select a range of two columns: the labels, then the values (a third column may hold the units).
+Each row with a label and a number becomes one line, named from its label. Rows whose value is not
+a number are left out, and the status line says how many. Tick **Rows as inputs** to make the
+constant rows inputs.
+
+## Files and limits
+
+* **Excel**: `.xlsx` and `.xlsm`. Shared and inline strings, numbers, booleans and error values are
+  read. Dates are shown as their serial numbers. Merged cells are ignored (each cell is shown
+  where it is stored). Macros are never run. The old `.xls` format and password-protected
+  workbooks are refused with a message; save as `.xlsx` or `.csv`.
+* **CSV and TSV**: quotes (and doubled quotes), line breaks inside quotes, a comma, semicolon or
+  tab delimiter found by itself, and a decimal comma when the delimiter is not a comma (`6,5`).
+* Files over 5 MB, and workbooks with more than 200,000 cells, are refused. Save the part you
+  need as a CSV.
+* A damaged file shows a message and changes nothing.
+* The grid shows 200 rows at a time (a button shows more) and the first 100 columns.
+* Text cells cannot be used as values in calculations; only numbers and booleans (as 1 or 0).
+
+---
+
 Chapter: Number format
 URL: https://civilkit.io/calcs/guide/number-format
 
@@ -5832,6 +5977,20 @@ not in the Word file. A Calcpad worksheet (`.cpd`) writes the same thing as an H
 Word also honours the other ways HTML forces a break on an element (`page-break-before: always`,
 `break-before: page`, `break-after: page`). Excel has no pages, so the workbook ignores page breaks.
 
+## Page view
+
+To see where the pages of a long report break without printing it, choose **Pages** in the results bar (Preview and
+Report). The results are laid out on sheets of the PDF's paper size, with its margins drawn as a faint dashed box, a
+label "Page 2 of 5" on each sheet and the manual page breaks honoured. The page is the one the PDF settings describe
+(Settings, Export tab, or the document's own PDF settings), so changing the paper size, the orientation or a margin
+changes the view at once. The sheets are always drawn in the light theme, as they print. On a narrow window the sheet
+is scaled to fit. The choice is kept.
+
+A block that would run over the bottom margin moves to the top of the next page, a heading stays with the line after it,
+and a block taller than a page is left to run on. The browser keeps long paragraphs and tables in one piece less often
+than this does, so on the last line or two of a page the print dialog's own preview has the last word. The view is on
+screen only: nothing about it is printed or exported.
+
 ## Word
 
 **Word** writes a `.docx` of the report:
@@ -5875,6 +6034,8 @@ The workbook opens in LibreOffice and a Python reader. It has not been tried in 
 
 **Print PDF** opens the browser's print dialog on the report. Choose "Save as PDF" as the destination.
 The page size, orientation and margins come from the PDF settings (Settings, Export tab; Document > Header and footer opens it there).
+Until you choose a paper size there, it follows the browser's language: Letter in the United States, Canada, Mexico, the Philippines, Chile,
+Colombia, Venezuela and Costa Rica, and A4 everywhere else. A size you have chosen is kept.
 The printed page carries the browser's own header and footer in place of title, date and page
 numbers; turn "Headers and footers" off in the print dialog if you do not want them.
 
@@ -6036,7 +6197,7 @@ Edit a sheet *where it stands*, in the preview.
 
 In a Calcpad worksheet, prose written as Markdown (a `#markdown` ... `#end markdown` block) is edited
 the same way, by **double-clicking** it. The worksheet importer's Tidy and Markdown options write
-this form (see [Importing worksheets](importing.md)).
+this form (see [Importing worksheets](importing.md)). To bring numbers from an Excel or CSV file into a sheet as inputs, values and tables, see [Importing a spreadsheet](importing-spreadsheets.md).
 
 What the rich-text editor writes is plain Markdown: `**bold**`, `_italic_`, `~x~` subscript, `^x^`
 superscript, `++x++` underline, `-` lists and pipe tables (no merged cells; a cell is one line).
@@ -6796,6 +6957,9 @@ f(x): x^2 + 1
 * **Conversion:** `-> unit` converts the result: `Ms: fy * Ze -> kN*m` (Calcpad's `|kN*m`). It
   must come last, before any note.
   `-> %` (or `-> ‰`) shows a ratio as a percentage: `util: Ed / Rd -> %` gives `69.07 %`.
+  `-> base` shows the result in SI base units (kg, m, s, A, mol, cd): `M: F * L -> base` with `F` in kN and `L` in m
+  gives `10000 kg·m²/s²`. A value with no unit, or with a temperature or an angle in it, is left as it is. It compiles
+  to the engine's `| base` (DEVIATIONS.md D20).
 * **A unit of the sheet's own:** `#unit bag = 25 kg [| note]` defines the unit `bag` (the engine's
   custom unit `.bag = 25 kg`), which later lines use after a number (`3 bag`) and after `->`. The
   name is letters and `_` only; the value is an expression with units. A bad name or value is an
@@ -6928,6 +7092,17 @@ line assigns (`sigma = 3`), is spelled the way the sheet spells it: `phi` in a r
 
 A raw block inside a sheet block keeps the block's indentation rules like any other line.
 
+## Importing spreadsheet cells
+
+**Import spreadsheet** (Document tab, and the File menu) reads a `.xlsx`, `.xlsm`, `.csv` or `.tsv` file and writes
+cells into the sheet as ordinary lines at the cursor: `name: ? 6 m` for a constant (an input), `name: 56.25 kN*m` for a
+value, `name: [1, 2; 3, 4]` for a range of numbers, one quantity line per row for a label and value range, and a pipe table for
+text. Each group has a source comment above it, `<!-- file.xlsx, Sheet1!B1 -->`, an HTML comment that prose passes through
+and the page does not show. The values are copied: formulas are not recalculated (the value the file stored is used) and there is
+no live link to the file. Names come from the label beside or above the cell and follow the rules under "Quantity lines".
+The guide chapter "Importing a spreadsheet" (`book/src/importing-spreadsheets.md`) describes the panel;
+`web/e2e/sheet-import-check.mjs` and `web/e2e/sheet-import-logic-check.mjs` test it.
+
 ## Inputs and templates
 
 An input line makes a value the reader of the sheet can change. It is a quantity line whose right side
@@ -7006,7 +7181,10 @@ in the report and as editor markers, and say what to write. A line such as `Why:
   comment line directly under `<!--sheet-->` (`'<!--{"uiOverrides":{"L:1":"8"}}-->`); the compiler passes that line
   through, and they are applied again the next time the sheet is opened in Input mode or as a Report (Preview shows the
   sheet's own defaults, unless *Apply #UI Values in Preview* is on in the settings). Edit the number in the sheet itself
-  to change a default.
+  to change a default, or use **Update defaults** in the results bar, which writes the entered values into their lines
+  (a drop-down or radio group moves its `*`, a checkbox becomes `on`/`off`), and **Reset**, which drops them. An input
+  line whose entered value differs from its default carries a faint `← form: value` mark in the editor. The setting
+  *Keep Input Form Values in the Source* (Settings, Editor) writes each entered value into its line as it is entered.
 * Inputs hold numbers only (the engine's own limit), so there is no text box: a choice of names is a drop-down.
   A plain number input has no minimum or maximum; give it bounds as a slider (above) or check a range with a
   condition, `if L > 30 m: "Span out of range"`. A value outside the bounds of a slider that reaches the engine
