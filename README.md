@@ -167,8 +167,32 @@ node e2e/verify-ribbon-snippets.mjs --cli ../target/release/Cli
 node e2e/import-check.mjs         # Import worksheet: a synthetic .xmcd and .mcdx, pictures, toggles, error paths, drop, save, exports
 node e2e/symbolic-check.mjs       # Symbolic dialog: each operation, typeset results, errors, insert into a worksheet and a sheet, themes, phone width
 node e2e/embed-check.mjs          # ?embed=1: form and results, postMessage API, embed.js on another origin, no stored state (CALCS_BASE=/ build)
+node e2e/paper-default-check.mjs  # the default PDF paper by browser region (Letter or A4), no browser needed
 node ../tools/set_version.mjs --check
 ```
+
+## Checked at 26.10.20
+
+On the release tree: `cargo test --workspace` (excluding `calcpad-sheet`, single-threaded) passed 6125 tests (3 ignored) and `calcpad-sheet` 111,
+with no failures. Browser checks on the release build, served at the root: `sheet-check` (50 checks), `inputs-check` (71), `input-align-check`
+(40), `input-dock-check` (102), `page-view-check` (41), `form-sync-check` (30), `sheet-import-check` (40), `ribbon-check` (with `--lint`, 58),
+`ribbon-layout-check` (31), `fence-click-check`, `diagram-ribbon-check` (96), `diagram-samples-check` (58), `mermaid-check` (37),
+`shortcuts-check`, `locale-check` (67), `panels-check` (44), `panels-guide-check` (54), `python-check` (182), `settings-gear-check` (12),
+`settings-tabs-check` (100), `block-clipboard-check` (41), `i18n-check` (65), `i18n-english-check` (972 interface strings compared with the
+English snapshot; the snapshot was re-taken for this release because the Import spreadsheet button and the form-values setting added
+strings, and its version line was updated), `browser-check` (123 checks) and `verify-ribbon-snippets` (435 snippets run, 4 skipped, 0 failed);
+without a browser, `paper-default-check` (33 checks), `reference-check` (29), `sheet-import-logic-check` (82), `i18n-unit-check` (54 checks),
+`tools/i18n/check.mjs` (836 English keys; each of the five languages has 693 of them, 82.9%, with 12 length warnings) and
+`version-json-check`. On the build with the `/calcs/` base: `browser-check` (123 checks), `sample-link-check`, `pwa-check` (with
+`PWA_BASE=/calcs/`; the precache holds 608 files) and `learn-check` (720 links, 221 quoted engine values compared with a fresh run, 21 pages
+re-rendered) all passed, and `whats-new-check` (378 checks) passed. `embed-check` (41 checks, on the build with `CALCS_BASE=/`) passed.
+`seo-check` (3423 checks, 2305 internal links followed) passed on the guide built with `book/build.sh`, and the user guide's 146 examples all
+run (`book/check-examples.sh`, with the release `Cli`). `whats-new-browser-check` passed with all 82 clip files (131 checks). `md-edit-check`
+did not pass: its double-click on a Markdown paragraph in the preview times out because an iframe intercepts the pointer events, and it fails
+the same way on the 26.10.19 build on this machine, so it is not caused by this release's changes; it is not yet understood. The interface
+translations are machine drafts: no native speaker has reviewed them, and the new strings are not translated yet and show in English. Not run
+for this release: `plot3d-check`, `symbolic-check`, `import-check` and the other smaller checks. Not tested: a real phone, other browsers than
+headless Chromium, the MCP Worker in `mcp/`, `tsc` beyond the build, `clippy` on the whole workspace, `cargo fmt --check`.
 
 ## Checked at 26.10.19
 

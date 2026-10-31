@@ -513,6 +513,8 @@
    "@aria-label=Import",
    "@title=Bring in a worksheet from another calculation tool (.xmcd or .mcdx); it opens as a new worksheet",
    "Import worksheet",
+   "@title=Bring cells from an Excel or CSV file into the sheet as inputs, values and tables. Values are copied; nothing is recalculated or linked",
+   "Import spreadsheet",
    "Import",
    "@aria-label=Tidy",
    "@title=Indent the document consistently and remove trailing whitespace (the Prettify dialog)",
@@ -826,6 +828,9 @@
    "Apply #UI Values in Preview",
    "@title=Preview normally shows the document's own values. Turn this on to render it with the values entered into the input form instead, for tracking down an error that only appears once a form is filled in.",
    "ⓘ",
+   "Keep Input Form Values in the Source",
+   "@title=A value entered in the input form is written into the default on its line, so the source always shows the numbers the calculation uses. A line the form cannot rewrite (a later pass of a loop) keeps its entered value.",
+   "ⓘ",
    "Linter Minimum Severity:",
    "Error",
    "Warning",
@@ -982,7 +987,7 @@
    "Add library",
    "@placeholder=https://cdn.jsdelivr.net/npm/name@1.2.3/dist/name.min.js",
    "Fetch",
-   "CivilKit Calcs v26.10.19"
+   "CivilKit Calcs v26.10.20"
   ],
   "settingsHead": [
    "Settings",

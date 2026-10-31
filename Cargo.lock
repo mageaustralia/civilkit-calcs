@@ -73,7 +73,7 @@ checksum = "95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797"
 
 [[package]]
 name = "calcpad-caskit-wasm"
-version = "26.10.19"
+version = "26.10.20"
 dependencies = [
  "civilkit-calcs-caskit",
  "serde_json",
@@ -82,7 +82,7 @@ dependencies = [
 
 [[package]]
 name = "calcpad-cli"
-version = "26.10.19"
+version = "26.10.20"
 dependencies = [
  "civilkit-calcs-docx",
  "civilkit-calcs-engine",
@@ -90,7 +90,7 @@ dependencies = [
 
 [[package]]
 name = "calcpad-docx-wasm"
-version = "26.10.19"
+version = "26.10.20"
 dependencies = [
  "civilkit-calcs-docx",
  "civilkit-calcs-engine",
@@ -100,7 +100,7 @@ dependencies = [
 
 [[package]]
 name = "calcpad-highlighter-wasm"
-version = "26.10.19"
+version = "26.10.20"
 dependencies = [
  "civilkit-calcs-highlighter",
  "wasm-bindgen",
@@ -108,7 +108,7 @@ dependencies = [
 
 [[package]]
 name = "calcpad-import-wasm"
-version = "26.10.19"
+version = "26.10.20"
 dependencies = [
  "civilkit-calcs-import",
  "serde_json",
@@ -117,7 +117,7 @@ dependencies = [
 
 [[package]]
 name = "calcpad-linalg-wasm"
-version = "26.10.19"
+version = "26.10.20"
 dependencies = [
  "civilkit-calcs-engine",
  "serde_json",
@@ -126,7 +126,7 @@ dependencies = [
 
 [[package]]
 name = "calcpad-sheet-wasm"
-version = "26.10.19"
+version = "26.10.20"
 dependencies = [
  "civilkit-calcs-sheet",
  "wasm-bindgen",
@@ -134,7 +134,7 @@ dependencies = [
 
 [[package]]
 name = "calcpad-wasm"
-version = "26.10.19"
+version = "26.10.20"
 dependencies = [
  "civilkit-calcs-engine",
  "civilkit-calcs-highlighter",
@@ -180,7 +180,7 @@ dependencies = [
 
 [[package]]
 name = "civilkit-calcs-import"
-version = "26.10.19"
+version = "26.10.20"
 dependencies = [
  "civilkit-calcs-engine",
  "emf-core",
@@ -190,7 +190,7 @@ dependencies = [
 
 [[package]]
 name = "civilkit-calcs-sheet"
-version = "26.10.19"
+version = "26.10.20"
 dependencies = [
  "calcpad-wasm",
  "serde_json",

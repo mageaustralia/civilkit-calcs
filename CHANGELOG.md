@@ -11,15 +11,21 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+## [26.10.20] - 2026-10-31
+
 ### Added
 - **Import spreadsheet** - An Import spreadsheet button (Document tab, and the File menu) opens an Excel or CSV file in a panel with a tab for each sheet and a grid of its values. Pick a cell or a range and add it to the sheet as an input, a value, a table or one quantity per labelled row, with the name and unit guessed from the labels and editable first. The values are copied into plain sheet lines with a small source comment; formulas are not recalculated and nothing stays linked to the file.
 - **Base units** - `-> base` (`| base` in Calcpad) shows a result in SI base units: `M: F * L -> base` gives `10000 kg·m²/s²`. A value without a unit, or with a temperature or an angle in it, is left as it is.
 - **Quick reference** - A printable page of the sheet language at /calcs/reference/: every line kind and input, the functions, constants, operators and units of the engine, and a Print button.
 - **Page view** - A **Pages** button in the results bar (Preview and Report) lays the results out on sheets of the PDF's paper size, with the margins drawn, the manual page breaks honoured, a "Page 2 of 5" label on each sheet and the automatic page breaks shown, so a long report can be checked without printing it. It follows the PDF settings (and a document's own), is drawn in the light theme as it prints, fits a narrow window, and is screen only.
 - **Input form values in the source** - Input mode gets **Update defaults** (writes the entered values into the defaults of their input lines: numbers, the `*` of a drop-down or radio group, a checkbox, with a slider keeping its bounds), **Reset** (drops the entered values), and a faint `← form: 8` mark at the end of an input line whose entered value differs from its default, so the source never silently disagrees with the report. A new setting, Keep Input Form Values in the Source (Settings, Editor), writes each value into its line as it is entered. Off by default.
+- **What's new clips** - Five more clips on the What's new page for this release: Page view, input form values in the source, Import spreadsheet, base units and the quick reference.
 
 ### Changed
 - **PDF paper defaults to A4 outside North America** - Until a paper size is chosen in Settings (Export tab), the PDF, Print and Page view use Letter when the browser's region is the United States, Canada, Mexico, the Philippines, Chile, Colombia, Venezuela or Costa Rica, and A4 everywhere else. A size already saved in Settings is kept.
+
+### Fixed
+- **Base units in the editor** - A line ending in `-> base` was underlined with "Undefined unit: 'base'" by the editor's checker although the result was right; it is no longer flagged.
 
 ## [26.10.19] - 2026-10-30
 
