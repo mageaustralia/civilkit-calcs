@@ -1,4 +1,36 @@
 {
+  "26.10.20": [
+    {
+      "id": "page-view",
+      "title": "Page view",
+      "blurb": "A long report is checked without printing it. The Pages button in the results bar lays the report out on sheets of the PDF's paper size, with the margins drawn and a \"Page 2 of 3\" label on each sheet, and the automatic page breaks fall where the PDF will put them. Scrolled here through the pages of a floor beam report.",
+      "recorder": "37-page-view"
+    },
+    {
+      "id": "form-values-in-source",
+      "title": "Form values written into the source",
+      "blurb": "In Input mode the span is set to 8 m and the load to 15 kN/m in the form, and the values are saved. Back in the editor a faint mark at the end of each input line shows the value entered. Update defaults writes the values into the lines, and after another change Reset drops it and the form is back to what the source says.",
+      "recorder": "38-form-values-in-source"
+    },
+    {
+      "id": "import-spreadsheet",
+      "title": "Import spreadsheet",
+      "blurb": "Import spreadsheet opens an Excel file in a panel. Dragging over the three labelled loads and choosing Add labelled rows writes one line each, with the name, value and unit taken from the file; the span cell is then added as an input. The values are copied as plain lines with a small source comment, and nothing stays linked to the file.",
+      "recorder": "39-import-spreadsheet"
+    },
+    {
+      "id": "base-units",
+      "title": "Results in SI base units",
+      "blurb": "-> base shows a result in SI base units. A moment of 2 kN over 5 m is written as 10000 kg\u00b7m\u00b2/s\u00b2, and a pressure times an area comes out in the same base units.",
+      "recorder": "40-base-units"
+    },
+    {
+      "id": "quick-reference",
+      "title": "Quick reference page",
+      "blurb": "A page of the sheet language at /calcs/reference/: every line kind and input, the functions, constants, operators and units of the engine, on one page that prints. Scrolled here from the top.",
+      "recorder": "41-quick-reference"
+    }
+  ],
   "26.10.19": [
     {
       "id": "docked-inputs",
