@@ -61,6 +61,12 @@ Every line of a sheet is one of these.
 A line that looks like a quantity but is really prose (`Note: see the drawing`) is prose, because
 its right-hand side is not an expression. To force prose, start the line with a backslash.
 
+## A page to keep open
+
+The [quick reference](https://civilkit.io/calcs/reference/) puts the sheet language on one page that prints:
+every line kind and input, the functions, constants, operators and units of the engine. It has a Print button,
+and it is also what to hand to a colleague who has not used a sheet before.
+
 ## What a sheet cannot do
 
 * There is no symbolic algebra in the sheet itself. The engine is numeric. Use the

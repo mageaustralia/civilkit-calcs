@@ -339,7 +339,7 @@ Resources > Settings). It has five tabs:
 | General | Language, number format, and the appearance (colour theme, preview theme). |
 | Calculation | Decimals, angle units, complex numbers and the other math settings, plot defaults, US or UK units. |
 | Editor | Quick typing, comment format, formatting keys, auto-run, cursor sync, the linter. |
-| Export | The PDF page: paper size, orientation, margins, header and footer. |
+| Export | The PDF page: paper size (A4 or Letter by the browser's region until you choose one), orientation, margins, header and footer. |
 | Advanced | Script libraries, logging and limits, the server address, saved configurations. |
 
 The search box above the tabs looks through all of them and lists each match under its tab's name; clear it to
@@ -500,6 +500,12 @@ Every line of a sheet is one of these.
 
 A line that looks like a quantity but is really prose (`Note: see the drawing`) is prose, because
 its right-hand side is not an expression. To force prose, start the line with a backslash.
+
+## A page to keep open
+
+The [quick reference](https://civilkit.io/calcs/reference/) puts the sheet language on one page that prints:
+every line kind and input, the functions, constants, operators and units of the engine. It has a Print button,
+and it is also what to hand to a colleague who has not used a sheet before.
 
 ## What a sheet cannot do
 
@@ -6028,6 +6034,8 @@ The workbook opens in LibreOffice and a Python reader. It has not been tried in 
 
 **Print PDF** opens the browser's print dialog on the report. Choose "Save as PDF" as the destination.
 The page size, orientation and margins come from the PDF settings (Settings, Export tab; Document > Header and footer opens it there).
+Until you choose a paper size there, it follows the browser's language: Letter in the United States, Canada, Mexico, the Philippines, Chile,
+Colombia, Venezuela and Costa Rica, and A4 everywhere else. A size you have chosen is kept.
 The printed page carries the browser's own header and footer in place of title, date and page
 numbers; turn "Headers and footers" off in the print dialog if you do not want them.
 
