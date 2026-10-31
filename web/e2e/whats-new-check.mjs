@@ -37,7 +37,7 @@ let ld = null;
 try { ld = JSON.parse(ldText); } catch { /* reported below */ }
 check(ld && ld['@type'] === 'CollectionPage' && ld.url === CANONICAL, 'JSON-LD parses as a CollectionPage with the page URL');
 check(ld && ld.mainEntity.itemListElement.length === releases.length && ld.mainEntity.itemListElement.every((e, i) => e.url === `${CANONICAL}#${anchor(releases[i].version)}`), `JSON-LD lists the ${releases.length} releases with their anchors`);
-check((html.match(/<script/g) ?? []).length === 2 && html.includes('<script src="whats-new.js" defer></script>'), 'the only scripts are the JSON-LD and the same-folder hover-to-play script');
+check((html.match(/<script/g) ?? []).length === 3 && html.includes('<script src="whats-new.js" defer></script>') && html.includes('<script src="../zoom/video-zoom.js" defer></script>'), 'the only scripts are the JSON-LD, the same-folder hover-to-play script and the shared click-to-enlarge script');
 
 // ---- the releases shown are all of them ------------------------------------------------------------------------
 check(releases.length >= 12, `the changelog has ${releases.length} releases to show`);

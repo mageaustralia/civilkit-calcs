@@ -57,6 +57,8 @@ videos are recorded from the scripts in the `book/videos` folder of the source.
 
 ## The videos
 
+Each video has an **Enlarge** button in its top right corner that opens it large over the page; Esc closes it again.
+
 | Video | Length | Chapter |
 | --- | --- | --- |
 | 1. Your first calculation in five minutes | 85 seconds | [Your first sheet in five minutes](getting-started/first-sheet.md) |

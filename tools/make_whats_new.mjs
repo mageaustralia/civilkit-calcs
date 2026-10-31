@@ -161,6 +161,8 @@ export function buildPage(changelog, manifest) {
 <meta name="color-scheme" content="light dark">
 <link rel="canonical" href="${CANONICAL}">
 <link rel="stylesheet" href="whats-new.css">
+<link rel="stylesheet" href="../zoom/video-zoom.css">
+<script src="../zoom/video-zoom.js" defer></script>
 <script src="whats-new.js" defer></script>
 <link rel="icon" href="../icon-192.png" sizes="192x192">
 <meta property="og:type" content="website">
@@ -190,7 +192,7 @@ ${JSON.stringify(ld, null, 1)}
 </header>
 <main id="main">
 <h1>What's new in CivilKit Calcs</h1>
-<p class="lead">A short clip of the headline features of each release, then everything the release changed. The clips are a few seconds long, silent and loop; they were recorded from the app itself.</p>
+<p class="lead">A short clip of the headline features of each release, then everything the release changed. The clips are a few seconds long, silent and loop; they were recorded from the app itself. Click a clip to enlarge it.</p>
 <div class="cta">
 <a class="button" href="../">Open CivilKit Calcs</a>
 <a class="button ghost" href="${GITHUB}/blob/main/CHANGELOG.md">Full changelog</a>

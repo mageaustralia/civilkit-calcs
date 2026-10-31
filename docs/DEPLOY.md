@@ -155,6 +155,11 @@ under the key `"Unreleased"` in `clips.json`: they are left off the page until t
 changelog, rename the key to the new version, record the clips so their posters land in `public/whats-new/posters/`, commit
 the posters and run the generator again.
 
+Clicking a clip, or the Enlarge button on a guide video, opens it in a lightbox. The one shared script and stylesheet are
+`web/calcpad-web/public/zoom/video-zoom.js` and `video-zoom.css` (served at `/calcs/zoom/`, same origin, no dependencies):
+the What's new page links them with a relative path, the guide through `book/theme/head.hbs`. The lightbox shows a clip at its
+own pixel size at most. `node e2e/video-zoom-check.mjs --clips DIR [--book ../target/book] [--shots DIR]` checks it.
+
 The clips themselves are short WebM (VP9) files with an H.264 MP4 fallback for Safari. They are **not committed** (they are
 ignored, like the guide's videos) and they are **not part of the GitHub Pages deploy**: the page works without them and shows the
 poster image of each clip. The recorders drive the real app in headless Chromium:

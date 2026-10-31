@@ -11,6 +11,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Added
+- **Click to enlarge on What's new clips and guide videos** - Click or tap a clip on the What's new page, press Enter or Space on it, or use the Enlarge button on a guide video, to open it in a lightbox at the clip's own pixel size (smaller only to fit the window, full width on a phone) with the video controls, the title and caption. Esc, a click outside or the Close button dismisses it; the arrow keys (and on-screen buttons) step to the previous or next clip; focus is kept inside and returned to the clip; a clip stays paused until played when the system asks for reduced motion. One shared script and stylesheet (`/calcs/zoom/`), no dependencies.
+
 ## [26.10.20] - 2026-10-31
 
 ### Added

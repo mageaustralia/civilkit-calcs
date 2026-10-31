@@ -2,7 +2,7 @@
 //   node e2e/whats-new-browser-check.mjs [--clips DIR] [--shots DIR] [--port 4195]
 // Serves calcpad-web/public (so the page is at /whats-new/). Without clips the page must look right from the posters
 // alone; with them (--clips, the folder record.mjs wrote) every <video> must play, advance and loop, and the hover-to-play
-// script must play every clip on hover, keyboard focus and tap, one at a time.
+// script must play every clip on hover and keyboard focus, one at a time, and a tap or Enter must open the enlarged view.
 import { createServer } from 'node:http';
 import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
@@ -162,7 +162,8 @@ if (clipsDir) {
         await pg.keyboard.press('Enter');
         await wait(pg, 300);
         s = await state(pg);
-        check(s[1].paused, 'keyboard: Enter stops it again');
+        check(s[1].paused && (await pg.locator('.vz-back').count()) === 1, 'keyboard: Enter opens the enlarged view and the thumbnail stops (zoom: e2e/video-zoom-check.mjs)');
+        await pg.keyboard.press('Escape');
         check(errs.length === 0, `hover: no page errors${errs[0] ? ': ' + errs[0] : ''}`);
         await hc.close();
     }
@@ -176,15 +177,14 @@ if (clipsDir) {
             const fr = pg.locator(`#clip-${id} .frame`);
             await fr.scrollIntoViewIfNeeded();
             await fr.tap();
-            let s = [];
-            for (let i = 0; i < 80; i++) { await wait(pg, 100); s = await state(pg); if (s.find((x) => x.id === id).t > 0.5) break; }
-            const me = s.find((x) => x.id === id);
-            if (!(me.t > 0.5 && !me.paused && s.filter((x) => !x.paused).length === 1)) bad.push(`${id} (t ${me.t.toFixed(2)}, error ${me.err})`);
+            await pg.waitForSelector('.vz-back', { timeout: 5000 });
+            let t = 0;
+            for (let i = 0; i < 80 && t <= 0.5; i++) { await wait(pg, 100); t = await pg.$eval('.vz-video', (v) => v.currentTime); }
+            const s = await state(pg);
+            if (!(t > 0.5 && s.every((x) => x.paused))) bad.push(`${id} (enlarged t ${t.toFixed(2)})`);
+            await pg.keyboard.press('Escape');
         }
-        check(!bad.length, `tap: a tap plays each of the ${ids.length} clips and stops the one before${bad.length ? ': ' + bad.join('; ') : ''}`);
-        await pg.locator(`#clip-${ids[ids.length - 1]} .frame`).tap();
-        await wait(pg, 300);
-        check((await state(pg)).every((x) => x.paused), 'tap: a second tap stops it');
+        check(!bad.length, `tap: a tap enlarges each of the ${ids.length} clips, which plays there while the thumbnails stay still${bad.length ? ': ' + bad.join('; ') : ''}`);
         await tc.close();
     }
     // reduced motion: the still replaces the video
