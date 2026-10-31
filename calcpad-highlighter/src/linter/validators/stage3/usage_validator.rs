@@ -348,7 +348,9 @@ fn validate_undefined_units(stage3: &Stage3Context, result: &mut LinterResult, t
                 continue;
             }
             let unit = &token.text;
-            let valid = builtins::units().contains(unit) || stage3.custom_units.contains(unit);
+            let valid = builtins::units().contains(unit)
+                || stage3.custom_units.contains(unit)
+                || is_base_units_target(line, token.column);
             if !valid {
                 result.add_error(
                     i,
@@ -360,6 +362,16 @@ fn validate_undefined_units(stage3: &Stage3Context, result: &mut LinterResult, t
             }
         }
     }
+}
+
+/// `|base` after an expression asks for the result in SI base units (a target, not a unit name).
+fn is_base_units_target(line: &str, column: i32) -> bool {
+    let chars: Vec<char> = line.chars().collect();
+    let end = column.max(0) as usize;
+    if end > chars.len() || chars[end..].iter().take(4).collect::<String>() != "base" {
+        return false;
+    }
+    chars[..end].iter().rev().find(|c| !c.is_whitespace()) == Some(&'|')
 }
 
 fn get_command_scope_variables(line: &[char], tokens: &[Token]) -> StrSet {
