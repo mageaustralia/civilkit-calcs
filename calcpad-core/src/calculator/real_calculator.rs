@@ -42,7 +42,7 @@ pub fn evaluate_function(calc: &Calculator, index: i64, a: &RealValue) -> CResul
         9 => {
             check_trig_function_units("acsc", &a.units)?;
             if a.d == 0.0 {
-                RealValue::POSITIVE_INFINITY
+                calc.to_angle_units_real(f64::INFINITY)?
             } else {
                 calc.to_angle_units_real((1.0 / a.d).asin())?
             }
@@ -50,7 +50,7 @@ pub fn evaluate_function(calc: &Calculator, index: i64, a: &RealValue) -> CResul
         10 => {
             check_trig_function_units("asec", &a.units)?;
             if a.d == 0.0 {
-                RealValue::POSITIVE_INFINITY
+                calc.to_angle_units_real(f64::INFINITY)?
             } else {
                 calc.to_angle_units_real((1.0 / a.d).acos())?
             }

@@ -527,6 +527,11 @@ impl<'a> MacroParser<'a> {
                     if c == ')' {
                         break;
                     }
+                    if i + 1 >= len {
+                        // The line ends before the closing bracket; without this the loop never advances.
+                        self.append_error(st, line_content, messages::Brackets_not_closed, add_line_numbers);
+                        break;
+                    }
                     c = eat_space(&chars, &mut i);
                     let _ = c;
                     ts_start = i;

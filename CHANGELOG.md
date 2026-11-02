@@ -14,6 +14,11 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ### Added
 - **Click to enlarge on What's new clips and guide videos** - Click or tap a clip on the What's new page, press Enter or Space on it, or use the Enlarge button on a guide video, to open it in a lightbox at the clip's own pixel size (smaller only to fit the window, full width on a phone) with the video controls, the title and caption. Esc, a click outside or the Close button dismisses it; the arrow keys (and on-screen buttons) step to the previous or next clip; focus is kept inside and returned to the clip; a clip stays paused until played when the system asks for reduced motion. One shared script and stylesheet (`/calcs/zoom/`), no dependencies.
 
+### Fixed
+- **A macro whose parameter list is not closed no longer hangs** - `#def m$(a$` with no closing bracket looped forever; it now reports "Brackets not closed" on that line and the rest of the sheet carries on.
+- **`asec(0)` and `acsc(0)` carry the angle unit** - With angle units returned they give `+∞` in the current angle unit instead of a bare `+∞`, like the other inverse trigonometric functions.
+- **Redefining a built-in function names it** - `sin(x) = x` says `"sin" is a built-in function and cannot be redefined` instead of a general message about the assignment.
+
 ## [26.10.20] - 2026-10-31
 
 ### Added

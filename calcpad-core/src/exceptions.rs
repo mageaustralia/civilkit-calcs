@@ -394,6 +394,14 @@ pub fn RecursionNotAllowed(s: &str) -> MathParserException {
     )
 }
 
+pub fn BuiltInFunctionRedefined(name: &str) -> MathParserException {
+    MathParserException::coded(
+        "Name_0_is_a_built_in_function_and_cannot_be_redefined",
+        messages::Name_0_is_a_built_in_function_and_cannot_be_redefined,
+        &[name],
+    )
+}
+
 pub fn AssignmentPreceded() -> MathParserException {
     MathParserException::coded(
         "The_assignment_equals_must_be_preceded_by_custom_function_or_variable",

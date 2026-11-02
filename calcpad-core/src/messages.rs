@@ -63,6 +63,8 @@ pub const Recursion_is_not_allowed_in_function_definition_0: &str =
     "Recursion is not allowed in function definition: \"{0}\".";
 pub const The_assignment_equals_must_be_preceded_by_custom_function_or_variable: &str =
     "The assignment '=' must be preceded by custom function or variable.";
+pub const Name_0_is_a_built_in_function_and_cannot_be_redefined: &str =
+    "\"{0}\" is a built-in function and cannot be redefined.";
 pub const Assignment_equals_must_be_the_first_operator_in_the_expression: &str =
     "Assignment '=' must be the first operator in the expression.";
 pub const Invalid_syntax_0_1: &str = "Invalid syntax: \"{0} {1}\".";

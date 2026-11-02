@@ -255,6 +255,9 @@ impl MathParser {
                                 && ftt != TokenTypes::Matrix
                                 && ftt != TokenTypes::Array
                             {
+                                if ftt == TokenTypes::Function {
+                                    return Err(exceptions::BuiltInFunctionRedefined(&first_token.borrow().content));
+                                }
                                 return Err(exceptions::AssignmentPreceded());
                             } else if count_of_operators != 1 {
                                 return Err(exceptions::AssignmentNotFirst());
