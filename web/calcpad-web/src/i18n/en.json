@@ -148,6 +148,7 @@
   "msg.Missing_vector_closing_bracket": "Missing vector closing bracket \"]\".",
   "msg.Missing_vector_opening_bracket": "Missing vector opening bracket \"[\".",
   "msg.More_than_one_operator_equals_in_0": "More than one operators '=' in '{0}'.",
+  "msg.Name_0_is_a_built_in_function_and_cannot_be_redefined": "\"{0}\" is a built-in function and cannot be redefined.",
   "msg.No_solution_for_0": "No solution for: {0}.",
   "msg.Path_not_found_0": "Path not found: {0}.",
   "msg.PossiblyInfiniteLoopDetected": "Possibly infinite loop detected, n > {0} iterations.",
