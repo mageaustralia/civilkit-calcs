@@ -1,6 +1,6 @@
 // Hover to play: a clip shows its poster until a mouse is over it (or it has keyboard focus, or is tapped on a touch
 // screen), plays while it is, and goes back to the poster when it leaves. Only one clip plays at a time. Without this
-// script the posters show.
+// script the posters show. Clicking a clip enlarges it (../zoom/video-zoom.js, shared with the guide).
 (function () {
   var reduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   var current = null;        // the clip playing now: { frame, stop }
@@ -58,13 +58,18 @@
 
     frame.addEventListener('pointerenter', function (e) { if (isMouse(e)) play(); });
     frame.addEventListener('pointerleave', function (e) { if (isMouse(e) && current === clip) stop(); });
+    // With the click-to-enlarge script (../zoom/video-zoom.js) a click, tap or Enter opens the clip in a lightbox instead,
+    // and the preview stops while it is open. Without it a tap toggles the clip as before.
+    frame.addEventListener('vz-open', function () { stop(); });
     frame.addEventListener('click', function (e) {
+      if (window.CivilKitZoom) return;
       // A tap toggles; a mouse click starts a clip that is not playing (it is already playing under the pointer).
       if (fromPointer() && (pointerType === 'mouse' || pointerType === 'pen')) { if (current !== clip) play(); }
       else toggle();
       e.preventDefault();
     });
     frame.addEventListener('keydown', function (e) {
+      if (window.CivilKitZoom) return;
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); toggle(); }
     });
     frame.addEventListener('focus', function () { if (!fromPointer()) play(); });   // keyboard focus only
