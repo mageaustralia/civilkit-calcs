@@ -11,6 +11,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Changed
+- **Import worksheet says the file is not uploaded** - The button's tooltip now states that a `.xmcd` or `.mcdx` file is converted in the browser and never uploaded; the README opens with a short note for people coming from other calculation tools.
+
 ## [26.10.21] - 2026-11-03
 
 ### Added

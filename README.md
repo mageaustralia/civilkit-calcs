@@ -13,6 +13,13 @@ WebAssembly, and no calculation request leaves the browser.
 
 Status: early. The project is not affiliated with the authors of CalcpadCE.
 
+**Coming from Mathcad?** Drop a `.xmcd` or `.mcdx` worksheet on the page and it converts to a live sheet in your
+browser. Most of a worksheet converts, and the report lists what did not (add-in libraries, embedded objects and some
+programs). The file is read in the page and never uploaded, and you need no Mathcad licence to open or run the result.
+See [Importing foreign worksheets](#importing-foreign-worksheets) and the
+[converter page](https://civilkit.io/calcs/learn/mathcad-worksheet-converter/). Mathcad is a trademark of its owner;
+this project is a free alternative and is not affiliated with or endorsed by it.
+
 ## What we changed
 
 * **Sheets:** a plain-text way to write a calculation, Markdown prose with `name: expression -> unit | note` lines, that compiles to the Calcpad language and runs on the same engine ([docs/sheet-syntax.md](docs/sheet-syntax.md)).
