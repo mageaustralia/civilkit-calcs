@@ -1,0 +1,47 @@
+/* The ribbon's icon palette and roles (see ribbon-icons.ts). The colours are those of the CivilKit icon style shared with the CAD
+   app: neutral faces, an ink for outlines, a guide grey, and an accent ramp. Dark is the default, as in the theme tokens. */
+.rb{--sc-ink:#1f2021;--sc-guide:#8093a4;--sc-gap:var(--ck-raised,#1b1f27);
+  --sc-p1:#8da3c3;--sc-p2:#6d81a2;--sc-p3:#546782;
+  --sc-a1:#4ea1dc;--sc-a2:#3287d1;--sc-a3:#4da3ff}
+.rb svg[data-sc="sketch"]{--sc-a1:#7ab792;--sc-a2:#3a965e;--sc-a3:#3fb950}
+.rb svg[data-sc="surface"]{--sc-a1:#cc9362;--sc-a2:#bd750d;--sc-a3:#d4a72c}
+.rb svg[data-sc="constraint"]{--sc-a1:#b98c88;--sc-a2:#c27267;--sc-a3:#f85149}
+:root[data-theme="light"] .rb{--sc-ink:#34465b;--sc-guide:#6f879c;--sc-p1:#e2e8ef;--sc-p2:#b8c3cf;--sc-p3:#8e9faf;--sc-a1:#b9ddf8;--sc-a2:#328bd3;--sc-a3:#236ead}
+:root[data-theme="light"] .rb svg[data-sc="sketch"]{--sc-a1:#bfe2cc;--sc-a2:#439a65;--sc-a3:#057f45}
+:root[data-theme="light"] .rb svg[data-sc="surface"]{--sc-a1:#f1d2af;--sc-a2:#c06f00;--sc-a3:#a45000}
+:root[data-theme="light"] .rb svg[data-sc="constraint"]{--sc-a1:#f0cfca;--sc-a2:#c1685f;--sc-a3:#ca473d}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]) .rb{--sc-ink:#34465b;--sc-guide:#6f879c;--sc-p1:#e2e8ef;--sc-p2:#b8c3cf;--sc-p3:#8e9faf;--sc-a1:#b9ddf8;--sc-a2:#328bd3;--sc-a3:#236ead}
+  :root:not([data-theme="dark"]) .rb svg[data-sc="sketch"]{--sc-a1:#bfe2cc;--sc-a2:#439a65;--sc-a3:#057f45}
+  :root:not([data-theme="dark"]) .rb svg[data-sc="surface"]{--sc-a1:#f1d2af;--sc-a2:#c06f00;--sc-a3:#a45000}
+  :root:not([data-theme="dark"]) .rb svg[data-sc="constraint"]{--sc-a1:#f0cfca;--sc-a2:#c1685f;--sc-a3:#ca473d}
+}
+/* big (32 grid) and small (24 grid) icons: round caps and joins, then the roles */
+.rb-ic,.rb-sm{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.rb-ic{color:var(--ck-text-2)}
+.rb-big:hover .rb-ic,.rb-big.on .rb-ic,.rb-big:focus-visible .rb-ic{color:var(--ck-accent)}
+.rb-ic .ln,.rb-ic .ln2{stroke:currentColor;stroke-width:2.1}
+.rb-ic .hv{stroke-width:3}
+.rb-ic .tn{stroke:currentColor;stroke-width:1.4}
+.rb-ic .ac,.rb-ic .as{stroke:var(--sc-a3);stroke-width:2.1}
+.rb-ic .at{stroke:var(--sc-a3);stroke-width:1.5}
+.rb-ic .da{stroke-dasharray:3 3}
+.rb-ic .si{stroke:var(--sc-ink);stroke-width:2.1}
+.rb-ic .sl,.rb-sm .sl{stroke:var(--sc-ink);stroke-width:1.3}
+.rb-ic .gd,.rb-sm .gd{stroke:var(--sc-guide);stroke-width:1.3}
+.rb-ic .s,.rb-sm .s{stroke:var(--sc-ink);stroke-width:1.3}
+.rb-ic .f1,.rb-sm .f1{fill:var(--sc-p1)}.rb-ic .f2{fill:var(--sc-p2)}.rb-ic .f3{fill:var(--sc-p3)}
+.rb-ic .b1{fill:var(--sc-a1)}.rb-ic .b2{fill:var(--sc-a2)}.rb-ic .b3{fill:var(--sc-a3)}
+.rb-ic .q,.rb-sm .q{fill:var(--sc-a1);stroke:var(--sc-a3);stroke-width:2.1}
+.rb-ic .af,.rb-sm .af{fill:var(--sc-a3);stroke:none}
+.rb-ic .ik{fill:currentColor;stroke:none}.rb-ic .fe{fill-rule:evenodd}.rb-ic .gr,.rb-sm .gr{fill-rule:evenodd;stroke:currentColor;stroke-width:1;fill:currentColor}
+.rb-ic .ad,.rb-sm .ad{stroke:var(--sc-a3)}
+.rb-ic .wh{fill:var(--sc-gap);stroke:none}
+.rb-ic .wl{stroke:var(--sc-gap);stroke-width:5.800}.rb-ic .wf{fill:var(--sc-gap);stroke:var(--sc-gap);stroke-width:3}
+.rb-ic .as{stroke-width:2.800}.rb-ic .ah{fill:var(--sc-a3);stroke:var(--sc-a3);stroke-width:1}
+/* small icons */
+.rb-sm{stroke:currentColor;stroke-width:1.7}
+.rb-sm .sf{fill:var(--sc-p1);stroke:var(--sc-ink);stroke-width:1.3}
+.rb-sm .a{stroke:var(--sc-a3)}
+.rb-sm .q{stroke-width:1.7}
+.rb-ic .nk{fill:var(--sc-ink);stroke:none}

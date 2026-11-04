@@ -21,7 +21,7 @@ for (const theme of ['light', 'dark']) {
         const wrap = document.createElement('div');
         wrap.className = 'rb';
         wrap.style.cssText = `position:fixed;inset:0;z-index:9999;overflow:auto;padding:16px;background:${bg};color:${fg};font:12px sans-serif`;
-        const cell = (name, svg, size, vb, stroke) => `<div style="display:flex;flex-direction:column;align-items:center;width:84px;margin:6px 0"><svg ${stroke ? 'class="" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"' : 'class="rb-ic"'} viewBox="${vb}" width="${size}" height="${size}">${svg}</svg><span style="margin-top:4px;font-size:10px">${name}</span></div>`;
+        const cell = (name, svg, size, vb, stroke) => `<div style="display:flex;flex-direction:column;align-items:center;width:84px;margin:6px 0"><svg ${stroke ? 'class="rb-sm"' : 'class="rb-ic"'} viewBox="${vb}" width="${size}" height="${size}">${svg}</svg><span style="margin-top:4px;font-size:10px">${name}</span></div>`;
         wrap.innerHTML = `<h3 style="margin:0 0 8px">Big icons (32px, ${Object.keys(big).length})</h3><div style="display:flex;flex-wrap:wrap">${Object.entries(big).map(([n, s]) => cell(n, s, 32, '0 0 32 32', false)).join('')}</div>` +
             `<h3 style="margin:14px 0 8px">Small icons (16px, ${Object.keys(small).length})</h3><div style="display:flex;flex-wrap:wrap">${Object.entries(small).map(([n, s]) => cell(n, s, 16, '0 0 24 24', true)).join('')}</div>`;
         document.body.appendChild(wrap);

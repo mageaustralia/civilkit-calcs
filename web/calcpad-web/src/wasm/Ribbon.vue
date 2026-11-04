@@ -3,19 +3,16 @@
     <div class="rb-quick">
       <button class="rb-file" data-ribbon-btn="file" :title="td('ribbon.file.title', undefined, 'File: recent worksheets, the library, samples, save and export')"
         @mousedown.prevent @click="fire(FILE, $event)">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
-          stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL.menu"></svg><span>{{ btnLabel(FILE) }}</span>
+        <svg class="rb-sm" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" v-html="ICONS_SMALL.menu"></svg><span>{{ btnLabel(FILE) }}</span>
       </button>
       <button v-for="b in QUICK" :key="b.id" class="rb-q" :title="tip(btnTitle(b))" :aria-label="btnLabel(b)"
         :data-ribbon-btn="b.id" @mousedown.prevent @click="fire(b, $event)">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
-          stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL[b.icon!]"></svg>
+        <svg class="rb-sm" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" v-html="ICONS_SMALL[b.icon!]"></svg>
       </button>
       <span class="rb-spacer"></span>
       <button class="rb-q rb-gear" :title="tip(btnTitle(GEAR))" :aria-label="btnLabel(GEAR)"
         :data-ribbon-btn="GEAR.id" @mousedown.prevent @click="fire(GEAR, $event)">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
-          stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL.settings"></svg>
+        <svg class="rb-sm" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" v-html="ICONS_SMALL.settings"></svg>
       </button>
     </div>
     <div class="rb-tabs" role="tablist">
@@ -29,15 +26,14 @@
             <button v-if="cell.big" class="rb-big" :class="{ on: isOn(cell.big), 'rb-raw': isRaw(cell.big) }" :title="tip(btnTitle(cell.big)) + (isRaw(cell.big) ? rawNote() : '')"
               :aria-haspopup="hasPop(cell.big) ? 'dialog' : undefined" :aria-expanded="hasPop(cell.big) ? pop?.id === cell.big.id : undefined"
               :data-ribbon-btn="cell.big.id" @mousedown.prevent @click="fire(cell.big, $event)">
-              <svg class="rb-ic" viewBox="0 0 32 32" width="32" height="32" v-html="ICONS_BIG[cell.big.icon!] ?? ICONS_BIG.cube"></svg>
+              <svg class="rb-ic" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" :data-sc="ACCENT[cell.big.icon!]" v-html="ICONS_BIG[cell.big.icon!] ?? ICONS_BIG.cube"></svg>
               <span class="rb-label">{{ btnLabel(cell.big) }}<i v-if="cell.big.palette || cell.big.more" class="rb-caret"></i></span>
             </button>
             <div v-else class="rb-stack">
               <button v-for="b in cell.stack" :key="b.id" class="rb-small" :class="{ on: isOn(b), 'rb-raw': isRaw(b) }" :title="tip(btnTitle(b)) + (isRaw(b) ? rawNote() : '')"
                 :aria-haspopup="hasPop(b) ? 'dialog' : undefined" :aria-expanded="hasPop(b) ? pop?.id === b.id : undefined"
                 :data-ribbon-btn="b.id" @mousedown.prevent @click="fire(b, $event)">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
-                  stroke-linecap="round" stroke-linejoin="round" v-html="ICONS_SMALL[b.icon!]"></svg>
+                <svg class="rb-sm" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" v-html="ICONS_SMALL[b.icon!]"></svg>
                 <span>{{ btnLabel(b) }}</span><i v-if="b.palette || b.more" class="rb-caret"></i>
               </button>
             </div>
@@ -65,7 +61,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { GEAR, MORE, QUICK, RIBBON } from './ribbon-data';
 import type { Entry, RibbonButton, RibbonGroup, Section } from './ribbon-data';
-import { ICONS_BIG, ICONS_SMALL } from './ribbon-icons';
+import { ACCENT, ICONS_BIG, ICONS_SMALL } from './ribbon-icons';
+import './ribbon-icons.css';
 import { insertLibrarySnippet, loadSnippets, sectionsFor } from './ribbon-snippets';
 import type { Snip } from './ribbon-snippets';
 import { insertDiagram, insertSnippet, isActive, isSheetEditor, runAction } from './ribbon-actions';
@@ -234,12 +231,7 @@ onBeforeUnmount(() => {
   background:var(--ck-raised);color:var(--vscode-foreground,#333);
   border-bottom:1px solid var(--ck-line)}
 .rb svg{flex:none}
-.rb{--rb-ic-main:transparent;--rb-ic-hi:var(--ck-accent-soft);--rb-ic-lo:transparent;--rb-ic-line:var(--ck-text-2);--rb-ic-ink:var(--ck-text-2);--rb-ic-acc:var(--ck-accent)}
-.rb-big:hover .rb-ic,.rb-big.on .rb-ic,.rb-big:focus-visible .rb-ic{--rb-ic-line:var(--ck-accent);--rb-ic-ink:var(--ck-accent)}
 .rb svg:not(.rb-ic){color:var(--ck-text-2)}.rb-q:hover svg,.rb-small:hover svg,.rb-small.on svg,.rb-q:focus-visible svg{color:var(--ck-accent)}
-.rb-ic .m{fill:var(--rb-ic-main)}.rb-ic .h{fill:var(--rb-ic-hi)}.rb-ic .l{fill:var(--rb-ic-lo)}.rb-ic .a{fill:var(--rb-ic-acc)}.rb-ic .k{fill:var(--rb-ic-ink)}
-.rb-ic .o,.rb-ic .w,.rb-ic .x{fill:none;stroke-linecap:round;stroke-linejoin:round}
-.rb-ic .o{stroke:var(--rb-ic-line);stroke-width:1.2}.rb-ic .w{stroke:var(--rb-ic-ink);stroke-width:1.7}.rb-ic .x{stroke:var(--rb-ic-ink);stroke-width:.9;opacity:.65}
 .rb-quick{display:flex;align-items:center;gap:2px;height:30px;padding:0 6px;
   background:var(--vscode-titleBar-activeBackground,var(--vscode-sideBar-background,#f3f3f3))}
 .rb-file{display:flex;align-items:center;gap:6px;height:24px;padding:0 12px 0 8px;margin-right:6px;border:1px solid var(--vscode-focusBorder,#0060c0);
