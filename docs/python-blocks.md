@@ -134,10 +134,11 @@ and chart scripts make no network requests). The first figure of a page download
 - **Light and dark.** The page applies a Plotly template: transparent paper and plot area, text, grid, zero line, menus, sliders and modebar
   in colours for the page's light or dark theme. A property the figure sets itself (`paper_bgcolor`, `font`, an axis `gridcolor`, ...) wins.
   The chart does not get the white card the dark theme paints behind other drawings.
-- **Print, PDF, Word and Excel.** None of them can run Plotly.js, so the figure is not carried. The worksheet shows a paragraph where the
-  chart stood: "Interactive chart: TITLE. It is drawn in the browser and is not carried by print or export." (the title is the figure's
-  `layout.title`). If a printout needs the picture, draw a static copy with matplotlib as well, as the other Python samples do. The Code
-  ("Unwrapped") view lists the text the engine reads.
+- **Print, PDF, Word and Excel.** None of them can run Plotly.js, so the page that drew the chart sends the host a still image of it
+  (light theme, no menus or sliders, at the view you left it in), and print, Word and Excel carry that image. A chart that was never drawn
+  in this session (no connection, or Plotly is not on the library list) has no image: the worksheet shows a paragraph where the chart stood,
+  "Interactive chart: TITLE. It is drawn in the browser and is not carried by print or export." (the title is the figure's `layout.title`).
+  Open the sheet and let the chart draw before you print or export. The Code ("Unwrapped") view lists the text the engine reads.
 - **Size.** The figure travels inside the worksheet text (base64), capped at 4 MB of figure JSON per run and 20 figures and drawings together.
   Precomputed slider steps are the big part: the beam sample's 31 load factor steps make its figure 190 kB. A control that rescales a diagram
   needs one set of y values per step.

@@ -31,7 +31,7 @@ import { hasMermaid, renderMermaid } from './sheet-mermaid';
 import { findPythonBlocks, hasPythonBlock, pythonErrors, remapErrors as remapPythonErrors, remapPage, resolvePythonLines, substitute, type BlockResult, type EngineError } from './python-blocks';
 import { BLOCK_MS, LONG_BLOCK_MS, PythonRunner } from './python-runner';
 import { askLongerLimit, mayRunPython } from './python-consent';
-import { plotlyForExport, plotlyPage } from './python-plotly';
+import { plotlyForExport, plotlyPage, withFigureImages } from './python-plotly';
 import { panelForExport, panelPage, panelSeed, rememberRun } from './python-panels';
 
 const API_PREFIX = '/api/calcpad/';
@@ -572,7 +572,7 @@ export function installWasmTransport(): WasmTransport {
             };
             if (out.status) return new Response(out.error ?? '', { status: out.status });
             let html = out.html ?? '';
-            if (pyE) html = plotlyForExport(panelForExport(resolvePythonLines(html, n => (shE ? sheetLine(shE.sheet, n) : n))));
+            if (pyE) html = plotlyForExport(withFigureImages(panelForExport(resolvePythonLines(html, n => (shE ? sheetLine(shE.sheet, n) : n)))));
             if (transport.resolveFile) html = libraryImages(html, transport.resolveFile);
             if (out.files?.length && transport.onFilesWritten) {
                 transport.onFilesWritten(out.files.map(f => ({ path: f.path, data: fromBase64(f.data) })));
@@ -628,7 +628,7 @@ export function installWasmTransport(): WasmTransport {
                 return new Response('The worksheet could not be calculated (check it for macro errors).', { status: 422 });
             }
             let html = out.html ?? '';
-            if (pyE) html = plotlyForExport(panelForExport(resolvePythonLines(html, n => (shE ? sheetLine(shE.sheet, n) : n))));
+            if (pyE) html = plotlyForExport(withFigureImages(panelForExport(resolvePythonLines(html, n => (shE ? sheetLine(shE.sheet, n) : n)))));
             if (transport.resolveFile) html = libraryImages(html, transport.resolveFile);
             // The Report sheet's text follows the number format; the Variables sheets keep real numbers.
             const nf = activeFormat();

@@ -4,6 +4,8 @@
 // server's own header and footer (title, date, page numbers) are not drawn: the browser's
 // print dialog offers its own.
 
+import { withFigureImages } from './python-plotly';
+
 export interface PrintOptions {
     format?: string;
     orientation?: string;
@@ -73,7 +75,7 @@ export function printHtml(html: string, options: PrintOptions = {}): Promise<voi
     let page = html;
     const head = pageRule(options) + (options.documentTitle ? `<title>${escapeHtml(options.documentTitle)}</title>` : '');
     const i = page.toLowerCase().indexOf('</head>');
-    page = sanitizeForPrint(i >= 0 ? page.slice(0, i) + head + page.slice(i) : head + page);
+    page = sanitizeForPrint(withFigureImages(i >= 0 ? page.slice(0, i) + head + page.slice(i) : head + page));
     return new Promise<void>((resolve) => {
         const frame = document.createElement('iframe');
         frame.setAttribute('sandbox', PRINT_SANDBOX);

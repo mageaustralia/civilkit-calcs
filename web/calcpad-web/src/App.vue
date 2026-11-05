@@ -1204,6 +1204,7 @@ import { withPageView, type PageViewSettings } from './wasm/page-view'
 import { pasteSource, peekClipboard, rememberedBlock } from './wasm/block-clipboard'
 import { PLOT_CHIPS_SCRIPT, plotChipHost } from './wasm/plot-chips'
 import { handlePanelEvent } from './wasm/python-panels'
+import { recordFigureImage } from './wasm/python-plotly'
 const MdBlockEditor = defineAsyncComponent(() => import('./editor/MdBlockEditor.vue'))
 interface MdEditState { x: number; y: number; w: number; frameId: string; groupId: string; block: MdBlock; markdown: string; error: string }
 const mdEdit = ref<MdEditState | null>(null)
@@ -2010,6 +2011,11 @@ function onPreviewWindowMessage(e: MessageEvent): void {
   }
   if (data.type === 'plotChip') {
     void plotChipHost(data).catch(() => {})
+    return
+  }
+  if (data.type === 'plotlyImage') {
+    // A Python chart was drawn in this frame: its still image is what print, Word and Excel carry (python-plotly.ts).
+    recordFigureImage(data)
     return
   }
   if (data.type === 'panelEvent') {
