@@ -511,7 +511,7 @@
    "Resources",
    "@aria-label=Document",
    "@aria-label=Import",
-   "@title=Bring in a worksheet from another calculation tool (.xmcd or .mcdx); it opens as a new worksheet",
+   "@title=Bring in a worksheet from another calculation tool (.xmcd or .mcdx); it opens as a new worksheet. The file is converted in your browser and never uploaded",
    "Import worksheet",
    "@title=Bring cells from an Excel or CSV file into the sheet as inputs, values and tables. Values are copied; nothing is recalculated or linked",
    "Import spreadsheet",
@@ -987,7 +987,7 @@
    "Add library",
    "@placeholder=https://cdn.jsdelivr.net/npm/name@1.2.3/dist/name.min.js",
    "Fetch",
-   "CivilKit Calcs v26.10.21"
+   "CivilKit Calcs v26.10.22"
   ],
   "settingsHead": [
    "Settings",

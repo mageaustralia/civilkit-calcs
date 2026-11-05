@@ -561,7 +561,7 @@ export const RIBBON: RibbonTab[] = [
     {
         id: 'document', label: 'Document', groups: [
             { name: 'Import', buttons: [
-                action('d-import', 'Import worksheet', 'import', 'Bring in a worksheet from another calculation tool (.xmcd or .mcdx); it opens as a new worksheet', 'importWorksheet'),
+                action('d-import', 'Import worksheet', 'import', 'Bring in a worksheet from another calculation tool (.xmcd or .mcdx); it opens as a new worksheet. The file is converted in your browser and never uploaded', 'importWorksheet'),
                 action('d-importsheet', 'Import spreadsheet', 'sheetimport', 'Bring cells from an Excel or CSV file into the sheet as inputs, values and tables. Values are copied; nothing is recalculated or linked', 'importSpreadsheet'),
             ] },
             { name: 'Tidy', buttons: [
