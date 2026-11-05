@@ -4115,9 +4115,10 @@ cached. Without a connection the chart's place shows a note: "Interactive charts
 to load Plotly...". The Python solve and the rest of the sheet still run. The charts follow the
 page's light or dark theme.
 
-Print, PDF, Word and Excel cannot run Plotly.js, so the chart is not carried: a paragraph
-stands in its place ("Interactive chart: TITLE. It is drawn in the browser and is not carried by
-print or export."). If the printout needs the picture, draw a static copy with matplotlib as well.
+Print, PDF, Word and Excel cannot run Plotly.js, so they carry a still picture of the chart instead: the page makes it when the
+chart is drawn (light colours, without menus and sliders, at the view you left it in). A chart that was never drawn in this session
+(no connection) has no picture, and a paragraph stands in its place ("Interactive chart: TITLE. It is drawn in the browser and is
+not carried by print or export."). Let the chart draw before you print or export.
 
 ## 3D plots
 
@@ -6042,7 +6043,7 @@ The printed page carries the browser's own header and footer in place of title, 
 numbers; turn "Headers and footers" off in the print dialog if you do not want them.
 
 The printed page is the report: the buttons under plots are not printed, and an interactive chart is
-replaced by a note.
+printed as a still picture of it (draw the chart on the page first; one that was never drawn is replaced by a note).
 
 ## HTML
 

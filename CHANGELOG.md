@@ -11,6 +11,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Fixed
+- **A Python chart prints and exports as a picture** - A Plotly chart from a Python block, such as the 3D plate deflection surface, was left out of Print PDF, Word and Excel and replaced by a note. The page now keeps a still picture of each chart it draws (light colours, without menus and sliders, at the view you left it in), and print, Word and Excel carry it. A chart that was never drawn still shows the note.
+
 ## [26.10.22] - 2026-11-06
 
 ### Changed

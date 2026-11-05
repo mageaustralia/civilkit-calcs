@@ -110,7 +110,7 @@ The printed page carries the browser's own header and footer in place of title, 
 numbers; turn "Headers and footers" off in the print dialog if you do not want them.
 
 The printed page is the report: the buttons under plots are not printed, and an interactive chart is
-replaced by a note.
+printed as a still picture of it (draw the chart on the page first; one that was never drawn is replaced by a note).
 
 ## HTML
 
