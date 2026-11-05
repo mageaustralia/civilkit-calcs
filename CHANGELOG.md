@@ -11,6 +11,8 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+## [26.10.22] - 2026-11-06
+
 ### Changed
 - **Ribbon icons redrawn** - The whole ribbon icon set is redrawn in the CivilKit icon style shared with CAD: one grid and stroke weight, rounded ends, an accent colour per icon, and light and dark palettes. Icon names are unchanged, and decorative icons are hidden from screen readers (buttons keep their labels).
 - **Import worksheet says the file is not uploaded** - The button's tooltip now states that a `.xmcd` or `.mcdx` file is converted in the browser and never uploaded; the README opens with a short note for people coming from other calculation tools.
