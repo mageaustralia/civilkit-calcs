@@ -437,11 +437,6 @@ impl MathParser {
             '\u{2228}' => BinOp::Or,
             '\u{2295}' => BinOp::Xor,
             '\u{29BC}' => BinOp::Rem,
-            '\u{2220}' => {
-                return Err(MathParserException::unexpected(
-                    "Value cannot be null. (Parameter 'method')",
-                ))
-            }
             _ => return Ok(Expr::CalcOp(index, Box::new(a), Box::new(b))),
         };
         Ok(Expr::Bin(op, Box::new(a), Box::new(b)))

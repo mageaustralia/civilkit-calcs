@@ -409,7 +409,7 @@ fn Phase_1() {
 #[test]
 fn Phase_Minus_1() {
     let mut result = TestCalc::new(ms()).Run("phase(-1)");
-    assert_equal_tol(Math::PI, result, Tol);
+    assert_equal_tol(180.0, result, Tol);
 }
 #[test]
 fn Min() {

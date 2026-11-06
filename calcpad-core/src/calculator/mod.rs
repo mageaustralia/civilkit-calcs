@@ -194,7 +194,7 @@ impl Calculator {
 
     pub fn evaluate_operator(&self, index: i64, a: &Value, b: &Value) -> CResult<Value> {
         if self.is_complex {
-            complex_calculator::evaluate_operator(index, &a.as_complex(), &b.as_complex())
+            complex_calculator::evaluate_operator(self, index, &a.as_complex(), &b.as_complex())
         } else if let (Value::Real(x), Value::Real(y)) = (a, b) {
             // The common case, without copying the operands (as_real clones a real value).
             real_calculator::evaluate_operator(index, x, y)
@@ -636,6 +636,7 @@ impl<'a> RealOp<'a> {
         if self.calc.is_complex {
             // ComplexCalculator.GetOperator and GetFunction2 both index _operators.
             let r = complex_calculator::evaluate_operator(
+                self.calc,
                 self.index,
                 &ComplexValue::from_real(a),
                 &ComplexValue::from_real(b),

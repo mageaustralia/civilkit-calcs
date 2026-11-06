@@ -459,7 +459,7 @@ fn Phase() {
         calcpad_core::netfmt::double_to_string(_sqrt3())
     ));
     let mut im = calc.Imaginary();
-    assert_equal_tol(Math::PI / 6.0, re, Tol);
+    assert_equal_tol(30.0, re, 1e-12);
     assert_equal_tol(0.0, im, Tol);
 }
 #[test]

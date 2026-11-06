@@ -82,7 +82,7 @@ pub fn evaluate_function(calc: &Calculator, index: i64, a: &RealValue) -> CResul
         36 => RealValue::new(a.d.trunc(), a.units.clone()),
         37 => a.clone(),
         38 => RealValue::ZERO,
-        39 => RealValue::num(if a.d >= 0.0 { 0.0 } else { std::f64::consts::PI }),
+        39 => calc.to_angle_units_real(if a.d >= 0.0 { 0.0 } else { std::f64::consts::PI })?,
         40 => a.clone(),
         41 => RealValue::new(crate::base_types::complex::Complex::real_random(a.d), a.units.clone()),
         42 => fact_r(a)?,

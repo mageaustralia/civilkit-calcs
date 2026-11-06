@@ -1149,8 +1149,8 @@ pub fn evaluate_function(f: RealFn, a: &Vector) -> CResult<Vector> {
         }
     }
     if nb > na {
-        let zero = RealValue::new(0.0, ua.clone());
-        let d = f.apply(&zero)?.d * Unit::convert(&ub, &zero.units, ',')?;
+        let fz = f.apply(&RealValue::new(0.0, ua.clone()))?;
+        let d = fz.d * Unit::convert(&ub, &fz.units, ',')?;
         if d != 0.0 {
             b.fill_range(d, na, nb - na);
         }

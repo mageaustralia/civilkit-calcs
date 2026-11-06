@@ -11,7 +11,7 @@ fn rc(v: RealValue) -> ComplexValue {
     ComplexValue::from_real(&v)
 }
 
-pub fn evaluate_operator(index: i64, a: &ComplexValue, b: &ComplexValue) -> CResult<Value> {
+pub fn evaluate_operator(calc: &Calculator, index: i64, a: &ComplexValue, b: &ComplexValue) -> CResult<Value> {
     match index {
         0 => cv(pow(a, b)?),
         1 => cv(ComplexValue::div(a, b)),
@@ -29,7 +29,7 @@ pub fn evaluate_operator(index: i64, a: &ComplexValue, b: &ComplexValue) -> CRes
         13 => cv(rc(ComplexValue::and_op(a, b))),
         14 => cv(rc(ComplexValue::or_op(a, b))),
         15 => cv(rc(ComplexValue::xor_op(a, b))),
-        16 => cv(phasor(a, b)?),
+        16 => cv(phasor(calc, a, b)?),
         _ => Err(index_out_of_range()),
     }
 }
@@ -175,7 +175,7 @@ pub fn evaluate_function(calc: &Calculator, index: i64, a: &ComplexValue) -> CRe
         36 => ComplexValue::from_c(Complex::truncate(c), a.units.clone()),
         37 => ComplexValue::new(a.a, 0.0, a.units.clone()),
         38 => ComplexValue::new(a.b, 0.0, a.units.clone()),
-        39 => ComplexValue::num(c.phase()),
+        39 => to_angle_units(calc, Complex::real(c.phase()))?,
         40 => conjugate(a),
         41 => ComplexValue::from_c(Complex::random(c), a.units.clone()),
         42 => fact_c(a)?,
@@ -269,13 +269,9 @@ pub fn conjugate(value: &ComplexValue) -> ComplexValue {
     ComplexValue::from_c(value.complex().conjugate(), value.units.clone())
 }
 
-pub fn phasor(a: &ComplexValue, b: &ComplexValue) -> CResult<ComplexValue> {
+pub fn phasor(calc: &Calculator, a: &ComplexValue, b: &ComplexValue) -> CResult<ComplexValue> {
     check_trig_function_units("phasor", &b.units)?;
-    let d = match &b.units {
-        None => 1.0,
-        Some(u) => u.convert_to(&*Unit::get("rad", false)?),
-    };
-    let phi = b.a * d;
+    let phi = from_angle_units(calc, b)?.re();
     let c = (Complex::real(phi.cos()) + Complex::IMAGINARY_ONE * phi.sin()) * a.a;
     Ok(ComplexValue::with_flag(c, a.units.clone(), a.is_unit))
 }
