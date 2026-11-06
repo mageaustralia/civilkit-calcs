@@ -11,6 +11,8 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+## [26.11.1] - 2026-11-06
+
 ### Fixed
 - **Nested and duplicate `#def`** - A bad `#def` inside a `#def` block now keeps its lines inside the outer macro instead of passing them through as normal code, and a duplicate macro name is reported on its own `#def` line.
 - **Errors in `#UI`** - Invalid JSON in a `#UI` line reports one error and is no longer also parsed as math, and an oversized `#UI` datagrid reports its error without stopping the run.
