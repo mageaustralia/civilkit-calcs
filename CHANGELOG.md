@@ -11,6 +11,9 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 
 ## [Unreleased]
 
+### Fixed
+- **Green and orange ribbon icons on the dark theme** - The Checkbox, Input form, Dropdown, Entry and Warning icons were filled as brightly as their check or exclamation mark, so the mark all but disappeared. On the dark theme they now have a dark tinted fill under a bright outline, like the light theme's pale fill under a deep one.
+
 ## [26.10.23] - 2026-11-06
 
 ### Fixed

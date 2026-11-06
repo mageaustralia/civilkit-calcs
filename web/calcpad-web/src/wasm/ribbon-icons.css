@@ -3,9 +3,11 @@
 .rb{--sc-ink:#1f2021;--sc-guide:#8093a4;--sc-gap:var(--ck-raised,#1b1f27);
   --sc-p1:#8da3c3;--sc-p2:#6d81a2;--sc-p3:#546782;
   --sc-a1:#4ea1dc;--sc-a2:#3287d1;--sc-a3:#4da3ff}
-.rb svg[data-sc="sketch"]{--sc-a1:#7ab792;--sc-a2:#3a965e;--sc-a3:#3fb950}
-.rb svg[data-sc="surface"]{--sc-a1:#cc9362;--sc-a2:#bd750d;--sc-a3:#d4a72c}
-.rb svg[data-sc="constraint"]{--sc-a1:#b98c88;--sc-a2:#c27267;--sc-a3:#f85149}
+/* On the dark theme the tint (a1) is a dark shade of the accent and the stroke (a3) the bright one, so a check mark or an
+   exclamation mark drawn in a3 stands out from its fill, as the pale tint and deep stroke do on the light theme. */
+.rb svg[data-sc="sketch"]{--sc-a1:#25483a;--sc-a2:#3a965e;--sc-a3:#3fb950}
+.rb svg[data-sc="surface"]{--sc-a1:#4d3a22;--sc-a2:#bd750d;--sc-a3:#d4a72c}
+.rb svg[data-sc="constraint"]{--sc-a1:#53302d;--sc-a2:#c27267;--sc-a3:#f85149}
 :root[data-theme="light"] .rb{--sc-ink:#34465b;--sc-guide:#6f879c;--sc-p1:#e2e8ef;--sc-p2:#b8c3cf;--sc-p3:#8e9faf;--sc-a1:#b9ddf8;--sc-a2:#328bd3;--sc-a3:#236ead}
 :root[data-theme="light"] .rb svg[data-sc="sketch"]{--sc-a1:#bfe2cc;--sc-a2:#439a65;--sc-a3:#057f45}
 :root[data-theme="light"] .rb svg[data-sc="surface"]{--sc-a1:#f1d2af;--sc-a2:#c06f00;--sc-a3:#a45000}
