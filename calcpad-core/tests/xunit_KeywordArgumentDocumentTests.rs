@@ -89,3 +89,16 @@ fn CallRendersAsWritten() {
     assert_contains("1; <var>z</var> = 10", &html);
     assert_does_not_contain("1; 2; 10", &html);
 }
+#[test]
+fn DoubleEquals_IsNotAKeywordArgument() {
+    for source in [
+        "f(a; b) = a + b\na = 1\ny = f(a == 1; 2)",
+        "f(x; b) = x + b\na = 1\ny = f(a == 1; 2)",
+    ] {
+        let mut parser = calcpad_core::parsers::expression_parser::ExpressionParser::new();
+        parser.debug = true;
+        parser.parse(source, true);
+        assert_eq!(1, parser.errors_list.len(), "{source:?}: {:?}", parser.errors_list);
+        assert!(!parser.errors_list[0].message.to_lowercase().contains("argument"));
+    }
+}

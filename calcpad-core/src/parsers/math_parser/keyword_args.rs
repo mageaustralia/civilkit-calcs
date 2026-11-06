@@ -34,7 +34,11 @@ fn is_keyword_argument(tokens: &[TokenRef], start: usize) -> bool {
     }
     let t = tokens[start].borrow();
     let n = tokens[start + 1].borrow();
-    (t.is_variable_token() || t.ttype == TokenTypes::Unit) && n.ttype == TokenTypes::Operator && n.content == "="
+    (t.is_variable_token() || t.ttype == TokenTypes::Unit)
+        && n.ttype == TokenTypes::Operator
+        && n.content == "="
+        // `==` is a comparison, not a keyword argument
+        && !(start + 2 < tokens.len() && tokens[start + 2].borrow().content == "=")
 }
 
 fn index_of_closing_bracket(tokens: &[TokenRef], open: usize) -> Option<usize> {
