@@ -98,7 +98,7 @@ pub const Error_writing_a_png_file_to_0: &str = "Error writing a png file to \"{
 pub const Error_writing_a_svg_file_to_0: &str = "Error writing a svg file to \"{0}\".";
 pub const Error_converting_png_to_Base64: &str = "Error converting png to Base64.";
 pub const Inconsistent_units_0_1_2: &str = "Inconsistent units: \"{0} {1} {2}\".";
-pub const Units_cannon_be_raised_to_complex_power: &str = "Units cannon be raised to complex power.";
+pub const Units_cannot_be_raised_to_complex_power: &str = "Units cannot be raised to complex power.";
 pub const Cannot_evaluate_remainder_0_1_The_denominator_must_be_unitless: &str =
     "Cannot evaluate remainder: \"{0}  ⦼  {1}\". The denominator must be unitless.";
 pub const if_block_not_closed_Missing_end_if: &str = "Error: \"#if\" block not closed. Missing \"#end if\".";

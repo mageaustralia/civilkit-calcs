@@ -182,7 +182,7 @@
   "msg.Undefined_variable_or_units_0": "Undefined variable or units: \"{0}\".",
   "msg.Unexpected_delimiter": "Unexpected delimiter ';'.",
   "msg.Unit_0_does_not_exist": "Unit '{0}' does not exist.",
-  "msg.Units_cannon_be_raised_to_complex_power": "Units cannon be raised to complex power.",
+  "msg.Units_cannot_be_raised_to_complex_power": "Units cannot be raised to complex power.",
   "msg.Unknown_keyword_argument_0": "Unknown keyword argument: \"{0}\".",
   "msg.Variable_0_does_not_exist": "Variable '{0}' does not exist.",
   "msg.Vector_size_cannot_exceed_0": "Vector size cannot exceed {0}.",

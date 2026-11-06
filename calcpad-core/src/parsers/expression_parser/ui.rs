@@ -592,7 +592,7 @@ impl ExpressionParser {
                 Ok(d) => properties = d.unwrap_or_default(),
                 Err(_) => {
                     self.append_error(line, &fmt(messages::Invalid_JSON_in_0, &["#UI"]));
-                    self.ui.ui_skip_chars = skip_spaces(&s, UI_KEYWORD_LEN);
+                    self.ui.ui_skip_chars = skip_spaces(&s, brace_end + 1);
                     return Ok(KeywordResult::None);
                 }
             }
@@ -644,7 +644,11 @@ impl ExpressionParser {
                 }
             }
             if ty == "datagrid" {
-                check_grid_size(rows, columns)?;
+                if let Err(ex) = check_grid_size(rows, columns) {
+                    self.append_error(line, &ex.message);
+                    self.ui.line_ui_controls = None;
+                    return Ok(KeywordResult::None);
+                }
             }
             let (declaration_key, key) = self.get_ui_key(&name);
             controls.push(UiMeta {
@@ -1133,7 +1137,7 @@ impl ExpressionParser {
                     let h = self.err_html(&ex.message);
                     self.sb.push_str(&h);
                     let line = self.cur();
-                    self.record_error(line, &ex.message, self.debug);
+                    self.record_error(line, &ex.message, self.debug, 0);
                 }
             }
         }

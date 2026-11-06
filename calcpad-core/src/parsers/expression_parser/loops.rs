@@ -29,6 +29,8 @@ pub struct Loop {
     iteration: i32,
     pub id: usize,
     pub initial_count: i32,
+    /// Source line of the loop keyword, 0 when unknown
+    pub source_line: i32,
     pub kind: LoopKind,
 }
 
@@ -46,6 +48,7 @@ impl Loop {
             iteration: it,
             id,
             initial_count: it,
+            source_line: 0,
             kind,
         }
     }
@@ -79,6 +82,10 @@ impl Loop {
                 counter,
             },
         ))
+    }
+
+    pub fn start_line(&self) -> usize {
+        self.start_line
     }
 
     /// 1 based pass number. `iteration` counts down, so this counts up.

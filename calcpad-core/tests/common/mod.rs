@@ -382,7 +382,7 @@ pub fn new_expression_parser(props: &[(&str, bool)]) -> ExpressionParser {
     p
 }
 
-struct NoFiles;
+pub struct NoFiles;
 
 impl calcpad_core::parsers::macro_parser::FileProvider for NoFiles {
     fn full_path(&self, path: &str, _base_dir: Option<&str>) -> String {
@@ -403,7 +403,7 @@ impl calcpad_core::parsers::macro_parser::FileProvider for NoFiles {
     }
 }
 
-static NO_FILES: NoFiles = NoFiles;
+pub static NO_FILES: NoFiles = NoFiles;
 
 /// `new MacroParser()`; `Parse(source, out expanded, null, 0, false)` returns (hasErrors, expanded).
 pub struct TestMacroParser;

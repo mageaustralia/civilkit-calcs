@@ -18,6 +18,9 @@ enum Types {
 struct Item {
     value: bool,
     ttype: Types,
+    /// Output and source line of the `#if` or `#while` that opened the block
+    line: i32,
+    source_line: i32,
 }
 
 /// `Keyword.End_If - Keyword.If`
@@ -38,13 +41,17 @@ impl Condition {
         let mut conditions = vec![
             Item {
                 value: false,
-                ttype: Types::None
+                ttype: Types::None,
+                line: -1,
+                source_line: 0,
             };
             20
         ];
         conditions[0] = Item {
             value: true,
             ttype: Types::None,
+            line: -1,
+            source_line: 0,
         };
         Condition {
             count: 0,
@@ -65,6 +72,15 @@ impl Condition {
         self.conditions[self.count].value
     }
 
+    /// Where the innermost unclosed `#if` started, as (output line, source line).
+    pub fn open_if(&self) -> Option<(i32, i32)> {
+        (1..=self.id.min(self.conditions.len() - 1))
+            .rev()
+            .map(|i| &self.conditions[i])
+            .find(|c| c.ttype != Types::While)
+            .map(|c| (c.line, c.source_line))
+    }
+
     pub fn keyword_length(&self) -> usize {
         self.keyword_length
     }
@@ -80,12 +96,14 @@ impl Condition {
         Ok(())
     }
 
-    fn add(&mut self, value: bool) -> CResult<()> {
+    fn add(&mut self, value: bool, line: i32, source_line: i32) -> CResult<()> {
         self.id += 1;
         self.ensure(self.id)?;
         self.conditions[self.id] = Item {
             value,
             ttype: Types::If,
+            line,
+            source_line,
         };
         if self.is_satisfied() {
             self.count += 1;
@@ -109,11 +127,17 @@ impl Condition {
 
     fn change(&mut self, value: bool, ttype: Types) {
         if self.id < self.conditions.len() {
-            self.conditions[self.id] = Item { value, ttype };
+            let Item { line, source_line, .. } = self.conditions[self.id];
+            self.conditions[self.id] = Item {
+                value,
+                ttype,
+                line,
+                source_line,
+            };
         }
     }
 
-    pub fn set_condition(&mut self, index: i32) -> CResult<()> {
+    pub fn set_condition(&mut self, index: i32, line: i32, source_line: i32) -> CResult<()> {
         if index < 0 || index >= 5 {
             if self.keyword_length > 0 {
                 self.keyword_length = 0;
@@ -146,11 +170,16 @@ impl Condition {
             }
         }
         match ttype {
-            Types::If => self.add(true)?,
+            Types::If => self.add(true, line, source_line)?,
             Types::While => {
                 self.id += 1;
                 self.ensure(self.id)?;
-                self.conditions[self.id] = Item { value: true, ttype };
+                self.conditions[self.id] = Item {
+                    value: true,
+                    ttype,
+                    line,
+                    source_line,
+                };
                 self.count += 1;
             }
             Types::ElseIf => self.change(true, Types::If),

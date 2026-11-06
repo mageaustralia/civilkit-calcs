@@ -308,7 +308,7 @@ impl<'a> MacroParser<'a> {
                 {
                     continue;
                 }
-                if st.macro_def_count == 1 {
+                if st.macro_def_count > 0 {
                     st.macro_builder.push_str(source_line);
                     st.macro_builder.push('\n');
                     continue;
@@ -472,6 +472,11 @@ impl<'a> MacroParser<'a> {
                 }
                 i += 1;
             }
+            // Reported here, on the #def line, rather than when the definition ends
+            if self.macros.contains_key(&st.macro_name) {
+                let msg = fmt(messages::Duplicate_macro_name_0, &[&st.macro_name]);
+                self.append_error(st, line_content, &msg, add_line_numbers);
+            }
             c = eat_space(&chars, &mut i);
             if c == '(' {
                 let mut params: Vec<String> = Vec::new();
@@ -548,7 +553,7 @@ impl<'a> MacroParser<'a> {
                 let contents: String = chars[i.min(len)..].iter().collect();
                 let m = Macro::new(Some(contents), st.macro_parameters.clone(), st.macro_defaults.clone())?;
                 let name = st.macro_name.clone();
-                self.add_macro(st, line_content, &name, m, add_line_numbers);
+                self.macros.entry(name).or_insert(m);
                 st.macro_name = String::new();
                 st.macro_defaults = None;
             } else {
@@ -587,7 +592,7 @@ impl<'a> MacroParser<'a> {
             let content = st.macro_builder.clone();
             let m = Macro::new(Some(content), st.macro_parameters.clone(), st.macro_defaults.clone())?;
             let name = st.macro_name.clone();
-            self.add_macro(st, line_content, &name, m, add_line_numbers);
+            self.macros.entry(name).or_insert(m);
             st.macro_name = String::new();
             st.macro_defaults = None;
             st.macro_builder.clear();
@@ -631,15 +636,6 @@ impl<'a> MacroParser<'a> {
             message: error_message.to_string(),
             source: crate::calcpad_error::CalcpadErrorSource::Macro,
         });
-    }
-
-    fn add_macro(&mut self, st: &mut ParseState, line_content: &str, name: &str, m: Macro, add_line_numbers: bool) {
-        if self.macros.contains_key(name) {
-            let msg = fmt(messages::Duplicate_macro_name_0, &[name]);
-            self.append_error(st, line_content, &msg, add_line_numbers);
-        } else {
-            self.macros.insert(name.to_string(), m);
-        }
     }
 
     fn apply_macros(&self, line_content: &str, currently_expanding: Option<&mut HashSet<String>>) -> CResult<String> {

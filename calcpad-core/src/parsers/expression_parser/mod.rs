@@ -8,7 +8,7 @@ pub mod loops;
 mod ui;
 
 use std::cell::RefCell;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 
 use crate::base_types::complex::Complex;
@@ -30,6 +30,8 @@ use condition::{Condition, REMOVE_CONDITION_KEYWORD};
 use loops::{Loop, LoopKind, MAX_COUNT};
 
 const MAX_HTML_LINES: i32 = 200000;
+const MAX_ERRORS: i32 = 40;
+const MAX_ERROR_OCCURRENCES: i32 = 1000;
 // Markdig is super-linear on pathological input, so a block is capped by size as well as by line count.
 const MAX_MARKDOWN_CHARS: usize = 4_000_000;
 
@@ -319,6 +321,8 @@ pub struct ExpressionParser {
     /// The first out of scope feature hit while parsing, if any.
     pub out_of_scope: Option<String>,
     error_count: i32,
+    error_occurrences: i32,
+    error_keys: HashSet<(usize, String)>,
     is_val: i32,
     start_line: usize,
     current_line: isize,
@@ -389,6 +393,8 @@ impl ExpressionParser {
             captured_plots: Vec::new(),
             out_of_scope: None,
             error_count: 0,
+            error_occurrences: 0,
+            error_keys: HashSet::new(),
             is_val: 0,
             start_line: 0,
             current_line: -1,
@@ -470,21 +476,29 @@ impl ExpressionParser {
     }
 
     /// `RecordError(line, message, enabled)`
-    fn record_error(&mut self, line: usize, message: &str, enabled: bool) {
+    /// False when this line already reported the same error, e.g. on an earlier loop pass.
+    fn record_error(&mut self, line: usize, message: &str, enabled: bool, source_line: i32) -> bool {
+        if !self.error_keys.insert((line, message.to_string())) {
+            return false;
+        }
         if !enabled {
-            return;
+            return true;
         }
         if self.is_visible {
             self.errors.push_back(line);
         }
-        let pl = self.parser.as_ref().map(|p| p.line.get()).unwrap_or(0);
-        let source_line = if pl > 0 { pl } else { line as i32 + 1 };
+        let mut source_line = source_line;
+        if source_line <= 0 {
+            let pl = self.parser.as_ref().map(|p| p.line.get()).unwrap_or(0);
+            source_line = if pl > 0 { pl } else { line as i32 + 1 };
+        }
         self.errors_list.push(CalcpadError {
             source_line,
             output_line: line as i32 + 1,
             message: message.to_string(),
             source: CalcpadErrorSource::Expression,
         });
+        true
     }
 
     /// `AppendErrors()`
@@ -560,7 +574,7 @@ impl ExpressionParser {
                     self.sb.push_str(&h);
                 }
                 let line = self.cur();
-                self.record_error(line, &msg, self.debug);
+                self.record_error(line, &msg, self.debug, 0);
             } else {
                 let t = text_span.clone();
                 self.append_error(&t, &ex.message);
@@ -597,7 +611,7 @@ impl ExpressionParser {
                         cl as i32 + 1
                     };
                     self.p().line.set(line);
-                    self.condition.set_condition(-1)?;
+                    self.condition.set_condition(-1, -1, 0)?;
                     self.p().is_calculation.set(self.is_val != -1);
                     self.parse_line(current_line_cache.tokens.clone().unwrap(), Keyword::None)?;
                 }
@@ -722,25 +736,24 @@ impl ExpressionParser {
         }
         self.flush_markdown();
         if self.current_line as usize == line_count && (self.calculate || !self.is_paused()) {
-            let if_not_closed = self.condition.id > 0 && !self.condition.is_loop();
-            let loop_not_closed = !self.loops.is_empty();
-            if if_not_closed {
-                let h = self.err_html(messages::if_block_not_closed_Missing_end_if);
-                self.sb.push_str(&h);
+            if let Some(opening) = self.condition.open_if() {
+                self.report_unclosed(messages::if_block_not_closed_Missing_end_if, opening);
             }
-            if loop_not_closed {
-                let h = self.err_html(messages::Iteration_block_not_closed_Missing_loop);
-                self.sb.push_str(&h);
+            if let Some(lp) = self.loops.last() {
+                let opening = (lp.start_line() as i32, lp.source_line);
+                self.report_unclosed(messages::Iteration_block_not_closed_Missing_loop, opening);
             }
-            let msg = if if_not_closed {
-                messages::if_block_not_closed_Missing_end_if
-            } else {
-                messages::Iteration_block_not_closed_Missing_loop
-            };
-            let line = self.cur();
-            self.record_error(line, msg, self.debug && (if_not_closed || loop_not_closed));
         }
         Ok(())
+    }
+
+    /// An unclosed block is reported on the line that opened it
+    fn report_unclosed(&mut self, message: &str, opening: (i32, i32)) {
+        let line = opening.0.max(0) as usize;
+        let h = self.err_html_at(message, line);
+        self.sb.push_str(&h);
+        let debug = self.debug;
+        self.record_error(line, message, debug, opening.1);
     }
 
     fn parse_plot(&mut self, s: &str) -> CResult<bool> {
@@ -781,10 +794,12 @@ impl ExpressionParser {
 
     fn parse_condition(&mut self, s: &str, keyword: Keyword) -> CResult<bool> {
         if self.is_paused() && !self.calculate {
-            self.condition.set_condition(-1)?;
+            self.condition.set_condition(-1, -1, 0)?;
             return Ok(keyword == Keyword::None);
         }
-        self.condition.set_condition(keyword as i32 - Keyword::If as i32)?;
+        let (line, source_line) = (self.current_line as i32, self.p().line.get());
+        self.condition
+            .set_condition(keyword as i32 - Keyword::If as i32, line, source_line)?;
         if self.is_enabled() {
             let s_len = s.chars().count();
             if self.condition.keyword_length() == s_len {
@@ -934,6 +949,8 @@ impl ExpressionParser {
     fn initialize(&mut self, calculate: bool, line_count: usize) {
         self.html_lines = 0;
         self.error_count = 0;
+        self.error_occurrences = 0;
+        self.error_keys.clear();
         self.calculate = calculate;
         self.errors.clear();
         self.err_index = 0;
@@ -1057,9 +1074,11 @@ impl ExpressionParser {
                         }
                     }
                     let line = self.cur();
-                    self.record_error(line, &ex.message, self.debug);
-                    self.error_count += 1;
-                    if self.error_count == 40 {
+                    if self.record_error(line, &ex.message, self.debug, 0) {
+                        self.error_count += 1;
+                    }
+                    self.error_occurrences += 1;
+                    if self.error_count == MAX_ERRORS || self.error_occurrences == MAX_ERROR_OCCURRENCES {
                         return Err(MathParserException::new(messages::Too_many_errors));
                     }
                 }
@@ -1167,7 +1186,7 @@ impl ExpressionParser {
             self.sb.push_str(&h);
         }
         let line = self.cur();
-        self.record_error(line, text, self.debug);
+        self.record_error(line, text, self.debug, 0);
     }
 
     fn line_html(line: usize) -> String {
@@ -1188,6 +1207,10 @@ impl ExpressionParser {
 
     fn err_html(&mut self, text: &str) -> String {
         let line = self.cur();
+        self.err_html_at(text, line)
+    }
+
+    fn err_html_at(&mut self, text: &str, line: usize) -> String {
         let id = self.err_id(line);
         format!("<p class=\"err\"{}>{}</p>", id, text)
     }
@@ -1639,7 +1662,8 @@ impl ExpressionParser {
             } else if validator::is_valid_format_string(&expr) {
                 self.math_settings.borrow_mut().format_string = Some(expr);
             } else {
-                self.append_error(&format!("#format {}", expr), messages::Invalid_format_string_0);
+                let msg = fmt(messages::Invalid_format_string_0, &[&expr]);
+                self.append_error(&format!("#format {}", expr), &msg);
             }
         } else {
             self.math_settings.borrow_mut().format_string = None;
@@ -1680,7 +1704,9 @@ impl ExpressionParser {
                     count = -1.0;
                 }
                 let id = self.condition.id;
-                self.loops.push(Loop::repeat(self.cur(), count, id));
+                let mut lp = Loop::repeat(self.cur(), count, id);
+                lp.source_line = self.p().line.get();
+                self.loops.push(lp);
             }
         } else if self.is_visible {
             let id = self.html_id();
@@ -1774,7 +1800,10 @@ impl ExpressionParser {
                             Ok(Some(lp))
                         })();
                         match r {
-                            Ok(Some(lp)) => self.loops.push(lp),
+                            Ok(Some(mut lp)) => {
+                                lp.source_line = self.p().line.get();
+                                self.loops.push(lp);
+                            }
                             Ok(None) => {
                                 let msg = fmt(
                                     messages::Number_of_iterations_exceeds_the_maximum_0,
@@ -1831,13 +1860,16 @@ impl ExpressionParser {
                 let r = (|| -> CResult<()> {
                     self.p().parse(&condition, true)?;
                     self.p().calculate(true, -1)?;
+                    let (line, source_line) = (self.current_line as i32, self.p().line.get());
                     self.condition
-                        .set_condition(Keyword::While as i32 - Keyword::If as i32)?;
+                        .set_condition(Keyword::While as i32 - Keyword::If as i32, line, source_line)?;
                     let rc = self.p().result_complex();
                     self.condition.check(rc)?;
                     if self.condition.is_satisfied() {
                         let id = self.condition.id;
-                        self.loops.push(Loop::while_loop(self.cur(), expression.clone(), id));
+                        let mut lp = Loop::while_loop(self.cur(), expression.clone(), id);
+                        lp.source_line = self.p().line.get();
+                        self.loops.push(lp);
                         if let Some(c) = comment_start {
                             let toks = Rc::new(RefCell::new(self.get_tokens(&expression[c..])));
                             self.parse_tokens(&toks, false)?;
@@ -1882,7 +1914,7 @@ impl ExpressionParser {
                     }
                 }
             } else if self.condition.is_loop() {
-                self.condition.set_condition(REMOVE_CONDITION_KEYWORD)?;
+                self.condition.set_condition(REMOVE_CONDITION_KEYWORD, -1, 0)?;
             }
         } else if self.is_visible {
             let id = self.html_id();
@@ -1915,7 +1947,7 @@ impl ExpressionParser {
                 }
             } else {
                 if remove_while_condition {
-                    self.condition.set_condition(REMOVE_CONDITION_KEYWORD)?;
+                    self.condition.set_condition(REMOVE_CONDITION_KEYWORD, -1, 0)?;
                 }
                 self.loops[n].break_loop();
             }
@@ -1954,7 +1986,7 @@ impl ExpressionParser {
                     let loop_id = self.loops.last().unwrap().id;
                     if self.iterate(false)? {
                         while self.condition.id > loop_id {
-                            self.condition.set_condition(REMOVE_CONDITION_KEYWORD)?;
+                            self.condition.set_condition(REMOVE_CONDITION_KEYWORD, -1, 0)?;
                         }
                     } else {
                         self.loops.last_mut().unwrap().break_loop();

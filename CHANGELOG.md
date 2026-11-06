@@ -12,6 +12,13 @@ under "Crates" at the end, on plain 0.x semver, and are tagged `<crate-name>-v<v
 ## [Unreleased]
 
 ### Fixed
+- **Nested and duplicate `#def`** - A bad `#def` inside a `#def` block now keeps its lines inside the outer macro instead of passing them through as normal code, and a duplicate macro name is reported on its own `#def` line.
+- **Errors in `#UI`** - Invalid JSON in a `#UI` line reports one error and is no longer also parsed as math, and an oversized `#UI` datagrid reports its error without stopping the run.
+- **Errors in loops and the error limit** - Each line now reports a given error once instead of once per loop pass, and the "Too many errors" limit trips at 40 different errors or 1000 occurrences, so a long loop with one bad line no longer stops the run.
+- **Unclosed `#if` and loops** - An unclosed `#if` or loop is reported on the line that opened it, and both are reported when both are open.
+- **Smaller error fixes** - `#format` with a bad format now shows the format instead of `{0}`, the message "Units cannot be raised to complex power" is spelled correctly, and `==` inside a function call is no longer read as a keyword argument.
+- **Angle operator and phase follow the angle units** - The phasor operator reads a unitless angle in the current angle units (`#deg`, `#rad`, `#gra`) instead of always radians, and works inside `$Sum`, `$Repeat` and user functions instead of failing. `phase` also follows the angle units and `ReturnAngleUnits` in real and complex mode.
+- **High precision vectors with implicit zeros** - Inverse trigonometric functions on high precision vectors with implicit zeros take the unit of the zero elements from the function result rather than its argument.
 - **Green and orange ribbon icons on the dark theme** - The Checkbox, Input form, Dropdown, Entry and Warning icons were filled as brightly as their check or exclamation mark, so the mark all but disappeared. On the dark theme they now have a dark tinted fill under a bright outline, like the light theme's pale fill under a deep one.
 
 ## [26.10.23] - 2026-11-06

@@ -628,8 +628,8 @@ pub fn InconsistentUnitsOperation(ua: &str, op: char, ub: &str) -> MathParserExc
 
 pub fn UnitsToComplexPower() -> MathParserException {
     MathParserException::coded(
-        "Units_cannon_be_raised_to_complex_power",
-        messages::Units_cannon_be_raised_to_complex_power,
+        "Units_cannot_be_raised_to_complex_power",
+        messages::Units_cannot_be_raised_to_complex_power,
         &[],
     )
 }
